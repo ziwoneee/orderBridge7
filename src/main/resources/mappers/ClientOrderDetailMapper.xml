@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.itwillbs.mapper.ClientOrderDetailMapper">
+
+  <!-- 수주상세 등록 -->
+  <insert id="insertDetail" parameterType="com.itwillbs.domain.ClientOrderDetailVO">
+    INSERT INTO client_order_detail
+      (cl_order_id, product_id, order_qty, unit_price, detail_memo)
+    VALUES
+      (#{clOrderId}, #{productId}, #{orderQty}, (SELECT unit_price FROM product WHERE product_id = #{productId}), #{detailMemo})
+  </insert>
+
+  <!-- 수주상세 전체조회 (주문ID별) -->
+  <select id="getDetailListByOrderId" parameterType="string" resultType="com.itwillbs.domain.ClientOrderDetailVO">
+    SELECT d.*, p.product_name
+      FROM client_order_detail d
+      LEFT JOIN product p ON d.product_id = p.product_id
+    WHERE d.cl_order_id = #{clOrderId}
+    ORDER BY d.detail_id
+  </select>
+
+</mapper>

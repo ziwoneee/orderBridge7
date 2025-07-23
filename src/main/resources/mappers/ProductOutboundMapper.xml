@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.itwillbs.mapper.ProductOutboundMapper">
+
+  <!-- 1. 출고 등록 -->
+  <insert id="insertOutbound" parameterType="com.itwillbs.domain.ProductOutboundVO">
+    INSERT INTO product_outbound (
+      product_id,
+      lot_no,
+      outbound_qty,
+      outbound_date
+    )
+    VALUES (
+      #{productId},
+      #{lotNo},
+      #{outboundQty},
+      #{outboundDate}
+    )
+  </insert>
+  
+  <!-- 출고내역 -->
+   <select id="searchOutboundList" parameterType="SearchCriteria" resultType="com.itwillbs.domain.ProductOutboundVO">
+  SELECT o.*, p.product_name, c.client_name
+  FROM product_outbound o
+  LEFT JOIN product p ON o.product_id = p.product_id
+  LEFT JOIN client c ON o.client_id = c.client_id
+  <where>
+    <if test="keyword != null and keyword != ''">
+      (
+        p.product_name LIKE CONCAT('%', #{keyword}, '%') OR
+        o.product_id LIKE CONCAT('%', #{keyword}, '%') OR
+        o.lot_no LIKE CONCAT('%', #{keyword}, '%') OR
+        c.client_name LIKE CONCAT('%', #{keyword}, '%')
+      )
+    </if>
+    <if test="startDate != null"> AND DATE(o.outbound_date) &gt;= #{startDate} </if>
+    <if test="endDate != null"> AND DATE(o.outbound_date) &lt;= #{endDate} </if>
+  </where>
+
+  <choose>
+    <when test="sortColumn == 'product_id'">
+      ORDER BY o.product_id ${sortOrder}
+    </when>
+    <when test="sortColumn == 'outbound_date'">
+      ORDER BY o.outbound_date ${sortOrder}
+    </when>
+    <when test="sortColumn == 'outbound_qty'">
+      ORDER BY o.outbound_qty ${sortOrder}
+    </when>
+    <when test="sortColumn == 'lot_no'">
+      ORDER BY o.lot_no ${sortOrder}
+    </when>
+    <when test="sortColumn == 'client_name'">
+      ORDER BY c.client_name ${sortOrder}
+    </when>
+    <otherwise>
+      ORDER BY o.outbound_date DESC
+    </otherwise>
+  </choose>
+
+  LIMIT #{pageStart}, #{perPageNum}
+</select>
+
+
+  <!-- 출고내역 총 개수 (페이징용) -->
+  <select id="countOutboundList" parameterType="SearchCriteria" resultType="int">
+    SELECT COUNT(*)
+    FROM product_outbound o
+    LEFT JOIN product p ON o.product_id = p.product_id
+    LEFT JOIN client c ON o.client_id = c.client_id
+    <where>
+      <if test="keyword != null and keyword != ''">
+        (
+          p.product_name LIKE CONCAT('%', #{keyword}, '%') OR
+          o.product_id LIKE CONCAT('%', #{keyword}, '%') OR
+          o.lot_no LIKE CONCAT('%', #{keyword}, '%') OR
+          c.client_name LIKE CONCAT('%', #{keyword}, '%')
+        )
+      </if>
+      <if test="startDate != null"> AND DATE(o.outbound_date) &gt;= #{startDate} </if>
+      <if test="endDate != null"> AND DATE(o.outbound_date) &lt;= #{endDate} </if>
+    </where>
+  </select>
+
+  
+  
+
+</mapper>

@@ -1,0 +1,22 @@
+package com.itwillbs.domain;
+
+import java.sql.Timestamp;
+
+import lombok.Data;
+
+@Data
+public class SupplierItemVO {
+	
+	private int id;                     // 공급 품목 고유 ID (PK)
+    private String supplier_id;         // 거래처 ID (FK)
+    private String material_id;         // 자재 ID (FK)
+    
+    private double unit_price;          // 단가
+    private String unit;                // 단위 (kg, 박스 등)
+    private String supply_available;    // 공급 가능 여부 (Y/N)
+    private String note;                // 비고
+    
+    private Timestamp created_at;       // 등록일
+    private Timestamp updated_at;       // 수정일
+
+}

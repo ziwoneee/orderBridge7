@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.itwillbs.mapper.ClientMapper">
+
+  <!-- 고객사 목록 검색 (페이징/검색) -->
+  <select id="getClientList" resultType="com.itwillbs.domain.ClientVO" parameterType="com.itwillbs.domain.SearchCriteria">
+    SELECT
+      client_id        AS clientId,
+      client_name      AS clientName,
+      client_type1     AS clientType1,
+      client_type2     AS clientType2,
+      business_number  AS businessNumber,
+      ceo_name         AS ceoName,
+      client_tel       AS clientTel,
+      business_type    AS businessType,
+      business_product AS businessProduct,
+      manager_name     AS managerName,
+      manager_dept     AS managerDept,
+      manager_tel      AS managerTel,
+      manager_email    AS managerEmail,
+      fax_number       AS faxNumber,
+      post_code        AS postCode,
+      address          AS address,
+      address_detail   AS addressDetail,
+      status_code      AS statusCode,
+      created_at       AS createdAt
+    FROM client
+    <where>
+      <if test="keyword != null and keyword != ''">
+        (client_name LIKE CONCAT('%', #{keyword}, '%')
+        OR business_number LIKE CONCAT('%', #{keyword}, '%')
+        OR ceo_name LIKE CONCAT('%', #{keyword}, '%'))
+      </if>
+    </where>
+    ORDER BY ${sortColumn} ${sortOrder}
+    LIMIT #{pageStart}, #{perPageNum}
+  </select>
+
+  <!-- 고객사 목록 페이징 -->
+  <select id="getClientCount" resultType="int" parameterType="com.itwillbs.domain.SearchCriteria">
+    SELECT COUNT(*) FROM client
+    <where>
+      <if test="keyword != null and keyword != ''">
+        (client_name LIKE CONCAT('%', #{keyword}, '%')
+        OR business_number LIKE CONCAT('%', #{keyword}, '%')
+        OR ceo_name LIKE CONCAT('%', #{keyword}, '%'))
+      </if>
+    </where>
+  </select>
+
+  <!-- 신규 고객사 등록 -->
+  <insert id="insertClient" parameterType="com.itwillbs.domain.ClientVO">
+    INSERT INTO client (
+      client_id, client_name, client_type1, client_type2,
+      business_number, ceo_name, client_tel, business_type, business_product,
+      manager_name, manager_dept, manager_tel, manager_email,
+      fax_number, post_code, address, address_detail, status_code, created_at
+    ) VALUES (
+      #{clientId}, #{clientName}, #{clientType1}, #{clientType2},
+      #{businessNumber}, #{ceoName}, #{clientTel}, #{businessType}, #{businessProduct},
+      #{managerName}, #{managerDept}, #{managerTel}, #{managerEmail},
+      #{faxNumber}, #{postCode}, #{address}, #{addressDetail}, #{statusCode}, CURRENT_DATE
+    )
+  </insert>
+
+  <!-- 고객사 상세 조회 -->
+  <select id="selectClientById" parameterType="String" resultType="com.itwillbs.domain.ClientVO">
+    SELECT
+      client_id        AS clientId,
+      client_name      AS clientName,
+      client_type1     AS clientType1,
+      client_type2     AS clientType2,
+      business_number  AS businessNumber,
+      ceo_name         AS ceoName,
+      client_tel       AS clientTel,
+      business_type    AS businessType,
+      business_product AS businessProduct,
+      manager_name     AS managerName,
+      manager_dept     AS managerDept,
+      manager_tel      AS managerTel,
+      manager_email    AS managerEmail,
+      fax_number       AS faxNumber,
+      post_code        AS postCode,
+      address          AS address,
+      address_detail   AS addressDetail,
+      status_code      AS statusCode,
+      created_at       AS createdAt
+    FROM client
+    WHERE client_id = #{clientId}
+  </select>
+
+  <!-- 고객사 목록조회(수주등록용, 드롭다운/자동완성) -->
+  <select id="getAllClients" resultType="com.itwillbs.domain.ClientVO">
+    SELECT
+      client_id        AS clientId,
+      client_name      AS clientName,
+      client_tel       AS clientTel,
+      address          AS address,
+      address_detail   AS addressDetail,
+      manager_name     AS managerName
+    FROM client
+    ORDER BY client_name ASC
+  </select>
+
+</mapper>

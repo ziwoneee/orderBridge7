@@ -1,0 +1,37 @@
+@charset "UTF-8";
+
+/* 테이블 css */
+  /* 테이블 헤더 스타일 오버라이드 */
+  .table-header-dark th {
+	  background-color: #4B49AC;
+	  color: white;
+	  font-weight: 600;
+  }
+  
+  /* 테이블 안 중간 정렬 */
+  table th, table td {
+	  vertical-align: middle !important;   /* 세로 중앙 */
+	  text-align: center;                  /* 가로 중앙 */
+  }
+  
+  
+  /* 테이블 셀 행 높이 줄이기 */
+	.table th, .table td {
+	  padding: 0.6rem 0.75rem !important;
+	  vertical-align: middle !important;
+	  line-height: 1.2 !important;
+	  height: auto !important;
+	}
+  
+  /* 컬럼명(th)만 폰트 크기 크게 */
+  table thead th {
+	  font-size: 0.9rem !important;     /* 기존 .875rem → 0.9rem 정도로 확대 */
+	  font-weight: 700;                 /* 더 굵게 */
+	  background-color: #4b49ac;        /* 기존 배경색 유지 */
+	  color: white;
+	  text-align: center;
+  }
+  
+  
+  
+  

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+ 
+<mapper namespace ="com.itwillbs.mapper.AdminUserMapper">
+
+	<!--  로그인 -->
+    <select id="login" parameterType="com.itwillbs.domain.AdminUserVO"
+            resultType="com.itwillbs.domain.AdminUserVO">
+	    SELECT 
+	      admin_id AS adminId,
+	      password,
+	      name,
+	      phone,
+	      role_id AS roleId,
+	      fail_count AS failCount,
+	      status,
+	      created_at AS createdAt,
+	      updated_at AS updatedAt
+	    FROM admin_user
+	    WHERE admin_id = #{adminId}
+	      AND password = #{password}
+      </select>
+      
+	 <!-- 관리자 로그인용: 아이디로 정보 조회 --> 
+  <select id="findByAdminId" parameterType="String" 
+		  resultType="com.itwillbs.domain.AdminUserVO">
+	SELECT 
+		admin_id AS adminId,
+    	password,
+    	name,
+		phone,
+		role_id AS roleId,
+		fail_count AS failCount,
+		status,
+		created_at AS createdAt,
+		updated_at AS updatedAt
+	FROM admin_user
+	WHERE admin_id = #{adminId}
+  </select>
+	
+	<!--  관리자 등록 -->
+	<insert id="insertAdmin" parameterType="com.itwillbs.domain.AdminUserVO">
+    INSERT INTO admin_user (
+        admin_id,
+        password,
+        name,
+        phone,
+        role_id,
+        fail_count,
+        status,
+        created_at
+    ) VALUES (
+        #{adminId},
+        #{password},
+        #{name},
+        #{phone},
+        #{roleId},
+        #{failCount},
+        #{status},
+        NOW()
+    )
+	</insert>
+	
+	<!-- 비밀번호 틀렸을 때 실패 카운트 증가 -->
+	<update id="increaseFailCount">
+	  UPDATE admin_user
+	  SET fail_count = fail_count + 1
+	  WHERE admin_id = #{adminId}
+	</update>
+	
+	<!-- 실패 5회 이상이면 계정 잠금 -->
+	<update id="lockAccount">
+	  UPDATE admin_user
+	  SET status = 'LOCKED'
+	  WHERE admin_id = #{adminId}
+	</update>
+	
+	<!-- 로그인 성공 시 실패 카운트 초기화 -->
+	<update id="resetFailCount">
+	  UPDATE admin_user
+	  SET fail_count = 0
+	  WHERE admin_id = #{adminId}
+	</update>
+
+
+</mapper>

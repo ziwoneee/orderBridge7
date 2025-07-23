@@ -1,0 +1,122 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
+
+<div class="container-scroller">
+
+  <%@ include file="/WEB-INF/views/main/top.jsp" %>      
+
+  <div class="container-fluid page-body-wrapper">
+
+    <%@ include file="/WEB-INF/views/main/sidebar.jsp" %>
+    
+    <style>
+        .table th, .table td { vertical-align: middle; }
+        .table thead th { background-color: #f5f5f5; }
+        .input-inline { width: 100%; }
+    </style>
+    <script>
+        function showInsertRow() {
+            document.getElementById('insert-row').style.display = '';
+            document.getElementById('insert-btn').style.display = 'none';
+        }
+        function cancelInsert() {
+            document.getElementById('insert-row').style.display = 'none';
+            document.getElementById('insert-btn').style.display = '';
+        }
+        function editRow(bomId) {
+            document.querySelectorAll('.edit-row').forEach(function(tr) { tr.style.display = 'none'; });
+            document.querySelectorAll('.display-row').forEach(function(tr) { tr.style.display = ''; });
+            document.getElementById('display-' + bomId).style.display = 'none';
+            document.getElementById('edit-' + bomId).style.display = '';
+        }
+        function cancelEdit(bomId) {
+            document.getElementById('display-' + bomId).style.display = '';
+            document.getElementById('edit-' + bomId).style.display = 'none';
+        }
+    </script>
+    
+    
+<!-- 헤더, 사이드바,개인설정 끝 -->
+  <div class="main-panel">
+        <div class="content-wrapper">
+            <div class="row">
+            
+            
+                <div class="col-md-12 grid-margin">
+                    <div class="col-12 col-xl-8 mb-4 mb-xl-0">
+              <div class="contentbody"> 
+                <!-- 본문내용 시작 -->
+<div class="container">
+    <h2 class="mb-4">BOM 목록</h2>
+   <button id="insert-btn" type="button" class="btn btn-success mb-2"
+    onclick="location.href='${pageContext.request.contextPath}/master/bom/insert'">신규등록</button>
+
+    <div class="text-center">
+    <table class="table table-bordered table-hover">
+        <thead>
+            <tr>
+                <th>BOM ID</th>
+                <th>제품ID</th>
+                <th>제품명</th>
+                <th>BOM명</th>
+                <th>등록일</th>
+                <th>상태</th>
+                <th>비고</th>
+                <th>관리</th>
+            </tr>
+        </thead>
+        <tbody>
+        
+
+        <!-- BOM 목록 출력 및 인라인 수정 -->
+        <c:forEach var="bom" items="${bomList}">
+    <tr class="display-row"
+        <c:if test="${bom.status eq 'INACTIVE'}"> style="color: #bbb; background: #f9f9f9; text-decoration:line-through;" </c:if>
+        id="display-${bom.bomId}">
+        <td>${bom.bomId}</td>
+        <td>${bom.productId}</td>
+        <td>${bom.productName}</td>
+        <td>${bom.bomName}</td>
+        <td><fmt:formatDate value="${bom.bomDate}" pattern="yyyy-MM-dd"/></td>
+        <td>
+            <span style="font-weight:bold; color:${bom.status eq 'ACTIVE' ? '#28a745' : '#aaa'};">
+                ${bom.status eq 'ACTIVE' ? '활성' : '비활성'}
+            </span>
+        </td>
+        <td>${bom.bomEtc}</td>
+        <td>                   
+            <a href="${pageContext.request.contextPath}/master/bom/detail/${bom.bomId}" class="btn btn-info btn-sm">상세</a>
+        </td>
+    </tr>
+</c:forEach>
+
+        </tbody>
+    </table>
+    </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+		</div>
+        <!-- content-wrapper 끝 -->
+	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
+     </div>
+     <!-- 본문.jsp main-panel ends -->
+  </div>   
+  <!-- container-fluid page-body-wrapper 끝 -->
+</div>
+<!-- container-scroller 끝-->   
+
+
+<script>
+function validateForm() {
+    // 예시: 프론트 중복검사(실제는 서버에서 해야함)
+    // 필요시 구현, 현재는 항상 true 반환
+    return true;
+}
+</script>

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.itwillbs.mapper.ProductInboundMapper">
+
+  <!-- ✅ ResultMap 정의 -->
+  <resultMap id="ProductInboundMap" type="com.itwillbs.domain.ProductInboundVO">
+    <result property="inboundId" column="inbound_id"/>
+    <result property="productId" column="product_id"/>
+    <result property="productName" column="product_name"/>
+    <result property="lotNo" column="lot_no"/>
+    <result property="inboundQty" column="inbound_qty"/>
+    <result property="inboundType" column="inbound_type"/>
+    <result property="remark" column="remark"/>
+    <result property="manager" column="manager"/>
+    <result property="regDate" column="reg_date"/>
+    <result property="createdAt" column="created_at"/>
+  </resultMap>
+
+  <!-- 1. 입고 등록 -->
+  <insert id="insertInbound" parameterType="com.itwillbs.domain.ProductInboundVO">
+    INSERT INTO product_inbound (
+      inbound_id, lot_no, product_id, product_name, inbound_qty,
+      inbound_type, remark, manager, reg_date, created_at
+    ) VALUES (
+      #{inboundId}, #{lotNo}, #{productId}, #{productName}, #{inboundQty},
+      #{inboundType}, #{remark}, #{manager}, #{regDate}, #{createdAt}
+    )
+  </insert>
+
+  <!-- 2. 중복 확인 -->
+  <select id="existsByLotNo" parameterType="String" resultType="boolean">
+    SELECT EXISTS (
+      SELECT 1 FROM product_inbound WHERE lot_no = #{lotNo}
+    )
+  </select>
+
+  <!-- 3. 생산 결과 기반 입고 리스트 -->
+  <select id="selectAllResults" resultType="com.itwillbs.domain.ProductionResultVO">
+    SELECT 
+      result_id,
+      order_id,
+      lot_no,
+      actual_qty,
+      defect_qty,
+      worker_name,
+      started_at,
+      ended_at,
+      created_at
+    FROM production_result
+    ORDER BY created_at DESC
+  </select>
+
+  <!-- ✅ 4. 검색 + 정렬 + 날짜 + 페이징 -->
+  <select id="searchInboundList" parameterType="com.itwillbs.domain.SearchCriteria" resultMap="ProductInboundMap">
+    SELECT 
+      inbound_id,
+      product_id,
+      product_name,
+      lot_no,
+      inbound_qty,
+      inbound_type,
+      remark,
+      manager,
+      reg_date,
+      created_at
+    FROM product_inbound
+    WHERE 1=1
+      <if test="keyword != null and keyword != ''">
+        AND (
+          product_id LIKE CONCAT('%', #{keyword}, '%')
+          OR product_name LIKE CONCAT('%', #{keyword}, '%')
+          OR lot_no LIKE CONCAT('%', #{keyword}, '%')
+        )
+      </if>
+      <if test="startDate != null and startDate != ''">
+        AND DATE(created_at) &gt;= #{startDate}
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND DATE(created_at) &lt;= #{endDate}
+      </if>
+    <choose>
+      <when test="sortColumn == 'created_at'">
+        ORDER BY created_at ${sortOrder}
+      </when>
+      <when test="sortColumn == 'lot_no'">
+        ORDER BY lot_no ${sortOrder}
+      </when>
+      <when test="sortColumn == 'product_name'">
+        ORDER BY product_name ${sortOrder}
+      </when>
+      <otherwise>
+        ORDER BY created_at DESC
+      </otherwise>
+    </choose>
+    LIMIT #{pageStart}, #{perPageNum}
+  </select>
+
+  <!-- ✅ 5. 총 개수 -->
+  <select id="countInboundList" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
+    SELECT COUNT(*) 
+    FROM product_inbound
+    WHERE 1=1
+      <if test="keyword != null and keyword != ''">
+        AND (
+          product_id LIKE CONCAT('%', #{keyword}, '%')
+          OR product_name LIKE CONCAT('%', #{keyword}, '%')
+          OR lot_no LIKE CONCAT('%', #{keyword}, '%')
+        )
+      </if>
+      <if test="startDate != null and startDate != ''">
+        AND DATE(created_at) &gt;= #{startDate}
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND DATE(created_at) &lt;= #{endDate}
+      </if>
+  </select>
+
+</mapper>

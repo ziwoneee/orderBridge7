@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.itwillbs.mapper.ProductionResultMapper">
+
+
+<!-- ..............완제품 입고등록 아름 시작.................... -->
+
+  <!-- ✅ 생산결과 검색 + 정렬 + 날짜조회 + 페이징 -->
+  <select id="searchProductionResults" parameterType="com.itwillbs.domain.SearchCriteria" resultType="com.itwillbs.domain.ProductionResultVO">
+    SELECT 
+      result_id,
+      order_id,
+      lot_no,
+      actual_qty,
+      defect_qty,
+      worker_name,
+      started_at,
+      ended_at,
+      created_at
+    FROM production_result
+    WHERE 1=1
+      <if test="keyword != null and keyword != ''">
+        AND (
+          lot_no LIKE CONCAT('%', #{keyword}, '%')
+        )
+      </if>
+      <if test="startDate != null and startDate != ''">
+        AND DATE(created_at) &gt;= #{startDate}
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND DATE(created_at) &lt;= #{endDate}
+      </if>
+
+    <!-- ✅ 안전한 정렬 컬럼만 허용 -->
+    <choose>
+      <when test="sortColumn == 'created_at'">
+        ORDER BY created_at ${sortOrder}
+      </when>
+      <when test="sortColumn == 'lot_no'">
+        ORDER BY lot_no ${sortOrder}
+      </when>
+      <when test="sortColumn == 'order_id'">
+        ORDER BY order_id ${sortOrder}
+      </when>
+      <otherwise>
+        ORDER BY created_at DESC
+      </otherwise>
+    </choose>
+
+    LIMIT #{pageStart}, #{perPageNum}
+  </select>
+
+  <!-- ✅ 총 개수 조회 -->
+  <select id="countProductionResults" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
+    SELECT COUNT(*)
+    FROM production_result
+    WHERE 1=1
+      <if test="keyword != null and keyword != ''">
+        AND (
+          lot_no LIKE CONCAT('%', #{keyword}, '%')
+        )
+      </if>
+      <if test="startDate != null and startDate != ''">
+        AND DATE(created_at) &gt;= #{startDate}
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND DATE(created_at) &lt;= #{endDate}
+      </if>
+  </select>
+  
+  <!-- 완제품 입고 자동등록 -->
+  <insert id="insertResult" parameterType="com.itwillbs.domain.ProductionResultVO">
+    INSERT INTO production_result (
+        order_id, lot_no, actual_qty, defect_qty,
+        worker_name, started_at, ended_at, created_at
+    ) VALUES (
+        #{orderId}, #{lotNo}, #{actualQty}, #{defectQty},
+        #{workerName}, #{startedAt}, #{endedAt}, #{createdAt}
+    )
+</insert>
+
+<!-- 전체 생산 결과 조회 -->
+<select id="selectAllResults" resultType="com.itwillbs.domain.ProductionResultVO">
+  SELECT 
+    result_id,
+    order_id,
+    lot_no,
+    actual_qty,
+    defect_qty,
+    worker_name,
+    started_at,
+    ended_at,
+    created_at
+  FROM production_result
+  ORDER BY created_at DESC
+</select>
+
+<!-- ..............완제품 입고등록 아름 끝.................... -->  
+  
+
+</mapper>
