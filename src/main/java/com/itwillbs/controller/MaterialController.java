@@ -34,6 +34,7 @@ public class MaterialController {
 	/**
 	 * 자재 목록 조회 요청 처리
 	 * GET 방식 -> /material/list
+	 * 
 	 */
 	@RequestMapping(value="/list", method = RequestMethod.GET)
 	public String materialList(@RequestParam(value = "page", defaultValue = "1") int page, Model model) throws Exception {
