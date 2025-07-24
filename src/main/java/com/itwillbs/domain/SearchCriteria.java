@@ -10,6 +10,7 @@ public class SearchCriteria {
 
     // 검색 키워드
     private String keyword;
+    private String condition;
 
     // 정렬
     private String sortColumn;    // 정렬 기준 컬럼 (항상 DB 컬럼명(snake_case)로 세팅)
