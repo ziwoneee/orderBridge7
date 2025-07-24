@@ -43,4 +43,12 @@ public class ClientDAOImpl implements ClientDAO {
     public List<ClientVO> getAllClients() {
         return sqlSession.selectList(NAMESPACE + ".getAllClients");
     }
+    //고객사 수정
+    @Override
+    public void updateClient(ClientVO client) {
+        sqlSession.update(NAMESPACE + ".updateClient", client);
+    }
+
+    
+    
 }

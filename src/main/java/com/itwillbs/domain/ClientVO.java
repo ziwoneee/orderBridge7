@@ -1,5 +1,7 @@
 package com.itwillbs.domain;
 
+import java.util.Date;
+
 import lombok.Data;
 
 @Data
@@ -22,4 +24,5 @@ public class ClientVO {
     private String address;
     private String addressDetail;	    
     private Integer statusCode;
+    private Date createdAt;
 }

@@ -70,68 +70,100 @@
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label required">사업자등록번호</label>
-                <input type="text" name="businessNumber" class="form-control" required placeholder="ex) 123-45-67890">
+                <input type="text" id="businessNumber" name="businessNumber" class="form-control" required
+       placeholder="예: 123-45-67890"  maxlength="12" pattern="^\d{3}-\d{2}-\d{5}$"  title="형식: 123-45-67890"  value="${client.businessNumber}">
+
               </div>
               <div class="col-md-6 mb-3">
-                <label>대표자명</label>
-                <input type="text" name="ceoName" class="form-control" value="${client.ceoName}">
+                 <label class="form-label required">대표자명</label>
+                <input type="text" name="ceoName" class="form-control" required value="${client.ceoName}">
               </div>
               <div class="col-md-6 mb-3">
-                <label>연락처</label>
-                <input type="text" name="clientTel" class="form-control" value="${client.clientTel}">
+                 <label class="form-label required">연락처</label>
+                <input type="text" name="clientTel" class="form-control"  required value="${client.clientTel}">
               </div>
               <div class="col-md-6 mb-3">
-                <label>업태</label>
-                <input type="text" name="businessType" class="form-control" value="${client.businessType}">
+                 <label class="form-label required">업태</label>
+                <input type="text" name="businessType" class="form-control"  required value="${client.businessType}">
               </div>
               <div class="col-md-6 mb-3">
-                <label>종목</label>
-                <input type="text" name="businessProduct" class="form-control" value="${client.businessProduct}">
+                 <label class="form-label required">종목</label>
+                <input type="text" name="businessProduct" class="form-control"   required value="${client.businessProduct}">
               </div>
+              <div class="col-md-6 mb-3">
+  <label class="form-label required">고객유형1</label>
+  <select name="clientType1" class="form-control" required>
+    <option value="">선택</option>
+    <option value="법인">법인</option>
+    <option value="개인사업자">개인사업자</option>
+    <option value="기타">기타</option>
+  </select>
+</div>
+
+<div class="col-md-6 mb-3">
+  <label class="form-label required">고객유형2</label>
+  <select name="clientType2" class="form-control" required>
+    <option value="">선택</option>
+    <option value="도매">도매</option>
+    <option value="소매">소매</option>
+    <option value="기타">기타</option>
+  </select>
+</div>
+
             </div>
           </div>
 
           <!-- 주소 및 담당자 정보 -->
           <div class="card-section">
-            <h5 class="section-title">주소 및 담당자 정보</h5>
+            <h5 class="section-title">주소 정보</h5>
             <div class="row">
               <div class="col-md-3 mb-3">
-                <label>우편번호</label>
+                 <label class="form-label required">우편번호</label>
                 <input type="text" id="postcode" name="postCode" class="form-control" readonly value="${client.postCode}">
               </div>
               <div class="col-md-2 mb-3 d-flex align-items-end">
-                <button type="button" class="btn btn-outline-primary w-100" onclick="execDaumPostcode()">주소검색</button>
+                <button type="button" class="btn btn-primary w-100" onclick="execDaumPostcode()">주소검색</button>
               </div>
               <div class="col-md-4 mb-3">
-                <label>주소</label>
+                <label class="form-label required">주소</label>
                 <input type="text" id="address" name="address" class="form-control" readonly value="${client.address}">
               </div>
               <div class="col-md-3 mb-3">
-                <label>상세주소</label>
+                <label class="form-label required">상세주소</label>
                 <input type="text" id="addressDetail" name="addressDetail" class="form-control" value="${client.addressDetail}">
               </div>
-              <div class="col-md-4 mb-3">
+              
+             </div>
+              </div>
+              
+             <div class="card-section">
+            <h5 class="section-title">담당자 정보</h5>
+            <div class="row">
+              <div class="col-md-6 mb-3">
                 <label class="form-label required">담당자명</label>
                 <input type="text" name="managerName" class="form-control" required value="${client.managerName}">
               </div>
-              <div class="col-md-4 mb-3">
+              <div class="col-md-6 mb-3">
                 <label>부서</label>
-                <input type="text" name="managerDept" class="form-control" value="${client.managerDept}">
+                <input type="text" name="managerDept" class="form-control"  value="${client.managerDept}">
               </div>
-              <div class="col-md-4 mb-3">
-                <label>휴대전화</label>
-                <input type="text" name="managerTel" class="form-control" value="${client.managerTel}">
-              </div>
+              <div class="col-md-6 mb-3">
+ 				 <label class="form-label required">휴대전화</label>
+  				<input type="text" id="managerTel" name="managerTel" class="form-control" required  placeholder="예: 010-1234-5678"
+         			pattern="^01[0-9]-\d{3,4}-\d{4}$" title="형식: 010-1234-5678"   value="${client.managerTel}">
+				</div>
+
               <div class="col-md-6 mb-3">
                 <label>팩스</label>
                 <input type="text" name="faxNumber" class="form-control" value="${client.faxNumber}">
               </div>
               <div class="col-md-6 mb-3">
-                <label>이메일</label>
-                <input type="email" name="managerEmail" class="form-control" value="${client.managerEmail}">
+                 <label class="form-label required">이메일</label>
+                <input type="email" name="managerEmail" class="form-control"  required value="${client.managerEmail}">
               </div>
             </div>
-          </div>
+         </div>
+           
 
           <!-- 상태 및 버튼 -->
           <div class="form-group">
@@ -175,3 +207,47 @@
     return true;
   }
 </script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const telInputs = ["clientTel", "managerTel"];
+    telInputs.forEach(id => {
+      const input = document.getElementById(id);
+      if (!input) return;
+
+      input.addEventListener("input", function () {
+        let number = this.value.replace(/[^0-9]/g, "");
+
+        if (number.length < 4) {
+          this.value = number;
+        } else if (number.length < 7) {
+          this.value = number.slice(0, 3) + "-" + number.slice(3);
+        } else if (number.length < 11) {
+          this.value = number.slice(0, 3) + "-" + number.slice(3, 6) + "-" + number.slice(6);
+        } else {
+          this.value = number.slice(0, 3) + "-" + number.slice(3, 7) + "-" + number.slice(7, 11);
+        }
+      });
+    });
+
+    // ✅ 사업자등록번호 자동 하이픈
+    const bizInput = document.getElementById("businessNumber");
+    if (bizInput) {
+      bizInput.addEventListener("input", function () {
+        let number = this.value.replace(/[^0-9]/g, "");
+
+        if (number.length < 4) {
+          this.value = number;
+        } else if (number.length < 6) {
+          this.value = number.slice(0, 3) + "-" + number.slice(3);
+        } else {
+          this.value = number.slice(0, 3) + "-" + number.slice(3, 5) + "-" + number.slice(5, 10);
+        }
+      });
+    }
+  });
+</script>
+
+
+
+

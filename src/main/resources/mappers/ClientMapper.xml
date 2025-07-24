@@ -104,5 +104,31 @@
     FROM client
     ORDER BY client_name ASC
   </select>
+  
+  <!-- 고객사 수정 -->
+  <update id="updateClient" parameterType="com.itwillbs.domain.ClientVO">
+  UPDATE client
+  SET
+    client_name       = #{clientName},
+    client_type1      = #{clientType1},
+    client_type2      = #{clientType2},
+    business_number   = #{businessNumber},
+    ceo_name          = #{ceoName},
+    client_tel        = #{clientTel},
+    business_type     = #{businessType},
+    business_product  = #{businessProduct},
+    manager_name      = #{managerName},
+    manager_dept      = #{managerDept},
+    manager_tel       = #{managerTel},
+    manager_email     = #{managerEmail},
+    fax_number        = #{faxNumber},
+    post_code         = #{postCode},
+    address           = #{address},
+    address_detail    = #{addressDetail},
+    status_code       = #{statusCode}
+  WHERE client_id = #{clientId}
+</update>
+
+  
 
 </mapper>
