@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import com.itwillbs.domain.MaterialVO;
-import com.itwillbs.dto.PagingDTO;
+import com.itwillbs.domain.SearchCriteria;
 
 @Repository
 public class MaterialDAOImpl implements MaterialDAO {
@@ -71,14 +71,14 @@ public class MaterialDAOImpl implements MaterialDAO {
 	
 	// 전체 개수
     @Override
-    public int getMaterialCount() throws Exception {
-        return sqlSession.selectOne(NAMESPACE + "getMaterialCount");
+    public int getMaterialCount(SearchCriteria cri) throws Exception {
+        return sqlSession.selectOne(NAMESPACE + "getMaterialCount", cri);
     }
 
     // 페이징 리스트
     @Override
-    public List<MaterialVO> getMaterialListPage(PagingDTO paging) throws Exception {
-        return sqlSession.selectList(NAMESPACE + "getMaterialListPage", paging);
+    public List<MaterialVO> getMaterialListPage(SearchCriteria cri) throws Exception {
+        return sqlSession.selectList(NAMESPACE + "getMaterialListPage", cri);
     }
 	
 

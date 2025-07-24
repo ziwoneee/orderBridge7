@@ -7,7 +7,7 @@ import javax.inject.Inject;
 import org.springframework.stereotype.Service;
 
 import com.itwillbs.domain.MaterialVO;
-import com.itwillbs.dto.PagingDTO;
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.persistence.MaterialDAO;
 
 @Service
@@ -73,14 +73,14 @@ public class MaterialServiceImpl implements MaterialService {
 	
 	// 페이징용 전체 개수
     @Override
-    public int getMaterialCount() throws Exception {
-        return mDAO.getMaterialCount();
+    public int getMaterialCount(SearchCriteria cri) throws Exception {
+        return mDAO.getMaterialCount(cri);
     }
 
     // 페이징용 리스트 조회
     @Override
-    public List<MaterialVO> getMaterialListPage(PagingDTO paging) throws Exception {
-        return mDAO.getMaterialListPage(paging);
+    public List<MaterialVO> getMaterialListPage(SearchCriteria cri) throws Exception {
+        return mDAO.getMaterialListPage(cri);
     }
 	
 	

@@ -2,18 +2,16 @@ package com.itwillbs.service;
 
 import java.util.List;
 
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.SupplierVO;
 
 public interface SupplierService {
 	
-	// 1. 협력사 리스트 조회 (검색조건/키워드 + 정렬)
-	List<SupplierVO> getSupplierList(String keyword, String condition, String sort, String order) throws Exception;
-	
 	// 1-1. 페이징이 포함된 리스트 조회
-		List<SupplierVO> getSupplierListPaged(int offset, int size, String keyword, String condition, String sort, String order) throws Exception;
+	List<SupplierVO> getSupplierList(SearchCriteria cri) throws Exception;
 		
 	// 1-2. 전체 협력사 수 조회 (페이징 계산용)
-	int getSupplierCount(String keyword, String condition) throws Exception;
+	int getSupplierCount(SearchCriteria cri) throws Exception;
 	
 	// 2. 특정 협력사 ID에 해당하는 상세 정보 반환
     SupplierVO getSupplierById(String supplierId) throws Exception;
