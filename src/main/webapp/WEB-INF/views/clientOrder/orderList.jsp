@@ -1,7 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
-    
+<%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
     <%
     // 오늘 날짜를 yyyy-MM-dd로 request에 today로 저장
     java.time.LocalDate today = java.time.LocalDate.now();
@@ -9,8 +9,6 @@
     request.setAttribute("today", todayStr);
 %>
     
-<%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
-
 <div class="container-scroller">
 
   <%@ include file="/WEB-INF/views/main/top.jsp" %>      
@@ -18,7 +16,10 @@
   <div class="container-fluid page-body-wrapper">
 
     <%@ include file="/WEB-INF/views/main/sidebar.jsp" %>
-
+    
+    
+    
+    
       <!-- 본문 시작 -->
       <div class="main-panel">
         <div class="content-wrapper">
@@ -27,13 +28,13 @@
         	<!-- 제목 -->
 			<div class="col-12 mb-4">
 			  <h3 class="font-weight-bold">수주 목록</h3>
-              <h6 class="font-weight-normal mb-0">수주 목록화면입니다. <span class="text-primary">강조쓰</span></h6>
-			</div>
+			</div>    
 
-             <div class="contentbody"> 
+            
                 <!-- 본문내용 시작 -->
                 <!-- ✅ 검색창 -->
-    <div class="d-flex justify-content-center mb-3">
+  	<div class="d-flex justify-content-between align-items-center mb-2">
+		
     <form method="get" class="form-inline mb-3">
 
    
@@ -121,19 +122,18 @@
   <!-- 숨겨진 input 영역 (자바스크립트로 선택된 ID 전달) -->
   <input type="hidden" name="orderIds" id="bulkOrderIds">
 </form>
-   
- 
-  <!-- 목록 다운로드 버튼 -->
- <a href="${pageContext.request.contextPath}/clientorder/export" class="btn btn-success">목록 다운로드</a>
     
+  <!-- 목록 다운로드 버튼 -->
+  <div class="col-auto">
+ <a href="${pageContext.request.contextPath}/clientorder/export" class="btn btn-success">목록 다운로드</a>
+    </div>
          </div>  
   </div>
       
-      <div class="text-center">
-     <div id="table_content" >
+    
    <div class="table-responsive">
-    <table class="table table-bordered table-hover">
-        <thead class="thead-dark">
+     <table id="clorderTable" class="table table-bordered text-center">
+        <thead>
         <tr>
             <th><input type="checkbox" id="selectAll"></th>
             <th>수주번호</th>
@@ -180,42 +180,56 @@
         </c:forEach>
         </tbody>
     </table>
-    </div>
-    </div>
+    
+  
     <div class = "text-right mb-3">
       <a href="${pageContext.request.contextPath}/clientorder/register" class="btn btn-primary">+ 신규 수주 등록</a>   
-      </div> 
+      </div> </div> 
       
     <!-- 페이지네이션 -->
-    <nav class="d-flex justify-content-center">
-      <ul class="pagination">
-        <c:if test="${pageMaker.prev}">
-          <li class="page-item">
-            <a class="page-link"
-               href="?page=${pageMaker.startPage-1}&keyword=${cri.keyword}&status=${cri.status}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">이전</a>
-          </li>
-        </c:if>
-        <c:forEach begin="${pageMaker.startPage}" end="${pageMaker.endPage}" var="num">
-          <li class="page-item ${cri.page == num ? 'active' : ''}">
-            <a class="page-link"
-               href="?page=${num}&keyword=${cri.keyword}&status=${cri.status}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">${num}</a>
-          </li>
-        </c:forEach>
-        <c:if test="${pageMaker.next}">
-          <li class="page-item">
-            <a class="page-link"
-               href="?page=${pageMaker.endPage+1}&keyword=${cri.keyword}&status=${cri.status}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">다음</a>
-          </li>
-        </c:if>
-      </ul>
-    </nav>
+          <!-- ✅ 페이징 영역 -->
+         <!-- 페이지네이션 -->
+<!-- ✅ Bootstrap 페이징 스타일 -->
+<div class="d-flex justify-content-center mt-4">
+<nav>
+  <ul class="pagination justify-content-center mt-4">
 
-    
+    <c:if test="${pageMaker.prev}">
+      <li class="page-item">
+        <a class="page-link" href="?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">이전</a>
+      </li>
+    </c:if>
 
+    <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+      <li class="page-item ${p == cri.page ? 'active' : ''}">
+        <a class="page-link" href="?page=${p}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">${p}</a>
+      </li>
+    </c:forEach>
+
+    <c:if test="${pageMaker.next}">
+      <li class="page-item">
+        <a class="page-link" href="?page=${pageMaker.endPage + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">다음</a>
+      </li>
+    </c:if>
+
+  </ul>
+</nav>
 
 </div>
   
-
+ <!--  본문내용 끝 -->    
+           </div>
+              <!-- 페이징 끝 -->
+     
+         </div>
+        <!-- content-wrapper 끝 -->
+	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
+     </div>
+     <!-- 본문.jsp main-panel ends -->
+  </div>   
+  <!-- container-fluid page-body-wrapper 끝 -->
+</div>
+<!-- container-scroller 끝-->   
 
 <!-- 전체선택 JS -->
 <script>
@@ -249,17 +263,22 @@ function submitBulkStatus() {
     document.getElementById('bulkStatusForm').submit();
 }
 </script>
+<!-- ✅ DataTables JS -->
+<script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
 
- <!--  본문내용 끝 -->    
-              </div>
-              <!-- 페이징 끝 -->
-            </div>
-         </div>
-        <!-- content-wrapper 끝 -->
-	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
-     </div>
-     <!-- 본문.jsp main-panel ends -->
-  </div>   
-  <!-- container-fluid page-body-wrapper 끝 -->
-</div>
-<!-- container-scroller 끝-->   
+<!-- ✅ DataTables 초기화 (정렬만 사용, 페이징X) -->
+<script>
+$(document).ready(function () {
+  $('#clorderTable').DataTable({
+    paging: false,        // ❌ 페이징 비활성 (서버 페이징 사용)
+    ordering: true,       // ✅ 정렬 가능
+    searching: false,     // ❌ 검색창 비활성 (직접 구현)
+    info: false,          // ❌ "n개 중 m개 표시 중" 비활성
+    columnDefs: [
+      { targets: [0,5,6,7], orderable: false }  // 정렬 제외 열 (사업자번호, 대표자명, 상세버튼)
+    ]
+  });
+});
+</script>
+
+
