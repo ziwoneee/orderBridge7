@@ -1,6 +1,8 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+
 
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
 
@@ -43,10 +45,12 @@
             <table id="clientTable" class="table table-bordered text-center">
               <thead>
                 <tr>
+                  <th>고객사ID</th>
                   <th>고객사명</th>
                   <th>사업자등록번호</th>
                   <th>대표자명</th>
                   <th>연락처</th>
+                  <th>등록일</th>
                   <th>상태</th>
                   <th>상세</th>
                 </tr>
@@ -54,10 +58,13 @@
               <tbody>
                 <c:forEach var="client" items="${clientList}">
                   <tr>
+                    <td class="text-left pl-3">${client.clientId}</td>
                     <td class="text-left pl-3">${client.clientName}</td>
                     <td>${client.businessNumber}</td>
                     <td>${client.ceoName}</td>
                     <td>${client.clientTel}</td>
+                    <td><fmt:formatDate value="${client.createdAt}" pattern="yyyy-MM-dd" /></td>
+                    
                     <td>
                       <span class="badge badge-${client.statusCode == 1 ? 'success' : 'secondary'}">
                         ${client.statusCode == 1 ? '활성' : '비활성'}
@@ -73,7 +80,7 @@
                 </c:forEach>
                 <c:if test="${empty clientList}">
                   <tr>
-                    <td colspan="6" class="text-danger font-weight-bold">조회된 고객사가 없습니다.</td>
+                    <td colspan="8" class="text-danger font-weight-bold">조회된 고객사가 없습니다.</td>
                   </tr>
                 </c:if>
               </tbody>
@@ -134,7 +141,7 @@ $(document).ready(function () {
     searching: false,     // ❌ 검색창 비활성 (직접 구현)
     info: false,          // ❌ "n개 중 m개 표시 중" 비활성
     columnDefs: [
-      { targets: [1, 2, 5], orderable: false }  // 정렬 제외 열 (사업자번호, 대표자명, 상세버튼)
+      { targets: [7], orderable: false }  // 정렬 제외 열 (사업자번호, 대표자명, 상세버튼)
     ]
   });
 });

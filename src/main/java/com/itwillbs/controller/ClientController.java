@@ -106,4 +106,31 @@ public class ClientController {
             return "client/detail"; // 예: /WEB-INF/views/client/client_detail.jsp
         }
 
+     // ✅ 수정 폼 이동 처리
+        @GetMapping("/client/edit")
+        public String editClientForm(@RequestParam("clientId") String clientId, Model model) {
+            ClientVO client = clientService.getClientById(clientId);
+            model.addAttribute("client", client);
+            return "client/edit"; // /WEB-INF/views/client/edit.jsp
+        }
+   
+        
+     // 고객사 수정 처리
+        @PostMapping("/client/update")
+        public String updateClient(ClientVO client, RedirectAttributes rttr) {
+            try {
+                clientService.updateClient(client);
+                rttr.addFlashAttribute("success", "수정이 완료되었습니다.");
+                return "redirect:/client/detail?clientId=" + client.getClientId();
+            } catch (Exception e) {
+                logger.error("고객사 수정 중 오류 발생", e);
+                rttr.addFlashAttribute("error", "수정 중 오류가 발생했습니다.");
+                return "redirect:/client/edit?clientId=" + client.getClientId();
+            }
+        }
+
+
+        
+        
+        
 }

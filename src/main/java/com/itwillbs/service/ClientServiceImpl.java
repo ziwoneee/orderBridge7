@@ -41,4 +41,12 @@ public class ClientServiceImpl implements ClientService {
         return clientDao.getAllClients();
     }
     
+    //고객사 수정
+    @Override
+    public void updateClient(ClientVO client) {
+        clientDao.updateClient(client);
+    }
+
+    
+    
 }
