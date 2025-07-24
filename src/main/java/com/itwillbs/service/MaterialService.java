@@ -3,7 +3,7 @@ package com.itwillbs.service;
 import java.util.List;
 
 import com.itwillbs.domain.MaterialVO;
-import com.itwillbs.dto.PagingDTO;
+import com.itwillbs.domain.SearchCriteria;
 
 public interface MaterialService {
 	
@@ -20,8 +20,8 @@ public interface MaterialService {
 	public boolean checkMaterial(String materialId) throws Exception;
 	
 	// 페이징
-	int getMaterialCount() throws Exception;
-	List<MaterialVO> getMaterialListPage(PagingDTO paging) throws Exception;
+	int getMaterialCount(SearchCriteria cri) throws Exception;
+	List<MaterialVO> getMaterialListPage(SearchCriteria cri) throws Exception;
 
 	
 

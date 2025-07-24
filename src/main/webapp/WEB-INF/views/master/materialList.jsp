@@ -97,27 +97,32 @@
 		  <!-- 페이징 처리 시작 -->
 			<div class="mt-4 d-flex justify-content-center">
 			  <ul class="pagination">
-			    
+			
 			    <!-- 이전 버튼 -->
-			    <c:if test="${paging.page > 1}">
+			    <c:if test="${pageMaker.prev}">
 			      <li class="page-item">
-			        <a class="page-link" href="?page=${paging.page - 1}&condition=${condition}&keyword=${keyword}&sort=${sort}&order=${order}" aria-label="Previous">
+			        <a class="page-link"
+			           href="?page=${pageMaker.startPage - 1}&keyword=${cri.keyword}"
+			           aria-label="Previous">
 			          <span aria-hidden="true">&laquo;</span>
 			        </a>
 			      </li>
 			    </c:if>
-			    
+			
 			    <!-- 페이지 번호 -->
-			    <c:forEach var="i" begin="${paging.startPage}" end="${paging.endPage}">
-			      <li class="page-item ${paging.page == i ? 'active' : ''}">
-			        <a class="page-link" href="?page=${i}&condition=${condition}&keyword=${keyword}&sort=${sort}&order=${order}">${i}</a>
+			    <c:forEach var="i" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+			      <li class="page-item ${cri.page == i ? 'active' : ''}">
+			        <a class="page-link"
+			           href="?page=${i}&keyword=${cri.keyword}">${i}</a>
 			      </li>
 			    </c:forEach>
 			
 			    <!-- 다음 버튼 -->
-			    <c:if test="${paging.page < paging.totalPages}">
+			    <c:if test="${pageMaker.next}">
 			      <li class="page-item">
-			        <a class="page-link" href="?page=${paging.page + 1}&condition=${condition}&keyword=${keyword}&sort=${sort}&order=${order}" aria-label="Next">
+			        <a class="page-link"
+			           href="?page=${pageMaker.endPage + 1}&keyword=${cri.keyword}"
+			           aria-label="Next">
 			          <span aria-hidden="true">&raquo;</span>
 			        </a>
 			      </li>
@@ -126,7 +131,7 @@
 			  </ul>
 			</div>
 			<!-- 페이징 처리 끝 -->
-   
+
  		</div>
         <!-- content-wrapper 끝 -->
 	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>

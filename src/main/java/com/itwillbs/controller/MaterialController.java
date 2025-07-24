@@ -14,7 +14,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.itwillbs.domain.MaterialVO;
-import com.itwillbs.dto.PagingDTO;
+import com.itwillbs.domain.PageMaker;
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.service.MaterialService;
 
 @Controller
@@ -37,24 +38,25 @@ public class MaterialController {
 	 * 
 	 */
 	@RequestMapping(value="/list", method = RequestMethod.GET)
-	public String materialList(@RequestParam(value = "page", defaultValue = "1") int page, Model model) throws Exception {
+	public String materialList(SearchCriteria cri, Model model) throws Exception {
 		logger.info(" materialList() 실행 ");
 		logger.info(" /views/material/list.jsp 페이지 이동 ");
 		
-	    // 1. 전체 데이터 수 조회
-	    int totalCount = mService.getMaterialCount();
+		// 전체 자재 건수
+	    int totalCount = mService.getMaterialCount(cri);
+	    cri.setTotalCount(totalCount);
 
-	    // 2. 페이징 객체 생성
-	    PagingDTO paging = new PagingDTO(page, 10, totalCount);
+	    // PageMaker 생성
+	    PageMaker pageMaker = new PageMaker(cri, totalCount);
 
-	    // 3. 페이징된 자재 목록 조회
-	    List<MaterialVO> materialList = mService.getMaterialListPage(paging);
+	    // 페이징된 자재 목록 조회
+	    List<MaterialVO> materialList = mService.getMaterialListPage(cri);
 
-	    // 4. 데이터 바인딩
+	    // View 전달
 	    model.addAttribute("materialList", materialList);
-	    model.addAttribute("paging", paging);
-		
-		// 5) 뷰 페이지로 이동
+	    model.addAttribute("pageMaker", pageMaker);
+	    model.addAttribute("cri", cri); // 검색 조건 유지용
+	    
 		return "master/materialList";
 		
 	}

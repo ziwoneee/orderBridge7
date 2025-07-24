@@ -80,15 +80,36 @@
 	
 	
 	<!-- 전체 수 -->
-	<select id="getMaterialCount" resultType="int">
-	  SELECT COUNT(*) FROM material
+	<select id="getMaterialCount" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
+	  SELECT COUNT(*)
+	  FROM material
+	  <where>
+	    <if test="keyword != null and keyword != ''">
+	      material_name LIKE CONCAT('%', #{keyword}, '%')
+	    </if>
+	  </where>
 	</select>
 	
 	<!-- 페이징 리스트 -->
-	<select id="getMaterialListPage" parameterType="com.itwillbs.dto.PagingDTO" resultType="com.itwillbs.domain.MaterialVO">
-	  SELECT * FROM material
-	  ORDER BY material_id
-	  LIMIT #{size} OFFSET #{offset}
+	<select id="getMaterialListPage" parameterType="com.itwillbs.domain.SearchCriteria" resultType="com.itwillbs.domain.MaterialVO">
+	  SELECT
+	    material_id,
+	    material_name,
+	    material_type,
+	    unit,
+	    unit_price,
+	    storage_method,
+	    storage_location,
+	    lot_flag,
+	    supply_unit
+	  FROM material
+	  <where>
+	    <if test="keyword != null and keyword != ''">
+	      material_name LIKE CONCAT('%', #{keyword}, '%')
+	    </if>
+	  </where>
+	  ORDER BY material_id ASC
+	  LIMIT #{perPageNum} OFFSET #{pageStart}
 	</select>
 	
 
