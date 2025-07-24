@@ -55,6 +55,9 @@ public class SupplierController {
 		model.addAttribute("supplierList", supplierList);
 		model.addAttribute("pageMaker", pageMaker);
 		model.addAttribute("cri", cri); // 검색 조건 유지용
+		
+		// 사이드바 메뉴 활성화용
+	    model.addAttribute("menu", "basic");
 
 		// 결과를 협력사 목록 JSP로 전달
 		return "supplier/list";
@@ -71,6 +74,9 @@ public class SupplierController {
 		model.addAttribute("supplierVO", supplier);
 
 		// 2. (추후) 공급 품목 리스트도 여기에 추가 예정
+		
+		// 사이드바 메뉴 활성화용
+	    model.addAttribute("menu", "basic");
 
 		// 3. 상세 JSP로 이동
 		return "supplier/view"; // /WEB-INF/views/supplier/view.jsp
@@ -78,9 +84,12 @@ public class SupplierController {
 
 	// 협력사 등록 폼 이동
 	@GetMapping("register")
-	public String registerForm() {
+	public String registerForm(Model model) {
 
 		logger.info(" registerForm() 호출 ");
+		
+		// 사이드바 메뉴 활성화용
+	    model.addAttribute("menu", "basic");
 
 		return "supplier/register";
 	}
@@ -133,6 +142,10 @@ public class SupplierController {
 			throws Exception {
 		SupplierVO supplier = sService.getSupplierById(supplierId);
 		model.addAttribute("supplierVO", supplier);
+		
+		// 사이드바 메뉴 활성화용
+	    model.addAttribute("menu", "basic");
+		
 		return "supplier/edit"; // /WEB-INF/views/supplier/edit.jsp
 	}
 
