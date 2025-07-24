@@ -3,7 +3,7 @@
 /* 테이블 css */
   /* 테이블 헤더 스타일 오버라이드 */
   .table-header-dark th {
-	  background-color: #4B49AC;
+	  background-color: #1c355e;
 	  color: white;
 	  font-weight: 600;
   }
@@ -27,11 +27,57 @@
   table thead th {
 	  font-size: 0.9rem !important;     /* 기존 .875rem → 0.9rem 정도로 확대 */
 	  font-weight: 700;                 /* 더 굵게 */
-	  background-color: #4b49ac;        /* 기존 배경색 유지 */
+	  background-color: #1c355e;        /* 기존 배경색 유지 */
 	  color: white;
 	  text-align: center;
-  }
+   }
   
+  	/* 사이드바 메뉴색 */
+    .sidebar .nav.sub-menu {
+  	    background: #1c355e;
+    }
   
-  
-  
+	.sidebar .nav:not(.sub-menu) > .nav-item > .nav-link[aria-expanded="true"] {
+	    background: #1c355e;
+	}
+	
+	.sidebar .nav:not(.sub-menu) > .nav-item:hover > .nav-link {
+	    background: #1c355e;
+	}
+	
+	.sidebar .nav .nav-item.active > .nav-link {
+		background: #1c355e;
+	}
+	
+	
+	/* 검색 버튼색 */
+	.btn-primary, .wizard > .actions a {
+	    color: #fff;
+	    background-color: #1c355e;
+	    border-color: #1c355e;
+	}
+	
+	
+	/* 현재 페이지 (active 상태) 페이징 버튼 색상 변경 */
+	/* 기본 페이지 버튼 */
+	.pagination .page-link {
+	  color: #1c355e !important;
+	  background-color: #fff !important;
+	  border: 1px solid #dee2e6 !important;
+	}
+	
+	/* hover 시 */
+	.pagination .page-link:hover {
+	  background-color: #eaf0fa !important;
+	  color: #1c355e !important;
+	}
+	
+	/* 현재 페이지(active) */
+	.pagination .page-item.active .page-link {
+	  background-color: #1c355e !important;
+	  border-color: #1c355e !important;
+	  color: #fff !important;
+	}
+
+	
+	
