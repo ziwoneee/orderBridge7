@@ -1,9 +1,15 @@
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>BOM 상세 및 원자재 관리</title>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
+
+<div class="container-scroller">
+
+  <%@ include file="/WEB-INF/views/main/top.jsp" %>      
+
+  <div class="container-fluid page-body-wrapper">
+
+    <%@ include file="/WEB-INF/views/main/sidebar.jsp" %>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script>
         // 수정모드 전환
@@ -63,24 +69,32 @@ function saveStatus(bomId) {
     });
 }
 </script>
+<!-- 헤더, 사이드바,개인설정 끝 -->
+  <div class="main-panel">
+        <div class="content-wrapper">
+            <div class="row">
 
-</head>
-<body>
-<div class="container mt-5">
-    <h3>BOM 상세정보</h3>
-    <table class="table table-bordered">
+          <div class="col-12 mb-4">
+			  <h3 class="font-weight-bold">BOM 정보</h3>
+			</div>
+
+
+<div class="container mt-5" style="margin-left: 0; padding-left: 0;">    
+    <table class="table table-bordered text-center" >
     <tr><th>BOM ID</th> <td>${bomMaster.bomId}</td></tr>
     <tr><th>대상제품</th> <td>${bomMaster.productName}</td></tr>
     <tr><th>BOM명</th> <td>${bomMaster.bomName}</td></tr>
     <tr>
     <th>상태</th>
     <td>
+    <div class="d-flex justify-content-center">
         <div class="form-inline">
             <select id="statusSelect" class="form-control form-control-sm mr-2" style="width:auto;">
                 <option value="ACTIVE" <c:if test="${bomMaster.status eq 'ACTIVE'}">selected</c:if>>활성</option>
                 <option value="INACTIVE" <c:if test="${bomMaster.status eq 'INACTIVE'}">selected</c:if>>비활성</option>
             </select>
             <button id="statusSaveBtn" class="btn btn-success btn-sm" type="button" onclick="saveStatus('${bomMaster.bomId}')">저장</button>
+        </div>
         </div>
     </td>
 </tr>
@@ -191,8 +205,18 @@ function saveStatus(bomId) {
         </c:forEach>
         </tbody>
     </table>
+  
+
 
     <a href="${pageContext.request.contextPath}/master/bom/list" class="btn btn-secondary mt-3">목록</a>
+  </div>
 </div>
-</body>
-</html>
+</div>
+        <!-- content-wrapper 끝 -->
+	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
+     </div>
+     <!-- 본문.jsp main-panel ends -->
+  </div>   
+  <!-- container-fluid page-body-wrapper 끝 -->
+</div>
+<!-- container-scroller 끝-->   
