@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%
     java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
     String today = sdf.format(new java.util.Date());
@@ -29,18 +30,19 @@
 		    <!-- ✅ 검색 & 필터 -->
 		    <div class="d-flex justify-content-between mb-3">
 		        <form method="get" class="form-inline mb-4">
+		         <select name="sortColumn" class="form-control mr-2">		               
+		                <option value="all" ${cri.sortColumn eq 'all' ? 'selected' : ''}>전체</option>
+		                <option value="product_name" ${cri.sortColumn eq 'product_name' ? 'selected' : ''}>제품명</option>
+		                <option value="lot_no" ${cri.sortColumn eq 'lot_no' ? 'selected' : ''}>LOT번호</option>
+		                <option value="client_name" ${cri.sortColumn eq 'client_name' ? 'selected' : ''}>담당자</option>
+		           
+		            </select>
+		            
+		            
 		            <input type="text" name="keyword" value="${cri.keyword}" class="form-control mr-2" placeholder="제품명, ID, LOT, 거래처 검색">
 		            <input type="date" name="startDate" value="${cri.startDate}" class="form-control mr-2" max="<%= today %>">
 		            <input type="date" name="endDate" value="${cri.endDate}" class="form-control mr-2" max="<%= today %>">
-		
-		            <select name="sortColumn" class="form-control mr-2">
-		                <option value="outbound_date" ${cri.sortColumn eq 'outbound_date' ? 'selected' : ''}>출고일자</option>
-		                <option value="product_id" ${cri.sortColumn eq 'product_id' ? 'selected' : ''}>제품ID</option>
-		            </select>
-		            <select name="sortOrder" class="form-control mr-2">
-		                <option value="desc" ${cri.sortOrder eq 'desc' ? 'selected' : ''}>내림차순</option>
-		                <option value="asc" ${cri.sortOrder eq 'asc' ? 'selected' : ''}>오름차순</option>
-		            </select>
+				           
 		
 		            <button type="submit" class="btn btn-primary">조회</button>
 		        </form>

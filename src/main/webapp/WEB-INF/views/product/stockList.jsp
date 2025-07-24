@@ -1,20 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
-
-  <!-- ✅ DataTables CSS -->
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css"/>
-
-  <style>
-    .status-normal { color: green; font-weight: bold; }
-    .status-low { color: red; font-weight: bold; }
-    .status-complete { color: gray; font-weight: bold; }
-    .highlight-row { background-color: #f9f9f9; }
-    .table th, .table td {
-    text-align: center;
-    vertical-align: middle;
-  }
-  </style>
   
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
 
@@ -40,7 +26,7 @@
 
     		<!-- [1] 검색 필터 -->
     		   <div class="d-flex justify-content-between mb-3">
-			<form id="stockForm" action="${pageContext.request.contextPath}/product/stocklist" method="get" class="form-inline my-3">
+			<form id="stockForm" action="${pageContext.request.contextPath}/product/stocklist" method="get" class="form-inline mb-4">
 				<input type="hidden" name="mode" value="${param.mode}" />
 			  <input type="date" name="startDate" class="form-control mr-2" value="${param.startDate}">
 			  <span>~</span>
@@ -51,8 +37,8 @@
 			<!-- ✅ 버튼은 form 밖에 두어도 됨 -->
 			 <div class="mb-1">
 			 <input type="text" name="keyword" class="form-control mr-2" placeholder="제품명, LOT 번호 검색" value="${param.keyword}">
-			  <button type="button" class="btn btn-outline-secondary" onclick="viewStock()">현재고 내역 조회</button>
-			  <button type="button" class="btn btn-outline-primary" onclick="viewAll()">전체 내역 조회</button>
+			  <button type="button" class="btn btn-success" onclick="viewStock()">현재고 내역 조회</button>
+			  <button type="button" class="btn btn-primary" onclick="viewAll()">전체 내역 조회</button>
 			</div>
 			</form>
 			</div>
@@ -60,7 +46,7 @@
     <!-- [2] 재고 테이블 -->  
      <div class="table-responsive mt-4">
     <table id = "stockTable" class="table table-bordered table-hover">
-        <thead class="thead-light">
+        <thead>
         <tr>
             <th>제품명</th>
             <th>LOT 번호</th>
@@ -110,10 +96,11 @@
         </tbody>
     </table>
     <div class="d-flex justify-content-end mt-3">
-  <a href="#" class="btn btn-success ml-3">+ 생산 지시서 생성</a>
+  <a href="#" class="btn btn-warning ml-3">+ 목록다운로드</a>
 </div>
 
-
+</div>
+</div>
     <!-- [3] 상세내역 모달 -->
 <div class="modal fade" id="detailModal" tabindex="-1" role="dialog" aria-labelledby="detailModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
