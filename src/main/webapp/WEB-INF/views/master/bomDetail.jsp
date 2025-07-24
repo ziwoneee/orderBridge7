@@ -73,11 +73,9 @@ function saveStatus(bomId) {
   <div class="main-panel">
         <div class="content-wrapper">
             <div class="row">
-
           <div class="col-12 mb-4">
 			  <h3 class="font-weight-bold">BOM 정보</h3>
 			</div>
-
 
 <div class="container mt-5" style="margin-left: 0; padding-left: 0;">    
     <table class="table table-bordered text-center" >

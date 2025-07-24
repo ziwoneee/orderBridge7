@@ -131,7 +131,7 @@
       
       <div class="text-center">
      <div id="table_content" >
-                  <div class="table-responsive">
+   <div class="table-responsive">
     <table class="table table-bordered table-hover">
         <thead class="thead-dark">
         <tr>

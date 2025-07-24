@@ -46,7 +46,7 @@
    <button id="insert-btn" type="button" class="btn btn-success mb-2"
     onclick="location.href='${pageContext.request.contextPath}/master/bom/insert'">신규등록</button>
 
-   <div class="table-responsive mt-4">
+   <div class="table-responsive">
 		<table class="table table-bordered text-center">
         <thead>
             <tr>
