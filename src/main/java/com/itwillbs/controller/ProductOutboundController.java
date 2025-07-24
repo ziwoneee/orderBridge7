@@ -40,6 +40,7 @@ public class ProductOutboundController {
             PageMaker pageMaker = new PageMaker(cri, totalCount);
 
             model.addAttribute("outboundList", outboundList);
+            model.addAttribute("cri", cri);
             model.addAttribute("pageMaker", pageMaker);
             return "product/outboundList";  // JSP 경로
         }

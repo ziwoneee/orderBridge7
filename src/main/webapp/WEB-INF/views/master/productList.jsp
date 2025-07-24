@@ -11,11 +11,7 @@
 
     <%@ include file="/WEB-INF/views/main/sidebar.jsp" %>
       
-    <style>
-        .table th, .table td { vertical-align: middle; }
-        .table thead th { background-color: #f5f5f5; }
-        .input-inline { width: 100%; }
-    </style>
+  
     <script>
         function showInsertRow() {
             document.getElementById('insert-row').style.display = '';
@@ -42,29 +38,27 @@
       <div class="main-panel">
         <div class="content-wrapper">
           <div class="row">
-          
-          
-                <div class="col-md-12 grid-margin">
-                    <div class="col-12 col-xl-8 mb-4 mb-xl-0">
-    
-<div class="container mt-5 ">
-    <h2 class="mb-4">완제품 목록</h2>
+                    
+                 <div class="col-12 mb-4">
+			  <h3 class="font-weight-bold">완제품 정보</h3>
+			</div>    
+<div class="table-responsive">   
     <button id="insert-btn" type="button" class="btn btn-success mb-2" onclick="showInsertRow()">신규등록</button>
-    <table class="table table-bordered table-hover" >
+    <table class="table table-bordered text-center" >
         <thead>
             <tr>
-                <th  style="width: 10%;">제품코드</th>
-                <th  style="width: 20%;">제품명</th>
-                <th  style="width: 20%;">판매가</th>
-                <th  style="width: 10%;">단위</th>
-                <th  style="width: 10%;">최소주문수량</th>
-                <th  style="width: 15%;">보관방법</th>
-                <th  style="width: 10%;">유통기한</th>
-                <th  style="width: 10%;">레시피코드</th>
-                <th  style="width: 18%;">제품상태</th>
-                <th  style="width: 10%;">등록일자</th>
-                <th  style="width: 10%;">수정일자</th>
-                <th  style="width: 10%;">관리</th>
+                <th>제품코드</th>
+                <th>제품명</th>
+                 <th>판매가</th>
+                 <th>단위</th>
+                 <th>최소주문수량</th>
+                 <th>보관방법</th>
+                 <th>유통기한</th>
+                 <th>레시피코드</th>
+                 <th>제품상태</th>
+                 <th>등록일자</th>
+                 <th>수정일자</th>
+                 <th>관리</th>
 <!--                 <th>삭제</th> -->
             </tr>
         </thead>

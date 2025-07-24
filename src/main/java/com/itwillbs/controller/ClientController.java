@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.itwillbs.domain.ClientVO;
+import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.service.ClientService;
 
@@ -33,29 +34,26 @@ public class ClientController {
 
     @GetMapping("/client/list")
     public String clientList(SearchCriteria cri, Model model) {
-        // 1. 허용 컬럼 리스트
+
         List<String> allowed = List.of("client_name", "business_number", "reg_date");
 
-        // 2. sortColumn이 허용값인지 체크, 아니면 기본값
-        if (cri.getSortColumn() == null || cri.getSortColumn().isEmpty() || !allowed.contains(cri.getSortColumn())) {
-            cri.setSortColumn("client_name"); // 안전한 기본값 (DB 컬럼명!)
+        if (cri.getSortColumn() == null || !allowed.contains(cri.getSortColumn())) {
+            cri.setSortColumn("client_name");
         }
         if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) {
             cri.setSortOrder("desc");
         }
 
-        // 이하 기존 코드 유지
         List<ClientVO> clientList = clientService.getClientList(cri);
         int totalCount = clientService.getClientCount(cri);
-        
-        logger.info(">>> Search keyword: {}", cri.getKeyword());
-        logger.info(">>> clientList size: {}", clientList.size());
+
+        PageMaker pageMaker = new PageMaker(cri, totalCount);
 
         model.addAttribute("clientList", clientList);
-        model.addAttribute("totalCount", totalCount);
         model.addAttribute("cri", cri);
+        model.addAttribute("pageMaker", pageMaker);  
 
-        return "client/list";  // → /WEB-INF/views/client/list.jsp
+        return "client/list";
     }
 
                 

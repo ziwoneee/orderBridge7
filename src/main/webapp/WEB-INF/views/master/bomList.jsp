@@ -11,11 +11,7 @@
 
     <%@ include file="/WEB-INF/views/main/sidebar.jsp" %>
     
-    <style>
-        .table th, .table td { vertical-align: middle; }
-        .table thead th { background-color: #f5f5f5; }
-        .input-inline { width: 100%; }
-    </style>
+    
     <script>
         function showInsertRow() {
             document.getElementById('insert-row').style.display = '';
@@ -43,18 +39,15 @@
         <div class="content-wrapper">
             <div class="row">
             
-            
-                <div class="col-md-12 grid-margin">
-                    <div class="col-12 col-xl-8 mb-4 mb-xl-0">
-              <div class="contentbody"> 
-                <!-- 본문내용 시작 -->
-<div class="container">
-    <h2 class="mb-4">BOM 목록</h2>
+               <!-- 제목 -->
+			<div class="col-12 mb-4">
+			  <h3 class="font-weight-bold">BOM 정보</h3>
+			</div>
    <button id="insert-btn" type="button" class="btn btn-success mb-2"
     onclick="location.href='${pageContext.request.contextPath}/master/bom/insert'">신규등록</button>
 
-    <div class="text-center">
-    <table class="table table-bordered table-hover">
+   <div class="table-responsive">
+		<table class="table table-bordered text-center">
         <thead>
             <tr>
                 <th>BOM ID</th>
@@ -95,12 +88,8 @@
         </tbody>
     </table>
     </div>
-</div>
-</div>
-</div>
-</div>
-</div>
 
+</div>
 
 		</div>
         <!-- content-wrapper 끝 -->

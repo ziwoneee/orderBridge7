@@ -19,7 +19,6 @@
     	   <!-- 제목 -->
 			<div class="col-12 mb-4">
 			  <h3 class="font-weight-bold">고객사 상세 정보</h3>
-              <h6 class="font-weight-normal mb-0">고객사 상세정보화면입니다. <span class="text-primary">강조쓰</span></h6>
 			</div>
         
           <div class="col-md-12 grid-margin">

@@ -121,9 +121,9 @@ public class ProductionResultServiceImpl implements ProductionResultService {
     //제품 ID → 제품명
     private String extractProductNameFromProductId(String productId) {
         switch (productId) {
-            case "FG-0001": return "돼지국밥";
-            case "FG-0002": return "순대국밥";
-            case "FG-0003": return "한우곰탕";
+            case "FG-001": return "돼지국밥";
+            case "FG-002": return "순대국밥";
+            case "FG-003": return "한우곰탕";
             default: return "기타제품";
         }
     }

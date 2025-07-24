@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%
     java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
     String today = sdf.format(new java.util.Date());
@@ -29,30 +30,32 @@
 		    <!-- ✅ 검색 & 필터 -->
 		    <div class="d-flex justify-content-between mb-3">
 		        <form method="get" class="form-inline mb-4">
+		         <select name="sortColumn" class="form-control mr-2">		               
+		                <option value="all" ${cri.sortColumn eq 'all' ? 'selected' : ''}>전체</option>
+		                <option value="product_name" ${cri.sortColumn eq 'product_name' ? 'selected' : ''}>제품명</option>
+		                <option value="lot_no" ${cri.sortColumn eq 'lot_no' ? 'selected' : ''}>LOT번호</option>
+		                <option value="client_name" ${cri.sortColumn eq 'client_name' ? 'selected' : ''}>담당자</option>
+		           
+		            </select>
+		            
+		            
 		            <input type="text" name="keyword" value="${cri.keyword}" class="form-control mr-2" placeholder="제품명, ID, LOT, 거래처 검색">
 		            <input type="date" name="startDate" value="${cri.startDate}" class="form-control mr-2" max="<%= today %>">
 		            <input type="date" name="endDate" value="${cri.endDate}" class="form-control mr-2" max="<%= today %>">
-		
-		            <select name="sortColumn" class="form-control mr-2">
-		                <option value="outbound_date" ${cri.sortColumn eq 'outbound_date' ? 'selected' : ''}>출고일자</option>
-		                <option value="product_id" ${cri.sortColumn eq 'product_id' ? 'selected' : ''}>제품ID</option>
-		            </select>
-		            <select name="sortOrder" class="form-control mr-2">
-		                <option value="desc" ${cri.sortOrder eq 'desc' ? 'selected' : ''}>내림차순</option>
-		                <option value="asc" ${cri.sortOrder eq 'asc' ? 'selected' : ''}>오름차순</option>
-		            </select>
+				           
 		
 		            <button type="submit" class="btn btn-primary">조회</button>
 		        </form>
 		    </div>
-	
+	<div row>
 	    <c:if test="${not empty msg}">
 	        <div class="alert alert-success text-center">${msg}</div>
 	    </c:if>
-	
+	</div>
 	    <!-- ✅ 테이블 -->
-	    <table class="table table-bordered table-striped table-hover text-center">
-	        <thead class="thead-dark">
+	     <div class="table-responsive mt-4">
+	    <table id=outboundTable class="table table-bordered table-striped table-hover text-center">
+	        <thead>
 	        <tr>
 	            <th>출고ID</th>
 	            <th>제품ID</th>
@@ -90,36 +93,63 @@
 	        </tbody>
 	    </table>
 	
-	    <!-- ✅ 페이지네이션 -->
-	    <nav>
-	        <ul class="pagination justify-content-center">
-	            <c:if test="${pageMaker.prev}">
-	                <li class="page-item">
-	                    <a class="page-link" href="?page=${pageMaker.startPage - 1}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">이전</a>
-	                </li>
-	            </c:if>
-	            <c:forEach var="i" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
-	                <li class="page-item ${cri.page == i ? 'active' : ''}">
-	                    <a class="page-link" href="?page=${i}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">${i}</a>
-	                </li>
-	            </c:forEach>
-	            <c:if test="${pageMaker.next}">
-	                <li class="page-item">
-	                    <a class="page-link" href="?page=${pageMaker.endPage + 1}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">다음</a>
-	                </li>
-	            </c:if>
-	        </ul>
-	    </nav>
-	    
-	</div>
-	
-	
-	 </div>
+	   <!-- ✅ 페이징 영역 -->
+         <!-- 페이지네이션 -->
+<!-- ✅ Bootstrap 페이징 스타일 -->
+<div class="d-flex justify-content-center mt-4">
+<nav>
+  <ul class="pagination justify-content-center mt-4">
+
+    <c:if test="${pageMaker.cri.page>1}">
+      <li class="page-item">
+        <a class="page-link" href="?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&laquo;</a>
+      </li>
+    </c:if>
+
+    <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+      <li class="page-item ${p == cri.page ? 'active' : ''}">
+        <a class="page-link" href="?page=${p}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">${p}</a>
+      </li>
+    </c:forEach>
+
+    <c:if test="${pageMaker.cri.page<pageMaker.endPage}">
+      <li class="page-item">
+        <a class="page-link" href="?page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&raquo;</a>
+      </li>
+    </c:if>
+
+  </ul>
+  
+</nav>
+
+</div>
+<!-- 페이징 처리 끝 -->
+ 		  </div>
         <!-- content-wrapper 끝 -->
 	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
+	
      </div>
      <!-- 본문.jsp main-panel ends -->
   </div>   
   <!-- container-fluid page-body-wrapper 끝 -->
 </div>
 <!-- container-scroller 끝-->   
+
+
+<!-- ✅ DataTables JS -->
+<script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+
+<!-- ✅ DataTables 초기화 (정렬만 사용, 페이징X) -->
+<script>
+$(document).ready(function () {
+  $('#outboundTable').DataTable({
+    paging: false,        // ❌ 페이징 비활성 (서버 페이징 사용)
+    ordering: true,       // ✅ 정렬 가능
+    searching: false,     // ❌ 검색창 비활성 (직접 구현)
+    info: false,          // ❌ "n개 중 m개 표시 중" 비활성
+    columnDefs: [
+      { targets: [4,5,6,7,8,9,10], orderable: false }  
+    ]
+  });
+});
+</script> 

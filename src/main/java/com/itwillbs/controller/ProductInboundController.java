@@ -52,6 +52,7 @@ public class ProductInboundController {
         PageMaker pageMaker = new PageMaker(cri, totalCount);
 
         model.addAttribute("inboundList", inboundList);
+        model.addAttribute("cri", cri);
         model.addAttribute("pageMaker", pageMaker);
         return "product/inboundList";  // /WEB-INF/views/product/inboundList.jsp
     }
