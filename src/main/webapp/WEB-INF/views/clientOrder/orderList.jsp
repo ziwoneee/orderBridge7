@@ -35,10 +35,7 @@
                 <!-- ✅ 검색창 -->
   	<div class="d-flex justify-content-between align-items-center mb-2">
 		
-    <form method="get" class="form-inline mb-3">
-
-   
-
+        <form method="get" class="form-inline flex-wrap">
  <!-- 수주일자 기간 조회 추가 -->
      <!-- 수주일자 기간 조회 -->
         <label for="startDate" class="mr-1">수주일자</label>
@@ -94,13 +91,8 @@
         
 <!-- 구분선 -->
 <hr class="my-3">
-
-
    
-<div class="d-flex justify-content-end mb-1"> 
-    
- 
-<div class="d-flex justify-content-end ">   
+<div class="d-flex justify-content-between align-items-center mb-2"> 
   
   
        <!-- 상태 일괄 변경 폼 -->      
@@ -131,7 +123,7 @@
   </div>
       
     
-   <div class="table-responsive">
+  	<div class="table-responsive mt-4">
      <table id="clorderTable" class="table table-bordered text-center">
         <thead>
         <tr>
@@ -184,19 +176,17 @@
   
     <div class = "text-right mb-3">
       <a href="${pageContext.request.contextPath}/clientorder/register" class="btn btn-primary">+ 신규 수주 등록</a>   
-      </div> </div> 
+      </div> </div>
       
-    <!-- 페이지네이션 -->
-          <!-- ✅ 페이징 영역 -->
-         <!-- 페이지네이션 -->
-<!-- ✅ Bootstrap 페이징 스타일 -->
+     <!-- ✅ 페이징 영역 -->
+          <!-- ✅ Bootstrap 페이징 스타일 -->
 <div class="d-flex justify-content-center mt-4">
 <nav>
   <ul class="pagination justify-content-center mt-4">
 
-    <c:if test="${pageMaker.prev}">
+    <c:if test="${pageMaker.cri.page>1}">
       <li class="page-item">
-        <a class="page-link" href="?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">이전</a>
+        <a class="page-link" href="?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&laquo;</a>
       </li>
     </c:if>
 
@@ -206,25 +196,24 @@
       </li>
     </c:forEach>
 
-    <c:if test="${pageMaker.next}">
+    <c:if test="${pageMaker.cri.page<pageMaker.endPage}">
       <li class="page-item">
-        <a class="page-link" href="?page=${pageMaker.endPage + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">다음</a>
+        <a class="page-link" href="?page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&raquo;</a>
       </li>
     </c:if>
 
   </ul>
+  
 </nav>
 
 </div>
-  
- <!--  본문내용 끝 -->    
-           </div>
-              <!-- 페이징 끝 -->
-     
-         </div>
+<!-- 페이징 처리 끝 -->
+
+     </div>
+        
         <!-- content-wrapper 끝 -->
 	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
-     </div>
+      </div>
      <!-- 본문.jsp main-panel ends -->
   </div>   
   <!-- container-fluid page-body-wrapper 끝 -->

@@ -6,7 +6,7 @@ public class PageMaker {
     private int endPage;
     private boolean prev;
     private boolean next;
-    private int displayPageNum = 10;  // 한 블록당 보여줄 페이지 수
+    private int displayPageNum = 5;  // 한 블록당 보여줄 페이지 수
     private SearchCriteria cri;
 
     public PageMaker(SearchCriteria cri, int totalCount) {

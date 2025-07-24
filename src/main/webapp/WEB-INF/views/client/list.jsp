@@ -87,9 +87,9 @@
 <nav>
   <ul class="pagination justify-content-center mt-4">
 
-    <c:if test="${pageMaker.prev}">
+    <c:if test="${pageMaker.cri.page>1}">
       <li class="page-item">
-        <a class="page-link" href="?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">이전</a>
+        <a class="page-link" href="?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&laquo;</a>
       </li>
     </c:if>
 
@@ -99,13 +99,14 @@
       </li>
     </c:forEach>
 
-    <c:if test="${pageMaker.next}">
+    <c:if test="${pageMaker.cri.page<pageMaker.endPage}">
       <li class="page-item">
-        <a class="page-link" href="?page=${pageMaker.endPage + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">다음</a>
+        <a class="page-link" href="?page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&raquo;</a>
       </li>
     </c:if>
 
   </ul>
+  
 </nav>
 
 </div>

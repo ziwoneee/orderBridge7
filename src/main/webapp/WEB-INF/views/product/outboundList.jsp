@@ -45,14 +45,15 @@
 		            <button type="submit" class="btn btn-primary">조회</button>
 		        </form>
 		    </div>
-	
+	<div row>
 	    <c:if test="${not empty msg}">
 	        <div class="alert alert-success text-center">${msg}</div>
 	    </c:if>
-	
+	</div>
 	    <!-- ✅ 테이블 -->
-	    <table class="table table-bordered table-striped table-hover text-center">
-	        <thead class="thead-dark">
+	     <div class="table-responsive mt-4">
+	    <table id=outboundTable class="table table-bordered table-striped table-hover text-center">
+	        <thead>
 	        <tr>
 	            <th>출고ID</th>
 	            <th>제품ID</th>
@@ -90,36 +91,63 @@
 	        </tbody>
 	    </table>
 	
-	    <!-- ✅ 페이지네이션 -->
-	    <nav>
-	        <ul class="pagination justify-content-center">
-	            <c:if test="${pageMaker.prev}">
-	                <li class="page-item">
-	                    <a class="page-link" href="?page=${pageMaker.startPage - 1}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">이전</a>
-	                </li>
-	            </c:if>
-	            <c:forEach var="i" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
-	                <li class="page-item ${cri.page == i ? 'active' : ''}">
-	                    <a class="page-link" href="?page=${i}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">${i}</a>
-	                </li>
-	            </c:forEach>
-	            <c:if test="${pageMaker.next}">
-	                <li class="page-item">
-	                    <a class="page-link" href="?page=${pageMaker.endPage + 1}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">다음</a>
-	                </li>
-	            </c:if>
-	        </ul>
-	    </nav>
-	    
-	</div>
-	
-	
-	 </div>
+	   <!-- ✅ 페이징 영역 -->
+         <!-- 페이지네이션 -->
+<!-- ✅ Bootstrap 페이징 스타일 -->
+<div class="d-flex justify-content-center mt-4">
+<nav>
+  <ul class="pagination justify-content-center mt-4">
+
+    <c:if test="${pageMaker.cri.page>1}">
+      <li class="page-item">
+        <a class="page-link" href="?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&laquo;</a>
+      </li>
+    </c:if>
+
+    <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+      <li class="page-item ${p == cri.page ? 'active' : ''}">
+        <a class="page-link" href="?page=${p}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">${p}</a>
+      </li>
+    </c:forEach>
+
+    <c:if test="${pageMaker.cri.page<pageMaker.endPage}">
+      <li class="page-item">
+        <a class="page-link" href="?page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&raquo;</a>
+      </li>
+    </c:if>
+
+  </ul>
+  
+</nav>
+
+</div>
+<!-- 페이징 처리 끝 -->
+ 		  </div>
         <!-- content-wrapper 끝 -->
 	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
+	
      </div>
      <!-- 본문.jsp main-panel ends -->
   </div>   
   <!-- container-fluid page-body-wrapper 끝 -->
 </div>
 <!-- container-scroller 끝-->   
+
+
+<!-- ✅ DataTables JS -->
+<script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+
+<!-- ✅ DataTables 초기화 (정렬만 사용, 페이징X) -->
+<script>
+$(document).ready(function () {
+  $('#outboundTable').DataTable({
+    paging: false,        // ❌ 페이징 비활성 (서버 페이징 사용)
+    ordering: true,       // ✅ 정렬 가능
+    searching: false,     // ❌ 검색창 비활성 (직접 구현)
+    info: false,          // ❌ "n개 중 m개 표시 중" 비활성
+    columnDefs: [
+      { targets: [4,5,6,7,8,9,10], orderable: false }  
+    ]
+  });
+});
+</script> 
