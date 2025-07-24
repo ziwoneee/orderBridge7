@@ -6,76 +6,7 @@
 <mapper namespace="com.itwillbs.mapper.SupplierMapper">
 
 	<!-- 협력사 목록 조회 (검색 조건 포함) -->
-	<select id="getSupplierList" resultType="com.itwillbs.domain.SupplierVO">
-    	SELECT
-    		supplier_id,
-    		supplier_name,
-    		business_number,
-    		supplier_type,
-    		representative_name,
-    		contact_phone,
-    		status,
-    		created_at
-    	FROM supplier
-   		<where>
-   			<!-- 키워드와 조건이 유효할 경우 검색 필터 적용 -->
-			<if test="keyword != null and keyword != '' and condition != null and condition != ''">
-				<choose>
-					<!-- 전체 검색: 협력사명, 사업자번호, 대표자명 -->
-					<when test="condition == 'all'">
-						(
-							supplier_name LIKE CONCAT('%', #{keyword}, '%')
-							OR business_number LIKE CONCAT('%', #{keyword}, '%')
-							OR representative_name LIKE CONCAT('%', #{keyword}, '%')
-						)
-					</when>
-					<!-- 특정 컬럼 검색 -->
-					<otherwise>
-						${condition} LIKE CONCAT('%', #{keyword}, '%')
-					</otherwise>
-				</choose>
-    		</if>
-    	</where>
-    	
-    	<!-- 정렬 조건 처리 -->
-    	ORDER BY
-    	<choose>
-    		<when test="sort != null and order != null">
-    			${sort} ${order}
-    		</when>
-    		<otherwise>
-    			supplier_id ASC
-    		</otherwise>
-    	</choose>
-  	</select>
-  	
-  	
-  	<!-- 전체 건수 조회 -->
-	<select id="getSupplierCount" resultType="int">
-	  SELECT COUNT(*) FROM supplier
-	  <where>
-	    <if test="keyword != null and keyword != '' and condition != null and condition != ''">
-	      <choose>
-	        <!-- 전체 검색 -->
-	        <when test="condition == 'all'">
-	          (
-	            supplier_name LIKE CONCAT('%', #{keyword}, '%')
-	            OR business_number LIKE CONCAT('%', #{keyword}, '%')
-	            OR representative_name LIKE CONCAT('%', #{keyword}, '%')
-	          )
-	        </when>
-	        <!-- 단일 필드 검색 -->
-	        <otherwise>
-	          ${condition} LIKE CONCAT('%', #{keyword}, '%')
-	        </otherwise>
-	      </choose>
-	    </if>
-	  </where>
-	</select>
-
-	
-	<!-- 페이징 리스트 조회 -->
-	<select id="getSupplierListPaged" resultType="com.itwillbs.domain.SupplierVO">
+	<select id="getSupplierList" parameterType="com.itwillbs.domain.SearchCriteria" resultType="com.itwillbs.domain.SupplierVO">
 	  SELECT *
 	  FROM supplier
 	  <where>
@@ -88,18 +19,79 @@
 	            OR representative_name LIKE CONCAT('%', #{keyword}, '%')
 	          )
 	        </when>
-	        <otherwise>
-	          ${condition} LIKE CONCAT('%', #{keyword}, '%')
-	        </otherwise>
+	        <when test="condition == 'supplier_name'">
+	          supplier_name LIKE CONCAT('%', #{keyword}, '%')
+	        </when>
+	        <when test="condition == 'business_number'">
+	          business_number LIKE CONCAT('%', #{keyword}, '%')
+	        </when>
+	        <when test="condition == 'representative_name'">
+	          representative_name LIKE CONCAT('%', #{keyword}, '%')
+	        </when>
 	      </choose>
 	    </if>
 	  </where>
-	  <if test="sort != null and order != null">
-	    ORDER BY ${sort} ${order}
-	  </if>
-	  LIMIT #{size} OFFSET #{offset}
+	
+	  <!-- 정렬 구문 보안 강화 -->
+	  <choose>
+	    <when test="sortColumn == 'supplier_name' and sortOrder == 'asc'">
+	      ORDER BY supplier_name ASC
+	    </when>
+	    <when test="sortColumn == 'supplier_name' and sortOrder == 'desc'">
+	      ORDER BY supplier_name DESC
+	    </when>
+	    <when test="sortColumn == 'created_at' and sortOrder == 'asc'">
+	      ORDER BY created_at ASC
+	    </when>
+	    <when test="sortColumn == 'created_at' and sortOrder == 'desc'">
+	      ORDER BY created_at DESC
+	    </when>
+	    <when test="sortColumn == 'status' and sortOrder == 'asc'">
+	      ORDER BY status ASC
+	    </when>
+	    <when test="sortColumn == 'status' and sortOrder == 'desc'">
+	      ORDER BY status DESC
+	    </when>
+	    <otherwise>
+	      ORDER BY created_at DESC
+	    </otherwise>
+	  </choose>
+	
+	  LIMIT #{perPageNum} OFFSET #{pageStart}
 	</select>
 
+	
+  	
+  	
+  	<!-- 전체 건수 조회 -->
+	<select id="getSupplierCount" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
+	  SELECT COUNT(*) FROM supplier
+	  <where>
+	    <if test="keyword != null and keyword != '' and condition != null and condition != ''">
+	      <choose>
+	        <when test="condition == 'all'">
+	          (
+	            supplier_name LIKE CONCAT('%', #{keyword}, '%')
+	            OR business_number LIKE CONCAT('%', #{keyword}, '%')
+	            OR representative_name LIKE CONCAT('%', #{keyword}, '%')
+	          )
+	        </when>
+	        <when test="condition == 'supplier_name'">
+	          supplier_name LIKE CONCAT('%', #{keyword}, '%')
+	        </when>
+	        <when test="condition == 'business_number'">
+	          business_number LIKE CONCAT('%', #{keyword}, '%')
+	        </when>
+	        <when test="condition == 'representative_name'">
+	          representative_name LIKE CONCAT('%', #{keyword}, '%')
+	        </when>
+	      </choose>
+	    </if>
+	  </where>
+	</select>
+
+
+	
 
 
 	<!-- 협력사 단건 조회 -->
@@ -204,22 +196,8 @@
 	   WHERE supplier_id = #{supplier_id}
     </update>
     
-    
-    
-    
-    
-    
-    
 
 </mapper>
-
-
-
-
-
-
-
-
 
 
 

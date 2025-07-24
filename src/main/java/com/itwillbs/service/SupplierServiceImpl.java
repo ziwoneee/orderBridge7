@@ -9,6 +9,7 @@ import javax.inject.Inject;
 
 import org.springframework.stereotype.Service;
 
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.SupplierVO;
 import com.itwillbs.persistence.SupplierDAO;
 
@@ -18,23 +19,16 @@ public class SupplierServiceImpl implements SupplierService{
 	@Inject
 	private SupplierDAO sDAO;
 	
-	// 협력사 리스트 조회 (검색조건/키워드 + 정렬)
-	@Override
-	public List<SupplierVO> getSupplierList(String keyword, String condition, String sort, String order) throws Exception {
-		// DAO 호출하여 검색 조건 + 정렬 조건에 맞는 협력사 리스트 반환
-		return sDAO.selectSupplierList(keyword, condition, sort, order);
-	}
-	
 	// 페이징 포함된 리스트 조회
     @Override
-    public List<SupplierVO> getSupplierListPaged(int offset, int size, String keyword, String condition, String sort, String order) throws Exception {
-        return sDAO.getSupplierListPaged(offset, size, keyword, condition, sort, order);
+    public List<SupplierVO> getSupplierList(SearchCriteria cri) throws Exception {
+        return sDAO.getSupplierList(cri);
     }
 
     // 전체 건수 조회
     @Override
-    public int getSupplierCount(String keyword, String condition) throws Exception {
-        return sDAO.getSupplierCount(keyword, condition);
+    public int getSupplierCount(SearchCriteria cri) throws Exception {
+        return sDAO.getSupplierCount(cri);
     }
 
 	
