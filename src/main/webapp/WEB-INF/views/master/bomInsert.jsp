@@ -1,15 +1,23 @@
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>BOM(생산 레시피) 신규등록</title>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
+
+<div class="container-scroller">
+
+  <%@ include file="/WEB-INF/views/main/top.jsp" %>      
+
+  <div class="container-fluid page-body-wrapper">
+
+    <%@ include file="/WEB-INF/views/main/sidebar.jsp" %>
+    
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+   
     <style>
         .list-group-item { cursor:pointer; }
         .list-group-item.active, .list-group-item:active { background:#4a95f7; color:white; }
     </style>
+   
     <script>
     var detailsIndex = 0;
         // 원자재 메뉴 선택시 오른쪽 폼에 자동 입력
@@ -80,18 +88,24 @@
     }
     detailsIndex = rows.length; // 항상 최신 개수로 맞춰줌
 }
-
-        
-        
+     
     </script>
-</head>
-<body>
-<div class="container mt-5">
-    <h3 class="mb-4">BOM (생산 레시피) 신규등록</h3>
+    
+<!-- 헤더, 사이드바,개인설정 끝 -->
+  <div class="main-panel">
+        <div class="content-wrapper">
+            <div class="row">    
+     <div class="col-12 mb-4">
+			  <h3 class="font-weight-bold">BOM (생산 레시피) 신규등록</h3>
+			</div>
+        
+<div class="container mt-5" style="margin-left: 0; padding-left: 0;">
+   
     <form method="post" action="${pageContext.request.contextPath}/master/bom/insert">
         <!-- 1. 대상 제품(레시피 대상) 선택 -->
+        
         <div class="form-group row">
-            <label class="col-sm-2 col-form-label">대상 제품</label>
+            <label class="col-sm-2 col-form-label" style="font-size:1.1rem;">대상 제품</label>
             <div class="col-sm-6">
                 <select name="productId" class="form-control" required>
                     <option value="">선택</option>
@@ -102,11 +116,22 @@
             </div>
         </div>
         <div class="form-group row">
-            <label class="col-sm-2 col-form-label">BOM명</label>
+            <label class="col-sm-2 col-form-label" style="font-size:1.1rem;">BOM명</label>
             <div class="col-sm-6">
                 <input type="text" name="bomName" class="form-control" required>
             </div>
+              </div>
+            <div class="form-group row">
+             <label class="col-sm-2 col-form-label">상태</label>
+            <div class="col-sm-4">
+                <select name="status" class="form-control">
+                    <option value="ACTIVE">활성</option>
+                    <option value="INACTIVE">비활성</option>
+                </select>
+          
+            </div>
         </div>
+        
         <hr>
 
         <div class="row">
@@ -133,7 +158,12 @@
       <input type="number" id="matQty" class="form-control mr-2" style="width:90px;" min="1" placeholder="수량">
       <input type="text" id="matUnit" class="form-control mr-2" style="width:70px;" placeholder="단위" readonly>
       <button type="button" class="btn btn-primary" onclick="addMaterial()">추가</button>
+    
+      <button type="submit" class="btn btn-success btn ml-5">레시피 저장</button>
+       
+    
     </div>
+   
 
     <!-- 1. 육수용 원자재 테이블 -->
     <h5>육수용 원자재</h5>
@@ -165,22 +195,23 @@
         </div>
         <!-- 5. 기타 정보 -->
         <div class="form-group row">
-            <label class="col-sm-2 col-form-label">상태</label>
-            <div class="col-sm-4">
-                <select name="status" class="form-control">
-                    <option value="ACTIVE">활성</option>
-                    <option value="INACTIVE">비활성</option>
-                </select>
-            </div>
+           
             <label class="col-sm-2 col-form-label">비고</label>
             <div class="col-sm-4">
                 <input type="text" name="bomEtc" class="form-control">
             </div>
         </div>
-        <div class="text-center my-4">
-            <button type="submit" class="btn btn-success btn-lg">레시피 저장</button>
-        </div>
+        
+        
     </form>
 </div>
-</body>
-</html>
+
+		</div>
+        <!-- content-wrapper 끝 -->
+	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
+     </div>
+     <!-- 본문.jsp main-panel ends -->
+  </div>   
+  <!-- container-fluid page-body-wrapper 끝 -->
+</div>
+<!-- container-scroller 끝-->   
