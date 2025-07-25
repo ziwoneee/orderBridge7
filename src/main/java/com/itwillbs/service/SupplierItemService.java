@@ -16,4 +16,7 @@ public interface SupplierItemService {
      */
     List<SupplierItemVO> getSuppliedItemsBySupplierId(String supplierId);
 
+    // 특정 거래처의 공급 품목 JSON 목록 반환
+    public List<SupplierItemVO> getItemsBySupplier(String supplierId) throws Exception;
+
 }

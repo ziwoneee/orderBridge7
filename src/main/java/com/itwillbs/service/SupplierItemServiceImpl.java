@@ -27,6 +27,12 @@ public class SupplierItemServiceImpl implements SupplierItemService {
 		return siDAO.selectSuppliedItemsBySupplierId(supplierId);
 	}
 	
-	
+	// 특정 거래처의 공급 품목 JSON 목록 반환
+	@Override
+	public List<SupplierItemVO> getItemsBySupplier(String supplierId) throws Exception {
+		
+	    return siDAO.getItemsBySupplier(supplierId);
+	}
 
+	
 }

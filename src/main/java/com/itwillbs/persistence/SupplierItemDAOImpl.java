@@ -24,5 +24,13 @@ public class SupplierItemDAOImpl implements SupplierItemDAO {
     public List<SupplierItemVO> selectSuppliedItemsBySupplierId(String supplierId) {
         return sqlSession.selectList(NAMESPACE + "selectSuppliedItemsBySupplierId", supplierId);
     }
+    
+    // 특정 거래처의 공급 품목 JSON 목록 반환
+    public List<SupplierItemVO> getItemsBySupplier(String supplierId) throws Exception {
+    	
+        return sqlSession.selectList(NAMESPACE + "getItemsBySupplier", supplierId);
+    }
+
+
 
 }
