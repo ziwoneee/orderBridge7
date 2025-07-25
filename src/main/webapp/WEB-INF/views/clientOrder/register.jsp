@@ -1,9 +1,9 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
 
-<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 
 <div class="container-scroller">
 
@@ -27,10 +27,13 @@
             
             
                 <div class="col-md-12 grid-margin">
-                    <div class="col-12 col-xl-8 mb-4 mb-xl-0">
-                        <h3 class="font-weight-bold">신규 수주 등록</h3>
-                    </div>
-                    <div class="contentbody" style="width:1200px;">
+                    <div class="col-12 mb-4">
+          <h3 class="font-weight-bold">신규 수주 등록</h3>
+        </div>
+                    
+                       
+                   <div class="contentbody" style="width:1200px; max-height: 700px; overflow-y: auto; padding-right: 10px;">
+
                         <!-- 거래처 정보 입력 -->
                         <div class="card p-3 mb-4">
   <div class="row">
