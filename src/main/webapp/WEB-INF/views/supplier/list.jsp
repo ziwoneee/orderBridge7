@@ -81,7 +81,8 @@
 			          </td>
 			          <td><fmt:formatDate value="${supplier.createdAt}" pattern="yyyy-MM-dd" /></td>
 			          <td>
-			            <a href="/supplier/view?supplierId=${supplier.supplierId}" class="btn btn-sm btn-outline-secondary">상세</a>
+			            <a href="/supplierItem/items?supplierId=${supplier.supplierId}" class="btn btn-sm btn-outline-primary">품목</a>
+  						<a href="/supplier/view?supplierId=${supplier.supplierId}" class="btn btn-sm btn-outline-secondary">상세</a>
 			          </td>
 			        </tr>
 			      </c:forEach>

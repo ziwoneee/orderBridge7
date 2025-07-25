@@ -5,10 +5,10 @@ import java.util.List;
 import javax.inject.Inject;
 
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.itwillbs.domain.SupplierItemVO;
 import com.itwillbs.service.SupplierItemService;
@@ -29,11 +29,15 @@ public class SupplierItemController {
      * @param supplierId 거래처 ID
      * @return 공급 품목 리스트 (JSON)
      */
-    @GetMapping("list")
-    @ResponseBody
-    public List<SupplierItemVO> getSuppliedItems(@RequestParam String supplierId) {
+	// http://localhost:8088/supplierItem/items?supplierId=SUP-20250710-001
+    @GetMapping("items")
+    public String showSupplierItems(@RequestParam String supplierId, Model model) throws Exception {
     	
-        return siService.getSuppliedItemsBySupplierId(supplierId);
+        // 1. 거래처명 조회용 (선택사항)
+        // 2. VO 목록 조회 (화면에서 Ajax로 조회해도 되므로 생략 가능)
+        model.addAttribute("supplierId", supplierId);
+        
+        return "supplier/items"; // → /WEB-INF/views/supplier/items.jsp
     }
 
 

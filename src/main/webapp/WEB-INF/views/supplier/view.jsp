@@ -83,13 +83,17 @@
             </div>
           </div>
 
+
+	<!--  본문내용 끝 -->
+	
+	
+	
           <!-- 버튼 -->
           <div class="col-12 mt-4 text-center">
             <a href="list" class="btn btn-outline-secondary">목록</a>
             <a href="edit?supplierId=${supplierVO.supplierId}" class="btn btn-primary text-white">수정</a>
             <button class="btn btn-danger">삭제</button>
-          </div>
-	<!--  본문내용 끝 -->
+          </div>	
 
             </div> <!-- class="row" -->
             
