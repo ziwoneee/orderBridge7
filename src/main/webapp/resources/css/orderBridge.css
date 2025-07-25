@@ -50,12 +50,35 @@
 	}
 	
 	
-	/* 검색 버튼색 */
+/* 버튼 css */
+	/* 기본 버튼 예) 협력사 검색버튼 */
 	.btn-primary, .wizard > .actions a {
+	  color: #fff;
+	  background-color: #1c355e;
+	  border-color: #1c355e;
+	  transition: all 0.2s ease-in-out;
+	}
+	
+	/* hover 시 */
+	.btn-primary:hover, .wizard > .actions a:hover {
+	  background-color: #2a4a80;  /* 밝은 남청색 계열 hover 색 */
+	  border-color: #1c355e;
+	  color: #fff;
+	}
+	
+	.btn-outline-primary:hover {
 	    color: #fff;
 	    background-color: #1c355e;
 	    border-color: #1c355e;
 	}
+
+	/* 협력사 품목 버튼 - 아웃라인 색상 커스터마이징 */
+	.btn-outline-primary {
+	  color: #1c355e !important;          /* 글자색 */
+	  border-color: #1c355e !important;   /* 테두리색 */
+	  background-color: transparent !important; /* 배경 유지 */
+	}
+
 	
 	
 	/* 현재 페이지 (active 상태) 페이징 버튼 색상 변경 */
@@ -64,12 +87,14 @@
 	  color: #1c355e !important;
 	  background-color: #fff !important;
 	  border: 1px solid #dee2e6 !important;
+	  transition: all 0.2s ease-in-out; /* 부드러운 hover */
 	}
 	
 	/* hover 시 */
 	.pagination .page-link:hover {
-	  background-color: #eaf0fa !important;
-	  color: #1c355e !important;
+	  background-color: #2a4a80 !important;
+	  color: #fff !important; /* 더 대비감 있게 */
+  	  border-color: #1c355e !important; /* 일관성 유지 */
 	}
 	
 	/* 현재 페이지(active) */
@@ -80,4 +105,45 @@
 	}
 
 	
+/* 상세 정보 카드 css */
+	/*헤더 배경 */
+	.bg-primary {
+	  background-color: #2a4670 !important;
+	  color: #fff !important;
+	}
 	
+	.bg-info {
+	  background-color: #147eb3 !important;
+	  color: #fff !important;
+	}
+	
+	.bg-warning {
+	  background-color: #ffc107 !important;
+	  color: #fff !important;
+	}
+
+
+/* 정렬 컬럼 css */
+	th a {
+	  color: white;
+	  text-decoration: none;
+	  cursor: pointer;
+	  display: inline-flex;
+	  align-items: center;
+	  gap: 4px;
+	}
+	
+	th a:hover {
+	  color: white;
+	  text-decoration: underline;
+
+	}
+	
+	th a span {
+	  color: white;
+	  font-size: 0.8rem;
+	}
+	
+	.neutral-arrow {
+	  color: #ccc;
+	}

@@ -29,6 +29,5 @@ public interface SupplierService {
     // 5. 협력사 정보 수정 기능
     void updateSupplier(SupplierVO vo) throws Exception;
     
-    
 
 }

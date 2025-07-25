@@ -18,56 +18,82 @@
           
         	<!-- 제목 -->
 			<div class="col-12 mb-4">
-			  <h3 class="font-weight-bold">협력사 정보</h3>
+			  <h3 class="font-weight-bold">${supplierVO.supplierName} 상세 정보</h3>
 			</div>
                   
 	                
 	<!--  본문 내용 시작 -->
-	<div class="contentbody"> 
+	 <!-- 상세 정보 카드 -->
+          <div class="row w-100">
+            <!-- 좌측: 기본 정보 -->
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header bg-primary text-white">기본 정보</div>
+                <div class="card-body">
+                  <table class="table">
+                    <tr><th>거래처명</th><td>${supplierVO.supplierName}</td></tr>
+                    <tr><th>사업자등록번호</th><td>${supplierVO.businessNumber}</td></tr>
+                    <tr><th>대표자명</th><td>${supplierVO.representativeName}</td></tr>
+                    <tr><th>전화번호</th><td>${supplierVO.phone}</td></tr>
+                    <tr><th>업태 / 종목</th><td>${supplierVO.supplierType}</td></tr>
+                    <tr><th>등록상태</th>
+                      <td>
+			            <c:choose>
+						  <c:when test="${supplierVO.status eq '활성'}">
+						    <span class="badge bg-success">활성</span>
+						  </c:when>
+						  <c:otherwise>
+						    <span class="badge bg-secondary">비활성</span>
+						  </c:otherwise>
+						</c:choose>
+			          </td>
+                    </tr>
+                  </table>
+                </div>
+              </div>
+            </div>
 
-  		<h4>${supplierVO.supplierName} 상세정보</h4>
+            <!-- 우측: 주소 + 정산정보 -->
+            <div class="col-md-6">
+              <div class="card mb-4">
+                <div class="card-header bg-info text-white">주소 및 담당자 정보</div>
+                <div class="card-body">
+                  <table class="table">
+                    <tr><th>우편번호</th><td>${supplierVO.zipcode}</td></tr>
+                    <tr><th>주소</th><td>${supplierVO.address}</td></tr>
+                    <tr><th>상세주소</th><td>${supplierVO.addressDetail}</td></tr>
+                    <tr><th>담당자명</th><td>${supplierVO.contactName}</td></tr>
+                    <tr><th>담당자 연락처</th><td>${supplierVO.contactPhone}</td></tr>
+                    <tr><th>담당자 이메일</th><td>${supplierVO.contactEmail}</td></tr>
+                  </table>
+                </div>
+              </div>
 
-		<!-- 탭 버튼 -->
-		<ul class="nav nav-tabs" id="myTab" role="tablist">
-		  <li class="nav-item">
-		    <a class="nav-link active" id="basic-tab" data-toggle="tab" href="#tab-basic" role="tab">기본정보</a>
-		  </li>
-		  <li class="nav-item">
-		    <a class="nav-link" id="settlement-tab" data-toggle="tab" href="#tab-settlement" role="tab">정산정보</a>
-		  </li>
-		  <li class="nav-item">
-		    <a class="nav-link" id="items-tab" data-toggle="tab" href="#tab-items" role="tab">공급 품목 관리</a>
-		  </li>
-		</ul>
+              <div class="card">
+                <div class="card-header bg-warning text-white">정산 정보</div>
+                <div class="card-body">
+                  <table class="table">
+                    <tr><th>정산방식</th><td>${supplierVO.settlementMethod}</td></tr>
+                    <tr><th>은행명</th><td>${supplierVO.bankName}</td></tr>
+                    <tr><th>계좌번호</th><td>${supplierVO.accountNumber}</td></tr>
+                    <tr><th>예금주</th><td>${supplierVO.accountHolder}</td></tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
 
-		<!-- 탭 콘텐츠 -->
-		<div class="tab-content" id="myTabContent">
-		  
-		  <!-- 기본정보 탭 -->
-		  <div class="tab-pane fade show active" id="tab-basic" role="tabpanel">
-		    <p><span class="info-label">거래처명:</span> <span class="info-value">${supplierVO.supplierName}</span></p>
-		    <p><span class="info-label">사업자등록번호:</span> <span class="info-value">${supplierVO.businessNumber}</span></p>
-		    <p><span class="info-label">대표자명:</span> <span class="info-value">${supplierVO.representativeName}</span></p>
-		    <p><span class="info-label">주소:</span> <span class="info-value">${supplierVO.address} (${supplierVO.zipcode})</span></p>
-		    <p><span class="info-label">전화번호:</span> <span class="info-value">${supplierVO.phone}</span></p>
-		  </div>
-		
-		  <!-- 정산정보 탭 -->
-		  <div class="tab-pane fade" id="tab-settlement" role="tabpanel">
-		    <p><span class="info-label">정산방식:</span> <span class="info-value">${supplierVO.settlementMethod}</span></p>
-		    <p><span class="info-label">은행명:</span> <span class="info-value">${supplierVO.bankName}</span></p>
-		    <p><span class="info-label">계좌번호:</span> <span class="info-value">${supplierVO.accountNumber}</span></p>
-		    <p><span class="info-label">예금주:</span> <span class="info-value">${supplierVO.accountHolder}</span></p>
-		  </div>
-		
-		  <!-- 공급 품목 관리 탭 -->
-		  <div class="tab-pane fade" id="tab-items" role="tabpanel">
-		    <p>공급 품목 탭입니다. (추후 구현)</p>
-		  </div>
-		
-		</div>
-	</div>
+
 	<!--  본문내용 끝 -->
+	
+	
+	
+          <!-- 버튼 -->
+          <div class="col-12 mt-4 text-center">
+            <a href="list" class="btn btn-outline-secondary">목록</a>
+            <a href="edit?supplierId=${supplierVO.supplierId}" class="btn btn-primary text-white">수정</a>
+            <button class="btn btn-danger">삭제</button>
+          </div>	
 
             </div> <!-- class="row" -->
             
