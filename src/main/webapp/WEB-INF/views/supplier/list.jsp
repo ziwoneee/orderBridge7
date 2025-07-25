@@ -58,7 +58,6 @@
 			        <th>거래상태</th>
 			        <th>등록일자</th>
 			        <th>상세</th>
-			        <th>수정</th>
 			      </tr>
 			    </thead>
 			    <tbody>
@@ -83,9 +82,6 @@
 			          <td><fmt:formatDate value="${supplier.createdAt}" pattern="yyyy-MM-dd" /></td>
 			          <td>
 			            <a href="/supplier/view?supplierId=${supplier.supplierId}" class="btn btn-sm btn-outline-secondary">상세</a>
-			          </td>
-			          <td>
-			            <a href="/supplier/edit?supplierId=${supplier.supplierId}" class="btn btn-sm btn-outline-secondary">수정</a>
 			          </td>
 			        </tr>
 			      </c:forEach>
@@ -173,7 +169,7 @@ $(document).ready(function () {
     searching: false,     // ❌ 검색창 비활성 (직접 구현)
     info: false,          // ❌ "n개 중 m개 표시 중" 비활성
     columnDefs: [
-      { targets: [4, 5, 6, 7, 8, 9], orderable: false }  // 정렬 제외 열 ([5, 8, 9])
+      { targets: [4, 5, 6, 7, 8], orderable: false }  // 정렬 제외 열 ([5, 8, 9])
     ]
   });
 });
