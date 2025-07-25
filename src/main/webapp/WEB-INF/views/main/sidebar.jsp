@@ -83,7 +83,7 @@
 	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/material/inventory/list">재고 현황</a></li>
 	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/wms/placeorder/insertOrder">발주 관리</a></li>
 	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/wms/store/insertStore">입고 관리</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/wms/unstore/insertUnstore">출고 관리</a></li>
+	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/material/outbound/list">출고 관리</a></li>
 	              </ul>
 	            </div>
 	          </li>
