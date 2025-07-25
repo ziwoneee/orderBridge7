@@ -148,16 +148,16 @@
                 <td>
                   <c:choose>
                     <c:when test="${order.clOrderStatus == 'REQUESTED'}">
-                      <span style="color: #dc3545; font-weight: bold;">주문접수</span>
+                      <span class="badge badge-success" >접 수 </span>
                     </c:when>
                     <c:when test="${order.clOrderStatus == 'CONFIRMED'}">
-                      <span style="color: #007bff; font-weight: bold;">확정</span>
+                      <span class="badge badge-danger" >확 정</span>
                     </c:when>
                     <c:when test="${order.clOrderStatus == 'SHIPPED'}">
-                      <span style="color: #28a745; font-weight: bold;">출하</span>
+                      <span class="badge badge-warning">출 하</span>
                     </c:when>
                     <c:when test="${order.clOrderStatus == 'CANCELLED'}">
-                      <span style="color: #6c757d;">취소</span>
+                      <span style="color: #6c757d;">취 소</span>
                     </c:when>
                     <c:otherwise>
                       <span style="color: #6c757d;">알 수 없음</span>

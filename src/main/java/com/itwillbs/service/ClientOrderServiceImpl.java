@@ -88,4 +88,11 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     public ClientOrderVO getOrderById(String clOrderId) {
         return clientOrderDAO.getOrderById(clOrderId);
     }
+    
+    
+    //수주 입금확인
+    @Override
+    public void updateOrderStatus(String orderNum, String status) {
+        clientOrderDAO.updateOrderStatus(orderNum, status);
+    }
 }

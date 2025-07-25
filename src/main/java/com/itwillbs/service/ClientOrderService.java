@@ -25,5 +25,8 @@ public interface ClientOrderService {
     
     //수주 상세 보기
     ClientOrderVO getOrderById(String clOrderId);
-
+    
+    
+    //수주 입금확인
+    void updateOrderStatus(String orderNum, String status);
 }

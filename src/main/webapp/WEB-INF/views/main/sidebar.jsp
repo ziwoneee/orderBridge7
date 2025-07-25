@@ -41,7 +41,7 @@
 	              <ul class="nav flex-column sub-menu">
 	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/clientorder/list">수주 관리</a></li>
 	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/">생산 재고 관리</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/business/shipping/shippingList">출하 관리</a></li>
+	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/shipment/pending">출하 관리</a></li>
 	              </ul>
 	            </div>
 	          </li>
