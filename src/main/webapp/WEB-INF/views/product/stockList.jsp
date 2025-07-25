@@ -177,8 +177,6 @@
 <!-- container-scroller 끝-->   
 
 
-<!-- ✅ DataTables JS -->
-<script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
 
 <!-- ✅ 모달 관련 JS도 이 아래에 유지하세요 -->
 <script>
@@ -209,32 +207,6 @@
     });
 </script>
 
-<script>
-    $(document).ready(function () {
-        $('#stockTable').DataTable({
-            paging: false,          // 기존 페이징과 충돌 방지
-            info: false,            // 하단 정보 제거
-            ordering: true,         // 정렬 가능
-            searching: false,       // ✅ 검색창 제거
-            language: {
-                "emptyTable": "데이터가 없습니다",
-                "zeroRecords": "일치하는 결과가 없습니다",
-                "infoEmpty": "표시할 항목이 없습니다",
-                "loadingRecords": "로딩 중...",
-                "processing": "처리 중...",
-                "paginate": {
-                    "first": "처음",
-                    "last": "마지막",
-                    "next": "다음",
-                    "previous": "이전"
-                }
-            },
-            columnDefs: [
-                { targets: [6], orderable: false }  // 상세내역 버튼 정렬 제외
-            ]
-        });
-    });
-</script>
 
 <script>
   function viewStock() {

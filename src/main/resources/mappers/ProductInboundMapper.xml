@@ -53,7 +53,7 @@
     ORDER BY created_at DESC
   </select>
 
-  <!-- ✅ 4. 검색 + 정렬 + 날짜 + 페이징 -->
+    <!-- ✅ 4. 검색 + 정렬 + 날짜 + 페이징 -->
   <select id="searchInboundList" parameterType="com.itwillbs.domain.SearchCriteria" resultMap="ProductInboundMap">
     SELECT 
       inbound_id,
@@ -81,22 +81,25 @@
       <if test="endDate != null and endDate != ''">
         AND DATE(created_at) &lt;= #{endDate}
       </if>
+    
     <choose>
-      <when test="sortColumn == 'created_at'">
+      <when test="sortColumn == 'productName'">
+        ORDER BY product_name ${sortOrder}
+      </when>
+      <when test="sortColumn == 'createdAt'">
         ORDER BY created_at ${sortOrder}
       </when>
-      <when test="sortColumn == 'lot_no'">
-        ORDER BY lot_no ${sortOrder}
-      </when>
-      <when test="sortColumn == 'product_name'">
-        ORDER BY product_name ${sortOrder}
+      <when test="sortColumn == 'manager'">
+        ORDER BY manager ${sortOrder}
       </when>
       <otherwise>
         ORDER BY created_at DESC
       </otherwise>
     </choose>
+
     LIMIT #{pageStart}, #{perPageNum}
   </select>
+
 
   <!-- ✅ 5. 총 개수 -->
   <select id="countInboundList" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">

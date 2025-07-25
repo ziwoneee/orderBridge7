@@ -1,9 +1,9 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
 
-<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 
 <div class="container-scroller">
 
@@ -22,17 +22,16 @@
     </style>
 
     <div class="main-panel">
-        <div class="content-wrapper" style="height: 800px;">
-            <div class="row">
-            
-            
+        <div class="content-wrapper" >
+            <div class="row">                  
                 <div class="col-md-12 grid-margin">
-                    <div class="col-12 col-xl-8 mb-4 mb-xl-0">
-                        <h3 class="font-weight-bold">신규 수주 등록</h3>
-                    </div>
-                    <div class="contentbody" style="width:1200px;">
-                        <!-- 거래처 정보 입력 -->
-                        <div class="card p-3 mb-4">
+                    <div class="col-12 mb-4">
+          <h3 class="font-weight-bold">신규 수주 등록</h3>
+        </div>
+                        
+<div class="contentbody" style="width:1200px;">
+ <!-- 거래처 정보 입력 -->
+ <div class="card p-3 mb-4">
   <div class="row">
     <!-- 왼쪽: 거래처 정보 -->
     <div class="col-md-8" >
@@ -71,9 +70,9 @@
     
   </div>
 </div>
-                        <!-- 주문 폼 -->
-                        <form id="orderForm" method="post" action="${pageContext.request.contextPath}/clientorder/register">
-                        <div class="col-md-4">
+<!-- 주문 폼 -->
+<form id="orderForm" method="post" action="${pageContext.request.contextPath}/clientorder/register">
+<div class="col-md-4">
       <div class="form-group">
         <label>납기 요청일</label>
         <input type="date" name="clDeliveryDate" id="clDeliveryDate" class="form-control" required>
@@ -97,7 +96,7 @@
                             
                             
                             <div id="productCart1"></div>
-                            <button type="button" class="btn btn-outline-primary" onclick="addProductItem()">+ 제품 추가</button>
+                            <button type="button" class="btn btn-primary" onclick="addProductItem()">+ 제품 추가</button>
                             <button type="submit" class="btn btn-success" id="submitBtn">수주 등록</button>
                             <a href="${pageContext.request.contextPath}/clientorder/list" class="btn btn-secondary">목록</a>
                         </form>
@@ -159,8 +158,10 @@ $(document).ready(function () {
                         $('#clientPhone').val(client.clientTel);                       
                         $('#deliveryAddressView').val((client.address || '') + ' ' + (client.addressDetail || ''));
                         $('#deliveryAddress').val((client.address || '') + ' ' + (client.addressDetail || ''));
+                        $('#postCodeHidden').val(client.postCode);
                         $('#clientManager').val(client.managerName);
-                   suggestionBox.empty();
+                     
+                        suggestionBox.empty();
                     });
                     suggestionBox.append(item);
                 }
@@ -307,6 +308,7 @@ function updateSubmitButtonState() {
   document.getElementById("submitBtn").disabled = !hasValidProduct;
 }
 </script>
+
 <script>
   // 대한민국 공휴일 배열 (yyyy-mm-dd 형식)
   const holidays = [ "2025-08-15", "2025-09-16" ];

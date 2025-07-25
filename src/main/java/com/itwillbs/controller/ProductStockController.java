@@ -2,8 +2,8 @@ package com.itwillbs.controller;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -26,29 +26,43 @@ public class ProductStockController {
 
     @GetMapping("/product/stocklist")
     public String stockList(SearchCriteria cri, Model model) {
+
+        // ✅ 허용된 정렬 컬럼
+        List<String> allowedSortColumns = Arrays.asList("product_name", "lot_no", "reg_date", "expire_date");
+
+        // ✅ 정렬 컬럼 유효성 검사
+        if (cri.getSortColumn() == null || !allowedSortColumns.contains(cri.getSortColumn())) {
+            cri.setSortColumn("reg_date"); // 기본 정렬
+        }
+
+        // ✅ 정렬 순서 유효성 검사
+        if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) {
+            cri.setSortOrder("desc");
+        }
+
+        // ✅ 데이터 조회
         List<ProductStockVO> stockList = productStockService.getStockList(cri);
         int totalCount = productStockService.getStockCount(cri);
         cri.setTotalCount(totalCount);
-        
-     // ✅ PageMaker 설정
+
         PageMaker pageMaker = new PageMaker(cri, totalCount);
         model.addAttribute("pageMaker", pageMaker);
-        
-        // 날짜 계산 추가
-        LocalDate today = LocalDate.now();
-        LocalDate expiredLimitDate = today.plusDays(7); // 7일 후
 
-        // 포맷 문자열로 변환
+        // 날짜 계산
+        LocalDate today = LocalDate.now();
+        LocalDate expiredLimitDate = today.plusDays(7);
+
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         model.addAttribute("today", today.format(formatter));
         model.addAttribute("expiredLimitDate", expiredLimitDate.format(formatter));
 
         model.addAttribute("stockList", stockList);
         model.addAttribute("cri", cri);
+
         return "product/stockList";
     }
-    
-    //모달창 입출고 리스트
+
+    // ✅ 모달 상세 내역
     @GetMapping("/product/transaction")
     @ResponseBody
     public List<ProductStockTransactionVO> getStockDetail(
@@ -57,5 +71,4 @@ public class ProductStockController {
         return productStockService.getStockDetail(productId, lotNo);
     }
 
-    
 }

@@ -69,19 +69,50 @@
     <!-- ✅ 테이블 -->
      <div class="table-responsive mt-4">
     <table id = inboundTable class="table table-bordered table-striped table-hover text-center">
-        <thead>
-        <tr>
-            <th>입고ID</th>
-            <th>제품ID</th>
-            <th>제품명</th>           
-            <th>LOT번호</th>
-            <th>수량</th>
-            <th>입고일자</th>
-            <th>입고유형</th>
-            <th>담당자</th>
-            <th>비고</th>
-        </tr>
-        </thead>
+       <thead>
+<tr>
+  <th>입고ID</th>
+  <th>제품ID</th>
+  
+  <!-- ✅ 제품명 정렬 -->
+  <th>
+    <a href="?page=1&sortColumn=productName&sortOrder=${cri.sortColumn eq 'productName' and cri.sortOrder eq 'ASC' ? 'DESC' : 'ASC'}&keyword=${fn:escapeXml(cri.keyword)}">
+      제품명
+      <c:if test="${cri.sortColumn eq 'productName'}">
+        ${cri.sortOrder eq 'ASC' ? '▲' : '▼'}
+      </c:if>
+    </a>
+  </th>
+
+  <th>LOT번호</th>
+  <th>수량</th>
+
+  <!-- ✅ 입고일자 정렬 -->
+  <th>
+    <a href="?page=1&sortColumn=createdAt&sortOrder=${cri.sortColumn eq 'createdAt' and cri.sortOrder eq 'ASC' ? 'DESC' : 'ASC'}&keyword=${fn:escapeXml(cri.keyword)}">
+      입고일자
+      <c:if test="${cri.sortColumn eq 'createdAt'}">
+        ${cri.sortOrder eq 'ASC' ? '▲' : '▼'}
+      </c:if>
+    </a>
+  </th>
+
+  <th>입고유형</th>
+
+  <!-- ✅ 담당자 정렬 -->
+  <th>
+    <a href="?page=1&sortColumn=manager&sortOrder=${cri.sortColumn eq 'manager' and cri.sortOrder eq 'ASC' ? 'DESC' : 'ASC'}&keyword=${fn:escapeXml(cri.keyword)}">
+      담당자
+      <c:if test="${cri.sortColumn eq 'manager'}">
+        ${cri.sortOrder eq 'ASC' ? '▲' : '▼'}
+      </c:if>
+    </a>
+  </th>
+
+  <th>비고</th>
+</tr>
+</thead>
+
         <tbody>
         <c:forEach var="vo" items="${inboundList}">
             <tr>
@@ -143,20 +174,3 @@
 <!-- container-scroller 끝-->  
 
 
-<!-- ✅ DataTables JS -->
-<script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
-
-<!-- ✅ DataTables 초기화 (정렬만 사용, 페이징X) -->
-<script>
-$(document).ready(function () {
-  $('#inboundTable').DataTable({
-    paging: false,        // ❌ 페이징 비활성 (서버 페이징 사용)
-    ordering: true,       // ✅ 정렬 가능
-    searching: false,     // ❌ 검색창 비활성 (직접 구현)
-    info: false,          // ❌ "n개 중 m개 표시 중" 비활성
-    columnDefs: [
-      { targets: [4,5,6,7,8], orderable: false }  // 정렬 제외 열 
-    ]
-  });
-});
-</script> 

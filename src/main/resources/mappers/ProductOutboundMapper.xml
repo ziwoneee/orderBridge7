@@ -22,8 +22,11 @@
   </insert>
   
   <!-- 출고내역 -->
-   <select id="searchOutboundList" parameterType="SearchCriteria" resultType="com.itwillbs.domain.ProductOutboundVO">
-  SELECT o.*, p.product_name, c.client_name
+  <select id="searchOutboundList" parameterType="SearchCriteria" resultType="com.itwillbs.domain.ProductOutboundVO">
+  SELECT 
+    o.*, 
+    p.product_name AS product_name, 
+    c.client_name AS client_name 
   FROM product_outbound o
   LEFT JOIN product p ON o.product_id = p.product_id
   LEFT JOIN client c ON o.client_id = c.client_id
@@ -41,20 +44,20 @@
   </where>
 
   <choose>
-    <when test="sortColumn == 'product_id'">
-      ORDER BY o.product_id ${sortOrder}
+    <when test="sortColumn == 'productName'">
+      ORDER BY p.product_name ${sortOrder}
     </when>
-    <when test="sortColumn == 'outbound_date'">
-      ORDER BY o.outbound_date ${sortOrder}
-    </when>
-    <when test="sortColumn == 'outbound_qty'">
-      ORDER BY o.outbound_qty ${sortOrder}
-    </when>
-    <when test="sortColumn == 'lot_no'">
+    <when test="sortColumn == 'lotNo'">
       ORDER BY o.lot_no ${sortOrder}
     </when>
-    <when test="sortColumn == 'client_name'">
+    <when test="sortColumn == 'outboundDate'">
+      ORDER BY o.outbound_date ${sortOrder}
+    </when>
+    <when test="sortColumn == 'clientName'">
       ORDER BY c.client_name ${sortOrder}
+    </when>
+    <when test="sortColumn == 'manager'">
+      ORDER BY o.manager ${sortOrder}
     </when>
     <otherwise>
       ORDER BY o.outbound_date DESC
@@ -65,25 +68,27 @@
 </select>
 
 
+
   <!-- 출고내역 총 개수 (페이징용) -->
   <select id="countOutboundList" parameterType="SearchCriteria" resultType="int">
-    SELECT COUNT(*)
-    FROM product_outbound o
-    LEFT JOIN product p ON o.product_id = p.product_id
-    LEFT JOIN client c ON o.client_id = c.client_id
-    <where>
-      <if test="keyword != null and keyword != ''">
-        (
-          p.product_name LIKE CONCAT('%', #{keyword}, '%') OR
-          o.product_id LIKE CONCAT('%', #{keyword}, '%') OR
-          o.lot_no LIKE CONCAT('%', #{keyword}, '%') OR
-          c.client_name LIKE CONCAT('%', #{keyword}, '%')
-        )
-      </if>
-      <if test="startDate != null"> AND DATE(o.outbound_date) &gt;= #{startDate} </if>
-      <if test="endDate != null"> AND DATE(o.outbound_date) &lt;= #{endDate} </if>
-    </where>
-  </select>
+  SELECT COUNT(*)
+  FROM product_outbound o
+  LEFT JOIN product p ON o.product_id = p.product_id
+  LEFT JOIN client c ON o.client_id = c.client_id
+  <where>
+    <if test="keyword != null and keyword != ''">
+      (
+        p.product_name LIKE CONCAT('%', #{keyword}, '%') OR
+        o.product_id LIKE CONCAT('%', #{keyword}, '%') OR
+        o.lot_no LIKE CONCAT('%', #{keyword}, '%') OR
+        c.client_name LIKE CONCAT('%', #{keyword}, '%')
+      )
+    </if>
+    <if test="startDate != null"> AND DATE(o.outbound_date) &gt;= #{startDate} </if>
+    <if test="endDate != null"> AND DATE(o.outbound_date) &lt;= #{endDate} </if>
+  </where>
+</select>
+
 
   
   

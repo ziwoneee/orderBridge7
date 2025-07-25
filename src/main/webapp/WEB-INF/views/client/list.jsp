@@ -3,8 +3,9 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
-
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
+
+
 
 <div class="container-scroller">
   <%@ include file="/WEB-INF/views/main/top.jsp" %>      
@@ -41,17 +42,48 @@
           </div>
 
           <!-- ✅ 테이블 영역 -->
+           <!-- ✅ 테이블 -->
           <div class="table-responsive mt-4">
-            <table id="clientTable" class="table table-bordered text-center">
+            <table class="table table-bordered text-center">
               <thead>
                 <tr>
                   <th>고객사ID</th>
-                  <th>고객사명</th>
+                 <th>
+  <a href="?page=1&sortColumn=clientName&sortOrder=${cri.sortColumn eq 'clientName' and cri.sortOrder eq 'ASC' ? 'DESC' : 'ASC'}&keyword=${fn:escapeXml(cri.keyword)}">
+    고객사명
+    <c:if test="${cri.sortColumn eq 'clientName'}">
+      <span>
+        ${cri.sortOrder eq 'ASC' ? '▲' : '▼'}
+      </span>
+    </c:if>
+  </a>
+</th>
                   <th>사업자등록번호</th>
                   <th>대표자명</th>
                   <th>연락처</th>
-                  <th>등록일</th>
-                  <th>상태</th>
+                  <th>
+  <a href="?page=1&sortColumn=createdAt&sortOrder=${cri.sortColumn eq 'createdAt' and cri.sortOrder eq 'ASC' ? 'DESC' : 'ASC'}&keyword=${fn:escapeXml(cri.keyword)}">
+    등록일
+    <c:if test="${cri.sortColumn eq 'createdAt'}">
+      <span>
+        ${cri.sortOrder eq 'ASC' ? '▲' : '▼'}
+      </span>
+    </c:if>
+  </a>
+</th>
+
+                 <th>
+  <a href="?page=1&sortColumn=statusCode&sortOrder=${cri.sortColumn eq 'statusCode' and cri.sortOrder eq 'ASC' ? 'DESC' : 'ASC'}&keyword=${fn:escapeXml(cri.keyword)}">
+    상태
+    <c:if test="${cri.sortColumn eq 'statusCode'}">
+      <span>
+        ${cri.sortOrder eq 'ASC' ? '▲' : '▼'}
+      </span>
+    </c:if>
+  </a>
+</th>
+
+
                   <th>상세</th>
                 </tr>
               </thead>
@@ -64,17 +96,13 @@
                     <td>${client.ceoName}</td>
                     <td>${client.clientTel}</td>
                     <td><fmt:formatDate value="${client.createdAt}" pattern="yyyy-MM-dd" /></td>
-                    
                     <td>
                       <span class="badge badge-${client.statusCode == 1 ? 'success' : 'secondary'}">
                         ${client.statusCode == 1 ? '활성' : '비활성'}
                       </span>
                     </td>
                     <td>
-                      <button type="button" class="btn btn-sm btn-outline-info"
-                              onclick="location.href='/client/detail?clientId=${client.clientId}'">
-                        상세보기
-                      </button>
+                      <a href="/client/detail?clientId=${client.clientId}" class="btn btn-sm btn-outline-info">상세보기</a>
                     </td>
                   </tr>
                 </c:forEach>
@@ -86,7 +114,7 @@
               </tbody>
             </table>
           </div>
- </div>
+</div>
           <!-- ✅ 페이징 영역 -->
          <!-- 페이지네이션 -->
 <!-- ✅ Bootstrap 페이징 스타일 -->
@@ -128,21 +156,3 @@
   <!-- container-fluid page-body-wrapper 끝 -->
 </div>
 <!-- container-scroller 끝-->   
-
-<!-- ✅ DataTables JS -->
-<script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
-
-<!-- ✅ DataTables 초기화 (정렬만 사용, 페이징X) -->
-<script>
-$(document).ready(function () {
-  $('#clientTable').DataTable({
-    paging: false,        // ❌ 페이징 비활성 (서버 페이징 사용)
-    ordering: true,       // ✅ 정렬 가능
-    searching: false,     // ❌ 검색창 비활성 (직접 구현)
-    info: false,          // ❌ "n개 중 m개 표시 중" 비활성
-    columnDefs: [
-      { targets: [7], orderable: false }  // 정렬 제외 열 (사업자번호, 대표자명, 상세버튼)
-    ]
-  });
-});
-</script>
