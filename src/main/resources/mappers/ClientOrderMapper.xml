@@ -151,6 +151,12 @@
     WHERE co.cl_order_id = #{clOrderId}
 </select>
 
+<!-- 입금확인 -->
+<update id="updateOrderStatus" parameterType="map">
+  UPDATE client_order
+  SET cl_order_status = #{status}
+  WHERE cl_order_id = #{orderNum}
+</update>
 
   
 

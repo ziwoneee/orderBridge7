@@ -39,7 +39,8 @@ public class ClientOrderDAOImpl implements ClientOrderDAO {
     public List<ClientOrderVO> getOrderList(SearchCriteria cri) {
         return sqlSession.selectList(NAMESPACE + ".getOrderList", cri);
     }
-
+    
+   
     @Override
     public int getOrderCount(SearchCriteria cri) {
         return sqlSession.selectOne(NAMESPACE + ".getOrderCount", cri);
@@ -61,4 +62,14 @@ public class ClientOrderDAOImpl implements ClientOrderDAO {
         return sqlSession.selectOne(NAMESPACE + ".getOrderById", clOrderId);
     }
     
+    
+    //입금확인
+    @Override
+    public void updateOrderStatus(String orderNum, String status) {
+        Map<String, Object> paramMap = new HashMap<>();
+        paramMap.put("orderNum", orderNum);
+        paramMap.put("status", status);
+        sqlSession.update(NAMESPACE + ".updateOrderStatus", paramMap);
+    }
+
 }

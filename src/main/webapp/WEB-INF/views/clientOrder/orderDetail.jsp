@@ -16,6 +16,8 @@
         <div class="content-wrapper">
           <div class="row">
           
+                  
+          
             <!-- 제목 -->
 			<div class="col-12 mb-4">
 			  <h3 class="font-weight-bold">수주상세 정보</h3>
@@ -62,18 +64,23 @@
     <th class="table-active">수주상태</th>
     <td>
       <c:choose>
-        <c:when test="${order.clOrderStatus == 'REQUESTED'}">
-          <span style="color: #dc3545; font-weight: bold;">주문접수</span>
+         <c:when test="${order.clOrderStatus == 'REQUESTED'}">
+         <span class="btn btn-sm btn-success ml-2 ">접 수 </span>                 
+        <!-- ✅ 입금확인 버튼 -->
+        <form action="${pageContext.request.contextPath}/clientorder/confirm" method="post" style="display:inline;">
+          <input type="hidden" name="clOrderId" value="${order.clOrderId}" />
+          <button type="submit" class="btn btn-sm btn-warning ml-2">입금확인</button>
+        </form>
         </c:when>
         <c:when test="${order.clOrderStatus == 'CONFIRMED'}">
-          <span style="color: #007bff; font-weight: bold;">확정</span>
-        </c:when>
+         <span class="badge badge-danger" >확 정</span>
+           </c:when>
         <c:when test="${order.clOrderStatus == 'SHIPPED'}">
-          <span style="color: #28a745; font-weight: bold;">출하</span>
-        </c:when>
-        <c:when test="${order.clOrderStatus == 'CANCELLED'}">
-          <span style="color: #6c757d; font-weight: bold;">취소</span>
-        </c:when>
+          <span class="badge badge-warning">출 하</span>
+          </c:when>
+         <c:when test="${order.clOrderStatus == 'CANCELLED'}">
+          <span style="color: #6c757d;">취 소</span>
+           </c:when>
         <c:otherwise>
           <span style="color: #6c757d;">알 수 없음</span>
         </c:otherwise>
@@ -86,6 +93,9 @@
         </tbody>
     </table>
  
+  <c:if test="${not empty message}">
+  <div class="alert alert-success">${message}</div>
+</c:if>
 
     <!-- 수주 상세내역(제품별) -->
     <h4 class="mb-3">수주 상세 내역</h4>

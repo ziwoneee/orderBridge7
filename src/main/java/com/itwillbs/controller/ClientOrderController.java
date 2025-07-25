@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.itwillbs.domain.ClientOrderVO;
 import com.itwillbs.domain.ClientVO;
@@ -172,6 +173,20 @@ public class ClientOrderController {
         return "clientOrder/orderDetail"; // JSP 경로: /WEB-INF/views/clientOrder/orderDetail.jsp
     }
     
+    //수주 입금확인-상태변경
+    @PostMapping("/confirm")
+    public String confirmOrder(@RequestParam("clOrderId") String clOrderId, RedirectAttributes rttr) {
+        // 상태 업데이트 (CONFIRMED)
+        clientOrderService.updateOrderStatus(clOrderId, "CONFIRMED");
+
+        // 알림 메시지
+        rttr.addFlashAttribute("message", "입금이 확인되어 주문이 확정되었습니다.");
+
+        // 상세페이지로 리다이렉트
+        return "redirect:/clientorder/detail?clOrderId=" + clOrderId;
+    }
+
+
     
 
 }
