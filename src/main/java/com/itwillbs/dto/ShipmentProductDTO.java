@@ -16,4 +16,5 @@ public class ShipmentProductDTO {
     public boolean isShippable() {
         return stockQty >= orderQty;
     }
-}
+    
+ }

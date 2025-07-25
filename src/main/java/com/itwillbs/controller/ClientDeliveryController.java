@@ -1,7 +1,5 @@
 package com.itwillbs.controller;
 
-import com.itwillbs.domain.ClientDeliveryVO;
-import com.itwillbs.dto.ShipmentPendingDTO;
 import com.itwillbs.dto.ShipmentPendingGroupDTO;
 import com.itwillbs.service.ClientDeliveryService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +17,7 @@ public class ClientDeliveryController {
     @Autowired
     private ClientDeliveryService deliveryService;
 
- // ✅ 출하대기 그룹형 목록
+    // ✅ 출하대기 그룹형 목록 조회
     @GetMapping("/pending")
     public String getGroupedPendingList(Model model) {
         List<ShipmentPendingGroupDTO> groupedList = deliveryService.getPendingShipmentGroupedList();
@@ -27,11 +25,15 @@ public class ClientDeliveryController {
         return "clientDelivery/list";
     }
 
-    // ✅ 출하처리
+    // ✅ 수주번호 단위 출하 처리
     @PostMapping("/process")
-    public String processShipment(@RequestParam("orderDetailIds") List<Long> orderDetailIds,
+    public String processShipment(@RequestParam("clOrderIds") List<String> clOrderIds,
                                    RedirectAttributes rttr) {
-        deliveryService.processShipments(orderDetailIds);
+        // 각 수주번호에 대해 출하 처리 로직 호출
+        for (String clOrderId : clOrderIds) {
+            deliveryService.processShipmentByOrderId(clOrderId);
+        }
+
         rttr.addFlashAttribute("message", "출하 처리가 완료되었습니다.");
         return "redirect:/shipment/pending";
     }

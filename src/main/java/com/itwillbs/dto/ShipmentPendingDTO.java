@@ -28,7 +28,7 @@ public class ShipmentPendingDTO {
     private Date updatedAt;          // 수정일시
     private String pdfFile;          // PDF 파일명
     private String isPdfGenerated;   // PDF 생성 여부 ('Y', 'N')
-   
+    private Long detailId;      // 수주 상세 ID
     
     // 출하 가능 여부 판단용
     public boolean isShippable() {
@@ -36,9 +36,7 @@ public class ShipmentPendingDTO {
     }
 
 
-	
-    
-    
+  
 }
 
 

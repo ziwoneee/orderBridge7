@@ -11,5 +11,9 @@ public interface ClientDeliveryService {
     
     List<ShipmentPendingGroupDTO> getPendingShipmentGroupedList();
     
-    void processShipments(List<Long> orderDetailIds);
+    void processShipmentByOrderId(String clOrderId);
+    
+    void updateClientOrderStatus(String clOrderId, String status);
+
+
 }
