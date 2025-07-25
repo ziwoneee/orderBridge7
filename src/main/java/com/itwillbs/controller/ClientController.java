@@ -35,7 +35,8 @@ public class ClientController {
     @GetMapping("/client/list")
     public String clientList(SearchCriteria cri, Model model) {
 
-        List<String> allowed = List.of("client_name", "business_number", "reg_date");
+    	// 🔁 JSP에서 사용하는 camelCase 기준으로 수정
+    	List<String> allowed = List.of("clientName", "businessNumber", "createdAt", "statusCode");
 
         if (cri.getSortColumn() == null || !allowed.contains(cri.getSortColumn())) {
             cri.setSortColumn("client_name");

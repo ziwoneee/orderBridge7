@@ -47,17 +47,39 @@
      <div class="table-responsive mt-4">
     <table id = "stockTable" class="table table-bordered table-hover">
         <thead>
-        <tr>
-            <th>제품명</th>
-            <th>LOT 번호</th>
-            <th>현재고</th>
-            <th>안전재고</th>
-            <th>생산일자</th>
-            <th>유통기한</th>            
-            <th>재고상태</th>
-            <th>상세내역</th>
-        </tr>
-        </thead>
+<tr>
+    <th><a href="?sortColumn=product_name&sortOrder=${cri.sortColumn eq 'product_name' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}">제품명
+     <c:if test="${cri.sortColumn eq 'product_name'}">
+            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+        </c:if>
+    </a></th>
+    
+    <th><a href="?sortColumn=lot_no&sortOrder=${cri.sortColumn eq 'lot_no' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}">LOT 번호
+       <c:if test="${cri.sortColumn eq 'lot_no'}">
+            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+        </c:if>
+    </a></th>
+    
+    <th>현재고</th>
+    <th>안전재고</th>
+    
+    <th><a href="?sortColumn=reg_date&sortOrder=${cri.sortColumn eq 'reg_date' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}">생산일자
+        <c:if test="${cri.sortColumn eq 'reg_date'}">
+            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+        </c:if>
+    </a></th>
+    
+    <th><a href="?sortColumn=expire_date&sortOrder=${cri.sortColumn eq 'expire_date' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}">유통기한
+        <c:if test="${cri.sortColumn eq 'expire_date'}">
+            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+        </c:if>
+    </a></th>
+
+    <th>재고상태</th>
+    <th>상세내역</th>
+</tr>
+</thead>
+
         <tbody>
         <c:forEach var="item" items="${stockList}">
             <tr class="highlight-row">
@@ -177,8 +199,6 @@
 <!-- container-scroller 끝-->   
 
 
-<!-- ✅ DataTables JS -->
-<script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
 
 <!-- ✅ 모달 관련 JS도 이 아래에 유지하세요 -->
 <script>
@@ -209,32 +229,6 @@
     });
 </script>
 
-<script>
-    $(document).ready(function () {
-        $('#stockTable').DataTable({
-            paging: false,          // 기존 페이징과 충돌 방지
-            info: false,            // 하단 정보 제거
-            ordering: true,         // 정렬 가능
-            searching: false,       // ✅ 검색창 제거
-            language: {
-                "emptyTable": "데이터가 없습니다",
-                "zeroRecords": "일치하는 결과가 없습니다",
-                "infoEmpty": "표시할 항목이 없습니다",
-                "loadingRecords": "로딩 중...",
-                "processing": "처리 중...",
-                "paginate": {
-                    "first": "처음",
-                    "last": "마지막",
-                    "next": "다음",
-                    "previous": "이전"
-                }
-            },
-            columnDefs: [
-                { targets: [6], orderable: false }  // 상세내역 버튼 정렬 제외
-            ]
-        });
-    });
-</script>
 
 <script>
   function viewStock() {
