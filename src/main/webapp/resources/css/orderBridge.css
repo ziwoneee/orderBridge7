@@ -51,7 +51,7 @@
 	
 	
 /* 버튼 css */
-	/* 기본 버튼 */
+	/* 기본 버튼 예) 협력사 검색버튼 */
 	.btn-primary, .wizard > .actions a {
 	  color: #fff;
 	  background-color: #1c355e;
@@ -70,6 +70,13 @@
 	    color: #fff;
 	    background-color: #1c355e;
 	    border-color: #1c355e;
+	}
+
+	/* 협력사 품목 버튼 - 아웃라인 색상 커스터마이징 */
+	.btn-outline-primary {
+	  color: #1c355e !important;          /* 글자색 */
+	  border-color: #1c355e !important;   /* 테두리색 */
+	  background-color: transparent !important; /* 배경 유지 */
 	}
 
 	
