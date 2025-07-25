@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.itwillbs.mapper.MaterialOutboundMapper">
+
+
+	<!-- 출고 목록 조회 쿼리 -->
+	  <select id="getOutboundList" resultType="com.itwillbs.domain.MaterialOutboundVO">
+	    SELECT 
+	      outbound_id      AS outboundId,      
+	      outbound_date    AS outboundDate,     
+	      handled_by       AS handledBy,        
+	      status,                               
+	      work_order_no    AS workOrderNo,      
+	      work_order_date  AS workOrderDate,    
+	      due_date         AS dueDate,          
+	      note                                 
+	    FROM material_outbound
+	    ORDER BY outbound_date DESC
+	  </select>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</mapper>
