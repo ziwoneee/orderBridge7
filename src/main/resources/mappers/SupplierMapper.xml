@@ -33,29 +33,34 @@
 	  </where>
 	
 	  <!-- 정렬 구문 보안 강화 -->
-	  <choose>
-	    <when test="sortColumn == 'supplier_name' and sortOrder == 'asc'">
-	      ORDER BY supplier_name ASC
-	    </when>
-	    <when test="sortColumn == 'supplier_name' and sortOrder == 'desc'">
-	      ORDER BY supplier_name DESC
-	    </when>
-	    <when test="sortColumn == 'created_at' and sortOrder == 'asc'">
-	      ORDER BY created_at ASC
-	    </when>
-	    <when test="sortColumn == 'created_at' and sortOrder == 'desc'">
-	      ORDER BY created_at DESC
-	    </when>
-	    <when test="sortColumn == 'status' and sortOrder == 'asc'">
-	      ORDER BY status ASC
-	    </when>
-	    <when test="sortColumn == 'status' and sortOrder == 'desc'">
-	      ORDER BY status DESC
-	    </when>
-	    <otherwise>
-	      ORDER BY created_at DESC
-	    </otherwise>
-	  </choose>
+	<choose>
+	  <when test="sortColumn == 'supplier_id' and sortOrder == 'asc'">
+	    ORDER BY supplier_id ASC
+	  </when>
+	  <when test="sortColumn == 'supplier_id' and sortOrder == 'desc'">
+	    ORDER BY supplier_id DESC
+	  </when>
+	
+	  <when test="sortColumn == 'supplier_name' and sortOrder == 'asc'">
+	    ORDER BY supplier_name ASC
+	  </when>
+	  <when test="sortColumn == 'supplier_name' and sortOrder == 'desc'">
+	    ORDER BY supplier_name DESC
+	  </when>
+	
+	  <when test="sortColumn == 'created_at' and sortOrder == 'asc'">
+	    ORDER BY created_at ASC
+	  </when>
+	  <when test="sortColumn == 'created_at' and sortOrder == 'desc'">
+	    ORDER BY created_at DESC
+	  </when>
+	
+	  <otherwise>
+	    ORDER BY created_at DESC
+	  </otherwise>
+	</choose>
+
+
 	
 	  LIMIT #{perPageNum} OFFSET #{pageStart}
 	</select>

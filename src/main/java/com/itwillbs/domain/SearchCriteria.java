@@ -67,15 +67,45 @@ public class SearchCriteria {
         return page < getTotalPageCount();
     }
    
+    
+    public void setSortColumn(String sortColumn) {
+        if (sortColumn != null) {
+            this.sortColumn = sortColumn.toLowerCase(); // Snake_case 그대로 유지
+        }
+    }
 
+    public void setSortOrder(String sortOrder) {
+        if (sortOrder != null) {
+            this.sortOrder = sortOrder.toLowerCase();  // 반드시 소문자로 ('asc', 'desc')
+        }
+    }
+
+    
+    
     @Override
     public String toString() {
         return "SearchCriteria{" +
                 "keyword='" + keyword + '\'' +
+                ", condition='" + condition + '\'' +
                 ", sortColumn='" + sortColumn + '\'' +
                 ", sortOrder='" + sortOrder + '\'' +
                 ", page=" + page +
                 ", perPageNum=" + perPageNum +
+                ", totalCount=" + totalCount +
                 '}';
     }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 }

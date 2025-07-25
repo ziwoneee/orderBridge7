@@ -99,18 +99,44 @@
 
 	
 /* 상세 정보 카드 css */
-/* Navy 스타일 헤더 배경 */
-.bg-primary {
-  background-color: #2a4670 !important;
-  color: #fff !important;
-}
+	/*헤더 배경 */
+	.bg-primary {
+	  background-color: #2a4670 !important;
+	  color: #fff !important;
+	}
+	
+	.bg-info {
+	  background-color: #147eb3 !important;
+	  color: #fff !important;
+	}
+	
+	.bg-warning {
+	  background-color: #ffc107 !important;
+	  color: #fff !important;
+	}
 
-.bg-info {
-  background-color: #147eb3 !important;
-  color: #fff !important;
-}
 
-.bg-warning {
-  background-color: #ffc107 !important;
-  color: #fff !important;
-}
+/* 정렬 컬럼 css */
+	th a {
+	  color: white;
+	  text-decoration: none;
+	  cursor: pointer;
+	  display: inline-flex;
+	  align-items: center;
+	  gap: 4px;
+	}
+	
+	th a:hover {
+	  color: white;
+	  text-decoration: underline;
+
+	}
+	
+	th a span {
+	  color: white;
+	  font-size: 0.8rem;
+	}
+	
+	.neutral-arrow {
+	  color: #ccc;
+	}
