@@ -3,10 +3,10 @@
 
 <%-- 로그인 체크: 로그인 정보 없으면 로그인 페이지로 리다이렉트 --%>
 <%
-  if (session.getAttribute("loginAdmin") == null) {
-    response.sendRedirect(request.getContextPath() + "/admin/login");
-    return;
-  }
+//   if (session.getAttribute("loginAdmin") == null) {
+//     response.sendRedirect(request.getContextPath() + "/admin/login");
+//     return;
+//   }
 %>
 
 <!-- 최상단 네비게이션 -->

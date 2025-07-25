@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itwillbs.mapper.ClientDeliveryMapper">
+
+<!-- 수주 번호 목록 쿼리 -->
+<select id="getPendingOrderGroups" resultType="com.itwillbs.dto.ShipmentPendingGroupDTO">
+  SELECT DISTINCT
+    co.cl_order_id AS clOrderId,
+    c.client_name AS clientName
+  FROM client_order co
+  JOIN client c ON co.client_id = c.client_id
+  WHERE co.cl_order_status = 'CONFIRMED'
+</select>
+
+
+<!-- ✅ 그룹형 출하대기 목록 (서비스에서 사용하는 메서드 이름과 일치) -->
+<select id="getPendingShipmentGroupedList" resultMap="GroupedShipmentMap">
+  SELECT
+    co.cl_order_id,
+    c.client_name,
+    p.product_id,
+    p.product_name,
+    cod.order_qty, 
+    COALESCE((
+      SELECT SUM(remaining_qty) FROM (
+        SELECT
+          pi.inbound_qty - COALESCE(SUM(po.outbound_qty), 0) AS remaining_qty
+        FROM product_inbound pi
+        LEFT JOIN product_outbound po
+          ON pi.product_id = po.product_id AND pi.lot_no = po.lot_no
+        WHERE pi.product_id = p.product_id
+        GROUP BY pi.inbound_id, pi.inbound_qty, pi.expire_date
+        HAVING remaining_qty > 0
+        ORDER BY pi.expire_date ASC
+      ) AS available
+    ), 0) AS stock_qty
+
+  FROM client_order_detail cod
+  JOIN client_order co ON cod.cl_order_id = co.cl_order_id
+  JOIN client c ON co.client_id = c.client_id
+  JOIN product p ON cod.product_id = p.product_id
+  WHERE co.cl_order_status = 'CONFIRMED'
+  GROUP BY co.cl_order_id, c.client_name, p.product_id, p.product_name, cod.order_qty
+</select>
+
+
+<resultMap id="GroupedShipmentMap" type="com.itwillbs.dto.ShipmentPendingGroupDTO">
+  <id property="clOrderId" column="cl_order_id"/>
+  <result property="clientName" column="client_name"/>
+  <collection property="productList" ofType="com.itwillbs.dto.ShipmentProductDTO">
+    <result property="productId" column="product_id"/>
+    <result property="productName" column="product_name"/>
+    <result property="orderQty" column="order_qty"/>
+    <result property="stockQty" column="stock_qty"/>
+  </collection>
+</resultMap>
+
+
+
+<select id="selectShipmentItem" parameterType="long" resultType="com.itwillbs.dto.ShipmentPendingDTO">
+  SELECT
+    cod.detail_id AS orderDetailId,
+    co.cl_order_id AS clOrderId,
+    c.client_name AS clientName,
+    p.product_id,
+    p.product_name,
+    cod.order_qty,
+    COALESCE(ps.stock_qty, 0) AS stockQty,
+    cod.lot_no
+  FROM client_order_detail cod
+  JOIN client_order co ON cod.cl_order_id = co.cl_order_id
+  JOIN product p ON cod.product_id = p.product_id
+  JOIN client c ON co.client_id = c.client_id
+  LEFT JOIN product_stock ps ON p.product_id = ps.product_id
+  WHERE cod.detail_id = #{orderDetailId}
+</select>
+
+
+  <insert id="insertDelivery" parameterType="com.itwillbs.domain.ClientDeliveryVO">
+    INSERT INTO client_delivery (
+      cl_order_id, delivery_date, delivery_qty, lot_no, delivery_status, emp_id,
+      client_name, tracking_number, memo, created_at, updated_at, pdf_file, is_pdf_generated
+    ) VALUES (
+      #{clOrderId}, #{deliveryDate}, #{deliveryQty}, #{lotNo}, #{deliveryStatus}, #{empId},
+      #{clientName}, #{trackingNumber}, #{memo}, NOW(), NOW(), #{pdfFile}, #{isPdfGenerated}
+    )
+  </insert>
+
+  <update id="decreaseStock">
+    UPDATE product_stock
+    SET stock_qty = stock_qty - #{qty}
+    WHERE product_id = #{productId}
+  </update>
+
+  <update id="updateOrderDetailStatus">
+    UPDATE client_order_detail
+    SET status = #{status}
+    WHERE order_detail_id = #{orderDetailId}
+  </update>
+</mapper>
