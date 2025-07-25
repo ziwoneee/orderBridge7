@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.itwillbs.domain.MaterialOutboundVO;
+import com.itwillbs.dto.MaterialOutboundSummaryDTO;
 import com.itwillbs.service.MaterialOutboundService;
 
 /*
@@ -30,10 +31,25 @@ public class MaterialOutboundController {
 	public String getOutboundList(Model model) throws Exception {
 		
 		// 1. 서비스 호출하여 출고 목록 가져오기
-		List<MaterialOutboundVO> outboundList = moService.getOutboundList();
+		List<MaterialOutboundSummaryDTO> outboundList = moService.getOutboundList();
 
 		// 2. 모델에 데이터 저장
 		model.addAttribute("outList", outboundList);
+		
+		model.addAttribute("menu", "material");
+		
+		MaterialOutboundSummaryDTO dummy = new MaterialOutboundSummaryDTO();
+		dummy.setOutboundId("OUT-RM-20250725-001");
+		dummy.setWorkOrderNo("WO-20250725-001");
+		dummy.setMaterialName("돼지국밥 고기");
+		dummy.setSupplierName("한우축산");
+		dummy.setRequiredQty(100);
+		dummy.setStockStatus("충분");
+		dummy.setStatus("미출고");
+		dummy.setHandledBy("홍길동");
+
+		outboundList.add(dummy);
+
 		
 		return "/material/out/list"; // JSP로 이동
 	}

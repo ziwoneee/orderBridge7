@@ -7,6 +7,7 @@ import javax.inject.Inject;
 import org.springframework.stereotype.Service;
 
 import com.itwillbs.domain.MaterialOutboundVO;
+import com.itwillbs.dto.MaterialOutboundSummaryDTO;
 import com.itwillbs.persistence.MaterialOutboundDAO;
 
 @Service
@@ -16,8 +17,8 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	private MaterialOutboundDAO moDAO;
 	
 	@Override
-	public List<MaterialOutboundVO> getOutboundList() throws Exception {
-		return null;
+	public List<MaterialOutboundSummaryDTO> getOutboundList() throws Exception {
+		return moDAO.getOutboundList();
 	}
 	
 	

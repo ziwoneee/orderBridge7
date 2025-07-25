@@ -8,6 +8,7 @@ import org.apache.ibatis.session.SqlSession;
 import org.springframework.stereotype.Repository;
 
 import com.itwillbs.domain.MaterialOutboundVO;
+import com.itwillbs.dto.MaterialOutboundSummaryDTO;
 
 // 자재 출고 DAO 구현채
 @Repository
@@ -21,7 +22,7 @@ public class MaterialOutboundDAOImpl implements MaterialOutboundDAO {
 	
 	// 출고 목록 조회
 	@Override
-	public List<MaterialOutboundVO> getOutboundList() throws Exception {
+	public List<MaterialOutboundSummaryDTO> getOutboundList() throws Exception {
 
 		return sqlSession.selectList(NAMESPACE + "getOutboundList");
 	}
