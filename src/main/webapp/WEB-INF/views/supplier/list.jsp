@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
 
 <div class="container-scroller">
@@ -44,23 +45,59 @@
 
 
 			
-			<!-- 테이블 -->
-			<div class="table-responsive mt-4">
-			  <table id="supplierTable" class="table table-bordered text-center">
-			    <thead>
-			      <tr>
-			      	<th>협력사코드</th>
-			        <th>협력사명</th>
-			        <th style="min-width: 130px;">사업자등록번호</th>
-			        <th>업태/종목</th>
-			        <th>대표자명</th>
-			        <th>담당자 연락처</th>
-			        <th>거래상태</th>
-			        <th>등록일자</th>
-			        <th>상세</th>
-			        <th>수정</th>
-			      </tr>
-			    </thead>
+		<!-- 테이블 -->
+		<div id="table_content" class="table-responsive">
+		<table class="table table-bordered text-center">
+			<thead>
+				<tr>
+				<th>
+				  <a href="?page=1&sortColumn=supplier_id&sortOrder=${cri.sortColumn eq 'supplier_id' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&condition=${cri.condition}&keyword=${fn:escapeXml(cri.keyword)}">
+				    협력사코드
+					<c:choose>
+				      <c:when test="${cri.sortColumn eq 'supplier_id'}">
+					      <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+					  </c:when>
+				      <c:otherwise>
+				        <span class="neutral-arrow">⇅</span>  <%-- 기본 회색 아이콘 --%>
+				      </c:otherwise>
+				    </c:choose>
+				  </a>
+				</th>
+				<th>
+				  <a href="?page=1&sortColumn=supplier_name&sortOrder=${cri.sortColumn eq 'supplier_name' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&condition=${cri.condition}&keyword=${fn:escapeXml(cri.keyword)}">
+				    협력사명
+					<c:choose>
+				      <c:when test="${cri.sortColumn eq 'supplier_name'}">
+				        <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+				      </c:when>
+				      <c:otherwise>
+				        <span class="neutral-arrow">⇅</span>  <%-- 기본 회색 아이콘 --%>
+				      </c:otherwise>
+				    </c:choose>
+				  </a>
+				</th>
+				<th>사업자등록번호</th>
+				<th>업태/종목</th>
+				<th>대표자명</th>
+				<th>담당자 연락처</th>
+				<th>거래상태</th>
+				<th>
+				  <a href="?page=1&sortColumn=created_at&sortOrder=${cri.sortColumn eq 'created_at' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&condition=${cri.condition}&keyword=${fn:escapeXml(cri.keyword)}">
+				    등록일자
+					<c:choose>
+				      <c:when test="${cri.sortColumn eq 'created_at'}">
+				        <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+				      </c:when>
+				      <c:otherwise>
+				        <span class="neutral-arrow">⇅</span>  <%-- 기본 회색 아이콘 --%>
+				      </c:otherwise>
+				    </c:choose>
+				  </a>
+				</th>
+				<th>상세</th>
+	         </tr>
+		</thead>
+		
 			    <tbody>
 			      <c:forEach var="supplier" items="${supplierList}">
 			        <tr>
@@ -82,10 +119,8 @@
 			          </td>
 			          <td><fmt:formatDate value="${supplier.createdAt}" pattern="yyyy-MM-dd" /></td>
 			          <td>
-			            <a href="/supplier/view?supplierId=${supplier.supplierId}" class="btn btn-sm btn-outline-secondary">상세</a>
-			          </td>
-			          <td>
-			            <a href="/supplier/edit?supplierId=${supplier.supplierId}" class="btn btn-sm btn-outline-secondary">수정</a>
+			            <a href="/supplierItem/items?supplierId=${supplier.supplierId}" class="btn btn-sm btn-outline-primary">품목</a>
+  						<a href="/supplier/view?supplierId=${supplier.supplierId}" class="btn btn-sm btn-outline-secondary">상세</a>
 			          </td>
 			        </tr>
 			      </c:forEach>
@@ -103,52 +138,33 @@
           </div>
           
 			<!-- 페이징 처리 시작 -->
-			<div class="mt-4 d-flex justify-content-center">
-			  <ul class="pagination">
+			<div class="d-flex justify-content-center mt-4">
+			 <nav>
+			  <ul class="pagination justify-content-center mt-4">
 			
 			    <!-- 이전 버튼 -->
-			    <c:if test="${pageMaker.prev}">
+			    <c:if test="${pageMaker.cri.page>1}">
 			      <li class="page-item">
-			        <a class="page-link"
-			           href="?page=${pageMaker.startPage - 1}
-			                  &condition=${cri.condition}
-			                  &keyword=${cri.keyword}
-			                  &sortColumn=${cri.sortColumn}
-			                  &sortOrder=${cri.sortOrder}"
-			           aria-label="Previous">
-			          <span aria-hidden="true">&laquo;</span>
-			        </a>
+			        <a class="page-link"href="?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&condition=${cri.condition}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&laquo;</a>
 			      </li>
 			    </c:if>
-			
+			    
 			    <!-- 페이지 번호 출력 -->
-			    <c:forEach var="i" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
-			      <li class="page-item ${cri.page == i ? 'active' : ''}">
-			        <a class="page-link"
-			           href="?page=${i}
-			                  &condition=${cri.condition}
-			                  &keyword=${cri.keyword}
-			                  &sortColumn=${cri.sortColumn}
-			                  &sortOrder=${cri.sortOrder}">${i}</a>
+			    <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+			      <li class="page-item ${p == cri.page ? 'active' : ''}">
+			        <a class="page-link"href="?page=${p}&perPageNum=${cri.perPageNum}&condition=${cri.condition}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">${p}</a>
 			      </li>
 			    </c:forEach>
-			
+			    
 			    <!-- 다음 버튼 -->
-			    <c:if test="${pageMaker.next}">
+			    <c:if test="${pageMaker.cri.page<pageMaker.endPage}">
 			      <li class="page-item">
-			        <a class="page-link"
-			           href="?page=${pageMaker.endPage + 1}
-			                  &condition=${cri.condition}
-			                  &keyword=${cri.keyword}
-			                  &sortColumn=${cri.sortColumn}
-			                  &sortOrder=${cri.sortOrder}"
-			           aria-label="Next">
-			          <span aria-hidden="true">&raquo;</span>
-			        </a>
+			        <a class="page-link"href="?page=${pageMaker.endPage + 1}&perPageNum=${cri.perPageNum}&condition=${cri.condition}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&raquo;</a>
 			      </li>
 			    </c:if>
 			
 			  </ul>
+			 </nav>
 			</div>
 			<!-- 페이징 처리 끝 -->
 
@@ -163,18 +179,3 @@
   <!-- container-fluid page-body-wrapper 끝 -->
 </div>
 <!-- container-scroller 끝-->   
-
-<!-- ✅ DataTables 초기화 (정렬만 사용, 페이징X) -->
-<script>
-$(document).ready(function () {
-  $('#supplierTable').DataTable({
-    paging: false,        // ❌ 페이징 비활성 (서버 페이징 사용)
-    ordering: true,       // ✅ 정렬 가능
-    searching: false,     // ❌ 검색창 비활성 (직접 구현)
-    info: false,          // ❌ "n개 중 m개 표시 중" 비활성
-    columnDefs: [
-      { targets: [4, 5, 6, 7, 8, 9], orderable: false }  // 정렬 제외 열 ([5, 8, 9])
-    ]
-  });
-});
-</script>

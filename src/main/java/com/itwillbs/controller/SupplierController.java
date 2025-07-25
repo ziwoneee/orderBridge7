@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,6 +37,11 @@ public class SupplierController {
 	// 협력사 목록 페이지
 	@GetMapping("list")
 	public String listSuppliers(SearchCriteria cri, Model model) throws Exception {
+		
+		List<String> allowed = List.of("supplierId", "supplierName", "createdAt");
+		
+		 logger.info("정렬 컬럼: " + cri.getSortColumn());
+	    logger.info("정렬 방향: " + cri.getSortOrder());
 
 		// 전체 건수 조회
 		int totalCount = sService.getSupplierCount(cri);
