@@ -42,21 +42,24 @@
                       <td>${plan.productName}</td>
                       <td>${plan.priority}</td>
                       <td>
-                        <c:choose>
-                          <c:when test="${plan.status eq 'WAITING'}">
-                            <span class="badge bg-secondary">미생산</span>
-                          </c:when>
-                          <c:when test="${plan.status eq 'IN_PROGRESS'}">
-                            <span class="badge bg-warning text-dark">생산중</span>
-                          </c:when>
-                          <c:when test="${plan.status eq 'DONE'}">
-                            <span class="badge bg-success">완료</span>
-                          </c:when>
-                          <c:otherwise>
-                            <span class="badge bg-light text-dark">${plan.status}</span>
-                          </c:otherwise>
-                        </c:choose>
-                      </td>
+						  <c:choose>
+						    <c:when test="${plan.status eq 'WAITING'}">
+						      <span class="badge bg-secondary">미생산</span>
+						    </c:when>
+						    <c:when test="${plan.status eq 'CONFIRMED'}">
+						      <span class="badge bg-primary">확정</span>
+						    </c:when>
+						    <c:when test="${plan.status eq 'IN_PROGRESS'}">
+						      <span class="badge bg-warning text-dark">생산중</span>
+						    </c:when>
+						    <c:when test="${plan.status eq 'DONE'}">
+						      <span class="badge bg-success">완료</span>
+						    </c:when>
+						    <c:otherwise>
+						      <span class="badge bg-light text-dark">${plan.status}</span>
+						    </c:otherwise>
+						  </c:choose>
+						</td>
                       <td>${plan.plannedQty}</td>
                       <td><fmt:formatDate value="${plan.dueDate}" pattern="yyyy-MM-dd" /></td>
                     </tr>

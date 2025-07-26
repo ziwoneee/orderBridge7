@@ -114,18 +114,20 @@
 
 <!--  생산 계획 목록 조회  -->
 <select id="getPlanList" parameterType="SearchCriteria" resultType="com.itwillbs.dto.ProductionPlanDTO">
-  SELECT
-		plan_id,
-		cl_order_id,
-		product_id,
-		planned_qty,
-		status AS plan_status,
-		due_date,
-		priority,
-		created_at
-  FROM production_plan
-  ORDER BY created_at DESC
-  LIMIT #{pageStart}, #{perPageNum}
+	SELECT
+		p.plan_id,
+		p.cl_order_id,
+		p.product_id,
+		pr.product_name,         
+		p.planned_qty,
+		p.status,                
+		p.due_date,
+		p.priority,
+		p.created_at
+	FROM production_plan p
+	JOIN product pr ON p.product_id = pr.product_id
+	ORDER BY p.created_at DESC
+	LIMIT #{pageStart}, #{perPageNum}
 </select>
 
 <!-- 생산 계획 총 개수 조회 -->
