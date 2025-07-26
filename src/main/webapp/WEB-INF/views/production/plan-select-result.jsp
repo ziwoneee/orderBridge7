@@ -34,9 +34,10 @@
           </td>
           <td>
             <select name="priorityList" class="form-control form-control-sm">
-              <option value="NORMAL" selected>보통</option>
-              <option value="HIGH">높음</option>
-            </select>
+			  <option value="LOW">낮음</option>
+			  <option value="NORMAL" selected>보통</option>
+			  <option value="HIGH">높음</option>
+			</select>
           </td>
           <td>
             <div class="form-check d-flex justify-content-center">
