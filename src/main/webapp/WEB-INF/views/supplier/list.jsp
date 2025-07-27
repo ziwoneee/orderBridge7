@@ -110,7 +110,7 @@
 			          <td>
 			            <c:choose>
 			              <c:when test="${supplier.status eq '활성'}">
-			                <span class="badge bg-success">활성</span>
+			                <span class="badge badge-success">활성</span>
 			              </c:when>
 			              <c:otherwise>
 			                <span class="badge bg-secondary">비활성</span>

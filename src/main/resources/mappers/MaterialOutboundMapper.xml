@@ -7,36 +7,66 @@
 <mapper namespace="com.itwillbs.mapper.MaterialOutboundMapper">
 
 
-	<!-- 출고 목록 조회 쿼리 -->
-	  <select id="getOutboundList" resultType="com.itwillbs.dto.MaterialOutboundSummaryDTO">
-		SELECT 
-		  o.outbound_id        AS outboundId,
-		  o.work_order_no      AS workOrderNo,
-		  o.work_order_date    AS workOrderDate,
-		  o.due_date           AS dueDate,
-		  o.outbound_date      AS outboundDate,
-		  o.status             AS status,
-		  o.handled_by         AS handledBy,
-		
-		  m.material_name      AS materialName,
-		  s.supplier_name      AS supplierName,
-		  i.required_qty       AS requiredQty,
-		  i.stock_qty          AS stockQty,
-		  CASE 
-		    WHEN i.stock_qty >= i.required_qty THEN '정상'
-		    ELSE CONCAT('부족 (재고 ', i.stock_qty, ')')
-		  END AS stockStatus
-		
+	<select id="getOutboundList" resultType="com.itwillbs.dto.MaterialOutboundSummaryDTO" parameterType="com.itwillbs.domain.SearchCriteria">
+	  SELECT 
+	    o.outbound_id        AS outboundId,
+	    o.work_order_no      AS workOrderNo,
+	    o.work_order_date    AS workOrderDate,
+	    o.due_date           AS dueDate,
+	    o.outbound_date      AS outboundDate,
+	    o.status             AS status,
+	    o.handled_by         AS handledBy,
+	  
+	    m.material_name      AS materialName,
+	    s.supplier_name      AS supplierName,
+	    i.required_qty       AS requiredQty,
+	    i.stock_qty          AS stockQty,
+	    CASE 
+	      WHEN i.stock_qty >= i.required_qty THEN '정상'
+	      ELSE CONCAT('부족 (재고 ', i.stock_qty, ')')
+	    END AS stockStatus
+	
+	  FROM material_outbound o
+	  LEFT JOIN material_outbound_item i ON o.outbound_id = i.outbound_id
+	  LEFT JOIN material m ON i.material_id = m.material_id
+	  LEFT JOIN supplier_item si ON m.material_id = si.material_id
+	  LEFT JOIN supplier s ON si.supplier_id = s.supplier_id
+	
+	  <where>
+	    <if test="keyword != null and keyword != '' and condition == 'handledBy'">
+	      o.handled_by LIKE CONCAT('%', #{keyword}, '%')
+	    </if>
+	  </where>
+	
+	  <!-- 정렬 조건 -->
+	  <choose>
+	    <when test="sortColumn == 'outbound_date' and sortOrder == 'asc'">
+	      ORDER BY o.outbound_date ASC
+	    </when>
+	    <when test="sortColumn == 'outbound_date' and sortOrder == 'desc'">
+	      ORDER BY o.outbound_date DESC
+	    </when>
+	    <otherwise>
+	      ORDER BY o.outbound_date DESC
+	    </otherwise>
+	  </choose>
+	
+	  LIMIT #{perPageNum} OFFSET #{pageStart}
+	</select>
+
+
+
+	<!-- 출고 목록 전체 개수 조회 -->
+	<select id="getMaterialOutboundCount" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
+		SELECT COUNT(*) 
 		FROM material_outbound o
-		LEFT JOIN material_outbound_item i ON o.outbound_id = i.outbound_id
-		LEFT JOIN material m ON i.material_id = m.material_id
-		LEFT JOIN supplier_item si ON m.material_id = si.material_id
-		LEFT JOIN supplier s ON si.supplier_id = s.supplier_id
-		ORDER BY o.outbound_date DESC;
-
-	  </select>
-
-
+		<where>
+			<if test="keyword != null and keyword != '' and condition == 'handledBy'">
+				o.handled_by LIKE CONCAT('%', #{keyword}, '%')
+			</if>
+		</where>
+	</select>
+	
 
 
 

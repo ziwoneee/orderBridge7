@@ -40,7 +40,7 @@ public class SupplierController {
 		
 		List<String> allowed = List.of("supplierId", "supplierName", "createdAt");
 		
-		 logger.info("정렬 컬럼: " + cri.getSortColumn());
+		logger.info("정렬 컬럼: " + cri.getSortColumn());
 	    logger.info("정렬 방향: " + cri.getSortOrder());
 
 		// 전체 건수 조회

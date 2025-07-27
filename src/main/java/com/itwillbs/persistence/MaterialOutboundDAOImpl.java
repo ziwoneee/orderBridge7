@@ -8,6 +8,7 @@ import org.apache.ibatis.session.SqlSession;
 import org.springframework.stereotype.Repository;
 
 import com.itwillbs.domain.MaterialOutboundVO;
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.MaterialOutboundSummaryDTO;
 
 // 자재 출고 DAO 구현채
@@ -22,10 +23,19 @@ public class MaterialOutboundDAOImpl implements MaterialOutboundDAO {
 	
 	// 출고 목록 조회
 	@Override
-	public List<MaterialOutboundSummaryDTO> getOutboundList() throws Exception {
+	public List<MaterialOutboundSummaryDTO> getOutboundList(SearchCriteria cri) throws Exception {
 
-		return sqlSession.selectList(NAMESPACE + "getOutboundList");
+		return sqlSession.selectList(NAMESPACE + "getOutboundList", cri);
 	}
+
+	// 전체 건수 조회
+	@Override
+	public int getMaterialOutboundCount(SearchCriteria cri) throws Exception {
+
+		return  sqlSession.selectOne(NAMESPACE + "getMaterialOutboundCount", cri);
+	}
+	
+	
 	
 	
 	

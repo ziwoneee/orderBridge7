@@ -7,6 +7,7 @@ import javax.inject.Inject;
 import org.springframework.stereotype.Service;
 
 import com.itwillbs.domain.MaterialOutboundVO;
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.MaterialOutboundSummaryDTO;
 import com.itwillbs.persistence.MaterialOutboundDAO;
 
@@ -17,10 +18,15 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	private MaterialOutboundDAO moDAO;
 	
 	@Override
-	public List<MaterialOutboundSummaryDTO> getOutboundList() throws Exception {
-		return moDAO.getOutboundList();
+	public List<MaterialOutboundSummaryDTO> getOutboundList(SearchCriteria cri) throws Exception {
+		return moDAO.getOutboundList(cri);
 	}
-	
+
+	@Override
+	public int getMaterialOutboundCount(SearchCriteria cri) throws Exception {
+
+		return moDAO.getMaterialOutboundCount(cri);
+	}
 	
 
 }

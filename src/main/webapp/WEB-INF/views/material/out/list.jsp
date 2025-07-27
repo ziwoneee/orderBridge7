@@ -36,10 +36,11 @@
 		          <tr>
 		            <th>출고관리번호</th>
 		            <th>작업지시번호</th>
+		            <th>상세</th>
 		            <th>납품자명</th>
 		            <th>품명</th>
 		            <th>주문수량</th>
-		            <th>상태</th>
+		            <th>재고확인</th>
 		            <th>작업지시일자</th>
 		            <th>납기일자</th>
 		            <th>진행현황</th>
@@ -53,10 +54,11 @@
 				  <tr>
 				    <td>${item.outboundId}</td>
 				    <td>${item.workOrderNo}</td>
+				    <td><button class="btn btn-sm btn-outline-secondary">상세</button></td>
 				    <td>${item.supplierName}</td>
 				    <td>${item.materialName}</td>
 				    <td>${item.requiredQty}</td>
-				    <td>${item.stockStatus}</td>
+				    <td>${item.stockStatus} (재고 ${item.stockQty})</td>
 				    <td><fmt:formatDate value="${item.workOrderDate}" pattern="yyyy-MM-dd" /></td>
 				    <td><fmt:formatDate value="${item.dueDate}" pattern="yyyy-MM-dd" /></td>
 				    <td>
@@ -89,10 +91,37 @@
 
           </div>
           
-          <!-- 페이징 처리 시작 -->
-          
-          
-          <!-- 페이징 처리 끝 -->
+			<!-- 페이징 처리 시작 -->
+			<div class="d-flex justify-content-center mt-4">
+			 <nav>
+			  <ul class="pagination justify-content-center mt-4">
+			
+			    <!-- 이전 버튼 -->
+			    <c:if test="${pageMaker.cri.page>1}">
+			      <li class="page-item">
+			        <a class="page-link"href="?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&condition=${cri.condition}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&laquo;</a>
+			      </li>
+			    </c:if>
+			    
+			    <!-- 페이지 번호 출력 -->
+			    <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+			      <li class="page-item ${p == cri.page ? 'active' : ''}">
+			        <a class="page-link"href="?page=${p}&perPageNum=${cri.perPageNum}&condition=${cri.condition}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">${p}</a>
+			      </li>
+			    </c:forEach>
+			    
+			    <!-- 다음 버튼 -->
+			    <c:if test="${pageMaker.cri.page<pageMaker.endPage}">
+			      <li class="page-item">
+			        <a class="page-link"href="?page=${pageMaker.endPage + 1}&perPageNum=${cri.perPageNum}&condition=${cri.condition}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&raquo;</a>
+			      </li>
+			    </c:if>
+			
+			  </ul>
+			 </nav>
+			</div>
+			<!-- 페이징 처리 끝 -->
+
           
         </div>
         <!-- content-wrapper 끝 -->
