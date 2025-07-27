@@ -22,6 +22,9 @@
   <!-- 오더브릿지 전용 css! 이외에는 부트스트랩 사용하기 -->
   <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/css/orderBridge.css">
   
+  <!--  MDI 아이콘 사용을 위한 CDN 추가 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@6.5.95/css/materialdesignicons.min.css">
+  
   <link rel="shortcut icon" href="${pageContext.request.contextPath}/resources/images/logo-mini.png" />
 </head>
 <body>
