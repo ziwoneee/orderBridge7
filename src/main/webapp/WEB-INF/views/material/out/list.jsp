@@ -114,8 +114,6 @@
 			            <tr>
 			              <th>작업지시일자</th>
 			              <td id="workOrderDate"></td>
-			              <th>작업지시 담당자</th>
-			              <td id="workOrderManager"></td>
 			            </tr>
 			            <tr>
 			              <th>출고관리번호</th>
@@ -230,7 +228,6 @@ function openOutboundModal(data) {
   $('#workOrderNo').text(data.workOrderNo);
   $('#dueDate').text(formatDate(data.dueDate));
   $('#workOrderDate').text(formatDate(data.workOrderDate));
-  $('#workOrderManager').text(data.workOrderManager);
   $('#outboundId').text(data.outboundId);
   $('#status').text(data.status);
   $('#outboundDate').text(formatDate(data.outboundDate));
@@ -247,7 +244,7 @@ function openOutboundModal(data) {
 
     $('#stockInfo').append(`
       <tr>
-        <td>${item.materialCode}</td>
+        <td>${item.materialId}</td>
         <td>${item.materialName}</td>
         <td>${item.requiredQty}</td>
         <td>${item.stockQty}</td>
@@ -266,6 +263,7 @@ function loadOutboundDetail(outboundId) {
 	    method: 'GET',
 	    data: { outboundId: outboundId },
 	    success: function(response) {
+	      console.log("Ajax 응답 데이터:", response);	
 	      openOutboundModal(response); // ✅ 기존에 정의한 함수
 	    },
 	    error: function() {
