@@ -74,26 +74,35 @@
               <button type="button" class="btn btn-primary" onclick="submitProductionPlan()">등록</button>
             </div>
 
-			<!--  페이징 처리  -->
-            <div class="mt-3 d-flex justify-content-center">
-              <ul class="pagination">
-                <c:if test="${cri.page > 1}">
-                  <li class="page-item">
-                    <a class="page-link" href="?page=${cri.page - 1}">&laquo;</a>
-                  </li>
-                </c:if>
-                <c:forEach var="i" begin="1" end="${cri.totalPageCount == 0 ? 1 : cri.totalPageCount}">
-                  <li class="page-item ${cri.page == i ? 'active' : ''}">
-                    <a class="page-link" href="?page=${i}">${i}</a>
-                  </li>
-                </c:forEach>
-                <c:if test="${cri.page < cri.totalPageCount}">
-                  <li class="page-item">
-                    <a class="page-link" href="?page=${cri.page + 1}">&raquo;</a>
-                  </li>
-                </c:if>
-              </ul>
-            </div>
+			<!-- Bootstrap 페이징 스타일 -->
+			<div class="d-flex justify-content-center mt-4">
+			<nav>
+			  <ul class="pagination justify-content-center mt-4">
+			
+			    <c:if test="${pageMaker.cri.page>1}">
+			      <li class="page-item">
+			        <a class="page-link" href="?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&laquo;</a>
+			      </li>
+			    </c:if>
+			
+			    <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+			      <li class="page-item ${p == cri.page ? 'active' : ''}">
+			        <a class="page-link" href="?page=${p}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">${p}</a>
+			      </li>
+			    </c:forEach>
+			
+			    <c:if test="${pageMaker.cri.page<pageMaker.endPage}">
+			      <li class="page-item">
+			        <a class="page-link" href="?page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&raquo;</a>
+			      </li>
+			    </c:if>
+			
+			  </ul>
+			  
+			</nav>
+			
+			</div>
+			<!-- 페이징 처리 끝 -->
 
           </div>
         </div>
