@@ -3,6 +3,7 @@ package com.itwillbs.mapper;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import com.itwillbs.domain.ClientOrderVO;
 import com.itwillbs.domain.SearchCriteria;
@@ -39,11 +40,17 @@ public interface ProductionPlanMapper {
 
 	// 생산 계획 목록 조회
 	List<ProductionPlanDTO> getPlanList(SearchCriteria cri);
+	
+    // 생산 계획 상세 조회
+    ProductionPlanDTO getPlanDetail(String planId);
 
 	// 생산 계획 총 개수 조회
 	int getPlanListCount(SearchCriteria cri);
 
 	// 제품 ID로 라인 ID 조회 (자동 지정용)
 	String findLineIdByProduct(String productId);
+	
+	// 단일 생산계획 확정 처리
+	void updateStatusToConfirmed(@Param("planId") String planId);
 
 }

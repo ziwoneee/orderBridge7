@@ -40,5 +40,11 @@ public interface ProductionPlanService {
 
 	// 제품 ID 기준으로 전용 라인 ID 조회
 	String getLineIdByProduct(String productId);
+	
+	// 생산 계획 상세 조회 (planId 기준)
+	ProductionPlanDTO getPlanDetail(String planId);
 
+ 
+    //여러 개의 생산계획을 확정 상태로 변경
+    void confirmPlans(List<String> planIds);
 }

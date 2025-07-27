@@ -1,5 +1,6 @@
 package com.itwillbs.controller;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.itwillbs.domain.ClientOrderVO;
+import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.ProductionPlanDTO;
 import com.itwillbs.service.ProductionPlanService;
@@ -31,18 +33,23 @@ public class ProductionPlanController {
 	@GetMapping("/plan/register")
 	public String showPlanRegisterPage(SearchCriteria cri, Model model) {
 
-		// 확정된 상태(CONFIRMED) 수주 총 개수 조회
-		int totalCount = productionPlanService.getConfirmedOrderTotalCount(cri);
-		cri.setTotalCount(totalCount); // 페이징 처리용
+	    // 확정된 상태(CONFIRMED) 수주 총 개수 조회
+	    int totalCount = productionPlanService.getConfirmedOrderTotalCount(cri);
+	    cri.setTotalCount(totalCount); // 페이징 처리용
 
-		// 확정된 상태(CONFIRMED) 수주 목록 조회 (페이징 적용)
-		List<ClientOrderVO> confirmedOrders = productionPlanService.getConfirmedOrderList(cri);
-		logger.info("등록 페이지 진입: CONFIRMED 수주 수 = " + confirmedOrders.size());
+	    //  PageMaker 생성
+	    PageMaker pageMaker = new PageMaker(cri, totalCount);
 
-		model.addAttribute("confirmedOrders", confirmedOrders); // JSP에서 사용
-		model.addAttribute("cri", cri); // 페이징 JSP에서 필요
+	    // 확정된 상태(CONFIRMED) 수주 목록 조회 (페이징 적용)
+	    List<ClientOrderVO> confirmedOrders = productionPlanService.getConfirmedOrderList(cri);
+	    logger.info("등록 페이지 진입: CONFIRMED 수주 수 = " + confirmedOrders.size());
 
-		return "production/plan-register";
+	    // 모델에 추가
+	    model.addAttribute("confirmedOrders", confirmedOrders); // JSP에서 목록 출력
+	    model.addAttribute("cri", cri);                         // 검색/정렬 등
+	    model.addAttribute("pageMaker", pageMaker);             //  블럭 페이징용 추가
+
+	    return "production/plan-register";
 	}
 
 	// 수주 상세 조회 (AJAX 요청 처리)
@@ -89,21 +96,56 @@ public class ProductionPlanController {
 	// 생산 목록 화면
 	@GetMapping("/plan/list")
 	public String planList(Model model, SearchCriteria cri) {
-		logger.info("[GET] /plan/list - 생산 계획 목록 페이지 진입");
+	    logger.info("[GET] /plan/list - 생산 계획 목록 페이지 진입");
 
-		// 1. 서비스에서 생산 계획 목록을 조회 (검색 조건 + 페이징 적용)
-		List<ProductionPlanDTO> planList = productionPlanService.getPlanList(cri);
+	    // 1. 정렬 컬럼 화이트리스트 검사
+	    List<String> allowedSortColumns = Arrays.asList(
+	        "plan_id", "product_name", "priority", "status", "planned_qty", "due_date", "created_at"
+	    );
+	    if (!allowedSortColumns.contains(cri.getSortColumn())) {
+	        cri.setSortColumn("created_at");
+	        cri.setSortOrder("desc");
+	    }
 
-		// 2. 전체 건수 조회 (페이징 처리용)
-		int totalCount = productionPlanService.getPlanListCount(cri);
+	    // 2. 목록 조회
+	    List<ProductionPlanDTO> planList = productionPlanService.getPlanList(cri);
 
-		// 3. 모델에 데이터 바인딩
-		model.addAttribute("planList", planList);
-		model.addAttribute("cri", cri);
-		model.addAttribute("totalCount", totalCount);
+	    // 3. 전체 건수
+	    int totalCount = productionPlanService.getPlanListCount(cri);
 
-		// 4. 목록 화면으로 이동 (jsp 경로)
-		return "production/plan-list"; // /WEB-INF/views/production/plan-list.jsp
+	    // 4. 페이지메이커 생성
+	    PageMaker pageMaker = new PageMaker(cri, totalCount);
+
+	    // 5. 모델 바인딩
+	    model.addAttribute("planList", planList);
+	    model.addAttribute("cri", cri);
+	    model.addAttribute("pageMaker", pageMaker);
+
+	    return "production/plan-list";
+	}
+	
+	// 계획 상세 화면 
+	@GetMapping("/plan/detail")
+	public String getPlanDetail(@RequestParam("planId") String planId, Model model) {
+	    logger.info("상세 조회 요청 planId: " + planId);
+
+	    ProductionPlanDTO plan = productionPlanService.getPlanDetail(planId);
+	    model.addAttribute("plan", plan);
+	    return "production/plan-detail";  // 이 JSP 경로 반드시 존재해야 함
+	}
+	
+	// 계획 선택 확정 컨트롤러 
+	@PostMapping("/plan/confirm-bulk")
+	@ResponseBody
+	public String confirmSelectedPlans(@RequestBody List<String> planIds) {
+	    // [1] 선택된 생산계획 ID 리스트 확인
+	    logger.info("✅ [선택 확정] 컨트롤러 호출 - planIds: " + planIds);
+
+	    // [2] 서비스에 확정 처리 요청
+	    productionPlanService.confirmPlans(planIds);
+
+	    // [3] 성공 응답 반환
+	    return "success";
 	}
 
 }

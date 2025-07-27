@@ -147,4 +147,20 @@ public class ProductionPlanServiceImpl implements ProductionPlanService {
 	public String getLineIdByProduct(String productId) {
 		return productionPlanDAO.findLineIdByProduct(productId);
 	}
+	
+	// 생산 계획 상세 조회 (planId 기준)
+	@Override
+	public ProductionPlanDTO getPlanDetail(String planId) {
+	    return productionPlanDAO.getPlanDetail(planId);
+	}
+	
+	// 여러 개의 생산계획을 확정 상태로 변경
+	@Override
+    public void confirmPlans(List<String> planIds) {
+        // [1] 받은 planId들을 순회하며 각각 확정 처리
+        for (String planId : planIds) {
+            // [2] DAO를 통해 DB 상태 업데이트
+            productionPlanDAO.updateStatusToConfirmed(planId);
+        }
+    }
 }

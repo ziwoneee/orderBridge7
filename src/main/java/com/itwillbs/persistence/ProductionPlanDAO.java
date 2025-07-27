@@ -71,5 +71,15 @@ public class ProductionPlanDAO {
 	public String findLineIdByProduct(String productId) {
 		return sqlSession.selectOne("com.itwillbs.mapper.ProductionPlanMapper.findLineIdByProduct", productId);
 	}
+	
+    //  생산계획 상세 조회 (planId 기준)
+	public ProductionPlanDTO getPlanDetail(String planId) {
+		return sqlSession.selectOne("com.itwillbs.mapper.ProductionPlanMapper.getPlanDetail", planId);
+	} 
+    
+	// 생산계획 확정 상태로 업데이트
+	public void updateStatusToConfirmed(String planId) {
+		sqlSession.update("com.itwillbs.mapper.ProductionPlanMapper.updateStatusToConfirmed", planId);
+	}
 
 }
