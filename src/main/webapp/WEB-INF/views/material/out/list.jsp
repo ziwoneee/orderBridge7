@@ -54,7 +54,7 @@
 				  <tr>
 				    <td>${item.outboundId}</td>
 				    <td>${item.workOrderNo}</td>
-				    <td><button class="btn btn-sm btn-outline-secondary">상세</button></td>
+				    <td><button class="btn btn-sm btn-outline-secondary" onclick="loadOutboundDetail('${item.outboundId}')">상세</button></td>
 				    <td>${item.supplierName}</td>
 				    <td>${item.materialName}</td>
 				    <td>${item.requiredQty}</td>
@@ -88,6 +88,80 @@
 		        </tbody>
 		      </table>
 		    </div>
+		    
+		    <!-- 출고관리 상세 모달 -->
+			<div class="modal fade" id="outboundDetailModal" tabindex="-1" role="dialog" aria-labelledby="modalTitle" aria-hidden="true">
+			  <div class="modal-dialog modal-lg" role="document">
+			    <div class="modal-content">
+			
+			      <div class="modal-header">
+			        <h5 class="modal-title">출고관리 상세</h5>
+			        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+			          <span aria-hidden="true">&times;</span>
+			        </button>
+			      </div>
+			
+			      <div class="modal-body">
+			        <!-- 기본 정보 -->
+			        <table class="table table-bordered">
+			          <tbody>
+			            <tr>
+			              <th>작업지시번호</th>
+			              <td id="workOrderNo"></td>
+			              <th>납기일</th>
+			              <td id="dueDate"></td>
+			            </tr>
+			            <tr>
+			              <th>작업지시일자</th>
+			              <td id="workOrderDate"></td>
+			              <th>작업지시 담당자</th>
+			              <td id="workOrderManager"></td>
+			            </tr>
+			            <tr>
+			              <th>출고관리번호</th>
+			              <td id="outboundId"></td>
+			              <th>출고진행현황</th>
+			              <td id="status"></td>
+			            </tr>
+			            <tr>
+			              <th>출고일자</th>
+			              <td id="outboundDate"></td>
+			              <th>출고담당자</th>
+			              <td id="handledBy"></td>
+			            </tr>
+			            <tr>
+			              <th>품명</th>
+			              <td colspan="3" id="materialName"></td>
+			            </tr>
+			          </tbody>
+			        </table>
+			
+			        <!-- 자재 재고 정보 -->
+			        <h6 class="mt-4">자재 재고 정보</h6>
+			        <table class="table table-bordered text-center">
+			          <thead>
+			            <tr>
+			              <th>품목코드</th>
+			              <th>품명</th>
+			              <th>필요수량</th>
+			              <th>재고수량</th>
+			              <th>재고상태</th>
+			            </tr>
+			          </thead>
+			          <tbody id="stockInfo">
+			            <!-- JS로 추가 -->
+			          </tbody>
+			        </table>
+			      </div>
+			
+			      <div class="modal-footer">
+			        <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
+			      </div>
+			
+			    </div>
+			  </div>
+			</div>
+		    
 
           </div>
           
@@ -146,5 +220,72 @@ function processOut(outboundId) {
 function viewDetail(outboundId) {
   // 상세 모달 띄우기 Ajax 또는 location.href 사용
   location.href = '/material/out/detail?outboundId=' + outboundId;
+}
+</script>
+
+<!-- 자재 상세 모달 -->
+<script>
+function openOutboundModal(data) {
+  // 기본 정보 채우기
+  $('#workOrderNo').text(data.workOrderNo);
+  $('#dueDate').text(formatDate(data.dueDate));
+  $('#workOrderDate').text(formatDate(data.workOrderDate));
+  $('#workOrderManager').text(data.workOrderManager);
+  $('#outboundId').text(data.outboundId);
+  $('#status').text(data.status);
+  $('#outboundDate').text(formatDate(data.outboundDate));
+  $('#handledBy').text(data.handledBy);
+  $('#materialName').text(data.materialName);
+
+  // 자재 재고 정보 테이블 초기화
+  $('#stockInfo').empty();
+
+  data.materialList.forEach(function(item) {
+    const stockStatus = item.stockQty >= item.requiredQty
+      ? '<span class="badge badge-success">정상</span>'
+      : '<span class="badge badge-danger">부족</span>';
+
+    $('#stockInfo').append(`
+      <tr>
+        <td>${item.materialCode}</td>
+        <td>${item.materialName}</td>
+        <td>${item.requiredQty}</td>
+        <td>${item.stockQty}</td>
+        <td>${stockStatus}</td>
+      </tr>
+    `);
+  });
+
+  // 모달 열기
+  $('#outboundDetailModal').modal('show');
+}
+
+function loadOutboundDetail(outboundId) {
+	  $.ajax({
+	    url: '/material/outbound/detail',
+	    method: 'GET',
+	    data: { outboundId: outboundId },
+	    success: function(response) {
+	      openOutboundModal(response); // ✅ 기존에 정의한 함수
+	    },
+	    error: function() {
+	      alert('상세 정보를 불러오는 데 실패했습니다.');
+	    }
+	  });
+	}
+</script>
+
+<script>
+// 날짜를 yyyy-MM-dd 형식으로 변환하는 함수
+function formatDate(timestamp) {
+  if (!timestamp) return '--';
+
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) return '--'; 
+
+  const yyyy = date.getFullYear();
+  const mm = ('0' + (date.getMonth() + 1)).slice(-2);
+  const dd = ('0' + date.getDate()).slice(-2);
+  return `${yyyy}-${mm}-${dd}`;
 }
 </script>
