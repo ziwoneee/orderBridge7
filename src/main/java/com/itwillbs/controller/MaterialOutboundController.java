@@ -35,6 +35,7 @@ public class MaterialOutboundController {
 	// 출고 목록 조회 요청
 	@GetMapping("list")
 	public String getOutboundList(SearchCriteria cri, Model model) throws Exception {
+		logger.info(" getOutboundList 호출 ");
 		
 		
 		// 전체 건수 조회
