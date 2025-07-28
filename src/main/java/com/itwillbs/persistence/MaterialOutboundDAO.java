@@ -2,6 +2,7 @@ package com.itwillbs.persistence;
 
 import java.util.List;
 
+import com.itwillbs.domain.MaterialOutboundItemVO;
 import com.itwillbs.domain.MaterialOutboundVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.MaterialOutboundDetailDTO;
@@ -22,6 +23,18 @@ public interface MaterialOutboundDAO {
 
     // 출고 자재 항목 리스트 조회
     List<MaterialOutboundItemDTO> getOutboundItemList(String outboundId) throws Exception;
+    
+    // 출고 자재 목록 조회
+    List<MaterialOutboundItemVO> getOutboundItems(String outboundId) throws Exception;
+
+    // 출고 완료 처리 (출고일자 + 상태 변경)
+    void updateOutboundAsCompleted(String outboundId) throws Exception;
+    
+    // 자재 재고 차감
+    void decreaseMaterialStock(String materialId, int qty) throws Exception;
+    void updateOutboundItemStock(String outboundId, String materialId, int qty) throws Exception;
+
+
 
     
 }

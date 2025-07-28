@@ -19,5 +19,11 @@ public interface MaterialOutboundService {
 	// 출고 상세 조회
 	MaterialOutboundDetailDTO getOutboundDetail(String outboundId) throws Exception;
 
-	
+	// 출고 처리 메서드 (실재고 확인 후 처리)
+	boolean processOutbound(String outboundId) throws Exception;
+
+	// 자재 재고 차감
+	void updateOutboundItemStock(String outboundId, String materialId, int qty) throws Exception;
+
+    
 }

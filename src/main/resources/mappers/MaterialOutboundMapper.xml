@@ -16,7 +16,19 @@
 	    o.outbound_date      AS outboundDate,
 	    o.status             AS status,
 	    o.handled_by         AS handledBy,
-	  
+	    (
+	      SELECT 
+	        CONCAT(
+	          MIN(m2.material_name),
+	          CASE 
+	            WHEN COUNT(*) > 1 THEN CONCAT(' 외 ', COUNT(*) - 1, '건')
+	            ELSE ''
+	          END
+	        )
+	      FROM material_outbound_item i2
+	      JOIN material m2 ON i2.material_id = m2.material_id
+	      WHERE i2.outbound_id = o.outbound_id
+	    ) AS materialSummary,
 	    m.material_name      AS materialName,
 	    s.supplier_name      AS supplierName,
 	    i.required_qty       AS requiredQty,
@@ -24,7 +36,9 @@
 	    CASE 
 	      WHEN i.stock_qty >= i.required_qty THEN '정상'
 	      ELSE CONCAT('부족 (재고 ', i.stock_qty, ')')
-	    END AS stockStatus
+	    END AS stockStatus,
+	    
+	    ROW_NUMBER() OVER(PARTITION BY o.outbound_id ORDER BY i.material_id) AS rowNum
 	
 	  FROM material_outbound o
 	  LEFT JOIN material_outbound_item i ON o.outbound_id = i.outbound_id
@@ -33,23 +47,56 @@
 	  LEFT JOIN supplier s ON si.supplier_id = s.supplier_id
 	
 	  <where>
-	    <if test="keyword != null and keyword != '' and condition == 'handledBy'">
-	      o.handled_by LIKE CONCAT('%', #{keyword}, '%')
+	    <if test="keyword != null and keyword != ''">
+	      AND (
+	        o.outbound_id LIKE CONCAT('%', #{keyword}, '%')
+	        OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
+	      )
 	    </if>
-	  </where>
 	
-	  <!-- 정렬 조건 -->
-	  <choose>
-	    <when test="sortColumn == 'outbound_date' and sortOrder == 'asc'">
-	      ORDER BY o.outbound_date ASC
-	    </when>
-	    <when test="sortColumn == 'outbound_date' and sortOrder == 'desc'">
-	      ORDER BY o.outbound_date DESC
-	    </when>
-	    <otherwise>
-	      ORDER BY o.outbound_date DESC
-	    </otherwise>
-	  </choose>
+	    <if test="startDate != null and startDate != ''">
+	      AND DATE(o.outbound_date) &gt;= #{startDate}
+	    </if>
+	
+	    <if test="endDate != null and endDate != ''">
+	      AND DATE(o.outbound_date) &lt;= #{endDate}
+	    </if>
+	    
+	    <if test="status != null and status != ''">
+		  AND o.status = #{status}
+		</if>
+	    
+	  </where>
+
+	
+	<!-- 정렬 조건 -->
+	<choose>
+	  <when test="sortColumn == 'outbound_id' and sortOrder == 'asc'">
+	    ORDER BY o.outbound_date ASC
+	  </when>
+	  <when test="sortColumn == 'outbound_id' and sortOrder == 'desc'">
+	    ORDER BY o.outbound_date DESC
+	  </when>
+	
+	  <when test="sortColumn == 'outbound_date' and sortOrder == 'asc'">
+	    ORDER BY o.status ASC
+	  </when>
+	  <when test="sortColumn == 'outbound_date' and sortOrder == 'desc'">
+	    ORDER BY o.status DESC
+	  </when>
+	
+	  <when test="sortColumn == 'due_date' and sortOrder == 'asc'">
+	    ORDER BY o.due_date ASC
+	  </when>
+	  <when test="sortColumn == 'due_date' and sortOrder == 'desc'">
+	    ORDER BY o.due_date DESC
+	  </when>
+	
+	  <otherwise>
+	    ORDER BY o.outbound_date DESC
+	  </otherwise>
+	</choose>
+
 	
 	  LIMIT #{perPageNum} OFFSET #{pageStart}
 	</select>
@@ -110,10 +157,36 @@
 	
 
 
+	<!-- 출고 자재 목록 (VO용: 수량 비교용) -->
+	<select id="getOutboundItemListRaw" parameterType="String" resultType="com.itwillbs.domain.MaterialOutboundItemVO">
+	  SELECT material_id, required_qty, stock_qty
+	  FROM material_outbound_item
+	  WHERE outbound_id = #{outboundId}
+	</select>
+	
+	<!-- 출고 완료 처리 (상태/출고일자 변경) -->
+	<update id="updateOutboundAsCompleted" parameterType="String">
+	  UPDATE material_outbound
+	  SET 
+	    status = '출고완료',
+	    outbound_date = NOW()
+	  WHERE outbound_id = #{outboundId}
+	</update>
+	
 
-
-
-
+	<!-- 자재 차감 -->
+	<update id="decreaseMaterialStock">
+	  UPDATE material_inventory
+	  SET quantity = quantity - #{qty}
+	  WHERE material_id = #{materialId}
+	</update>
+	<update id="updateOutboundItemStock">
+	  UPDATE material_outbound_item
+	  SET stock_qty = stock_qty - #{qty}
+	  WHERE outbound_id = #{outboundId}
+	    AND material_id = #{materialId}
+	</update>
+		
 
 
 

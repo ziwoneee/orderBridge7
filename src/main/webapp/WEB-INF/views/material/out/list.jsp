@@ -6,89 +6,292 @@
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
 
 <div class="container-scroller">
-
   <%@ include file="/WEB-INF/views/main/top.jsp" %>      
-
   <div class="container-fluid page-body-wrapper">
-
     <%@ include file="/WEB-INF/views/main/sidebar.jsp" %>
-
+    
       <!-- 본문 시작 -->
       <div class="main-panel">
         <div class="content-wrapper">
           <div class="row">
+         
+         <!-- 페이지 헤더 -->
+         <div class="col-md-12 grid-margin">
+              <div class="row">
+                <div class="col-12 col-xl-8 mb-4 mb-xl-0">
+                  <h3 class="font-weight-bold">자재 출고 관리</h3>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 검색 영역 -->
+            <div class="col-12 mb-3">
+              <form method="get" action="/material/outbound/list" class="forms-sample">
+                <div class="row align-items-end">
+                  <div class="col-md-2 form-group">
+                    <label class="form-label text-muted small">출고일자</label>
+                    <input type="date" class="form-control" id="startDate" name="startDate" value="${param.startDate}">
+                  </div>
+                  <div class="col-md-auto form-group text-center px-2">
+                    <label class="form-label text-muted small">&nbsp;</label>
+                    <div class="mt-2">~</div>
+                  </div>
+                  <div class="col-md-2 form-group">
+                    <label class="form-label text-muted small">&nbsp;</label>
+                    <input type="date" class="form-control" id="endDate" name="endDate" value="${param.endDate}">
+                  </div>
+                  <div class="col-md-4 form-group">
+                    <input type="text" class="form-control" id="keyword" name="keyword" 
+                           placeholder="출고관리번호, 작업지시번호, 품명 검색" value="${param.keyword}">
+                  </div>
+                  <div class="col-md-3 form-group">
+                    <button type="submit" class="btn btn-primary me-2" style="background-color: #1C355E; border-color: #1C355E;">
+                      <i class="ti-search"></i> 검색
+                    </button>
+                    <a href="/material/outbound/list" class="btn btn-light">
+                      <i class="ti-reload"></i> 초기화
+                    </a>
+                  </div>
+                </div>
+                <!-- 숨겨진 파라미터 -->
+                <input type="hidden" name="sortColumn" value="${cri.sortColumn}">
+                <input type="hidden" name="sortOrder" value="${cri.sortOrder}">
+                <input type="hidden" name="page" value="1">
+                <input type="hidden" name="perPageNum" value="${cri.perPageNum}">
+              </form>
+            </div>
+            
+            <!-- 자재 출고 목록 -->
+            <div class="col-12">
+              <!-- 탭 -->
+              <div class="d-flex justify-content-between align-items-center mb-0">
+                <ul class="nav nav-underline-custom" id="statusTab" role="tablist">
+                  <li class="nav-item">
+                    <a class="nav-link ${empty param.status ? 'active' : ''}" 
+                       href="/material/outbound/list?keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+                      전체 <span class="badge badge-light ms-1"></span>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link ${param.status eq '미출고' ? 'active' : ''}" 
+                       href="/material/outbound/list?status=미출고&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+                      미출고 <span class="badge badge-light ms-1">${pendingCount}</span>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link ${param.status eq '출고완료' ? 'active' : ''}" 
+                       href="/material/outbound/list?status=출고완료&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+                      출고완료 <span class="badge badge-light ms-1">${completedCount}</span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+                  
+              <!-- 테이블 -->
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead style="background-color: #1C355E; color: white; border-top: none;">
+                    <tr>
+                      <th>
+                        <a href="/material/outbound/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=outbound_id&sortOrder=${cri.sortColumn == 'outbound_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+                           class="text-white text-decoration-none">
+                          출고관리번호 
+                           <c:choose>
+						      <c:when test="${cri.sortColumn == 'outbound_id'}">
+						        <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+						      </c:when>
+						      <c:otherwise>
+						        ⇅
+						      </c:otherwise>
+						   </c:choose>
+                        </a>
+                      </th>
+                      <th>
+                        <a href="/material/outbound/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=outbound_date&sortOrder=${cri.sortColumn == 'outbound_date' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+                           class="text-white text-decoration-none">
+                          출고일자
+                           <c:choose>
+						      <c:when test="${cri.sortColumn == 'outbound_date'}">
+						        <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+						      </c:when>
+						      <c:otherwise>
+						        ⇅
+						      </c:otherwise>
+						   </c:choose>
+                        </a>
+                      </th>
+                      <th>출고상태</th>
+                      <th>품명</th>
+                      <th>출고수량</th>
+                      <th>재고상태</th>
+                      <th>작업지시번호</th>
+                      <th>
+                        <a href="/material/outbound/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=due_date&sortOrder=${cri.sortColumn == 'due_date' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+                           class="text-white text-decoration-none">
+                          납기일자
+                           <c:choose>
+						      <c:when test="${cri.sortColumn == 'due_date'}">
+						        <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+						      </c:when>
+						      <c:otherwise>
+						        ⇅
+						      </c:otherwise>
+						   </c:choose>
+                        </a>
+                      </th>
+                      <th>담당자</th>
+                      <th>상세</th>
+                      <th>출고처리</th>
+                    </tr>
+                  </thead>
+                  
+                  <!-- 테이블 내용! -->
+                  <tbody>
+                    <c:forEach var="item" items="${outList}">
+                      <c:if test="${item.rowNum == 1}">
+                      	<tr>
+                 		 <!-- 출고관리번호: rowNum == 1일 때만 표시 -->
+   						  <td class="font-weight-medium">${item.outboundId}</td>
+   						  
+   						 <!-- 출고일자 -->
+   						 <td>
+					       <c:if test="${item.outboundDate != null}">
+					         <fmt:formatDate value="${item.outboundDate}" pattern="yyyy-MM-dd"/>
+					       </c:if>
+					     </td>
+  
+				         <!-- 출고상태 -->
+				         <td>
+				           <c:choose>
+				             <c:when test="${item.status eq '출고완료'}">
+				               <span class="badge badge-success">출고완료</span>
+				             </c:when>
+				             <c:otherwise>
+				               <span class="badge badge-danger">미출고</span>
+				             </c:otherwise>
+				           </c:choose>
+				         </td>
+				        
+				         <!-- 대표 품명 -->
+				         <td>${item.materialSummary}</td>
+				  
+  
+				   
+				     	 <!-- 출고수량 -->
+				         <td class="text-end">
+				          <fmt:formatNumber value="${item.requiredQty}" pattern="#,###"/>
+				         </td>
+				
+				         <!-- 재고상태 -->
+				         <td>
+				           <c:choose>
+				             <c:when test="${item.stockStatus eq '부족'}">
+				               <span class="badge badge-danger">부족</span>
+				             </c:when>
+				             <c:when test="${item.stockStatus eq '정상'}">
+				               <span class="badge badge-success">정상</span>
+				             </c:when>
+				             <c:otherwise>
+				               <span class="badge badge-secondary">${item.stockStatus}</span>
+				             </c:otherwise>
+				           </c:choose>
+				         </td>
+				
+			 	         <!-- 작업지시번호 -->
+			 	         <td>${item.workOrderNo}</td>
+				
+				         <!-- 납기일자 + D-Day -->
+				         <td>
+				           <fmt:formatDate value="${item.dueDate}" pattern="yyyy-MM-dd"/>
+				           <c:set var="today" value="<%=new java.util.Date()%>"/>
+				           <c:set var="daysDiff" value="${(item.dueDate.time - today.time) / (1000 * 60 * 60 * 24)}"/>
+				           <c:if test="${daysDiff <= 2 && daysDiff >= 0}">
+				             <span class="badge badge-warning badge-pill">D-${Math.ceil(daysDiff)}</span>
+				           </c:if>
+				           <c:if test="${daysDiff < 0}">
+				             <span class="badge badge-danger badge-pill">지연</span>
+				           </c:if>
+				         </td>
+				         
+				         <!-- 담당자 -->
+				         <td>${item.handledBy}</td>
+                        
+  
+                         <td>
+                           <button class="btn btn-sm btn-outline-primary" 
+                                   onclick="loadOutboundDetail('${item.outboundId}')">
+                             상세
+                           </button>
+                         </td>
+                        
+                         <td>
+                           <c:if test="${item.status ne '출고완료' and item.rowNum == 1}">
+                             <button class="btn btn-outline-success btn-sm"
+                                     onclick="processOutbound('${item.outboundId}', ${item.requiredQty}, ${item.stockQty}, this)">
+                               출고처리
+                             </button>
+                           </c:if>
+                         </td>
+                       </tr>
+                      </c:if>
+                    </c:forEach>
+                    
+                    
+                    <!-- 데이터가 없을 때 -->
+                    <c:if test="${empty outList}">
+                      <tr>
+                        <td colspan="11" class="text-center py-4">
+                          <div class="text-muted">
+                            <i class="ti-info-alt" style="font-size: 24px;"></i>
+                            <p class="mt-2">조회된 출고 건이 없습니다.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    </c:if>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+         
+          </div>
           
-          	<!-- 제목 -->
-			<div class="col-12 mb-4">
-			  <h3 class="font-weight-bold">자재 출고 관리</h3>
-			</div>
-			
-		    <!-- 검색 필터 -->
-		    <form method="get" class="form-inline mb-3">
-		      <input type="text" name="keyword" class="form-control mr-2" placeholder="출고관리번호 or 품명">
-		      <button type="submit" class="btn btn-primary">검색</button>
-		    </form>
-		
-		    <!-- 출고 리스트 테이블 -->
-		    <div id="table_content" class="table-responsive">
-		      <table class="table table-bordered text-center">
-		        <thead>
-		          <tr>
-		            <th>출고관리번호</th>
-		            <th>작업지시번호</th>
-		            <th>상세</th>
-		            <th>납품자명</th>
-		            <th>품명</th>
-		            <th>주문수량</th>
-		            <th>재고확인</th>
-		            <th>작업지시일자</th>
-		            <th>납기일자</th>
-		            <th>진행현황</th>
-		            <th>담당자</th>
-		            <th>출고일자</th>
-		            <th>출고처리</th>
-		          </tr>
-		        </thead>
-		        <tbody>
-		         <c:forEach var="item" items="${outList}">
-				  <tr>
-				    <td>${item.outboundId}</td>
-				    <td>${item.workOrderNo}</td>
-				    <td><button class="btn btn-sm btn-outline-secondary" onclick="loadOutboundDetail('${item.outboundId}')">상세</button></td>
-				    <td>${item.supplierName}</td>
-				    <td>${item.materialName}</td>
-				    <td>${item.requiredQty}</td>
-				    <td>${item.stockStatus} (재고 ${item.stockQty})</td>
-				    <td><fmt:formatDate value="${item.workOrderDate}" pattern="yyyy-MM-dd" /></td>
-				    <td><fmt:formatDate value="${item.dueDate}" pattern="yyyy-MM-dd" /></td>
-				    <td>
-				      <c:choose>
-				        <c:when test="${item.status eq '완료'}">
-				          <span class="badge badge-success">출고완료</span>
-				        </c:when>
-				        <c:otherwise>
-				          <span class="badge badge-danger">미출고</span>
-				        </c:otherwise>
-				      </c:choose>
-				    </td>
-				    <td>${item.handledBy}</td>
-				    <td>
-				      <c:if test="${item.outboundDate != null}">
-				        <fmt:formatDate value="${item.outboundDate}" pattern="yyyy-MM-dd" />
-				      </c:if>
-				    </td>
-				    <td>
-				      <c:if test="${item.status ne '완료'}">
-				        <button class="btn btn-sm btn-outline-primary">출고처리</button>
-				      </c:if>
-				    </td>
-				  </tr>
-				</c:forEach>
-
-		        </tbody>
-		      </table>
-		    </div>
-		    
+          <!-- 페이징 처리 시작 -->
+          <div class="d-flex justify-content-center mt-4">
+            <nav>
+              <ul class="pagination justify-content-center mt-4">
+                
+                <c:if test="${pageMaker.cri.page > 1}">
+                  <li class="page-item">
+                    <a class="page-link" 
+                       href="/material/outbound/list?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
+                      &laquo;
+                    </a>
+                  </li>
+                </c:if>
+                
+                <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+                  <li class="page-item ${p == cri.page ? 'active' : ''}">
+                    <a class="page-link" 
+                       href="/material/outbound/list?page=${p}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
+                      ${p}
+                    </a>
+                  </li>
+                </c:forEach>
+                
+                <c:if test="${pageMaker.cri.page < pageMaker.endPage}">
+                  <li class="page-item">
+                    <a class="page-link" 
+                       href="/material/outbound/list?page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
+                      &raquo;
+                    </a>
+                  </li>
+                </c:if>
+                
+              </ul>
+            </nav>
+          </div>
+          <!-- 페이징 처리 끝 -->
+          
 		    <!-- 출고관리 상세 모달 -->
 			<div class="modal fade" id="outboundDetailModal" tabindex="-1" role="dialog" aria-labelledby="modalTitle" aria-hidden="true">
 			  <div class="modal-dialog modal-lg" role="document">
@@ -114,12 +317,14 @@
 			            <tr>
 			              <th>작업지시일자</th>
 			              <td id="workOrderDate"></td>
+			              <th>생산라인</th>
+  						  <td id="lineId"></td>
 			            </tr>
 			            <tr>
 			              <th>출고관리번호</th>
 			              <td id="outboundId"></td>
 			              <th>출고진행현황</th>
-			              <td id="status"></td>
+			              <td id="modalStatus"></td>
 			            </tr>
 			            <tr>
 			              <th>출고일자</th>
@@ -159,131 +364,15 @@
 			    </div>
 			  </div>
 			</div>
-		    
-
-          </div>
-          
-			<!-- 페이징 처리 시작 -->
-			<div class="d-flex justify-content-center mt-4">
-			 <nav>
-			  <ul class="pagination justify-content-center mt-4">
-			
-			    <!-- 이전 버튼 -->
-			    <c:if test="${pageMaker.cri.page>1}">
-			      <li class="page-item">
-			        <a class="page-link"href="?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&condition=${cri.condition}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&laquo;</a>
-			      </li>
-			    </c:if>
-			    
-			    <!-- 페이지 번호 출력 -->
-			    <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
-			      <li class="page-item ${p == cri.page ? 'active' : ''}">
-			        <a class="page-link"href="?page=${p}&perPageNum=${cri.perPageNum}&condition=${cri.condition}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">${p}</a>
-			      </li>
-			    </c:forEach>
-			    
-			    <!-- 다음 버튼 -->
-			    <c:if test="${pageMaker.cri.page<pageMaker.endPage}">
-			      <li class="page-item">
-			        <a class="page-link"href="?page=${pageMaker.endPage + 1}&perPageNum=${cri.perPageNum}&condition=${cri.condition}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&raquo;</a>
-			      </li>
-			    </c:if>
-			
-			  </ul>
-			 </nav>
-			</div>
-			<!-- 페이징 처리 끝 -->
-
           
         </div>
         <!-- content-wrapper 끝 -->
-	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
+     <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
      </div>
      <!-- 본문.jsp main-panel ends -->
   </div>   
   <!-- container-fluid page-body-wrapper 끝 -->
 </div>
-<!-- container-scroller 끝-->   
+<!-- container-scroller 끝-->
 
-
-
-<!-- 출고 처리 JS 함수 -->
-<script>
-function processOut(outboundId) {
-  if (confirm("출고처리 하시겠습니까?")) {
-    location.href = '/material/out/process?outboundId=' + outboundId;
-  }
-}
-
-function viewDetail(outboundId) {
-  // 상세 모달 띄우기 Ajax 또는 location.href 사용
-  location.href = '/material/out/detail?outboundId=' + outboundId;
-}
-</script>
-
-<!-- 자재 상세 모달 -->
-<script>
-function openOutboundModal(data) {
-  // 기본 정보 채우기
-  $('#workOrderNo').text(data.workOrderNo);
-  $('#dueDate').text(formatDate(data.dueDate));
-  $('#workOrderDate').text(formatDate(data.workOrderDate));
-  $('#outboundId').text(data.outboundId);
-  $('#status').text(data.status);
-  $('#outboundDate').text(formatDate(data.outboundDate));
-  $('#handledBy').text(data.handledBy);
-  $('#materialName').text(data.materialName);
-
-  // 자재 재고 정보 테이블 초기화
-  $('#stockInfo').empty();
-
-  data.materialList.forEach(function(item) {
-    const stockStatus = item.stockQty >= item.requiredQty
-      ? '<span class="badge badge-success">정상</span>'
-      : '<span class="badge badge-danger">부족</span>';
-
-    $('#stockInfo').append(`
-      <tr>
-        <td>${item.materialId}</td>
-        <td>${item.materialName}</td>
-        <td>${item.requiredQty}</td>
-        <td>${item.stockQty}</td>
-        <td>${stockStatus}</td>
-      </tr>
-    `);
-  });
-
-  // 모달 열기
-  $('#outboundDetailModal').modal('show');
-}
-
-function loadOutboundDetail(outboundId) {
-	  $.ajax({
-	    url: '/material/outbound/detail',
-	    method: 'GET',
-	    data: { outboundId: outboundId },
-	    success: function(response) {
-	      console.log("Ajax 응답 데이터:", response);	
-	      openOutboundModal(response); // ✅ 기존에 정의한 함수
-	    },
-	    error: function() {
-	      alert('상세 정보를 불러오는 데 실패했습니다.');
-	    }
-	  });
-	}
-</script>
-
-<script>
-// 날짜를 yyyy-MM-dd 형식으로 변환하는 함수
-function formatDate(timestamp) {
-  if (!timestamp) return '--';
-
-  const date = new Date(timestamp);
-  if (isNaN(date.getTime())) return '--'; 
-
-  const yyyy = date.getFullYear();
-  const mm = ('0' + (date.getMonth() + 1)).slice(-2);
-  const dd = ('0' + date.getDate()).slice(-2);
-  return `${yyyy}-${mm}-${dd}`;
-}
-</script>
+<script src="${pageContext.request.contextPath}/resources/js/materialOutbound.js"></script>
