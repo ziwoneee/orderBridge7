@@ -107,17 +107,20 @@
         <td>
           <c:choose>
             <c:when test="${plan.status eq 'WAITING'}">
-              <span class="badge badge-secondary px-2 py-1">미생산</span>
+              <span class="badge badge-secondary px-2 py-1">미확정</span>
+            </c:when>
+            <c:when test="${plan.status eq 'CONFIRMED'}">
+              <span class="badge badge-warning px-2 py-1">확정</span>
             </c:when>
             <c:when test="${plan.status eq 'IN_PROGRESS'}">
-              <span class="badge badge-warning px-2 py-1">진행중</span>
+              <span class="badge badge-success px-2 py-1">생산중</span>
             </c:when>
-            <c:when test="${plan.status eq 'DONE'}">
-              <span class="badge badge-success px-2 py-1">완료</span>
-            </c:when>
-            <c:otherwise>
-              <span class="badge badge-light px-2 py-1">기타</span>
-            </c:otherwise>
+           	 <c:when test="${plan.status eq 'DONE'}">
+              <span class="badge badge-light px-2 py-1">완료</span>
+               </c:when>
+               <c:otherwise>
+						      <span class="badge bg-light text-dark">${plan.status}</span>
+						    </c:otherwise>
           </c:choose>
         </td>
       </tr>
