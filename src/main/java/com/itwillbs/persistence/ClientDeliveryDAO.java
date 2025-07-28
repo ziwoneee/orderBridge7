@@ -1,7 +1,9 @@
 package com.itwillbs.persistence;
 
 import com.itwillbs.domain.ClientDeliveryVO;
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.LotStockDTO;
+import com.itwillbs.dto.ShipmentCompletedDTO;
 import com.itwillbs.dto.ShipmentPendingDTO;
 import com.itwillbs.dto.ShipmentPendingGroupDTO;
 import com.itwillbs.dto.ShipmentProductDTO;
@@ -40,6 +42,9 @@ public interface ClientDeliveryDAO {
      int countUnshippedDetails(String clOrderId);
      void updateOrderStatus(String clOrderId, String status);
 
+     // 출하완료 목록
+     List<ShipmentCompletedDTO> searchCompletedShipmentList(SearchCriteria cri);
+     int countCompletedShipmentList(SearchCriteria cri);
 
    
      

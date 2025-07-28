@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.ProductOutboundVO;
@@ -24,10 +25,17 @@ public class ProductOutboundController {
     private ProductOutboundService outboundService;
 
     @PostMapping("/register")
-    public String registerOutbound(ProductOutboundVO vo) {
-        outboundService.registerOutbound(vo);  // 출고 + 재고 감소
+    public String registerOutbound(ProductOutboundVO vo, RedirectAttributes rttr) {
+        try {
+            outboundService.registerOutbound(vo);
+            rttr.addFlashAttribute("message", "출고 등록 완료");
+        } catch (Exception e) {
+            rttr.addFlashAttribute("error", "출고 등록 중 오류 발생");
+            e.printStackTrace();
+        }
         return "redirect:/product/stocklist";
     }
+
     
           
     @GetMapping("/list")

@@ -1,7 +1,9 @@
 package com.itwillbs.persistence;
 
 import com.itwillbs.domain.ClientDeliveryVO;
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.LotStockDTO;
+import com.itwillbs.dto.ShipmentCompletedDTO;
 import com.itwillbs.dto.ShipmentPendingDTO;
 import com.itwillbs.dto.ShipmentPendingGroupDTO;
 import com.itwillbs.dto.ShipmentProductDTO;
@@ -115,4 +117,19 @@ public class ClientDeliveryDAOImpl implements ClientDeliveryDAO {
         param.put("status", status);
         sqlSession.update(NAMESPACE + ".updateOrderStatus", param);
     }
+    /**출하 완료 목록*/
+    // ✅ 출하 완료 목록 조회 (검색 + 정렬 + 페이징)
+    @Override
+    public List<ShipmentCompletedDTO> searchCompletedShipmentList(SearchCriteria cri) {
+        return sqlSession.selectList(NAMESPACE + ".searchCompletedShipmentList", cri);
+    }
+
+    // ✅ 출하 완료 목록 카운트
+    @Override
+    public int countCompletedShipmentList(SearchCriteria cri) {
+        return sqlSession.selectOne(NAMESPACE + ".countCompletedShipmentList", cri);
+    }
+
+    
+    
 }

@@ -1,5 +1,8 @@
 package com.itwillbs.controller;
 
+import com.itwillbs.domain.PageMaker;
+import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.ShipmentCompletedDTO;
 import com.itwillbs.dto.ShipmentPendingGroupDTO;
 import com.itwillbs.service.ClientDeliveryService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +11,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Controller
@@ -37,4 +41,36 @@ public class ClientDeliveryController {
         rttr.addFlashAttribute("message", "출하 처리가 완료되었습니다.");
         return "redirect:/shipment/pending";
     }
+    
+    // 출하 완료 목록 보기
+    @GetMapping("/completed")
+    public String showCompletedShipmentList(@ModelAttribute SearchCriteria cri, Model model) {
+        // ✅ 정렬 컬럼 화이트리스트
+    	List<String> allowed = Arrays.asList("deliveryId", "clOrderId", "deliveryDate", "productName", "clientName", "lotNo", "trackingNumber");
+
+        // ✅ 기본값 설정
+        if (cri.getSortColumn() == null || !allowed.contains(cri.getSortColumn())) {
+            cri.setSortColumn("deliveryDate");
+        }
+        if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) {
+            cri.setSortOrder("desc");
+        }
+
+        // ✅ 빈 문자열 처리
+        if (cri.getStartDate() != null && cri.getStartDate().trim().isEmpty()) cri.setStartDate(null);
+        if (cri.getEndDate() != null && cri.getEndDate().trim().isEmpty()) cri.setEndDate(null);
+
+        // ✅ 데이터 조회
+        List<ShipmentCompletedDTO> completedList = deliveryService.searchCompletedShipmentList(cri);
+        int totalCount = deliveryService.countCompletedShipmentList(cri);
+        PageMaker pageMaker = new PageMaker(cri, totalCount);
+
+        model.addAttribute("completedList", completedList);
+        model.addAttribute("pageMaker", pageMaker);
+        model.addAttribute("cri", cri);
+
+        return "clientDelivery/completed";
+    }
+
+
 }

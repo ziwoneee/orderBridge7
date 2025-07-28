@@ -11,5 +11,7 @@ public interface ProductOutboundService {
 	 List<ProductOutboundVO> searchOutboundList(SearchCriteria cri);
 	 int countOutboundList(SearchCriteria cri);
 	 
+	 String generateOutboundId();
 
+	 
 }
