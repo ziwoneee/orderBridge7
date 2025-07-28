@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -79,9 +80,50 @@ public class MaterialOutboundController {
 	}
 
 
+	// 출고처리 요청 (실재고 확인 포함)
+	@GetMapping("process")
+	public String processOutbound(@RequestParam("outboundId") String outboundId, Model model) {
+	    logger.info("출고 처리 요청 - ID: " + outboundId);
+
+	    try {
+	        // 출고 처리 서비스 호출 (성공 시 true)
+	        boolean result = moService.processOutbound(outboundId);
+
+	        if (result) {
+	            model.addAttribute("msg", "출고처리 완료되었습니다.");
+	        } else {
+	            model.addAttribute("msg", "실재고가 부족하여 출고처리 불가능합니다.");
+	        }
+	    } catch (Exception e) {
+	        logger.error("출고 처리 중 오류", e);
+	        model.addAttribute("msg", "출고 처리 중 오류가 발생했습니다.");
+	    }
+
+	    // 목록으로 리다이렉트
+	    return "redirect:/material/outbound/list";
+	}
+
 	
-	
-	
+
+	@PostMapping(value = "process", produces = "text/plain;charset=UTF-8")
+	@ResponseBody
+	public ResponseEntity<String> processOutboundAjax(@RequestParam("outboundId") String outboundId) {
+	    logger.info("Ajax 출고처리 요청 - ID: " + outboundId);
+
+	    try {
+	        boolean result = moService.processOutbound(outboundId);
+
+	        if (result) {
+	            return ResponseEntity.ok("출고처리 완료되었습니다.");
+	        } else {
+	            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("실재고가 부족하여 출고처리 불가능합니다.");
+	        }
+	    } catch (Exception e) {
+	        logger.error("Ajax 출고 처리 중 오류", e);
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("출고 처리 중 오류가 발생했습니다.");
+	    }
+	}
+
 	
 	
 	

@@ -154,10 +154,13 @@
 				    <td>${item.handledBy}</td>
 				    <td><button class="btn btn-sm btn-outline-secondary" onclick="loadOutboundDetail('${item.outboundId}')">상세</button></td>
 				    <td>
-				      <c:if test="${item.status ne '출고완료'}">
-				        <button class="btn btn-sm btn-outline-primary">출고처리</button>
-				      </c:if>
-				    </td>
+					  <c:if test="${item.status ne '출고완료' and item.rowNum == 1}">
+						  <button class="btn btn-sm btn-outline-primary"
+						          onclick="processOutbound('${item.outboundId}', ${item.requiredQty}, ${item.stockQty}, this)">
+						    출고처리
+						  </button>
+					  </c:if>
+					</td>
 				  </tr>
 				</c:forEach>
 
@@ -199,7 +202,16 @@
 			            </tr>
 			            <tr>
 			              <th>출고일자</th>
-			              <td id="outboundDate"></td>
+			              <td>
+							  <c:choose>
+							    <c:when test="${outbound.outboundDate != null}">
+							      <fmt:formatDate value="${outbound.outboundDate}" pattern="yyyy-MM-dd"/>
+							    </c:when>
+							    <c:otherwise>
+							      --
+							    </c:otherwise>
+							  </c:choose>
+						  </td>
 			              <th>출고담당자</th>
 			              <td id="handledBy"></td>
 			            </tr>
@@ -281,85 +293,4 @@
 </div>
 <!-- container-scroller 끝-->   
 
-
-
-<!-- 출고 처리 JS 함수 -->
-<script>
-function processOut(outboundId) {
-  if (confirm("출고처리 하시겠습니까?")) {
-    location.href = '/material/out/process?outboundId=' + outboundId;
-  }
-}
-
-function viewDetail(outboundId) {
-  // 상세 모달 띄우기 Ajax 또는 location.href 사용
-  location.href = '/material/out/detail?outboundId=' + outboundId;
-}
-</script>
-
-<!-- 자재 상세 모달 -->
-<script>
-function openOutboundModal(data) {
-  // 기본 정보 채우기
-  $('#workOrderNo').text(data.workOrderNo);
-  $('#dueDate').text(formatDate(data.dueDate));
-  $('#workOrderDate').text(formatDate(data.workOrderDate));
-  $('#outboundId').text(data.outboundId);
-  $('#status').text(data.status);
-  $('#outboundDate').text(formatDate(data.outboundDate));
-  $('#handledBy').text(data.handledBy);
-  $('#materialName').text(data.materialName);
-
-  // 자재 재고 정보 테이블 초기화
-  $('#stockInfo').empty();
-
-  data.materialList.forEach(function(item) {
-    const stockStatus = item.stockQty >= item.requiredQty
-      ? '<span class="badge badge-success">정상</span>'
-      : '<span class="badge badge-danger">부족</span>';
-
-    $('#stockInfo').append(`
-      <tr>
-        <td>${item.materialId}</td>
-        <td>${item.materialName}</td>
-        <td>${item.requiredQty}</td>
-        <td>${item.stockQty}</td>
-        <td>${stockStatus}</td>
-      </tr>
-    `);
-  });
-
-  // 모달 열기
-  $('#outboundDetailModal').modal('show');
-}
-
-function loadOutboundDetail(outboundId) {
-	  $.ajax({
-	    url: '/material/outbound/detail',
-	    method: 'GET',
-	    data: { outboundId: outboundId },
-	    success: function(response) {
-	      console.log("Ajax 응답 데이터:", response);	
-	      openOutboundModal(response); // ✅ 기존에 정의한 함수
-	    },
-	    error: function() {
-	      alert('상세 정보를 불러오는 데 실패했습니다.');
-	    }
-	  });
-	}
-</script>
-
-<script>
-// 날짜를 yyyy-MM-dd 형식으로 변환하는 함수
-function formatDate(timestamp) {
-  if (!timestamp) return '--';
-
-  const date = new Date(timestamp);
-  if (isNaN(date.getTime())) return '--'; 
-
-  const yyyy = date.getFullYear();
-  const mm = ('0' + (date.getMonth() + 1)).slice(-2);
-  const dd = ('0' + date.getDate()).slice(-2);
-  return `${yyyy}-${mm}-${dd}`;
-}
-</script>
+<script src="${pageContext.request.contextPath}/resources/js/materialOutbound.js"></script>

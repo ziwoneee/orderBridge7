@@ -20,5 +20,7 @@ public class MaterialOutboundSummaryDTO {
     private int requiredQty;
     private int stockQty;
     private String stockStatus;
+    
+    private int rowNum;
 
 }

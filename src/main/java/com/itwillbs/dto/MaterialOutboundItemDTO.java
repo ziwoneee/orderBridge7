@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 public class MaterialOutboundItemDTO {
 	
-	private String materialCode;
+	private String materialId;
     private String materialName;
     private int requiredQty;
     private int stockQty;

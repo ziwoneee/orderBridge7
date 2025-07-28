@@ -1,12 +1,15 @@
 package com.itwillbs.persistence;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
 import org.apache.ibatis.session.SqlSession;
 import org.springframework.stereotype.Repository;
 
+import com.itwillbs.domain.MaterialOutboundItemVO;
 import com.itwillbs.domain.MaterialOutboundVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.MaterialOutboundDetailDTO;
@@ -50,10 +53,37 @@ public class MaterialOutboundDAOImpl implements MaterialOutboundDAO {
         return sqlSession.selectList(NAMESPACE + "getOutboundItemList", outboundId);
     }
 
-	
-	
-	
-	
+    // 출고 자재 목록 조회
+    @Override
+    public List<MaterialOutboundItemVO> getOutboundItems(String outboundId) throws Exception {
+        return sqlSession.selectList(NAMESPACE + "getOutboundItemListRaw", outboundId);
+    }
+
+    // 출고 완료 처리 (출고일자 + 상태 변경)
+    @Override
+    public void updateOutboundAsCompleted(String outboundId) throws Exception {
+        sqlSession.update(NAMESPACE + "updateOutboundAsCompleted", outboundId);
+    }
+
+    // 자재 재고 차감
+    @Override
+    public void decreaseMaterialStock(String materialId, int qty) throws Exception {
+        Map<String, Object> paramMap = new HashMap<>();
+        paramMap.put("materialId", materialId);
+        paramMap.put("qty", qty);
+
+        sqlSession.update(NAMESPACE + "decreaseMaterialStock", paramMap);
+    }
+    @Override
+    public void updateOutboundItemStock(String outboundId, String materialId, int qty) throws Exception {
+        Map<String, Object> paramMap = new HashMap<>();
+        paramMap.put("outboundId", outboundId);
+        paramMap.put("materialId", materialId);
+        paramMap.put("qty", qty);
+
+        sqlSession.update(NAMESPACE + "updateOutboundItemStock", paramMap);
+    }
+
 	
 	
 	
