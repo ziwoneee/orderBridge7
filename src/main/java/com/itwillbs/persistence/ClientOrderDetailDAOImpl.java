@@ -24,6 +24,13 @@ public class ClientOrderDetailDAOImpl implements ClientOrderDetailDAO {
     public List<ClientOrderDetailVO> getDetailListByOrderId(String clOrderId) {
         return sqlSession.selectList(NAMESPACE + ".getDetailListByOrderId", clOrderId);
     }
+    
+
+    // ✅ 수주 상세 전체 삭제 (by 수주ID)
+    @Override
+    public void deleteDetailsByOrderId(String clOrderId) {
+        sqlSession.delete(NAMESPACE + ".deleteDetailsByOrderId", clOrderId);
+    }
 }
 
 

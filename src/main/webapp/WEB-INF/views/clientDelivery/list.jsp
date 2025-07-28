@@ -1,91 +1,347 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+
+<% java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+   String today = sdf.format(new java.util.Date()); %>
+
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
 <div class="container-scroller">
-  <%@ include file="/WEB-INF/views/main/top.jsp" %>
+  <%@ include file="/WEB-INF/views/main/top.jsp" %>      
   <div class="container-fluid page-body-wrapper">
     <%@ include file="/WEB-INF/views/main/sidebar.jsp" %>
-
+    
+    <!-- 본문 시작 -->
     <div class="main-panel">
       <div class="content-wrapper">
-        <div class="row mb-4">
-          <div class="col-12">
-            <h3 class="font-weight-bold">출하 대기 목록</h3>
-            <h6 class="font-weight-normal text-muted">수주 확정 건 중 출하 가능한 항목을 선택하여 출하처리할 수 있습니다.</h6>
-            
+        <div class="row">
+       
+          <!-- 페이지 헤더 -->
+          <div class="col-md-12 grid-margin">
+            <div class="row">
+              <div class="col-12 col-xl-8 mb-4 mb-xl-0">
+                <h3 class="font-weight-bold">출하 관리</h3>
+                <h6 class="font-weight-normal text-muted">출하 대기 및 완료 내역을 관리할 수 있습니다.</h6>
+              </div>
+            </div>
           </div>
+          
+          <!-- 검색 영역 (완료 탭에서만 표시) -->
+          <div class="col-12 mb-3" id="searchArea" style="display: ${param.tab == 'completed' || empty param.tab ? 'none' : 'block'};">
+            <form method="get" action="/shipment/list" class="forms-sample">
+              <div class="row align-items-end">
+                <div class="col-md-2 form-group">
+                  <label class="form-label text-muted small">출하일</label>
+                  <input type="date" class="form-control" id="startDate" name="startDate" value="${cri.startDate}" max="<%= today %>">
+                </div>
+                <div class="col-md-auto form-group text-center px-2">
+                  <label class="form-label text-muted small">&nbsp;</label>
+                  <div class="mt-2">~</div>
+                </div>
+                <div class="col-md-2 form-group">
+                  <label class="form-label text-muted small">&nbsp;</label>
+                  <input type="date" class="form-control" id="endDate" name="endDate" value="${cri.endDate}" max="<%= today %>">
+                </div>
+                <div class="col-md-2 form-group">
+                  <label class="form-label text-muted small">정렬</label>
+                  <select name="sortColumn" class="form-control">
+                    <option value="delivery_id" ${cri.sortColumn eq 'delivery_id' ? 'selected' : ''}>출하ID</option>
+                    <option value="cl_order_id" ${cri.sortColumn eq 'cl_order_id' ? 'selected' : ''}>수주번호</option>
+                    <option value="client_name" ${cri.sortColumn eq 'client_name' ? 'selected' : ''}>거래처명</option>
+                    <option value="product_name" ${cri.sortColumn eq 'product_name' ? 'selected' : ''}>제품명</option>
+                    <option value="delivery_date" ${cri.sortColumn eq 'delivery_date' ? 'selected' : ''}>출하일자</option>
+                  </select>
+                </div>
+                <div class="col-md-3 form-group">
+                  <input type="text" class="form-control" id="keyword" name="keyword" 
+                         placeholder="수주번호, 거래처명, 제품명 검색" value="${cri.keyword}">
+                </div>
+                <div class="col-md-3 form-group">
+                  <button type="submit" class="btn btn-primary me-2" style="background-color: #1C355E; border-color: #1C355E;">
+                    <i class="ti-search"></i> 검색
+                  </button>
+                  <a href="/shipment/list?tab=completed" class="btn btn-light">
+                    <i class="ti-reload"></i> 초기화
+                  </a>
+                </div>
+              </div>
+              <!-- 숨겨진 파라미터 -->
+              <input type="hidden" name="tab" value="completed">
+              <input type="hidden" name="sortOrder" value="${cri.sortOrder}">
+              <input type="hidden" name="page" value="1">
+              <input type="hidden" name="perPageNum" value="${cri.perPageNum}">
+            </form>
+          </div>
+          
+          <!-- 출하 관리 탭 -->
+          <div class="col-12">
+            <!-- 탭 네비게이션 -->
+            <div class="d-flex justify-content-between align-items-center mb-0">
+              <ul class="nav nav-underline-custom" id="shipmentTab" role="tablist">
+                <li class="nav-item">
+                  <a class="nav-link ${empty param.tab || param.tab == 'pending' ? 'active' : ''}" 
+                     href="/shipment/list?tab=pending">
+                    출하 대기 <span class="badge badge-light ms-1">${pendingCount}</span>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link ${param.tab == 'completed' ? 'active' : ''}" 
+                     href="/shipment/list?tab=completed">
+                    출하 완료 <span class="badge badge-light ms-1">${completedCount}</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+                
+            <!-- 출하 대기 탭 내용 -->
+            <div class="tab-content" id="pendingContent" style="display: ${empty param.tab || param.tab == 'pending' ? 'block' : 'none'};">
+              <form action="${pageContext.request.contextPath}/shipment/process" method="post">
+                <div class="table-responsive">
+                  <table class="table table-hover">
+                    <thead style="background-color: #1C355E; color: white; border-top: none;">
+                      <tr>
+                        <th><input type="checkbox" id="checkAll" onclick="toggleAll(this)" class="highlight-checkbox" /> 선택</th>
+                        <th>수주번호</th>
+                        <th>거래처명</th>
+                        <th>제품명</th>
+                        <th>수주 수량</th>
+                        <th>현재 재고</th>
+                        <th>출하 가능 여부</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <c:forEach var="group" items="${groupedList}">
+                        <c:set var="shippable" value="true"/>
+                        <c:forEach var="item" items="${group.productList}">
+                          <c:if test="${item.stockQty lt item.orderQty}">
+                            <c:set var="shippable" value="false"/>
+                          </c:if>
+                        </c:forEach>
+
+                        <c:set var="firstRow" value="true"/>
+                        <c:forEach var="item" items="${group.productList}">
+                          <tr>
+                            <td class="text-center">
+                              <c:choose>
+                                <c:when test="${firstRow}">
+                                  <div class="d-flex justify-content-center align-items-center">
+                                    <input type="checkbox"
+                                           name="clOrderIds"
+                                           value="${group.clOrderId}"
+                                           class="highlight-checkbox"
+                                           <c:if test="${not shippable}">disabled</c:if> />
+
+                                    <c:if test="${shippable}">
+                                      <span class="badge border border-success text-success ml-2 d-flex align-items-center" style="gap: 5px;">
+                                        <i class="fas fa-shipping-fast"></i> 출하
+                                      </span>
+                                    </c:if>
+                                  </div>
+                                  <c:set var="firstRow" value="false"/>
+                                </c:when>
+                                <c:otherwise>
+                                  &nbsp;
+                                </c:otherwise>
+                              </c:choose>
+                            </td>
+                            <td class="font-weight-medium">${group.clOrderId}</td>
+                            <td>${group.clientName}</td>
+                            <td>${item.productName}</td>
+                            <td class="text-end">
+                              <fmt:formatNumber value="${item.orderQty}" pattern="#,###"/>
+                            </td>
+                            <td class="text-end">
+                              <fmt:formatNumber value="${item.stockQty}" pattern="#,###"/>
+                            </td>
+                            <td>
+                              <c:choose>
+                                <c:when test="${item.stockQty ge item.orderQty}">
+                                  <span class="badge badge-success">가능</span>
+                                </c:when>
+                                <c:otherwise>
+                                  <span class="badge badge-danger">부족</span>
+                                </c:otherwise>
+                              </c:choose>
+                            </td>
+                          </tr>
+                        </c:forEach>
+                      </c:forEach>
+                      <!-- 데이터가 없을 때 -->
+                      <c:if test="${empty groupedList}">
+                        <tr>
+                          <td colspan="7" class="text-center py-4">
+                            <div class="text-muted">
+                              <i class="ti-info-alt" style="font-size: 24px;"></i>
+                              <p class="mt-2">출하 대기 중인 항목이 없습니다.</p>
+                            </div>
+                          </td>
+                        </tr>
+                      </c:if>
+                    </tbody>
+                  </table>
+                </div>
+
+                <c:if test="${not empty message}">
+                  <div class="alert alert-success mt-2">${message}</div>
+                </c:if>
+
+                <div class="mt-3">
+                  <button type="submit" class="btn btn-primary" style="background-color: #1C355E; border-color: #1C355E;">
+                    <i class="fas fa-shipping-fast"></i> 출하처리
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- 출하 완료 탭 내용 -->
+            <div class="tab-content" id="completedContent" style="display: ${param.tab == 'completed' ? 'block' : 'none'};">
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead style="background-color: #1C355E; color: white; border-top: none;">
+                    <tr>
+                      <th>
+                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=delivery_id&sortOrder=${cri.sortColumn == 'delivery_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+                           class="text-white text-decoration-none">
+                          출하ID
+                          <c:if test="${cri.sortColumn == 'delivery_id'}">
+                            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+                          </c:if>
+                        </a>
+                      </th>
+                      <th>
+                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=cl_order_id&sortOrder=${cri.sortColumn == 'cl_order_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+                           class="text-white text-decoration-none">
+                          수주번호
+                          <c:if test="${cri.sortColumn == 'cl_order_id'}">
+                            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+                          </c:if>
+                        </a>
+                      </th>
+                      <th>
+                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=client_name&sortOrder=${cri.sortColumn == 'client_name' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+                           class="text-white text-decoration-none">
+                          거래처명
+                          <c:if test="${cri.sortColumn == 'client_name'}">
+                            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+                          </c:if>
+                        </a>
+                      </th>
+                      <th>
+                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=product_name&sortOrder=${cri.sortColumn == 'product_name' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+                           class="text-white text-decoration-none">
+                          제품명
+                          <c:if test="${cri.sortColumn == 'product_name'}">
+                            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+                          </c:if>
+                        </a>
+                      </th>
+                      <th>LOT번호</th>
+                      <th>출하 수량</th>
+                      <th>
+                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=delivery_date&sortOrder=${cri.sortColumn == 'delivery_date' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+                           class="text-white text-decoration-none">
+                          출하일자
+                          <c:if test="${cri.sortColumn == 'delivery_date'}">
+                            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+                          </c:if>
+                        </a>
+                      </th>
+                      <th>송장번호</th>
+                      <th>상태</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <c:forEach var="item" items="${completedList}">
+                      <tr>
+                        <td class="font-weight-medium">${item.deliveryId}</td>
+                        <td>${item.clOrderId}</td>
+                        <td>${item.clientName}</td>
+                        <td>${item.productName}</td>
+                        <td>${item.lotNo}</td>
+                        <td class="text-end">
+                          <fmt:formatNumber value="${item.deliveryQty}" pattern="#,###"/>
+                        </td>
+                        <td>
+                          <fmt:formatDate value="${item.deliveryDate}" pattern="yyyy-MM-dd"/>
+                        </td>
+                        <td>${item.trackingNumber}</td>
+                        <td>
+                          <span class="badge badge-success">${item.deliveryStatus}</span>
+                        </td>
+                      </tr>
+                    </c:forEach>
+                    <!-- 데이터가 없을 때 -->
+                    <c:if test="${empty completedList}">
+                      <tr>
+                        <td colspan="9" class="text-center py-4">
+                          <div class="text-muted">
+                            <i class="ti-info-alt" style="font-size: 24px;"></i>
+                            <p class="mt-2">출하 완료된 항목이 없습니다.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    </c:if>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- 페이징 처리 (완료 탭에서만) -->
+              <c:if test="${param.tab == 'completed'}">
+                <div class="d-flex justify-content-center mt-4">
+                  <nav>
+                    <ul class="pagination justify-content-center mt-4">
+                      
+                      <c:if test="${pageMaker.cri.page > 1}">
+                        <li class="page-item">
+                          <a class="page-link" 
+                             href="/shipment/list?tab=completed&page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}"
+                             style="color: #1C355E;">
+                            &laquo;
+                          </a>
+                        </li>
+                      </c:if>
+                      
+                      <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+                        <li class="page-item ${p == cri.page ? 'active' : ''}">
+                          <a class="page-link" 
+                             href="/shipment/list?tab=completed&page=${p}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}"
+                             style="${p == cri.page ? 'background-color: #1C355E; border-color: #1C355E; color: white;' : 'color: #1C355E;'}">
+                            ${p}
+                          </a>
+                        </li>
+                      </c:forEach>
+                      
+                      <c:if test="${pageMaker.cri.page < pageMaker.endPage}">
+                        <li class="page-item">
+                          <a class="page-link" 
+                             href="/shipment/list?tab=completed&page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}"
+                             style="color: #1C355E;">
+                            &raquo;
+                          </a>
+                        </li>
+                      </c:if>
+                      
+                    </ul>
+                  </nav>
+                </div>
+              </c:if>
+            </div>
+          </div>
+       
         </div>
-
-        <form action="${pageContext.request.contextPath}/shipment/process" method="post">
-          <table class="table table-bordered">
-            <thead>
-              <tr>
-                <th><input type="checkbox" id="checkAll" onclick="toggleAll(this)" /> 선택</th>
-                <th>수주번호</th>
-                <th>거래처명</th>
-                <th>제품명</th>
-                <th>수주 수량</th>
-                <th>현재 재고</th>
-                <th>출하 가능 여부</th>
-              </tr>
-            </thead>
-            <tbody>
-              <c:forEach var="group" items="${groupedList}">
-                <%-- 출하 가능 여부 판단 --%>
-                <c:set var="shippable" value="true"/>
-                <c:forEach var="item" items="${group.productList}">
-                  <c:if test="${item.stockQty lt item.orderQty}">
-                    <c:set var="shippable" value="false"/>
-                  </c:if>
-                </c:forEach>
-
-                <c:set var="firstRow" value="true"/>
-                <c:forEach var="item" items="${group.productList}">
-                  <tr>
-                    <td>
-                      <c:choose>
-                        <c:when test="${firstRow}">
-                          <input type="checkbox" name="clOrderIds" value="${group.clOrderId}" 
-                            <c:if test="${not shippable}">disabled</c:if> />
-                          <c:set var="firstRow" value="false"/>
-                        </c:when>
-                        <c:otherwise>
-                          &nbsp;
-                        </c:otherwise>
-                      </c:choose>
-                    </td>
-                    <td>${group.clOrderId}</td>
-                    <td>${group.clientName}</td>
-                    <td>${item.productName}</td>
-                    <td class="text-right">${item.orderQty}</td>
-                    <td class="text-right">${item.stockQty}</td>
-                    <td>
-                      <c:choose>
-                        <c:when test="${item.stockQty ge item.orderQty}">
-                          <span class="badge badge-success">출하 가능</span>
-                        </c:when>
-                        <c:otherwise>
-                          <span class="badge badge-danger">재고 부족</span>
-                        </c:otherwise>
-                      </c:choose>
-                    </td>
-                  </tr>
-                </c:forEach>
-              </c:forEach>
-            </tbody>
-          </table>
-          <c:if test="${not empty message}">
-              <div class="alert alert-success mt-2">${message}</div>
-            </c:if>
-
-          <button type="submit" class="btn btn-primary">출하처리</button>
-        </form>
+        
       </div>
+      <!-- content-wrapper 끝 -->
+      <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
     </div>
-  </div>
+    <!-- 본문.jsp main-panel ends -->
+  </div>   
+  <!-- container-fluid page-body-wrapper 끝 -->
 </div>
+<!-- container-scroller 끝-->
 
 <script>
   function toggleAll(source) {
@@ -94,6 +350,95 @@
       if (!cb.disabled) cb.checked = source.checked;
     });
   }
+
+  // 탭 변경 시 검색 영역 표시/숨김
+  document.addEventListener('DOMContentLoaded', function() {
+    const currentTab = new URLSearchParams(window.location.search).get('tab') || 'pending';
+    const searchArea = document.getElementById('searchArea');
+    
+    if (currentTab === 'completed') {
+      searchArea.style.display = 'block';
+    } else {
+      searchArea.style.display = 'none';
+    }
+  });
 </script>
 
-<%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
+<style>
+/* 언더라인 탭 스타일 - 상단 라인 */
+.nav-underline-custom {
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 0;
+}
+
+.nav-underline-custom .nav-link {
+    border: none;
+    border-top: 3px solid transparent;
+    color: #6c757d;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    background: none;
+}
+
+.nav-underline-custom .nav-link.active {
+    color: #1C355E;
+    border-top-color: #1C355E;
+    background: none;
+    font-weight: 700;
+}
+
+.nav-underline-custom .nav-link:hover {
+    color: #1C355E;
+    border-top-color: rgba(28, 53, 94, 0.5);
+    background: none;
+}
+
+/* 배지 스타일 */
+.nav-link .badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* 체크박스 스타일 */
+.highlight-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: #28a745;
+    cursor: pointer;
+}
+
+.highlight-checkbox:hover {
+    box-shadow: 0 0 5px #28a745;
+    transform: scale(1.1);
+    transition: all 0.2s ease;
+}
+
+/* 테이블 호버 효과 */
+.table-hover tbody tr:hover {
+    background-color: rgba(28, 53, 94, 0.05);
+}
+
+/* 정렬 링크 스타일 */
+.table thead th a:hover {
+    color: #f8f9fa !important;
+    text-decoration: underline !important;
+}
+
+/* 페이지네이션 호버 효과 */
+.page-link:hover {
+    background-color: rgba(28, 53, 94, 0.1);
+    border-color: #1C355E;
+    color: #1C355E;
+}
+
+/* 버튼 호버 효과 */
+.btn-primary:hover {
+    background-color: #152a4a !important;
+    border-color: #152a4a !important;
+}
+
+/* 탭 콘텐츠 부드러운 전환 */
+.tab-content {
+    margin-top: 20px;
+}
+</style>

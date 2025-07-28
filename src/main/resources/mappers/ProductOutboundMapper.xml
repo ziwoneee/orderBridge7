@@ -5,28 +5,45 @@
 
 <mapper namespace="com.itwillbs.mapper.ProductOutboundMapper">
 
+<!-- ✅ 오늘 날짜 기준 출고 ID의 최대 일련번호 조회 -->
+<select id="getMaxOutboundSeqToday" parameterType="String" resultType="Integer">
+  SELECT MAX(CAST(SUBSTRING(outbound_id, -3) AS UNSIGNED))
+  FROM product_outbound
+  WHERE outbound_id LIKE CONCAT('OUT-FG-', #{today}, '%')
+</select>
+
   <!-- 1. 출고 등록 -->
   <insert id="insertOutbound" parameterType="com.itwillbs.domain.ProductOutboundVO">
-    INSERT INTO product_outbound (
-      product_id,
-      lot_no,
-      outbound_qty,
-      outbound_date
-    )
-    VALUES (
-      #{productId},
-      #{lotNo},
-      #{outboundQty},
-      #{outboundDate}
-    )
-  </insert>
+  INSERT INTO product_outbound (
+    outbound_id,
+    product_id,
+    lot_no,
+    outbound_qty,
+    outbound_date,
+     tracking_number,
+     client_id,
+     manager
+  )
+  VALUES (
+    #{outboundId},
+    #{productId},
+    #{lotNo},
+    #{outboundQty},
+    #{outboundDate},
+    #{trackingNumber},
+    #{clientId},
+    #{manager}
+    
+  )
+</insert>
+
   
   <!-- 출고내역 -->
   <select id="searchOutboundList" parameterType="SearchCriteria" resultType="com.itwillbs.domain.ProductOutboundVO">
   SELECT 
     o.*, 
     p.product_name AS product_name, 
-    c.client_name AS client_name 
+    c.client_name AS client_name     
   FROM product_outbound o
   LEFT JOIN product p ON o.product_id = p.product_id
   LEFT JOIN client c ON o.client_id = c.client_id

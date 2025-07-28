@@ -21,7 +21,7 @@
             <!-- 제목 -->
 			<div class="col-12 mb-4">
 			  <h3 class="font-weight-bold">수주상세 정보</h3>
-              <h6 class="font-weight-normal mb-0">수주상세 정보 화면입니다. <span class="text-primary">강조쓰</span></h6>
+              <h6 class="font-weight-normal mb-0">수주상세 정보 화면입니다.</h6>
 			</div>
           
           <div class="col-md-12 grid-margin">
@@ -71,7 +71,14 @@
           <input type="hidden" name="clOrderId" value="${order.clOrderId}" />
           <button type="submit" class="btn btn-sm btn-warning ml-2">입금확인</button>
         </form>
-        </c:when>
+        <!-- ✅ 삭제 버튼  -->
+      <form action="${pageContext.request.contextPath}/clientorder/delete" method="post" style="display:inline;" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+        <input type="hidden" name="clOrderId" value="${order.clOrderId}" />
+        <button type="submit" class="btn btn-sm btn-danger ml-2">삭 제</button>
+      </form>
+       </c:when>
+        
+        
         <c:when test="${order.clOrderStatus == 'CONFIRMED'}">
          <span class="badge badge-danger" >확 정</span>
            </c:when>
@@ -79,7 +86,7 @@
           <span class="badge badge-warning">출 하</span>
           </c:when>
          <c:when test="${order.clOrderStatus == 'CANCELLED'}">
-          <span style="color: #6c757d;">취 소</span>
+           <span class="badge badge-secondary">취 소</span>
            </c:when>
         <c:otherwise>
           <span style="color: #6c757d;">알 수 없음</span>
@@ -123,8 +130,18 @@
                         <fmt:formatNumber value="${detail.orderQty * detail.unitPrice}" pattern="#,##0"/>
                     </td>
                     <td class="text-center">${detail.detailMemo}</td>
-                </tr>
+                </tr>      
+                
             </c:forEach>
+            <tr>
+  <td colspan="4" class="text-center font-weight-bold">총 합계</td> 
+  <td class="font-weight-bold text-danger text-center">
+    <fmt:formatNumber value="${totalPrice}" type="number"/>
+  </td>
+  <td></td>
+</tr>
+
+            
         </tbody>
     </table>
    </div>

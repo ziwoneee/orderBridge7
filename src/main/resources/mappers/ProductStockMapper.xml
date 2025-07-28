@@ -5,29 +5,31 @@
 
 <mapper namespace="com.itwillbs.mapper.ProductStockMapper">
 
-
-<!-- 1. 실시간 재고 목록 조회 -->
-<select id="getStockList"
+  <!-- ✅ 1. 실시간 재고 목록 조회 -->
+ <select id="getStockList"
         resultType="com.itwillbs.domain.ProductStockVO"
         parameterType="com.itwillbs.domain.SearchCriteria">
-<choose>
-  <!-- ✅ 전체내역보기 모드 -->
-  <when test="mode == 'all'">
-    SELECT
-      pi.product_id,
-      p.product_name,
-      p.unit,
-      pi.lot_no,
-      GREATEST(SUM(COALESCE(pi.inbound_qty, 0)) - SUM(COALESCE(po.outbound_qty, 0)), 0) AS stock_qty,
-      50 AS safe_qty,
-      MIN(pi.reg_date) AS reg_date,
-      MAX(pi.expire_date) AS expire_date
-    FROM product_inbound pi
-    JOIN product p ON pi.product_id = p.product_id
-    LEFT JOIN product_outbound po ON pi.product_id = po.product_id AND pi.lot_no = po.lot_no
-     <where>
+  SELECT
+    pi.product_id,
+    p.product_name,
+    p.unit,
+    pi.lot_no,
+    GREATEST(
+      pi.inbound_qty - IFNULL((
+        SELECT SUM(po.outbound_qty)
+        FROM product_outbound po
+        WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no
+      ), 0), 0
+    ) AS stock_qty,
+    50 AS safe_qty,
+    pi.reg_date,
+    pi.expire_date
+  FROM product_inbound pi
+  JOIN product p ON pi.product_id = p.product_id
+  <where>
     <if test="keyword != null and keyword != ''">
-      (p.product_name LIKE CONCAT('%', #{keyword}, '%') OR pi.lot_no LIKE CONCAT('%', #{keyword}, '%'))
+      (p.product_name LIKE CONCAT('%', #{keyword}, '%')
+       OR pi.lot_no LIKE CONCAT('%', #{keyword}, '%'))
     </if>
     <if test="startDate != null and startDate != ''">
       AND pi.reg_date <![CDATA[ >= ]]> #{startDate}
@@ -36,189 +38,37 @@
       AND pi.reg_date <![CDATA[ <= ]]> #{endDate}
     </if>
   </where>
-
-    GROUP BY pi.product_id, p.product_name, p.unit, pi.lot_no
-    ORDER BY reg_date DESC
-  </when>
-
-  <!-- ✅ 기본 모드: 현재고 있으면 전체, 없으면 1건만 -->
-  <otherwise>
-SELECT
-  t.product_id,
-  t.product_name,
-  t.unit,
-  t.lot_no,
-  t.stock_qty,
-  50 AS safe_qty,
-  t.reg_date,
-  t.expire_date
-FROM (
-  -- 현재고 있는 LOT 전부
-  SELECT
-    pi.product_id,
-    p.product_name,
-    p.unit,
-    pi.lot_no,
-    GREATEST(SUM(COALESCE(pi.inbound_qty, 0)) - SUM(COALESCE(po.outbound_qty, 0)), 0) AS stock_qty,
-    MIN(pi.reg_date) AS reg_date,
-    MAX(pi.expire_date) AS expire_date
-  FROM product_inbound pi
-  JOIN product p ON pi.product_id = p.product_id
-  LEFT JOIN product_outbound po ON pi.product_id = po.product_id AND pi.lot_no = po.lot_no
-  <where>
-  <!-- ✅ keyword가 없을 때만 고정 제품명 필터 적용 -->
-  <if test="keyword == null or keyword == ''">
-    p.product_name IN ('돼지국밥', '순대국밥', '한우곰탕')
-  </if>
-
-  <!-- ✅ keyword가 있을 경우 검색 필터로 대체 -->
-  <if test="keyword != null and keyword != ''">
-    (p.product_name LIKE CONCAT('%', #{keyword}, '%') OR pi.lot_no LIKE CONCAT('%', #{keyword}, '%'))
-  </if>
-
-  <!-- 날짜 조건 -->
-  <if test="startDate != null and startDate != ''">
-    AND pi.reg_date <![CDATA[ >= ]]> #{startDate}
-  </if>
-  <if test="endDate != null and endDate != ''">
-    AND pi.reg_date <![CDATA[ <= ]]> #{endDate}
-  </if>
-</where>
-
-  GROUP BY pi.product_id, p.product_name, p.unit, pi.lot_no
-  HAVING stock_qty > 0
-
-  UNION ALL
-
-  -- 현재고가 전부 0인 제품의 가장 최근 1건만
-  SELECT
-    sub.product_id,
-    sub.product_name,
-    sub.unit,
-    sub.lot_no,
-    0 AS stock_qty,
-    sub.reg_date,
-    sub.expire_date
-  FROM (
-    SELECT
-      pi2.product_id,
-      p2.product_name,
-      p2.unit,
-      pi2.lot_no,
-      MIN(pi2.reg_date) AS reg_date,
-      MAX(pi2.expire_date) AS expire_date,
-      ROW_NUMBER() OVER (PARTITION BY pi2.product_id ORDER BY MIN(pi2.reg_date) DESC) AS rn,
-      GREATEST(SUM(COALESCE(pi2.inbound_qty, 0)) - SUM(COALESCE(po2.outbound_qty, 0)), 0) AS stock_qty
-    FROM product_inbound pi2
-    JOIN product p2 ON pi2.product_id = p2.product_id
-    LEFT JOIN product_outbound po2 ON pi2.product_id = po2.product_id AND pi2.lot_no = po2.lot_no
-    <where>
-  <!-- ✅ keyword가 없을 때만 고정 제품명 필터 적용 -->
-  <if test="keyword == null or keyword == ''">
-    p2.product_name IN ('돼지국밥', '순대국밥', '한우곰탕')
-  </if>
-
-  <!-- ✅ keyword가 있을 경우 검색 필터로 대체 -->
-  <if test="keyword != null and keyword != ''">
-    (p2.product_name LIKE CONCAT('%', #{keyword}, '%') OR pi2.lot_no LIKE CONCAT('%', #{keyword}, '%'))
-  </if>
-
-  <!-- 날짜 조건 -->
-  <if test="startDate != null and startDate != ''">
-    AND pi2.reg_date <![CDATA[ >= ]]> #{startDate}
-  </if>
-  <if test="endDate != null and endDate != ''">
-    AND pi2.reg_date <![CDATA[ <= ]]> #{endDate}
-  </if>
-</where>
-
-    GROUP BY pi2.product_id, p2.product_name, p2.unit, pi2.lot_no
-    HAVING stock_qty = 0
-  ) sub
-  WHERE sub.rn = 1
-    AND NOT EXISTS (
-      SELECT 1
-      FROM product_inbound pi3
-      LEFT JOIN product_outbound po3 ON pi3.product_id = po3.product_id AND pi3.lot_no = po3.lot_no
-      WHERE pi3.product_id = sub.product_id
-      GROUP BY pi3.product_id, pi3.lot_no
-      HAVING GREATEST(SUM(COALESCE(pi3.inbound_qty, 0)) - SUM(COALESCE(po3.outbound_qty, 0)), 0) > 0
-    )
-
-) t
-
-ORDER BY
-  CASE WHEN t.stock_qty > 0 THEN 0 ELSE 1 END,
-  t.reg_date DESC
-
-
-  </otherwise>
-</choose>
+  ORDER BY pi.reg_date DESC
 </select>
 
 
-
-
-<!-- 2. 총 개수 조회 (페이징용) -->
-<select id="getStockCount"
-        resultType="int"
-        parameterType="com.itwillbs.domain.SearchCriteria">
-  SELECT COUNT(*) FROM (
-    -- 현재고가 있는 제품 LOT 목록
-    SELECT 1
-    FROM product_inbound pi
-    JOIN product p ON pi.product_id = p.product_id
-    LEFT JOIN product_outbound po ON pi.product_id = po.product_id AND pi.lot_no = po.lot_no
-    <where>
-      p.product_name IN ('돼지국밥', '순대국밥', '한우곰탕')
-      <if test="keyword != null and keyword != ''">
-        AND (p.product_name LIKE CONCAT('%', #{keyword}, '%') OR pi.lot_no LIKE CONCAT('%', #{keyword}, '%'))
-      </if>
-      <if test="startDate != null and startDate != ''">
-        AND pi.reg_date &gt;= #{startDate}
-      </if>
-      <if test="endDate != null and endDate != ''">
-        AND pi.reg_date &lt;= #{endDate}
-      </if>
-    </where>
-    GROUP BY pi.product_id, pi.lot_no
-    HAVING GREATEST(SUM(COALESCE(pi.inbound_qty, 0)) - SUM(COALESCE(po.outbound_qty, 0)), 0) > 0
-
-    UNION ALL
-
-    -- 현재고가 0이고, 다른 재고가 없는 제품의 최신 1건
-    SELECT 1
+  <!-- ✅ 2. 총 개수 조회 (페이징용) -->
+  <select id="getStockCount"
+          resultType="int"
+          parameterType="com.itwillbs.domain.SearchCriteria">
+    SELECT COUNT(*)
     FROM (
-      SELECT
-        pi.product_id,
-        p.product_name,
-        pi.lot_no,
-        pi.reg_date,
-        GREATEST(SUM(COALESCE(pi.inbound_qty, 0)) - SUM(COALESCE(po.outbound_qty, 0)), 0) AS stock_qty,
-        ROW_NUMBER() OVER (PARTITION BY p.product_name ORDER BY pi.reg_date DESC) AS rn
+      SELECT 1
       FROM product_inbound pi
       JOIN product p ON pi.product_id = p.product_id
       LEFT JOIN product_outbound po ON pi.product_id = po.product_id AND pi.lot_no = po.lot_no
-      WHERE p.product_name IN ('돼지국밥', '순대국밥', '한우곰탕')
-      GROUP BY pi.product_id, p.product_name, pi.lot_no, pi.reg_date
-    ) sub
-    WHERE sub.stock_qty = 0
-      AND sub.rn = 1
-      AND NOT EXISTS (
-        SELECT 1
-        FROM product_inbound pi2
-        JOIN product p2 ON pi2.product_id = p2.product_id
-        LEFT JOIN product_outbound po2 ON pi2.product_id = po2.product_id AND pi2.lot_no = po2.lot_no
-        WHERE p2.product_name = sub.product_name
-        GROUP BY pi2.product_id, pi2.lot_no
-        HAVING GREATEST(SUM(COALESCE(pi2.inbound_qty,0)) - SUM(COALESCE(po2.outbound_qty,0)), 0) > 0
-      )
-  ) AS total
-</select>
+      <where>
+        <if test="keyword != null and keyword != ''">
+          (p.product_name LIKE CONCAT('%', #{keyword}, '%')
+           OR pi.lot_no LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="startDate != null and startDate != ''">
+          AND pi.reg_date <![CDATA[ >= ]]> #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+          AND pi.reg_date <![CDATA[ <= ]]> #{endDate}
+        </if>
+      </where>
+      GROUP BY pi.product_id, pi.lot_no
+    ) AS tmp
+  </select>
 
-
-
-  <!-- 입고 시: 있으면 +, 없으면 INSERT -->
+  <!-- ✅ 3. 입고 시: 있으면 +, 없으면 INSERT -->
   <insert id="upsertStockQty">
     INSERT INTO product_stock (product_id, lot_no, stock_qty, safe_qty, reg_date)
     VALUES (#{productId}, #{lotNo}, #{qty}, 50, NOW())
@@ -226,26 +76,25 @@ ORDER BY
       stock_qty = stock_qty + #{qty}
   </insert>
 
-  <!-- 출고 시: 수량 감소, 음수 방지 -->
+  <!-- ✅ 4. 출고 시: 수량 감소 (음수 방지) -->
   <update id="decreaseStockQty">
     UPDATE product_stock
     SET stock_qty = GREATEST(stock_qty - #{qty}, 0)
     WHERE product_id = #{productId} AND lot_no = #{lotNo}
   </update>
 
-  <!-- ✅ 입출고 내역 모달 조회 쿼리 (예: product_stock_transaction 테이블 기준) -->
+  <!-- ✅ 5. 입출고 내역 모달 조회 -->
   <select id="getStockDetail"
-        parameterType="map"
-        resultMap="StockDetailMap">
-  SELECT reg_date, type, qty, memo
-  FROM product_stock_transaction
-  WHERE product_id = #{productId}
-    AND lot_no = #{lotNo}
-  ORDER BY reg_date DESC
-</select>
+          parameterType="map"
+          resultMap="StockDetailMap">
+    SELECT reg_date, type, qty, memo
+    FROM product_stock_transaction
+    WHERE product_id = #{productId}
+      AND lot_no = #{lotNo}
+    ORDER BY reg_date DESC
+  </select>
 
-
-  <!-- ✅ resultMap: 외부 VO 사용 (내부 클래스 X) -->
+  <!-- ✅ 6. resultMap (VO 전용) -->
   <resultMap id="StockDetailMap" type="com.itwillbs.domain.ProductStockTransactionVO">
     <result property="regDate" column="reg_date" />
     <result property="type" column="type" />

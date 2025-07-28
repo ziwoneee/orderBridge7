@@ -29,4 +29,8 @@ public interface ClientOrderService {
     
     //수주 입금확인
     void updateOrderStatus(String orderNum, String status);
+    
+    //수주 삭제하기
+    void deleteOrder(String clOrderId);
+
 }

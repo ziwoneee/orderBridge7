@@ -24,4 +24,12 @@ public interface ClientOrderDAO {
     
     //입금확인
     void updateOrderStatus(String orderNum, String status);
+    
+  
+ // 수주 삭제
+    void deleteOrder(String clOrderId);
+
+
+
+    
 }

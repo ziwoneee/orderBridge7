@@ -10,6 +10,8 @@ public interface ClientOrderDetailDAO {
     // 주문ID로 전체조회  // 수주 상세 보기
     List<ClientOrderDetailVO> getDetailListByOrderId(String clOrderId);
 
-   
+   //주문삭제하기
+    void deleteDetailsByOrderId(String clOrderId);
+
 
 }

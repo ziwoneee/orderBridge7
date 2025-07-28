@@ -10,6 +10,7 @@ public class ShipmentPendingDTO {
     private Long orderDetailId;      // 주문 상세 ID
     private String clOrderId;        // 수주번호
     private String clientName;       // 거래처명
+    private String clientId;
     private String productId;        // 제품 ID
     private String productName;      // 제품명
     private int orderQty;            // 수주 수량
@@ -35,6 +36,9 @@ public class ShipmentPendingDTO {
         return stockQty >= orderQty;
     }
 
+	public String manager; //담당자명
+
+	
 
   
 }

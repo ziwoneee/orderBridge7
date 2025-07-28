@@ -14,6 +14,7 @@ public class ClientDeliveryVO {
     private String deliveryStatus;    // 출하상태 (예: 배송준비, 배송완료 등)
     private int empId;                // 담당자 (출하 처리 담당자)
     private String clientName;        // 거래처명
+    private String clientId;
     private String trackingNumber;    // 운송장번호
     private String memo;              // 비고/메모
     private Date createdAt;           // 생성일시
@@ -23,6 +24,7 @@ public class ClientDeliveryVO {
     
     private String productId;
 
+	
 	
   
 

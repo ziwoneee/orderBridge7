@@ -48,6 +48,11 @@
         <label>전화번호</label>
         <input type="text" class="form-control" id="clientPhone" name="clientPhone">
       </div>
+      
+      <div class="form-group">
+  <label>우편번호</label>
+  <input type="text" id="postCodeView" class="form-control" placeholder="우편번호" readonly>
+</div>
       <div class="form-group">
   <label>주소</label>
   <div class="input-group">
@@ -79,7 +84,7 @@
       </div>
        <div class="form-group">
   <label>요청 사항</label>
-  <textarea class="form-control" id="detailMemo" name="clOrderMemo" rows="3" maxlength="10" placeholder="최대 10자까지 입력 가능" required></textarea>
+  <textarea class="form-control" id="detailMemo" name="clOrderMemo" rows="3" maxlength="10" placeholder="최대 10자까지 입력 가능" ></textarea>
 <small id="memoHelp" class="form-text text-muted text-right d-block">
   <span id="memoCharCount">0</span>/10자 입력
 </small>
@@ -158,7 +163,8 @@ $(document).ready(function () {
                         $('#clientPhone').val(client.clientTel);                       
                         $('#deliveryAddressView').val((client.address || '') + ' ' + (client.addressDetail || ''));
                         $('#deliveryAddress').val((client.address || '') + ' ' + (client.addressDetail || ''));
-                        $('#postCodeHidden').val(client.postCode);
+                        $('#postCodeView').val(client.postCode || '');
+                        $('#postCodeHidden').val(client.postCode || '');
                         $('#clientManager').val(client.managerName);
                      
                         suggestionBox.empty();
@@ -372,7 +378,9 @@ function execDaumPostcode() {
   new daum.Postcode({
     oncomplete: function(data) {
     	    	// 우편번호 설정
+        document.getElementById("postCodeView").value = data.zonecode;
         document.getElementById("postCodeHidden").value = data.zonecode;
+
     	
       // 도로명주소 선택 시
       var fullRoadAddr = data.roadAddress;

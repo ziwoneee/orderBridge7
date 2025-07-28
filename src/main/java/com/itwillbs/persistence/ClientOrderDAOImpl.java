@@ -71,5 +71,14 @@ public class ClientOrderDAOImpl implements ClientOrderDAO {
         paramMap.put("status", status);
         sqlSession.update(NAMESPACE + ".updateOrderStatus", paramMap);
     }
+    
+    //수주 삭제
+    @Override
+    public void deleteOrder(String clOrderId) {
+        sqlSession.update(NAMESPACE + ".deleteOrder", clOrderId);
+    }
+
+
+    
 
 }
