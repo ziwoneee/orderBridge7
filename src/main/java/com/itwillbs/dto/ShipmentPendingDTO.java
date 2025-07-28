@@ -36,6 +36,8 @@ public class ShipmentPendingDTO {
         return stockQty >= orderQty;
     }
 
+	public String manager; //담당자명
+
 	
 
   

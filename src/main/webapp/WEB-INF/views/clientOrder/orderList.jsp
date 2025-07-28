@@ -30,6 +30,7 @@
 			  <h3 class="font-weight-bold">수주 목록</h3>
 			</div>    
 
+
             
                 <!-- 본문내용 시작 -->
                 <!-- ✅ 검색창 -->
@@ -95,33 +96,30 @@
 <div class="d-flex justify-content-between align-items-center mb-2"> 
   
   
-       <!-- 상태 일괄 변경 폼 -->      
-<form id="bulkStatusForm" method="post" action="${pageContext.request.contextPath}/clientorder/updateStatus">
-  <div class="form-row align-items-center">
-    <div class="col-auto">
-      <select id="bulkStatus" name="newStatus" class="form-control">
-        <option value="">상태 선택</option>
-        <option value="REQUESTED">주문접수</option>
-        <option value="CONFIRMED">확정</option>
-        <option value="SHIPPED">출하</option>
-        <option value="CANCELLED">취소</option>
-      </select>
-    </div>
-    <div class="col-auto">
-      <button type="button" class="btn btn-warning" onclick="submitBulkStatus()">수주상태변경</button>
-    </div>
-  </div>
-  <!-- 숨겨진 input 영역 (자바스크립트로 선택된 ID 전달) -->
-  <input type="hidden" name="orderIds" id="bulkOrderIds">
-</form>
-    
+     
   <!-- 목록 다운로드 버튼 -->
   <div class="col-auto">
- <a href="${pageContext.request.contextPath}/clientorder/export" class="btn btn-success">목록 다운로드</a>
-    </div>
-         </div>  
-  </div>
-      
+   
+         <div class="col-12 mb-3">
+            <ul class="nav nav-tabs">
+              <li class="nav-item">
+                <a class="nav-link ${param.status == null ? 'active' : ''}" href="?">전체</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link ${param.status == 'REQUESTED' ? 'active' : ''}" href="?status=REQUESTED">주문접수</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link ${param.status == 'CONFIRMED' ? 'active' : ''}" href="?status=CONFIRMED">확정</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link ${param.status == 'SHIPPED' ? 'active' : ''}" href="?status=SHIPPED">출하</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link ${param.status == 'CANCELLED' ? 'active' : ''}" href="?status=CANCELLED">취소</a>
+              </li>
+            </ul>
+          </div>
+        </div>    </div>
     
   	<div class="table-responsive mt-4">
      <table id="clorderTable" class="table table-bordered text-center">
@@ -172,7 +170,9 @@
         </c:forEach>
         </tbody>
     </table>
-    
+  
+         </div>  
+  </div>
   
     <div class = "text-right mb-3">
       <a href="${pageContext.request.contextPath}/clientorder/register" class="btn btn-primary">+ 신규 수주 등록</a>   

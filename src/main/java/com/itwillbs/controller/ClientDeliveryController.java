@@ -72,5 +72,34 @@ public class ClientDeliveryController {
         return "clientDelivery/completed";
     }
 
+    
+    @GetMapping("/list")
+    public String showShipmentTabs(@ModelAttribute SearchCriteria cri,
+                                   @RequestParam(value = "tab", required = false, defaultValue = "pending") String tab,
+                                   Model model) {
+        // 출하대기 목록
+        List<ShipmentPendingGroupDTO> groupedList = deliveryService.getPendingShipmentGroupedList();
+        model.addAttribute("groupedList", groupedList);
+
+        // 출하완료 검색조건 보정
+        List<String> allowed = Arrays.asList("deliveryId", "clOrderId", "deliveryDate", "productName", "clientName", "lotNo", "trackingNumber");
+        if (cri.getSortColumn() == null || !allowed.contains(cri.getSortColumn())) cri.setSortColumn("deliveryDate");
+        if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) cri.setSortOrder("desc");
+        if (cri.getStartDate() != null && cri.getStartDate().trim().isEmpty()) cri.setStartDate(null);
+        if (cri.getEndDate() != null && cri.getEndDate().trim().isEmpty()) cri.setEndDate(null);
+
+        // 출하완료 목록
+        List<ShipmentCompletedDTO> completedList = deliveryService.searchCompletedShipmentList(cri);
+        int totalCount = deliveryService.countCompletedShipmentList(cri);
+        PageMaker pageMaker = new PageMaker(cri, totalCount);
+
+        model.addAttribute("completedList", completedList);
+        model.addAttribute("pageMaker", pageMaker);
+        model.addAttribute("cri", cri);
+        model.addAttribute("tab", tab); // 현재 탭 정보
+
+        return "clientDelivery/shipment_tabs";
+    }
+
 
 }

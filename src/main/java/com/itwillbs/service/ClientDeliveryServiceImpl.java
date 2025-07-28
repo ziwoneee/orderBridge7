@@ -90,6 +90,7 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
                 outbound.setOutboundQty(useQty);
                 outbound.setOutboundDate(new Date());
                 outbound.setClientId(item.getClientId());
+                outbound.setManager(item.getManager());  
                 outbound.setTrackingNumber(trackingNumber); // ✅ 동일 송장번호 사용
 
                 outboundService.registerOutbound(outbound); // 출고 ID 자동 생성 + 재고 차감

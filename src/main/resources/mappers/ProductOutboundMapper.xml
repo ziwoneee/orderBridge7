@@ -20,7 +20,9 @@
     lot_no,
     outbound_qty,
     outbound_date,
-     tracking_number
+     tracking_number,
+     client_id,
+     manager
   )
   VALUES (
     #{outboundId},
@@ -28,7 +30,10 @@
     #{lotNo},
     #{outboundQty},
     #{outboundDate},
-    #{trackingNumber}
+    #{trackingNumber},
+    #{clientId},
+    #{manager}
+    
   )
 </insert>
 
@@ -38,7 +43,7 @@
   SELECT 
     o.*, 
     p.product_name AS product_name, 
-    c.client_name AS client_name 
+    c.client_name AS client_name     
   FROM product_outbound o
   LEFT JOIN product p ON o.product_id = p.product_id
   LEFT JOIN client c ON o.client_id = c.client_id
