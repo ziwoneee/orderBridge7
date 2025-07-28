@@ -28,4 +28,13 @@ public class ClientOrderDetailServiceImpl implements ClientOrderDetailService {
     public List<ClientOrderDetailVO> getDetailListByOrderId(String clOrderId) {
         return clientOrderDetailDAO.getDetailListByOrderId(clOrderId);
     }
+    
+    // 수주 총액 계산
+    @Override
+    public int calculateTotalPrice(List<ClientOrderDetailVO> detailList) {
+        return detailList.stream()
+                .mapToInt(item -> item.getUnitPrice() * item.getOrderQty())
+                .sum();
+    }
+
 }

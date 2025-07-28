@@ -158,6 +158,15 @@
   WHERE cl_order_id = #{orderNum}
 </update>
 
+
+<!-- 수주삭제 -->
+<update id="deleteOrder" parameterType="string">
+  UPDATE client_order
+  SET cl_order_status = 'CANCELLED'
+  WHERE cl_order_id = #{clOrderId}
+</update>
+
+
   
 
 </mapper>

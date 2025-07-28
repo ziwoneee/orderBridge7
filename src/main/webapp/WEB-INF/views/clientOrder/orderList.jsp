@@ -157,7 +157,7 @@
                       <span class="badge badge-warning">출 하</span>
                     </c:when>
                     <c:when test="${order.clOrderStatus == 'CANCELLED'}">
-                      <span style="color: #6c757d;">취 소</span>
+                       <span class="badge badge-secondary">취 소</span>
                     </c:when>
                     <c:otherwise>
                       <span style="color: #6c757d;">알 수 없음</span>

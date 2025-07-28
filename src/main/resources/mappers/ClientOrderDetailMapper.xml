@@ -21,5 +21,16 @@
     WHERE d.cl_order_id = #{clOrderId}
     ORDER BY d.detail_id
   </select>
+  
+ <!-- 수주 상세 소프트 삭제: detail_status 를 'CANCELLED'로 변경 -->
+<update id="deleteDetailsByOrderId" parameterType="string">
+  UPDATE client_order_detail
+  SET detail_status = 'CANCELLED'
+  WHERE cl_order_id = #{clOrderId}
+</update>
+
+
+
+  
 
 </mapper>

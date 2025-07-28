@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.itwillbs.domain.ClientOrderVO;
 import com.itwillbs.domain.ClientOrderDetailVO;
@@ -95,4 +96,16 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     public void updateOrderStatus(String orderNum, String status) {
         clientOrderDAO.updateOrderStatus(orderNum, status);
     }
+    
+    
+    @Override
+    @Transactional
+    public void deleteOrder(String clOrderId) {
+        // 상세 먼저 삭제
+        clientOrderDetailDAO.deleteDetailsByOrderId(clOrderId);
+        // 마스터 삭제
+        clientOrderDAO.deleteOrder(clOrderId);
+    }
+
+    
 }

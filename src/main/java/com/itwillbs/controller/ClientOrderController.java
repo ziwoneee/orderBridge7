@@ -164,14 +164,20 @@ public class ClientOrderController {
     public String orderDetail(@RequestParam("clOrderId") String clOrderId, Model model) {
         // 마스터 정보
         ClientOrderVO order = clientOrderService.getOrderById(clOrderId);
+        
         // 상세(제품별) 리스트
         List<ClientOrderDetailVO> detailList = clientOrderDetailService.getDetailListByOrderId(clOrderId);
 
+        // ✅ 총 금액 계산
+        int totalPrice = clientOrderDetailService.calculateTotalPrice(detailList);
+
         model.addAttribute("order", order);
         model.addAttribute("detailList", detailList);
+        model.addAttribute("totalPrice", totalPrice); // ✅ JSP에서 출력 가능
 
         return "clientOrder/orderDetail"; // JSP 경로: /WEB-INF/views/clientOrder/orderDetail.jsp
     }
+
     
     //수주 입금확인-상태변경
     @PostMapping("/confirm")
@@ -184,6 +190,14 @@ public class ClientOrderController {
 
         // 상세페이지로 리다이렉트
         return "redirect:/clientorder/detail?clOrderId=" + clOrderId;
+    }
+
+ // 수주 삭제
+    @PostMapping("/delete")
+    public String deleteOrder(@RequestParam("clOrderId") String clOrderId, RedirectAttributes rttr) {
+        clientOrderService.deleteOrder(clOrderId); // 상태만 'CANCELLED'로 변경
+        rttr.addFlashAttribute("message", "수주가 취소되었습니다.");
+        return "redirect:/clientorder/list";
     }
 
 

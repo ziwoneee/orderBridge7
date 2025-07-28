@@ -27,6 +27,7 @@
       address_detail   AS addressDetail,
       status_code      AS statusCode,
       created_at       AS createdAt
+    
     FROM client
     <where>
       <if test="keyword != null and keyword != ''">
@@ -100,7 +101,8 @@
       client_tel       AS clientTel,
       address          AS address,
       address_detail   AS addressDetail,
-      manager_name     AS managerName
+      manager_name     AS managerName,
+       post_code        AS postCode  
     FROM client
     ORDER BY client_name ASC
   </select>
