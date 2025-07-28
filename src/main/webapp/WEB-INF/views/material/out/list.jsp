@@ -23,11 +23,53 @@
 			  <h3 class="font-weight-bold">자재 출고 관리</h3>
 			</div>
 			
-		    <!-- 검색 필터 -->
-		    <form method="get" class="form-inline mb-3">
-		      <input type="text" name="keyword" class="form-control mr-2" placeholder="출고관리번호 or 품명">
-		      <button type="submit" class="btn btn-primary">검색</button>
-		    </form>
+			<!-- 검색 필터 -->
+			<form method="get" class="row align-items-end mb-4">
+
+			  <!-- 1행 -->
+			  <div class="col-md-3">
+			    <label for="status" class="form-label">출고상태</label>
+			    <select name="status" id="status" class="form-control">
+			      <option value="" ${empty param.status ? 'selected' : ''}>전체</option>
+			      <option value="미출고" ${param.status eq '미출고' ? 'selected' : ''}>미출고</option>
+			      <option value="출고완료" ${param.status eq '출고완료' ? 'selected' : ''}>출고완료</option>
+			    </select>
+			  </div>
+			
+			  <div class="col-md-5">
+			    <label for="keyword" class="form-label">출고관리번호</label>
+			    <input type="text" id="keyword" name="keyword" value="${param.keyword}"
+			           class="form-control"
+			           placeholder="예: OUT-RM-20250725-001" />
+			  </div>
+			
+			  <!-- 2행 -->
+			  <div class="col-md-3 mt-3">
+			    <label for="startDate" class="form-label">출고일자 (시작)</label>
+			    <input type="date" id="startDate" name="startDate" value="${param.startDate}" class="form-control" />
+			  </div>
+			
+			  <div class="col-md-3 mt-3">
+			    <label for="endDate" class="form-label">출고일자 (종료)</label>
+			    <input type="date" id="endDate" name="endDate" value="${param.endDate}" class="form-control" />
+			  </div>
+			
+			  <div class="col-md-2 mt-3">
+			    <label class="form-label invisible">조회</label>
+			    <button type="submit" class="btn btn-primary w-100">조회</button>
+			  </div>
+			
+			</form>
+
+
+
+
+
+
+
+
+
+
 		
 		    <!-- 출고 리스트 테이블 -->
 		    <div id="table_content" class="table-responsive">
@@ -35,17 +77,15 @@
 		        <thead>
 		          <tr>
 		            <th>출고관리번호</th>
-		            <th>작업지시번호</th>
-		            <th>상세</th>
-		            <th>납품자명</th>
-		            <th>품명</th>
-		            <th>주문수량</th>
-		            <th>재고확인</th>
-		            <th>작업지시일자</th>
-		            <th>납기일자</th>
-		            <th>진행현황</th>
-		            <th>담당자</th>
 		            <th>출고일자</th>
+		            <th>출고상태</th>
+		            <th>품명</th>
+		            <th>출고수량</th>
+		            <th>재고상태</th>
+		            <th>작업지시번호</th>
+		            <th>납기일자</th>
+		            <th>담당자</th>
+		            <th>상세</th>
 		            <th>출고처리</th>
 		          </tr>
 		        </thead>
@@ -53,17 +93,14 @@
 		         <c:forEach var="item" items="${outList}">
 				  <tr>
 				    <td>${item.outboundId}</td>
-				    <td>${item.workOrderNo}</td>
-				    <td><button class="btn btn-sm btn-outline-secondary" onclick="loadOutboundDetail('${item.outboundId}')">상세</button></td>
-				    <td>${item.supplierName}</td>
-				    <td>${item.materialName}</td>
-				    <td>${item.requiredQty}</td>
-				    <td>${item.stockStatus} (재고 ${item.stockQty})</td>
-				    <td><fmt:formatDate value="${item.workOrderDate}" pattern="yyyy-MM-dd" /></td>
-				    <td><fmt:formatDate value="${item.dueDate}" pattern="yyyy-MM-dd" /></td>
+				    <td>
+				      <c:if test="${item.outboundDate != null}">
+				        <fmt:formatDate value="${item.outboundDate}" pattern="yyyy-MM-dd" />
+				      </c:if>
+				    </td>
 				    <td>
 				      <c:choose>
-				        <c:when test="${item.status eq '완료'}">
+				        <c:when test="${item.status eq '출고완료'}">
 				          <span class="badge badge-success">출고완료</span>
 				        </c:when>
 				        <c:otherwise>
@@ -71,12 +108,13 @@
 				        </c:otherwise>
 				      </c:choose>
 				    </td>
+				    <td>${item.materialName}</td>
+				    <td>${item.requiredQty}</td>
+				    <td>${item.stockStatus} (재고 ${item.stockQty})</td>
+				    <td>${item.workOrderNo}</td>
+				    <td><fmt:formatDate value="${item.dueDate}" pattern="yyyy-MM-dd" /></td>
 				    <td>${item.handledBy}</td>
-				    <td>
-				      <c:if test="${item.outboundDate != null}">
-				        <fmt:formatDate value="${item.outboundDate}" pattern="yyyy-MM-dd" />
-				      </c:if>
-				    </td>
+				    <td><button class="btn btn-sm btn-outline-secondary" onclick="loadOutboundDetail('${item.outboundId}')">상세</button></td>
 				    <td>
 				      <c:if test="${item.status ne '완료'}">
 				        <button class="btn btn-sm btn-outline-primary">출고처리</button>

@@ -33,10 +33,27 @@
 	  LEFT JOIN supplier s ON si.supplier_id = s.supplier_id
 	
 	  <where>
-	    <if test="keyword != null and keyword != '' and condition == 'handledBy'">
-	      o.handled_by LIKE CONCAT('%', #{keyword}, '%')
+	    <if test="keyword != null and keyword != ''">
+	      AND (
+	        o.outbound_id LIKE CONCAT('%', #{keyword}, '%')
+	        OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
+	      )
 	    </if>
+	
+	    <if test="startDate != null and startDate != ''">
+	      AND DATE(o.outbound_date) &gt;= #{startDate}
+	    </if>
+	
+	    <if test="endDate != null and endDate != ''">
+	      AND DATE(o.outbound_date) &lt;= #{endDate}
+	    </if>
+	    
+	    <if test="status != null and status != ''">
+		  AND o.status = #{status}
+		</if>
+	    
 	  </where>
+
 	
 	  <!-- 정렬 조건 -->
 	  <choose>
