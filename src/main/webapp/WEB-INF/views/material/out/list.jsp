@@ -24,42 +24,44 @@
 			</div>
 			
 			<!-- 검색 필터 -->
-			<form method="get" class="row align-items-end mb-4">
+			<form method="get" class="row g-2 mb-4">
 
-			  <!-- 1행 -->
-			  <div class="col-md-3">
+			  <!-- 진행현황 -->
+			  <div class="col-md-2">
 			    <label for="status" class="form-label">출고상태</label>
 			    <select name="status" id="status" class="form-control">
-			      <option value="" ${empty param.status ? 'selected' : ''}>전체</option>
+			      <option value="">전체</option>
 			      <option value="미출고" ${param.status eq '미출고' ? 'selected' : ''}>미출고</option>
 			      <option value="출고완료" ${param.status eq '출고완료' ? 'selected' : ''}>출고완료</option>
 			    </select>
 			  </div>
 			
-			  <div class="col-md-5">
+			  <!-- 출고관리번호 -->
+			  <div class="col-md-3">
 			    <label for="keyword" class="form-label">출고관리번호</label>
-			    <input type="text" id="keyword" name="keyword" value="${param.keyword}"
-			           class="form-control"
-			           placeholder="예: OUT-RM-20250725-001" />
+			    <input type="text" name="keyword" id="keyword" value="${param.keyword}" 
+			    	   class="form-control" placeholder="예: OUT-RM-20250725-001"/>
 			  </div>
 			
-			  <!-- 2행 -->
-			  <div class="col-md-3 mt-3">
+			  <!-- 출고일자 (시작) -->
+			  <div class="col-md-2">
 			    <label for="startDate" class="form-label">출고일자 (시작)</label>
-			    <input type="date" id="startDate" name="startDate" value="${param.startDate}" class="form-control" />
+			    <input type="date" name="startDate" value="${param.startDate}" class="form-control" />
 			  </div>
 			
-			  <div class="col-md-3 mt-3">
+			  <!-- 출고일자 (종료) -->
+			  <div class="col-md-2">
 			    <label for="endDate" class="form-label">출고일자 (종료)</label>
-			    <input type="date" id="endDate" name="endDate" value="${param.endDate}" class="form-control" />
+			    <input type="date" name="endDate" value="${param.endDate}" class="form-control" />
 			  </div>
 			
-			  <div class="col-md-2 mt-3">
-			    <label class="form-label invisible">조회</label>
+			  <!-- 조회 버튼 -->
+			  <div class="col-md-2 d-flex align-items-end">
 			    <button type="submit" class="btn btn-primary w-100">조회</button>
 			  </div>
 			
 			</form>
+
 
 
 
@@ -77,13 +79,49 @@
 		        <thead>
 		          <tr>
 		            <th>출고관리번호</th>
-		            <th>출고일자</th>
-		            <th>출고상태</th>
+		            <th>
+					  <a href="?page=1&status=${param.status}&sortColumn=outbound_date&sortOrder=${cri.sortColumn eq 'outbound_date' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&condition=${cri.condition}&keyword=${fn:escapeXml(cri.keyword)}">
+					    출고일자
+					    <c:choose>
+					      <c:when test="${cri.sortColumn eq 'outbound_date'}">
+					        <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+					      </c:when>
+					      <c:otherwise>
+					        <span class="neutral-arrow">⇅</span>
+					      </c:otherwise>
+					    </c:choose>
+					  </a>
+					</th>
+		            <th>
+					  <a href="?page=1&status=${param.status}&sortColumn=status&sortOrder=${cri.sortColumn eq 'status' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&condition=${cri.condition}&keyword=${fn:escapeXml(cri.keyword)}">
+					    출고상태
+					    <c:choose>
+					      <c:when test="${cri.sortColumn eq 'status'}">
+					        <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+					      </c:when>
+					      <c:otherwise>
+					        <span class="neutral-arrow">⇅</span>
+					      </c:otherwise>
+					    </c:choose>
+					  </a>
+					</th>
 		            <th>품명</th>
 		            <th>출고수량</th>
 		            <th>재고상태</th>
 		            <th>작업지시번호</th>
-		            <th>납기일자</th>
+		            <th>
+					  <a href="?page=1&status=${param.status}&sortColumn=due_date&sortOrder=${cri.sortColumn eq 'due_date' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&condition=${cri.condition}&keyword=${fn:escapeXml(cri.keyword)}">
+					    납기일자
+					    <c:choose>
+					      <c:when test="${cri.sortColumn eq 'due_date'}">
+					        <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+					      </c:when>
+					      <c:otherwise>
+					        <span class="neutral-arrow">⇅</span>
+					      </c:otherwise>
+					    </c:choose>
+					  </a>
+					</th>
 		            <th>담당자</th>
 		            <th>상세</th>
 		            <th>출고처리</th>
@@ -110,13 +148,13 @@
 				    </td>
 				    <td>${item.materialName}</td>
 				    <td>${item.requiredQty}</td>
-				    <td>${item.stockStatus} (재고 ${item.stockQty})</td>
+				    <td>${item.stockStatus}</td>
 				    <td>${item.workOrderNo}</td>
 				    <td><fmt:formatDate value="${item.dueDate}" pattern="yyyy-MM-dd" /></td>
 				    <td>${item.handledBy}</td>
 				    <td><button class="btn btn-sm btn-outline-secondary" onclick="loadOutboundDetail('${item.outboundId}')">상세</button></td>
 				    <td>
-				      <c:if test="${item.status ne '완료'}">
+				      <c:if test="${item.status ne '출고완료'}">
 				        <button class="btn btn-sm btn-outline-primary">출고처리</button>
 				      </c:if>
 				    </td>

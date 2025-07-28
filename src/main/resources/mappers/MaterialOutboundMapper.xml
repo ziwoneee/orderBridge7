@@ -55,18 +55,34 @@
 	  </where>
 
 	
-	  <!-- 정렬 조건 -->
-	  <choose>
-	    <when test="sortColumn == 'outbound_date' and sortOrder == 'asc'">
-	      ORDER BY o.outbound_date ASC
-	    </when>
-	    <when test="sortColumn == 'outbound_date' and sortOrder == 'desc'">
-	      ORDER BY o.outbound_date DESC
-	    </when>
-	    <otherwise>
-	      ORDER BY o.outbound_date DESC
-	    </otherwise>
-	  </choose>
+	<!-- 정렬 조건 -->
+	<choose>
+	  <when test="sortColumn == 'outbound_date' and sortOrder == 'asc'">
+	    ORDER BY o.outbound_date ASC
+	  </when>
+	  <when test="sortColumn == 'outbound_date' and sortOrder == 'desc'">
+	    ORDER BY o.outbound_date DESC
+	  </when>
+	
+	  <when test="sortColumn == 'status' and sortOrder == 'asc'">
+	    ORDER BY o.status ASC
+	  </when>
+	  <when test="sortColumn == 'status' and sortOrder == 'desc'">
+	    ORDER BY o.status DESC
+	  </when>
+	
+	  <when test="sortColumn == 'due_date' and sortOrder == 'asc'">
+	    ORDER BY o.due_date ASC
+	  </when>
+	  <when test="sortColumn == 'due_date' and sortOrder == 'desc'">
+	    ORDER BY o.due_date DESC
+	  </when>
+	
+	  <otherwise>
+	    ORDER BY o.outbound_date DESC
+	  </otherwise>
+	</choose>
+
 	
 	  LIMIT #{perPageNum} OFFSET #{pageStart}
 	</select>
