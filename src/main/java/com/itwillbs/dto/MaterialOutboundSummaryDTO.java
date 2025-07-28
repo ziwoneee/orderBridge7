@@ -22,5 +22,9 @@ public class MaterialOutboundSummaryDTO {
     private String stockStatus;
     
     private int rowNum;
+    
+    // 대표 품명 + 외 N건 표시용 필드 추가
+    private String materialSummary;
+
 
 }

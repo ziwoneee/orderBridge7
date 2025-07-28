@@ -53,6 +53,20 @@ public class MaterialOutboundController {
 		// PageMaker 생성
 		PageMaker pageMaker = new PageMaker(cri, totalCount);
 		
+		// 상태별 개수 조회 (탭 개수 표시용)
+	    SearchCriteria pendingCri = new SearchCriteria();
+	    pendingCri.setStatus("미출고");
+	    int pendingCount = moService.getMaterialOutboundCount(pendingCri);
+	    
+	    SearchCriteria completedCri = new SearchCriteria();
+	    completedCri.setStatus("출고완료");
+	    int completedCount = moService.getMaterialOutboundCount(completedCri);
+	    
+	    // 전체 개수 (검색 조건 없이)
+	    SearchCriteria allCri = new SearchCriteria();
+	    int allCount = moService.getMaterialOutboundCount(allCri);
+		
+		
 		// 1. 서비스 호출하여 출고 목록 가져오기
 		List<MaterialOutboundSummaryDTO> outboundList = moService.getOutboundList(cri);
 
@@ -60,6 +74,11 @@ public class MaterialOutboundController {
 		model.addAttribute("outList", outboundList);
 		model.addAttribute("pageMaker", pageMaker);
 		model.addAttribute("cri", cri); // 검색 조건 유지용
+		
+		 // 탭별 개수 추가
+	    model.addAttribute("totalCount", allCount);      // 전체 개수
+	    model.addAttribute("pendingCount", pendingCount);    // 미출고 개수
+	    model.addAttribute("completedCount", completedCount); // 출고완료 개수
 		
 		model.addAttribute("menu", "material");
 		
@@ -124,11 +143,6 @@ public class MaterialOutboundController {
 	    }
 	}
 
-	
-	
-	
-	
-	
 	
 	
 	

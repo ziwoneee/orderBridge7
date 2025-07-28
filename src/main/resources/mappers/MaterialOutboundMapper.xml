@@ -16,7 +16,19 @@
 	    o.outbound_date      AS outboundDate,
 	    o.status             AS status,
 	    o.handled_by         AS handledBy,
-	  
+	    (
+	      SELECT 
+	        CONCAT(
+	          MIN(m2.material_name),
+	          CASE 
+	            WHEN COUNT(*) > 1 THEN CONCAT(' 외 ', COUNT(*) - 1, '건')
+	            ELSE ''
+	          END
+	        )
+	      FROM material_outbound_item i2
+	      JOIN material m2 ON i2.material_id = m2.material_id
+	      WHERE i2.outbound_id = o.outbound_id
+	    ) AS materialSummary,
 	    m.material_name      AS materialName,
 	    s.supplier_name      AS supplierName,
 	    i.required_qty       AS requiredQty,
@@ -59,17 +71,17 @@
 	
 	<!-- 정렬 조건 -->
 	<choose>
-	  <when test="sortColumn == 'outbound_date' and sortOrder == 'asc'">
+	  <when test="sortColumn == 'outbound_id' and sortOrder == 'asc'">
 	    ORDER BY o.outbound_date ASC
 	  </when>
-	  <when test="sortColumn == 'outbound_date' and sortOrder == 'desc'">
+	  <when test="sortColumn == 'outbound_id' and sortOrder == 'desc'">
 	    ORDER BY o.outbound_date DESC
 	  </when>
 	
-	  <when test="sortColumn == 'status' and sortOrder == 'asc'">
+	  <when test="sortColumn == 'outbound_date' and sortOrder == 'asc'">
 	    ORDER BY o.status ASC
 	  </when>
-	  <when test="sortColumn == 'status' and sortOrder == 'desc'">
+	  <when test="sortColumn == 'outbound_date' and sortOrder == 'desc'">
 	    ORDER BY o.status DESC
 	  </when>
 	

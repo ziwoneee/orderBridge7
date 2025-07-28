@@ -33,8 +33,9 @@ function openOutboundModal(data) {
   $('#workOrderNo').text(data.workOrderNo);
   $('#dueDate').text(formatDate(data.dueDate));
   $('#workOrderDate').text(formatDate(data.workOrderDate));
+  $('#lineId').text(data.lineId);
   $('#outboundId').text(data.outboundId);
-  $('#status').text(data.status);
+  $('#modalStatus').text(data.status);
   $('#outboundDate').text(formatDate(data.outboundDate));
   $('#handledBy').text(data.handledBy);
   $('#materialName').text(data.materialName);
