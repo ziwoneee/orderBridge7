@@ -90,10 +90,12 @@
                   </li>
                 </ul>
                 
-                <!-- 작업지시 등록 버튼 -->
-                <a href="/workorder/register" class="btn btn-primary" style="background-color: #1C355E; border-color: #1C355E;">
-                  <i class="ti-plus"></i> 작업지시 등록
-                </a>
+                <!-- 작업지시 등록 버튼 - 모달 트리거용 -->
+				<button type="button" class="btn btn-primary"
+				        style="background-color: #1C355E; border-color: #1C355E;"
+				        data-toggle="modal" data-target="#orderModal">
+				  <i class="ti-plus"></i> 작업지시 등록
+				</button>              
               </div>
                   
               <!-- 테이블 -->
@@ -163,15 +165,6 @@
                         </td>
                         <td>
                           <fmt:formatDate value="${workOrder.dueDate}" pattern="yyyy-MM-dd"/>
-                          <!-- 납기일 임박 표시 -->
-                          <c:set var="today" value="<%=new java.util.Date()%>"/>
-                          <c:set var="daysDiff" value="${(workOrder.dueDate.time - today.time) / (1000 * 60 * 60 * 24)}"/>
-                          <c:if test="${daysDiff <= 2 && daysDiff >= 0}">
-                            <span class="badge badge-warning badge-pill">D-${Math.ceil(daysDiff)}</span>
-                          </c:if>
-                          <c:if test="${daysDiff < 0}">
-                            <span class="badge badge-danger badge-pill">지연</span>
-                          </c:if>
                         </td>
                         <td>${workOrder.lineId}</td>
                         <td>${workOrder.productName}</td>
@@ -279,6 +272,74 @@
           
         </div>
         <!-- content-wrapper 끝 -->
+        
+<!-- ✅ 작업지시 등록 모달 - Bootstrap 4 최종 리팩토링 -->
+<div class="modal fade" id="orderModal" tabindex="-1" role="dialog" aria-labelledby="orderModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+    <div class="modal-content">
+
+      <!-- ✅ 헤더 -->
+      <div class="modal-header">
+        <h5 class="modal-title" id="orderModalLabel">확정 수주 선택</h5>
+      </div>
+
+      <!-- ✅ 바디 -->
+      <div class="modal-body">
+
+        <!-- 🔍 검색 영역 -->
+        <div class="p-3 mb-3" style="background-color: #f4f6fa; border-radius: 8px;">
+          <form id="orderSearchForm" class="form-inline justify-content-center">
+            <div class="form-group mb-0 mr-2">
+              <input type="text" class="form-control" id="searchKeyword"
+                     name="keyword" placeholder="수주번호 입력" style="width: 250px;">
+            </div>
+            <div class="form-group mb-0">
+              <button type="submit" class="btn"
+                      style="background-color: #1C355E; color: white;">
+                검색
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 📋 수주 목록 테이블 -->
+        <div class="table-responsive">
+          <table class="table table-hover text-center align-middle">
+            <thead style="background-color: #1C355E; color: white;">
+              <tr>
+                <th></th>
+                <th>수주번호</th>
+                <th>거래처</th>
+                <th>제품명</th>
+                <th>수주일</th>
+                <th>납기일</th>
+                <th>수량</th>
+              </tr>
+            </thead>
+            <tbody id="orderListBody">
+              <!-- JavaScript로 동적 바인딩 -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 📄 페이징 -->
+        <div class="d-flex justify-content-center mt-4">
+          <ul class="pagination pagination-sm" id="orderPagination">
+            <!-- JavaScript로 구성됨 -->
+          </ul>
+        </div>
+      </div>
+
+      <!-- ✅ 푸터: 닫기 버튼만 -->
+      <div class="modal-footer justify-content-end">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+        
 	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
      </div>
      <!-- 본문.jsp main-panel ends -->
@@ -352,3 +413,112 @@
     border-color: #152a4a !important;
 }
 </style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const modal = document.getElementById("orderModal");
+  const tbody = document.getElementById("orderListBody");
+  const pagination = document.getElementById("orderPagination");
+
+  // ✅ 수주 목록 로딩 함수 (Ajax)
+  function loadConfirmedOrders(keyword = '', page = 1) {
+    fetch(`/workorder/confirmed-orders?keyword=${keyword}&page=${page}`)
+      .then(res => res.json())
+      .then(data => {
+        const orderList = data.orders;
+        const pageMaker = data.pageMaker;
+        tbody.innerHTML = "";
+        pagination.innerHTML = "";
+
+   		 // ✅ 수주가 없을 경우
+        if (!orderList || orderList.length == 0) {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td colspan="7" class="text-center py-4">
+              <div class="text-muted">
+                <i class="ti-info-alt" style="font-size: 22px;"></i><br>
+                확정된 수주가 없습니다.
+              </div>
+            </td>
+          `;
+          tbody.appendChild(row);
+          return;
+        }
+
+        // ✅ 수주 행 출력
+        orderList.forEach(order => {
+          const row = document.createElement("tr");
+          row.classList.add("order-row");
+          row.setAttribute("data-cl-order-id", order.clOrderId);
+          row.setAttribute("data-client-name", order.clientName);
+          row.setAttribute("data-product-name", order.productName);
+          row.setAttribute("data-cl-order-date", order.clOrderDate);
+          row.setAttribute("data-cl-delivery-date", order.clDeliveryDate);
+          row.setAttribute("data-required-qty", order.requiredQty);
+
+          row.innerHTML = `
+            <td><i class="ti-angle-right text-secondary"></i></td>
+            <td>${order.clOrderId}</td>
+            <td>${order.clientName}</td>
+            <td>${order.productName}</td>
+            <td>${order.clOrderDate}</td>
+            <td>${order.clDeliveryDate}</td>
+            <td>${order.requiredQty.toLocaleString()}</td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        // ✅ 페이징 구성
+        for (let p = pageMaker.startPage; p <= pageMaker.endPage; p++) {
+          const li = document.createElement("li");
+          li.className = `page-item ${p == pageMaker.cri.page ? 'active' : ''}`;
+          li.innerHTML = `<a class="page-link" href="#" style="${p == pageMaker.cri.page ? 'background-color:#1C355E; color:white;' : 'color:#1C355E;'}">${p}</a>`;
+          li.addEventListener("click", function (e) {
+            e.preventDefault();
+            loadConfirmedOrders('', p);
+          });
+          pagination.appendChild(li);
+        }
+      })
+      .catch(err => {
+        console.error("수주 목록 불러오기 실패", err);
+        tbody.innerHTML = `<tr><td colspan="7" class="text-danger text-center py-3">데이터 로딩 실패</td></tr>`;
+      });
+  }
+
+  // ✅ 모달 열릴 때 수주 불러오기
+  $('#orderModal').on('show.bs.modal', function () {
+    loadConfirmedOrders();
+  });
+
+  // ✅ 검색 처리
+  document.getElementById("orderSearchForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const keyword = document.getElementById("searchKeyword").value.trim();
+    loadConfirmedOrders(keyword, 1);
+  });
+
+  // ✅ 행 클릭 시 → 등록 모달로 전환
+  tbody.addEventListener("click", function (e) {
+    const row = e.target.closest("tr");
+    if (!row || row.classList.contains("text-muted")) return; // 빈 메시지 행 제외
+
+    const clOrderId = row.dataset.clOrderId;
+    const productName = row.dataset.productName;
+    const clientName = row.dataset.clientName;
+    const dueDate = row.dataset.clDeliveryDate;
+    const qty = row.dataset.requiredQty;
+
+    // 🔁 등록 모달에 값 전달
+    document.getElementById("detail_clOrderId").textContent = clOrderId;
+    document.getElementById("detail_productName").textContent = productName;
+    document.getElementById("detail_clientName").textContent = clientName;
+    document.getElementById("detail_dueDate").textContent = dueDate;
+    document.getElementById("detail_requiredQty").textContent = qty;
+
+    // 모달 전환
+    $('#orderModal').modal('hide');
+    $('#workDetailModal').modal('show');
+  });
+});
+</script>
