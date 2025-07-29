@@ -6,8 +6,10 @@ import javax.inject.Inject;
 
 import org.springframework.stereotype.Service;
 
+import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.MaterialOrderDTO;
 import com.itwillbs.persistence.MaterialOrderDAO;
 
 /**
@@ -32,10 +34,22 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
         return mOrderDAO.getTotalCount(cri);
     }
 
-    // '발주등록' 상태 건수
+    
+    // 발주 등록
     @Override
-    public int getRegisteredCount(SearchCriteria cri) {
-        return mOrderDAO.getRegisteredCount(cri);
+    public void insertOrder(MaterialOrderDTO orderDTO) {
+        // 1. 발주번호 생성
+        String newOrderId = mOrderDAO.generateOrderId();
+        orderDTO.getOrder().setOrderId(newOrderId);
+
+        // 2. order 테이블 insert
+        mOrderDAO.insertOrder(orderDTO.getOrder());
+
+        // 3. order_item 테이블 insert (for each)
+        for (MaterialOrderItemVO item : orderDTO.getOrderItems()) {
+            item.setOrderId(newOrderId); // 외래키 설정
+            mOrderDAO.insertOrderItem(item);
+        }
     }
 	
 	

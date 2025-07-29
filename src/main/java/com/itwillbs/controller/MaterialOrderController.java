@@ -9,12 +9,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.itwillbs.domain.MaterialOrderVO;
+import com.itwillbs.domain.MaterialVO;
 import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.domain.SupplierVO;
+import com.itwillbs.dto.MaterialOrderDTO;
 import com.itwillbs.service.MaterialOrderService;
+import com.itwillbs.service.MaterialService;
+import com.itwillbs.service.SupplierService;
 
 /**
  * 자재 발주 관리 - 발주 목록 조회 컨트롤러
@@ -29,6 +36,12 @@ public class MaterialOrderController {
 	// 서비스 객체 주입
 	@Inject
 	private MaterialOrderService mOrderService;
+	
+	@Inject
+	private SupplierService supplierService;
+	
+	@Inject
+	private MaterialService materialService;
 	
 	
 	// 발주 목록 조회 (검색, 정렬, 페이징 포함)
@@ -47,14 +60,11 @@ public class MaterialOrderController {
         int totalCount = mOrderService.getTotalCount(cri);
         PageMaker pageMaker = new PageMaker(cri, totalCount);
 
-        // 4. "발주등록" 상태 건수 (탭용)
-        int registeredCount = mOrderService.getRegisteredCount(cri);
 
-        // 5. 모델 등록
+        // 4. 모델 등록
         model.addAttribute("orderList", orderList);
         model.addAttribute("pageMaker", pageMaker);
         model.addAttribute("cri", cri);
-        model.addAttribute("registeredCount", registeredCount);
 	    model.addAttribute("menu", "material");
 	    
 	    // JSP 뷰 경로 반환
@@ -63,7 +73,29 @@ public class MaterialOrderController {
 
 	
 	
-	
+	// 자재 발주 등록 페이지 이동 (GET)
+	@GetMapping("/register")
+	public String registerForm(Model model) {
+	    logger.debug("GET /material/order/register → 발주 등록 폼 이동");
+
+	    // 등록 시 선택할 거래처/자재 목록 불러오기 (예: 드롭다운용)
+	    List<SupplierVO> supplierList = supplierService.getAllSuppliers(); // 거래처
+	    List<MaterialVO> materialList = materialService.getAllMaterials(); // 자재
+
+	    model.addAttribute("supplierList", supplierList);
+	    model.addAttribute("materialList", materialList);
+	    return "material/order/register";
+	}
+
+	// 자재 발주 등록 처리 (POST)
+	@PostMapping("/register")
+	public String registerOrder(@ModelAttribute MaterialOrderDTO orderDTO) {
+	    logger.debug("POST /material/order/register → 발주 등록 처리");
+
+	    mOrderService.insertOrder(orderDTO);
+	    return "redirect:/material/order/list";
+	}
+
 	
 	
 	

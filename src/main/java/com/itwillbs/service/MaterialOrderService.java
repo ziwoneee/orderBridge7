@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.MaterialOrderDTO;
 
 /**
  * 자재 발주 서비스 인터페이스
@@ -17,7 +18,7 @@ public interface MaterialOrderService {
     // 총 건수 조회 (페이징)
     int getTotalCount(SearchCriteria cri);
 
-    // '발주등록' 상태 건수
-    int getRegisteredCount(SearchCriteria cri);
+    // 발주 등록
+    void insertOrder(MaterialOrderDTO orderDTO);
 
 }
