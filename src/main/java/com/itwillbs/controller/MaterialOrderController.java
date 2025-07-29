@@ -1,5 +1,6 @@
 package com.itwillbs.controller;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -8,7 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -88,22 +91,35 @@ public class MaterialOrderController {
 	    model.addAttribute("menu", "material");
 	    return "material/order/register";
 	}
+	
+	
+	@InitBinder
+	public void initBinder(WebDataBinder binder) {
+	    binder.setDisallowedFields("orderItems[].totalPrice");  // 바인딩 무시
+	}
+
 
 	// 자재 발주 등록 처리 (POST)
 	@PostMapping("/register")
 	public String registerOrder(@ModelAttribute MaterialOrderDTO orderDTO) throws Exception {
+		logger.info("registerOrder 컨트롤러 진입");
 		logger.debug("등록된 발주 데이터: " + orderDTO);
 
 	    // 기본 정보와 항목 리스트 가져오기
 	    MaterialOrderVO order = orderDTO.getOrder();
 	    List<MaterialOrderItemVO> itemList = orderDTO.getOrderItems();
 	    
-	    logger.debug("발주자: " + order.getCreatedBy()); // ❗여기서 NPE 가능
-	    logger.debug("항목 수: " + (itemList != null ? itemList.size() : "null"));
-
-	    logger.debug("발주자: " + order.getCreatedBy());
-	    logger.debug("항목 수: " + (itemList != null ? itemList.size() : 0));
-
+	    // ✅ 총금액 직접 계산
+	    for (MaterialOrderItemVO item : itemList) {
+	        if (item.getUnitPrice() != null && item.getQuantity() > 0) {
+	            BigDecimal unit = item.getUnitPrice();
+	            BigDecimal qty = new BigDecimal(item.getQuantity());
+	            item.setTotalPrice(unit.multiply(qty));
+	        } else {
+	            item.setTotalPrice(BigDecimal.ZERO); // 값 없으면 0으로 처리
+	        }
+	    }
+	    
 	    // 서비스 호출 (예시)
 	    mOrderService.insertOrder(orderDTO);
 	    
@@ -111,8 +127,7 @@ public class MaterialOrderController {
 	}
 
 	
-	
-	
+
 	
 	
 	

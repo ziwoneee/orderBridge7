@@ -20,15 +20,15 @@
             <div class="row">
               <div class="col-md-3 mb-3">
                 <label>발주일</label>
-                <input type="date" name="orderDate" class="form-control" value="<%= new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date()) %>" required>
+                <input type="date" name="order.orderDate" class="form-control" value="<%= new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date()) %>" required>
               </div>
               <div class="col-md-3 mb-3">
                 <label>납기요청일</label>
-                <input type="date" name="expectedArrivedDate" class="form-control" required>
+                <input type="date" name="order.expectedArrivedDate" class="form-control" required>
               </div>
               <div class="col-md-3 mb-3">
                 <label>거래처</label>
-                <select name="supplierId" class="form-control" required>
+                <select name="order.supplierId" class="form-control" required>
                   <option value="">선택</option>
                   <c:forEach var="supplier" items="${supplierList}">
                     <option value="${supplier.supplierId}">${supplier.supplierName}</option>
@@ -37,11 +37,11 @@
               </div>
               <div class="col-md-3 mb-3">
                 <label>담당자</label>
-                <input type="text" name="createdBy" class="form-control" placeholder="예: 홍길동" required>
+                <input type="text" name="order.createdBy" class="form-control" placeholder="예: 홍길동" required>
               </div>
               <div class="col-md-12">
                 <label>비고</label>
-                <textarea name="note" class="form-control" rows="2"></textarea>
+                <textarea name="order.note" class="form-control" rows="2"></textarea>
               </div>
             </div>
           </div>
@@ -67,17 +67,20 @@
               <tbody>
                 <tr>
                   <td>
-                    <select name="items[0].materialId" class="form-control">
+                    <select name="orderItems[0].materialId" class="form-control">
                       <option value="">선택</option>
                       <c:forEach var="mat" items="${materialList}">
                         <option value="${mat.materialId}">${mat.materialName}</option>
                       </c:forEach>
                     </select>
                   </td>
-                  <td><input type="number" name="items[0].quantity" class="form-control" onchange="calculateTotal(this)" required></td>
-                  <td><input type="number" name="items[0].unitPrice" class="form-control" onchange="calculateTotal(this)" required></td>
-                  <td><input type="number" name="items[0].totalPrice" class="form-control" readonly></td>
-                  <td><input type="text" name="items[0].storageLocation" class="form-control"></td>
+                  <td><input type="number" name="orderItems[0].quantity" class="form-control" onchange="calculateTotal(this)" required></td>
+                  <td><input type="number" name="orderItems[0].unitPrice" class="form-control" onchange="calculateTotal(this)" required></td>
+                  <td>
+                  	<input type="number" class="form-control" value="0" readonly> <!-- 보여주기용 -->
+                  	<input type="hidden" name="orderItems[0].totalPrice" value="0"> <!-- 서버 전송용 -->
+              	  </td>
+                  <td><input type="text" name="orderItems[0].storageLocation" class="form-control"></td>
                   <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button></td>
                 </tr>
               </tbody>
