@@ -83,10 +83,10 @@
       </if>
     
     <choose>
-      <when test="sortColumn == 'productName'">
+      <when test="sortColumn == 'productname'">
         ORDER BY product_name ${sortOrder}
       </when>
-      <when test="sortColumn == 'createdAt'">
+      <when test="sortColumn == 'createdat'">
         ORDER BY created_at ${sortOrder}
       </when>
       <when test="sortColumn == 'manager'">

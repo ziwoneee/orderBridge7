@@ -61,16 +61,16 @@
   </where>
 
   <choose>
-    <when test="sortColumn == 'productName'">
+    <when test="sortColumn == 'productname'">
       ORDER BY p.product_name ${sortOrder}
     </when>
-    <when test="sortColumn == 'lotNo'">
+    <when test="sortColumn == 'lotno'">
       ORDER BY o.lot_no ${sortOrder}
     </when>
-    <when test="sortColumn == 'outboundDate'">
+    <when test="sortColumn == 'outbounddate'">
       ORDER BY o.outbound_date ${sortOrder}
     </when>
-    <when test="sortColumn == 'clientName'">
+    <when test="sortColumn == 'clientname'">
       ORDER BY c.client_name ${sortOrder}
     </when>
     <when test="sortColumn == 'manager'">

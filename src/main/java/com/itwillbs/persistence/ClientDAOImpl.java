@@ -17,6 +17,7 @@ public class ClientDAOImpl implements ClientDAO {
     //고객사 목록 조회
     @Override
     public List<ClientVO> getClientList(SearchCriteria cri) {
+    	System.out.println(cri);
         return sqlSession.selectList(NAMESPACE + ".getClientList", cri);
     }
 

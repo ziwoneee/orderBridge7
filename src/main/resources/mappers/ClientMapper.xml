@@ -36,7 +36,36 @@
         OR ceo_name LIKE CONCAT('%', #{keyword}, '%'))
       </if>
     </where>
-    ORDER BY ${sortColumn} ${sortOrder}
+    <choose>
+  <when test="sortColumn == 'clientname' and sortOrder == 'asc'">
+    ORDER BY client_name ASC
+  </when>
+  <when test="sortColumn == 'clientname' and sortOrder == 'desc'">
+    ORDER BY client_name DESC
+  </when>
+  <when test="sortColumn == 'businessnumber' and sortOrder == 'asc'">
+    ORDER BY business_number ASC
+  </when>
+  <when test="sortColumn == 'businessnumber' and sortOrder == 'desc'">
+    ORDER BY business_number DESC
+  </when>
+  <when test="sortColumn == 'createdat' and sortOrder == 'asc'">
+    ORDER BY created_at ASC
+  </when>
+  <when test="sortColumn == 'createdat' and sortOrder == 'desc'">
+    ORDER BY created_at DESC
+  </when>
+  <when test="sortColumn == 'statuscode' and sortOrder == 'asc'">
+    ORDER BY status_code ASC
+  </when>
+  <when test="sortColumn == 'statuscode' and sortOrder == 'desc'">
+    ORDER BY status_code DESC
+  </when>
+  <otherwise>
+    ORDER BY created_at DESC
+  </otherwise>
+</choose>
+
     LIMIT #{pageStart}, #{perPageNum}
   </select>
 

@@ -48,7 +48,7 @@ public class ProductOutboundController {
         List<String> allowed = Arrays.asList("productName", "lotNo", "outboundDate", "clientName", "manager");
 
         // ✅ 정렬 컬럼 유효성 체크
-        if (cri.getSortColumn() == null || !allowed.contains(cri.getSortColumn())) {
+        if (cri.getSortColumn() == null) {
             cri.setSortColumn("outboundDate"); // 기본 정렬 컬럼
         }
 

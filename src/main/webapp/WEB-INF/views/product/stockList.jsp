@@ -22,8 +22,7 @@
               <span>~</span>
               <input type="date" name="endDate" class="form-control mx-2" value="${param.endDate}">
               <input type="text" name="keyword" class="form-control mx-2" placeholder="제품명, LOT 번호 검색" value="${param.keyword}">
-              <button type="button" class="btn btn-success mr-1" onclick="viewStock()">현재고 조회</button>
-              <button type="button" class="btn btn-primary" onclick="viewAll()">전체 내역 조회</button>
+                           <button type="button" class="btn btn-primary" onclick="viewAll()">조 회</button>
             </form>
           </div>
 
