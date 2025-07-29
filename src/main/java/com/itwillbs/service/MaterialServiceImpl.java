@@ -84,7 +84,11 @@ public class MaterialServiceImpl implements MaterialService {
     }
 	
 	
-	
+    // 목록 조회 (자재 발주관리 등록 폼에서 필요)
+    @Override
+    public List<MaterialVO> getAllMaterials() {
+        return mDAO.selectAllMaterials(); // DAO 메서드 필요
+    }
 	
 
 }
