@@ -45,6 +45,9 @@
 				           
 		
 		            <button type="submit" class="btn btn-primary">조회</button>
+		             <a href="/product/outbound/list" class="btn btn-light">
+          <i class="ti-reload"></i> 초기화
+        </a>
 		        </form>
 		    </div>
 	<div row>
@@ -55,55 +58,90 @@
 	    <!-- ✅ 테이블 -->
 	     <div class="table-responsive mt-4">
 	    <table id=outboundTable class="table table-bordered table-striped table-hover text-center">
-	          <thead>
-	        <tr>
-	            <th>출고ID</th>
-	            <th>제품ID</th>
-	            <th>
-  <a href="?page=1&sortColumn=productName&sortOrder=${cri.sortColumn eq 'productName' and cri.sortOrder eq 'ASC' ? 'DESC' : 'ASC'}&keyword=${fn:escapeXml(cri.keyword)}">
-    제품명
-    <c:if test="${cri.sortColumn eq 'productName'}">
-      ${cri.sortOrder eq 'ASC' ? '▲' : '▼'}
-    </c:if>
-  </a>
-</th>
-	            
-<th>
-  <a href="?page=1&sortColumn=lotNo&sortOrder=${cri.sortColumn eq 'lotNo' and cri.sortOrder eq 'ASC' ? 'DESC' : 'ASC'}&keyword=${fn:escapeXml(cri.keyword)}">
-    LOT번호
-    <c:if test="${cri.sortColumn eq 'lotNo'}">
-      ${cri.sortOrder eq 'ASC' ? '▲' : '▼'}
-    </c:if>
-  </a>
-</th>
+	        <thead>
+  <tr>
+    <th>출고ID</th>
+    <th>제품ID</th>
 
-	            <th>출고수량</th>
-	            <th>
-  <a href="?page=1&sortColumn=outboundDate&sortOrder=${cri.sortColumn eq 'outboundDate' and cri.sortOrder eq 'ASC' ? 'DESC' : 'ASC'}&keyword=${fn:escapeXml(cri.keyword)}">
-    출고일자
-    <c:if test="${cri.sortColumn eq 'outboundDate'}">
-      ${cri.sortOrder eq 'ASC' ? '▲' : '▼'}
-    </c:if>
-  </a>
-</th>
-	            <th>출고유형</th>
-	            <th>
-  <a href="?page=1&sortColumn=clientName&sortOrder=${cri.sortColumn eq 'clientName' and cri.sortOrder eq 'ASC' ? 'DESC' : 'ASC'}&keyword=${fn:escapeXml(cri.keyword)}">
-    거래처명
-    <c:if test="${cri.sortColumn eq 'clientName'}">
-      ${cri.sortOrder eq 'ASC' ? '▲' : '▼'}
-    </c:if>
-  </a>
-</th>
-	            <th>
-  <a href="?page=1&sortColumn=manager&sortOrder=${cri.sortColumn eq 'manager' and cri.sortOrder eq 'ASC' ? 'DESC' : 'ASC'}&keyword=${fn:escapeXml(cri.keyword)}">
-    담당자
-    <c:if test="${cri.sortColumn eq 'manager'}">
-      ${cri.sortOrder eq 'ASC' ? '▲' : '▼'}
-    </c:if>
-  </a>
-</th>
-	            <th>비고</th>
+    <!-- ✅ 제품명 정렬 -->
+    <th>
+      <a href="?page=1&sortColumn=productname&sortOrder=${cri.sortColumn eq 'productname' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&keyword=${fn:escapeXml(cri.keyword)}">
+        제품명
+        <c:choose>
+          <c:when test="${cri.sortColumn eq 'productname'}">
+            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+          </c:when>
+          <c:otherwise>
+            <span class="neutral-arrow">⇅</span>
+          </c:otherwise>
+        </c:choose>
+      </a>
+    </th>
+
+    <!-- ✅ LOT번호 정렬 -->
+    <th>
+      <a href="?page=1&sortColumn=lotno&sortOrder=${cri.sortColumn eq 'lotno' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&keyword=${fn:escapeXml(cri.keyword)}">
+        LOT번호
+        <c:choose>
+          <c:when test="${cri.sortColumn eq 'lotno'}">
+            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+          </c:when>
+          <c:otherwise>
+            <span class="neutral-arrow">⇅</span>
+          </c:otherwise>
+        </c:choose>
+      </a>
+    </th>
+
+    <th>출고수량</th>
+
+    <!-- ✅ 출고일자 정렬 -->
+    <th>
+      <a href="?page=1&sortColumn=outbounddate&sortOrder=${cri.sortColumn eq 'outbounddate' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&keyword=${fn:escapeXml(cri.keyword)}">
+        출고일자
+        <c:choose>
+          <c:when test="${cri.sortColumn eq 'outbounddate'}">
+            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+          </c:when>
+          <c:otherwise>
+            <span class="neutral-arrow">⇅</span>
+          </c:otherwise>
+        </c:choose>
+      </a>
+    </th>
+
+    <th>출고유형</th>
+
+    <!-- ✅ 거래처명 정렬 -->
+    <th>
+      <a href="?page=1&sortColumn=clientname&sortOrder=${cri.sortColumn eq 'clientname' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&keyword=${fn:escapeXml(cri.keyword)}">
+        거래처명
+        <c:choose>
+          <c:when test="${cri.sortColumn eq 'clientname'}">
+            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+          </c:when>
+          <c:otherwise>
+            <span class="neutral-arrow">⇅</span>
+          </c:otherwise>
+        </c:choose>
+      </a>
+    </th>
+
+    <!-- ✅ 담당자 정렬 -->
+    <th>
+      <a href="?page=1&sortColumn=manager&sortOrder=${cri.sortColumn eq 'manager' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&keyword=${fn:escapeXml(cri.keyword)}">
+        담당자
+        <c:choose>
+          <c:when test="${cri.sortColumn eq 'manager'}">
+            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+          </c:when>
+          <c:otherwise>
+            <span class="neutral-arrow">⇅</span>
+          </c:otherwise>
+        </c:choose>
+      </a>
+    </th>
+          <th>비고</th>
 	            <th>상세보기</th>
 	        </tr>
 	        </thead>
@@ -169,4 +207,11 @@
   </div>   
   <!-- container-fluid page-body-wrapper 끝 -->
 </div>
-<!-- container-scroller 끝-->   
+<!-- container-scroller 끝-->  
+
+<style>
+  .neutral-arrow {
+    color: #ccc;
+  }
+</style>
+ 

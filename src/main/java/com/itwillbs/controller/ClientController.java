@@ -31,31 +31,49 @@ public class ClientController {
     private ClientService clientService;
     
     //고객사 목록 보기
-
+ // 고객사 목록 페이지
     @GetMapping("/client/list")
-    public String clientList(SearchCriteria cri, Model model) {
+    public String listClients(SearchCriteria cri, Model model) {
 
-    	// 🔁 JSP에서 사용하는 camelCase 기준으로 수정
-    	List<String> allowed = List.of("clientName", "businessNumber", "createdAt", "statusCode");
+        // ✅ 허용 정렬 컬럼 목록
+        List<String> allowed = List.of("clientName", "businessNumber", "createdAt", "statusCode");
 
-        if (cri.getSortColumn() == null || !allowed.contains(cri.getSortColumn())) {
-            cri.setSortColumn("client_name");
+        // ✅ 정렬 컬럼 유효성 검사 및 기본값 설정
+        if (cri.getSortColumn() == null) {
+            cri.setSortColumn("createdAt");
         }
+
+        // ✅ 정렬 방향 유효성 검사 및 소문자 변환
         if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) {
             cri.setSortOrder("desc");
+        } else {
+            cri.setSortOrder(cri.getSortOrder().toLowerCase());
         }
 
-        List<ClientVO> clientList = clientService.getClientList(cri);
+        // ✅ 로그 출력 (정렬 정보 확인용)
+        logger.info("▶ [고객사 목록] 정렬 컬럼: {}", cri.getSortColumn());
+        logger.info("▶ [고객사 목록] 정렬 방향: {}", cri.getSortOrder());
+
+        // ✅ 전체 건수 조회 및 페이지 계산
         int totalCount = clientService.getClientCount(cri);
+        cri.setTotalCount(totalCount); // PageMaker 내부 계산에 사용 가능
 
         PageMaker pageMaker = new PageMaker(cri, totalCount);
 
+        // ✅ 실제 고객사 리스트 조회
+        List<ClientVO> clientList = clientService.getClientList(cri);
+
+        // ✅ 모델에 데이터 바인딩
         model.addAttribute("clientList", clientList);
-        model.addAttribute("cri", cri);
-        model.addAttribute("pageMaker", pageMaker);  
+        model.addAttribute("pageMaker", pageMaker);
+        model.addAttribute("cri", cri); // 검색 조건 유지용
+
+        // ✅ 사이드바 메뉴 활성화용
+        model.addAttribute("menu", "basic");
 
         return "client/list";
     }
+
 
                 
     

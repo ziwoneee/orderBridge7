@@ -30,52 +30,57 @@
             </div>
           </div>
           
-          <!-- 검색 영역 (완료 탭에서만 표시) -->
-          <div class="col-12 mb-3" id="searchArea" style="display: ${param.tab == 'completed' || empty param.tab ? 'none' : 'block'};">
-            <form method="get" action="/shipment/list" class="forms-sample">
-              <div class="row align-items-end">
-                <div class="col-md-2 form-group">
-                  <label class="form-label text-muted small">출하일</label>
-                  <input type="date" class="form-control" id="startDate" name="startDate" value="${cri.startDate}" max="<%= today %>">
-                </div>
-                <div class="col-md-auto form-group text-center px-2">
-                  <label class="form-label text-muted small">&nbsp;</label>
-                  <div class="mt-2">~</div>
-                </div>
-                <div class="col-md-2 form-group">
-                  <label class="form-label text-muted small">&nbsp;</label>
-                  <input type="date" class="form-control" id="endDate" name="endDate" value="${cri.endDate}" max="<%= today %>">
-                </div>
-                <div class="col-md-2 form-group">
-                  <label class="form-label text-muted small">정렬</label>
-                  <select name="sortColumn" class="form-control">
-                    <option value="delivery_id" ${cri.sortColumn eq 'delivery_id' ? 'selected' : ''}>출하ID</option>
-                    <option value="cl_order_id" ${cri.sortColumn eq 'cl_order_id' ? 'selected' : ''}>수주번호</option>
-                    <option value="client_name" ${cri.sortColumn eq 'client_name' ? 'selected' : ''}>거래처명</option>
-                    <option value="product_name" ${cri.sortColumn eq 'product_name' ? 'selected' : ''}>제품명</option>
-                    <option value="delivery_date" ${cri.sortColumn eq 'delivery_date' ? 'selected' : ''}>출하일자</option>
-                  </select>
-                </div>
-                <div class="col-md-3 form-group">
-                  <input type="text" class="form-control" id="keyword" name="keyword" 
-                         placeholder="수주번호, 거래처명, 제품명 검색" value="${cri.keyword}">
-                </div>
-                <div class="col-md-3 form-group">
-                  <button type="submit" class="btn btn-primary me-2" style="background-color: #1C355E; border-color: #1C355E;">
-                    <i class="ti-search"></i> 검색
-                  </button>
-                  <a href="/shipment/list?tab=completed" class="btn btn-light">
-                    <i class="ti-reload"></i> 초기화
-                  </a>
-                </div>
-              </div>
-              <!-- 숨겨진 파라미터 -->
-              <input type="hidden" name="tab" value="completed">
-              <input type="hidden" name="sortOrder" value="${cri.sortOrder}">
-              <input type="hidden" name="page" value="1">
-              <input type="hidden" name="perPageNum" value="${cri.perPageNum}">
-            </form>
-          </div>
+          <!-- 검색 영역 (출하 완료 탭일 때만 보임) -->
+<div class="col-12 mb-4" id="searchArea" style="display: ${param.tab == 'completed' ? 'block' : 'none'};">
+  <form method="get" action="/shipment/list" class="form-inline row g-2 align-items-end">
+
+    <!-- 출하일(시작) -->
+    <div class="col-md-auto">
+      <label class="form-label small text-muted">출하일</label>
+      <input type="date" class="form-control" id="startDate" name="startDate" value="${cri.startDate}" max="<%= today %>">
+    </div>
+
+    <!-- ~ -->
+    <div class="col-md-auto text-center">
+      <label class="form-label small text-muted d-block">&nbsp;</label>
+      <span>~</span>
+    </div>
+
+    <!-- 출하일(끝) -->
+    <div class="col-md-auto">
+      <label class="form-label small text-muted d-none d-md-block">&nbsp;</label>
+      <input type="date" class="form-control" id="endDate" name="endDate" value="${cri.endDate}" max="<%= today %>">
+    </div>
+
+    <!-- 키워드 -->
+    <div class="col-md-auto">
+      <label class="form-label small text-muted">검색어</label>
+      <input type="text" class="form-control" id="keyword" name="keyword"
+             placeholder="수주번호, 거래처명, 제품명" value="${cri.keyword}">
+    </div>
+
+    <!-- 버튼 -->
+    <div class="col-md-auto">
+      <label class="form-label d-none d-md-block">&nbsp;</label>
+      <div class="d-flex">
+        <button type="submit" class="btn btn-primary me-2"
+                style="background-color: #1C355E; border-color: #1C355E;">
+          <i class="ti-search"></i> 검색
+        </button>
+        <a href="/shipment/list?tab=completed" class="btn btn-light">
+          <i class="ti-reload"></i> 초기화
+        </a>
+      </div>
+    </div>
+
+    <!-- 숨겨진 파라미터 -->
+    <input type="hidden" name="tab" value="completed">
+    <input type="hidden" name="sortOrder" value="${cri.sortOrder}">
+    <input type="hidden" name="page" value="1">
+    <input type="hidden" name="perPageNum" value="${cri.perPageNum}">
+  </form>
+</div>
+
           
           <!-- 출하 관리 탭 -->
           <div class="col-12">
@@ -221,58 +226,90 @@
               <div class="table-responsive">
                 <table class="table table-hover">
                   <thead style="background-color: #1C355E; color: white; border-top: none;">
-                    <tr>
-                      <th>
-                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=delivery_id&sortOrder=${cri.sortColumn == 'delivery_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-                           class="text-white text-decoration-none">
-                          출하ID
-                          <c:if test="${cri.sortColumn == 'delivery_id'}">
-                            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-                          </c:if>
-                        </a>
-                      </th>
-                      <th>
-                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=cl_order_id&sortOrder=${cri.sortColumn == 'cl_order_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-                           class="text-white text-decoration-none">
-                          수주번호
-                          <c:if test="${cri.sortColumn == 'cl_order_id'}">
-                            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-                          </c:if>
-                        </a>
-                      </th>
-                      <th>
-                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=client_name&sortOrder=${cri.sortColumn == 'client_name' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-                           class="text-white text-decoration-none">
-                          거래처명
-                          <c:if test="${cri.sortColumn == 'client_name'}">
-                            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-                          </c:if>
-                        </a>
-                      </th>
-                      <th>
-                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=product_name&sortOrder=${cri.sortColumn == 'product_name' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-                           class="text-white text-decoration-none">
-                          제품명
-                          <c:if test="${cri.sortColumn == 'product_name'}">
-                            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-                          </c:if>
-                        </a>
-                      </th>
-                      <th>LOT번호</th>
-                      <th>출하 수량</th>
-                      <th>
-                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=delivery_date&sortOrder=${cri.sortColumn == 'delivery_date' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-                           class="text-white text-decoration-none">
-                          출하일자
-                          <c:if test="${cri.sortColumn == 'delivery_date'}">
-                            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-                          </c:if>
-                        </a>
-                      </th>
-                      <th>송장번호</th>
-                      <th>상태</th>
-                    </tr>
-                  </thead>
+  <tr>
+    <th>
+      <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=delivery_id&sortOrder=${cri.sortColumn eq 'delivery_id' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
+         class="text-white text-decoration-none">
+        출하ID
+        <c:choose>
+          <c:when test="${cri.sortColumn eq 'delivery_id'}">
+            <i class="ti-arrow-${cri.sortOrder eq 'asc' ? 'up' : 'down'}"></i>
+          </c:when>
+          <c:otherwise>
+            <span class="neutral-arrow">⇅</span>
+          </c:otherwise>
+        </c:choose>
+      </a>
+    </th>
+
+    <th>
+      <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=cl_order_id&sortOrder=${cri.sortColumn eq 'cl_order_id' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
+         class="text-white text-decoration-none">
+        수주번호
+        <c:choose>
+          <c:when test="${cri.sortColumn eq 'cl_order_id'}">
+            <i class="ti-arrow-${cri.sortOrder eq 'asc' ? 'up' : 'down'}"></i>
+          </c:when>
+          <c:otherwise>
+            <span class="neutral-arrow">⇅</span>
+          </c:otherwise>
+        </c:choose>
+      </a>
+    </th>
+
+    <th>
+      <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=client_name&sortOrder=${cri.sortColumn eq 'client_name' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
+         class="text-white text-decoration-none">
+        거래처명
+        <c:choose>
+          <c:when test="${cri.sortColumn eq 'client_name'}">
+            <i class="ti-arrow-${cri.sortOrder eq 'asc' ? 'up' : 'down'}"></i>
+          </c:when>
+          <c:otherwise>
+            <span class="neutral-arrow">⇅</span>
+          </c:otherwise>
+        </c:choose>
+      </a>
+    </th>
+
+    <th>
+      <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=product_name&sortOrder=${cri.sortColumn eq 'product_name' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
+         class="text-white text-decoration-none">
+        제품명
+        <c:choose>
+          <c:when test="${cri.sortColumn eq 'product_name'}">
+            <i class="ti-arrow-${cri.sortOrder eq 'asc' ? 'up' : 'down'}"></i>
+          </c:when>
+          <c:otherwise>
+            <span class="neutral-arrow">⇅</span>
+          </c:otherwise>
+        </c:choose>
+      </a>
+    </th>
+
+    <th>LOT번호</th>
+    <th>출하 수량</th>
+
+    <th>
+      <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=delivery_date&sortOrder=${cri.sortColumn eq 'delivery_date' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
+         class="text-white text-decoration-none">
+        출하일자
+        <c:choose>
+          <c:when test="${cri.sortColumn eq 'delivery_date'}">
+            <i class="ti-arrow-${cri.sortOrder eq 'asc' ? 'up' : 'down'}"></i>
+          </c:when>
+          <c:otherwise>
+            <span class="neutral-arrow">⇅</span>
+          </c:otherwise>
+        </c:choose>
+      </a>
+    </th>
+
+    <th>송장번호</th>
+    <th>상태</th>
+  </tr>
+</thead>
+
                   <tbody>
                     <c:forEach var="item" items="${completedList}">
                       <tr>
@@ -469,4 +506,9 @@
 .tab-content {
     margin-top: 20px;
 }
+ .neutral-arrow {
+    color: #ccc;
+    font-size: 12px;
+    margin-left: 4px;
+  }
 </style>

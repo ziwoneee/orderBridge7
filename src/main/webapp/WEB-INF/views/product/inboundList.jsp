@@ -44,6 +44,9 @@
                
         
         <button type="submit" class="btn btn-primary">조회</button>
+        <a href="/product/inbound/list" class="btn btn-light">
+          <i class="ti-reload"></i> 초기화
+        </a>
     </form>
     </div>
     
@@ -76,38 +79,56 @@
   
   <!-- ✅ 제품명 정렬 -->
   <th>
-    <a href="?page=1&sortColumn=productName&sortOrder=${cri.sortColumn eq 'productName' and cri.sortOrder eq 'ASC' ? 'DESC' : 'ASC'}&keyword=${fn:escapeXml(cri.keyword)}">
-      제품명
-      <c:if test="${cri.sortColumn eq 'productName'}">
-        ${cri.sortOrder eq 'ASC' ? '▲' : '▼'}
-      </c:if>
-    </a>
-  </th>
+  <a href="?page=1&sortColumn=productname&sortOrder=${cri.sortColumn eq 'productname' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&keyword=${fn:escapeXml(cri.keyword)}">
+    제품명
+    <c:choose>
+      <c:when test="${cri.sortColumn eq 'productname'}">
+        <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+      </c:when>
+      <c:otherwise>
+        <span class="neutral-arrow">⇅</span>
+      </c:otherwise>
+    </c:choose>
+  </a>
+</th>
+
 
   <th>LOT번호</th>
   <th>수량</th>
 
   <!-- ✅ 입고일자 정렬 -->
-  <th>
-    <a href="?page=1&sortColumn=createdAt&sortOrder=${cri.sortColumn eq 'createdAt' and cri.sortOrder eq 'ASC' ? 'DESC' : 'ASC'}&keyword=${fn:escapeXml(cri.keyword)}">
-      입고일자
-      <c:if test="${cri.sortColumn eq 'createdAt'}">
-        ${cri.sortOrder eq 'ASC' ? '▲' : '▼'}
-      </c:if>
-    </a>
-  </th>
+<th>
+  <a href="?page=1&sortColumn=createdat&sortOrder=${cri.sortColumn eq 'createdat' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&keyword=${fn:escapeXml(cri.keyword)}">
+    입고일자
+    <c:choose>
+      <c:when test="${cri.sortColumn eq 'createdat'}">
+        <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+      </c:when>
+      <c:otherwise>
+        <span class="neutral-arrow">⇅</span>
+      </c:otherwise>
+    </c:choose>
+  </a>
+</th>
+
 
   <th>입고유형</th>
 
   <!-- ✅ 담당자 정렬 -->
-  <th>
-    <a href="?page=1&sortColumn=manager&sortOrder=${cri.sortColumn eq 'manager' and cri.sortOrder eq 'ASC' ? 'DESC' : 'ASC'}&keyword=${fn:escapeXml(cri.keyword)}">
-      담당자
-      <c:if test="${cri.sortColumn eq 'manager'}">
-        ${cri.sortOrder eq 'ASC' ? '▲' : '▼'}
-      </c:if>
-    </a>
-  </th>
+<th>
+  <a href="?page=1&sortColumn=manager&sortOrder=${cri.sortColumn eq 'manager' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&keyword=${fn:escapeXml(cri.keyword)}">
+    담당자
+    <c:choose>
+      <c:when test="${cri.sortColumn eq 'manager'}">
+        <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+      </c:when>
+      <c:otherwise>
+        <span class="neutral-arrow">⇅</span>
+      </c:otherwise>
+    </c:choose>
+  </a>
+</th>
+
 
   <th>비고</th>
 </tr>
@@ -173,4 +194,8 @@
 </div>
 <!-- container-scroller 끝-->  
 
-
+<style>
+  .neutral-arrow {
+    color: #ccc;
+  }
+</style>

@@ -54,7 +54,7 @@ public class ClientDeliveryController {
     	List<String> allowed = Arrays.asList("deliveryId", "clOrderId", "deliveryDate", "productName", "clientName", "lotNo", "trackingNumber");
 
         // ✅ 기본값 설정
-        if (cri.getSortColumn() == null || !allowed.contains(cri.getSortColumn())) {
+        if (cri.getSortColumn() == null) {
             cri.setSortColumn("deliveryDate");
         }
         if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) {

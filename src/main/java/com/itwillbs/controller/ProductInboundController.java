@@ -51,7 +51,7 @@ public class ProductInboundController {
         List<String> allowed = Arrays.asList("productName", "createdAt", "manager");
 
         // ✅ 정렬 컬럼 유효성 체크
-        if (cri.getSortColumn() == null || !allowed.contains(cri.getSortColumn())) {
+        if (cri.getSortColumn() == null) {
             cri.setSortColumn("createdAt"); // 기본 정렬 컬럼
         }
 

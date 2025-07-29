@@ -5,14 +5,29 @@
 
 <mapper namespace="com.itwillbs.mapper.StockReservationMapper">
 
-  <!-- ✅ 예약 등록 -->
-  <insert id="insertReservation" parameterType="com.itwillbs.domain.StockReservationVO">
-    INSERT INTO stock_reservation (
-      cl_order_id, product_id, lot_no, reserved_qty, reserved_at
-    ) VALUES (
-      #{clOrderId}, #{productId}, #{lotNo}, #{reservedQty}, NOW()
-    )
-  </insert>
+ <!-- ✅ 예약 등록 -->
+<insert id="insertReservation" parameterType="com.itwillbs.domain.StockReservationVO">
+  INSERT INTO stock_reservation (
+    cl_order_id,
+    product_id,
+    lot_no,
+    reserved_qty,
+    reserved_at,
+    client_id,
+    manager,
+    detail_id
+  ) VALUES (
+    #{clOrderId},
+    #{productId},
+    #{lotNo},
+    #{reservedQty},
+    NOW(),
+    #{clientId},
+    #{manager},
+    #{detailId}
+  )
+</insert>
+
 
   <!-- ✅ 예약 해제 -->
   <delete id="deleteReservation" parameterType="map">
