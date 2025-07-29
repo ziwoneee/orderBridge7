@@ -38,6 +38,16 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
     // 발주 등록
     @Override
     public void insertOrder(MaterialOrderDTO orderDTO) throws Exception {
+    	
+    	// 1. 납기일 유효성 검사
+    	java.util.Date today = new java.util.Date();
+    	java.util.Date expectedDate = orderDTO.getOrder().getExpectedArrivedDate();
+    	
+        if (expectedDate.before(today)) {
+            throw new IllegalArgumentException("납기일은 오늘 이후여야 합니다.");
+        }
+
+        
         // 1. 발주번호 생성
         String newOrderId = mOrderDAO.generateOrderId();
         orderDTO.getOrder().setOrderId(newOrderId);
@@ -46,10 +56,18 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
         mOrderDAO.insertOrder(orderDTO.getOrder());
 
         // 3. order_item 테이블 insert (for each)
+        int index = 1;
         for (MaterialOrderItemVO item : orderDTO.getOrderItems()) {
             item.setOrderId(newOrderId); // 외래키 설정
+
+            // ✅ 자동 생성되는 order_item_id
+            String itemId = newOrderId + "-" + index;
+            item.setOrderItemId(itemId);
+            index++;
+
             mOrderDAO.insertOrderItem(item);
         }
+
     }
 	
 	

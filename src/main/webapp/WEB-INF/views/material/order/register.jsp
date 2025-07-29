@@ -11,40 +11,42 @@
     <div class="main-panel">
       <div class="content-wrapper">
         <h3 class="font-weight-bold mb-4">자재 발주 등록</h3>
-
+        
+        <c:if test="${not empty error}">
+		  <div class="alert alert-danger mb-3">
+		    ${error}
+		  </div>
+		</c:if>
+        
         <form action="/material/order/register" method="post">
 
-          <!-- 기본 정보 -->
-          <div class="card-section">
-            <h5 class="section-title">기본 정보</h5>
-            <div class="row">
-              <div class="col-md-3 mb-3">
-                <label>발주일</label>
-                <input type="date" name="order.orderDate" class="form-control" value="<%= new java.text.SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date()) %>" required>
-              </div>
-              <div class="col-md-3 mb-3">
-                <label>납기요청일</label>
-                <input type="date" name="order.expectedArrivedDate" class="form-control" required>
-              </div>
-              <div class="col-md-3 mb-3">
-                <label>거래처</label>
-                <select name="order.supplierId" class="form-control" required>
-                  <option value="">선택</option>
-                  <c:forEach var="supplier" items="${supplierList}">
-                    <option value="${supplier.supplierId}">${supplier.supplierName}</option>
-                  </c:forEach>
-                </select>
-              </div>
-              <div class="col-md-3 mb-3">
-                <label>담당자</label>
-                <input type="text" name="order.createdBy" class="form-control" placeholder="예: 홍길동" required>
-              </div>
-              <div class="col-md-12">
-                <label>비고</label>
-                <textarea name="order.note" class="form-control" rows="2"></textarea>
-              </div>
-            </div>
-          </div>
+          <!-- 기본 정보 섹션 - orderDate 제거 -->
+			<div class="card-section">
+			  <h5 class="section-title">기본 정보</h5>
+			  <div class="row">
+			    <div class="col-md-4 mb-3">
+			      <label>납기요청일 <span class="text-danger">*</span></label>
+			      <input type="date" name="order.expectedArrivedDate" class="form-control" required>
+			    </div>
+			    <div class="col-md-4 mb-3">
+			      <label>거래처 <span class="text-danger">*</span></label>
+			      <select name="order.supplierId" class="form-control" required>
+			        <option value="">선택하세요</option>
+			        <c:forEach var="supplier" items="${supplierList}">
+			          <option value="${supplier.supplierId}">${supplier.supplierName}</option>
+			        </c:forEach>
+			      </select>
+			    </div>
+			    <div class="col-md-4 mb-3">
+			      <label>담당자 <span class="text-danger">*</span></label>
+			      <input type="text" name="order.createdBy" class="form-control" placeholder="예: 홍길동" required>
+			    </div>
+			    <div class="col-md-12">
+			      <label>비고</label>
+			      <textarea name="order.note" class="form-control" rows="2" placeholder="발주 관련 특이사항을 입력하세요"></textarea>
+			    </div>
+			  </div>
+			</div>
 
           <!-- 항목 정보 -->
           <div class="card-section">
@@ -52,6 +54,9 @@
               <h5 class="section-title">발주 항목</h5>
               <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItemRow()">+ 항목 추가</button>
             </div>
+            
+            <!-- 발주 상태 hidden으로 추가 -->
+			<input type="hidden" name="order.orderStatus" value="요청">
 
             <table class="table table-bordered text-center" id="itemTable">
               <thead class="thead-light">
@@ -64,26 +69,24 @@
                   <th>삭제</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr>
-                  <td>
-                    <select name="orderItems[0].materialId" class="form-control">
-                      <option value="">선택</option>
-                      <c:forEach var="mat" items="${materialList}">
-                        <option value="${mat.materialId}">${mat.materialName}</option>
-                      </c:forEach>
-                    </select>
-                  </td>
-                  <td><input type="number" name="orderItems[0].quantity" class="form-control" onchange="calculateTotal(this)" required></td>
-                  <td><input type="number" name="orderItems[0].unitPrice" class="form-control" onchange="calculateTotal(this)" required></td>
-                  <td>
-                  	<input type="number" class="form-control" value="0" readonly> <!-- 보여주기용 -->
-                  	<input type="hidden" name="orderItems[0].totalPrice" value="0"> <!-- 서버 전송용 -->
-              	  </td>
-                  <td><input type="text" name="orderItems[0].storageLocation" class="form-control"></td>
-                  <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button></td>
-                </tr>
-              </tbody>
+              <!-- 항목 테이블의 첫 번째 행도 수정 -->
+				<tbody>
+				  <tr>
+				    <td>
+				      <select name="orderItems[0].materialId" class="form-control" required>
+				        <option value="">거래처를 먼저 선택하세요</option>
+				      </select>
+				    </td>
+				    <td><input type="number" name="orderItems[0].quantity" class="form-control" min="1" onchange="calculateTotal(this)" required></td>
+				    <td><input type="number" name="orderItems[0].unitPrice" class="form-control" min="0" step="0.01" onchange="calculateTotal(this)" required></td>
+				    <td>
+				      <input type="number" class="form-control" value="0" readonly>
+				      <input type="hidden" name="orderItems[0].totalPrice" value="0">
+				    </td>
+				    <td><input type="text" name="orderItems[0].storageLocation" class="form-control" readonly></td>
+				    <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button></td>
+				  </tr>
+				</tbody>
             </table>
           </div>
 

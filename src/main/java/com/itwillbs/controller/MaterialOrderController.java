@@ -1,12 +1,15 @@
 package com.itwillbs.controller;
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.propertyeditors.CustomDateEditor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.WebDataBinder;
@@ -34,10 +37,8 @@ import com.itwillbs.service.SupplierService;
 @RequestMapping("/material/order")
 public class MaterialOrderController {
 	
-	// mylog
 	private static final Logger logger = LoggerFactory.getLogger(MaterialOrderController.class);
 
-	// 서비스 객체 주입
 	@Inject
 	private MaterialOrderService mOrderService;
 	
@@ -48,43 +49,54 @@ public class MaterialOrderController {
 	private MaterialService materialService;
 	
 	
+    private void setRegisterPageData(Model model) throws Exception {
+        model.addAttribute("supplierList", supplierService.getAllSuppliers());
+        model.addAttribute("materialList", materialService.getAllMaterials());
+        model.addAttribute("menu", "material");
+    }
+	
+	
+	// ✅ Date 바인딩 설정 추가
+	@InitBinder
+	public void initBinder(WebDataBinder binder) {
+	    // Date 타입 바인딩 설정
+	    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+	    dateFormat.setLenient(false);
+	    binder.registerCustomEditor(Date.class, new CustomDateEditor(dateFormat, true));
+	    
+	    // totalPrice 바인딩 무시 (서버에서 계산)
+	    binder.setDisallowedFields("orderItems[].totalPrice");
+	}
+
+	
 	// 발주 목록 조회 (검색, 정렬, 페이징 포함)
 	@GetMapping("/list")
 	public String orderList(SearchCriteria cri, Model model) throws Exception {
 		
-		// 1. 정렬 컬럼이 없으면 기본값 세팅 (안 해주면 ORDER BY desc 에러 발생)
-	    if (cri.getSortColumn() == null || cri.getSortColumn().isBlank()) {
-	        cri.setSortColumn("order_date"); // 기본 정렬 컬럼: 발주일
+		if (cri.getSortColumn() == null || cri.getSortColumn().isBlank()) {
+	        cri.setSortColumn("order_date");
 	    }
 	    
-		// 2. 조건에 맞는 발주 목록 조회
         List<MaterialOrderVO> orderList = mOrderService.getOrderList(cri);
-
-        // 3. 전체 건수 조회 (페이징용)
         int totalCount = mOrderService.getTotalCount(cri);
         PageMaker pageMaker = new PageMaker(cri, totalCount);
 
-
-        // 4. 모델 등록
         model.addAttribute("orderList", orderList);
         model.addAttribute("pageMaker", pageMaker);
         model.addAttribute("cri", cri);
 	    model.addAttribute("menu", "material");
 	    
-	    // JSP 뷰 경로 반환
 	    return "material/order/list";
 	}
 
-	
 	
 	// 자재 발주 등록 페이지 이동 (GET)
 	@GetMapping("/register")
 	public String registerForm(Model model) throws Exception {
 	    logger.debug("GET /material/order/register → 발주 등록 폼 이동");
 
-	    // 등록 시 선택할 거래처/자재 목록 불러오기 (예: 드롭다운용)
-	    List<SupplierVO> supplierList = supplierService.getAllSuppliers(); // 거래처
-	    List<MaterialVO> materialList = materialService.getAllMaterials(); // 자재
+	    List<SupplierVO> supplierList = supplierService.getAllSuppliers();
+	    List<MaterialVO> materialList = materialService.getAllMaterials();
 
 	    model.addAttribute("supplierList", supplierList);
 	    model.addAttribute("materialList", materialList);
@@ -92,59 +104,67 @@ public class MaterialOrderController {
 	    return "material/order/register";
 	}
 	
-	
-	@InitBinder
-	public void initBinder(WebDataBinder binder) {
-	    binder.setDisallowedFields("orderItems[].totalPrice");  // 바인딩 무시
-	}
-
 
 	// 자재 발주 등록 처리 (POST)
 	@PostMapping("/register")
-	public String registerOrder(@ModelAttribute MaterialOrderDTO orderDTO) throws Exception {
+	public String registerOrder(@ModelAttribute MaterialOrderDTO orderDTO, Model model) throws Exception {
 		logger.info("registerOrder 컨트롤러 진입");
 		logger.debug("등록된 발주 데이터: " + orderDTO);
 
-	    // 기본 정보와 항목 리스트 가져오기
 	    MaterialOrderVO order = orderDTO.getOrder();
 	    List<MaterialOrderItemVO> itemList = orderDTO.getOrderItems();
 	    
-	    // ✅ 총금액 직접 계산
+	    // ✅ 필수값 검증 및 기본값 설정
+	    if (order.getOrderStatus() == null || order.getOrderStatus().isEmpty()) {
+	        order.setOrderStatus("요청");
+	    }
+	    
+	    // ✅ 발주일이 없으면 현재 날짜로 설정
+	    if (order.getOrderDate() == null) {
+	        order.setOrderDate(new Date());
+	    }
+	    
+	    // ✅ 빈 항목 제거 및 검증
+	    if (itemList != null) {
+	        itemList.removeIf(item -> 
+	            item.getMaterialId() == null || 
+	            item.getMaterialId().trim().isEmpty() || 
+	            item.getQuantity() <= 0
+	        );
+	    }
+	    
+	    if (itemList == null || itemList.isEmpty()) {
+	        throw new IllegalArgumentException("발주 항목이 없습니다.");
+	    }
+	    
+	    // ✅ 총금액 계산 (BigDecimal 안전하게 처리)
 	    for (MaterialOrderItemVO item : itemList) {
-	        if (item.getUnitPrice() != null && item.getQuantity() > 0) {
-	            BigDecimal unit = item.getUnitPrice();
-	            BigDecimal qty = new BigDecimal(item.getQuantity());
-	            item.setTotalPrice(unit.multiply(qty));
-	        } else {
-	            item.setTotalPrice(BigDecimal.ZERO); // 값 없으면 0으로 처리
+	        try {
+	            BigDecimal unitPrice = item.getUnitPrice();
+	            int quantity = item.getQuantity();
+	            
+	            if (unitPrice != null && quantity > 0) {
+	                BigDecimal total = unitPrice.multiply(new BigDecimal(quantity));
+	                item.setTotalPrice(total);
+	            } else {
+	                item.setTotalPrice(BigDecimal.ZERO);
+	            }
+	        } catch (Exception e) {
+	            logger.error("총금액 계산 오류: " + e.getMessage(), e);
+	            item.setTotalPrice(BigDecimal.ZERO);
 	        }
 	    }
 	    
-	    // 서비스 호출 (예시)
-	    mOrderService.insertOrder(orderDTO);
+	    try {
+	        mOrderService.insertOrder(orderDTO); // 납기일 유효성 검사 포함
+	    } catch (IllegalArgumentException e) {
+	        model.addAttribute("error", e.getMessage());
+	        setRegisterPageData(model);
+	        model.addAttribute("orderDTO", orderDTO);
+	        return "material/order/register";
+	    }
 	    
 	    return "redirect:/material/order/list";
 	}
 
-	
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-} // MaterialOrderController 끝
+}
