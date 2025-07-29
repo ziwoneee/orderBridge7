@@ -136,12 +136,35 @@ public class ClientOrderController {
         if (cri.getPerPageNum() <= 0) cri.setPerPageNum(10);
 
         int totalCount = clientOrderService.getOrderCount(cri);
+        // 상태별 건수 조회
+        int allCount = clientOrderService.countAllOrders(); // 전체 건수
+        int requestedCount = clientOrderService.countOrdersByStatus("REQUESTED");
+        int confirmedCount = clientOrderService.countOrdersByStatus("CONFIRMED");
+        int shippedCount = clientOrderService.countOrdersByStatus("SHIPPED");
+        int cancelledCount = clientOrderService.countOrdersByStatus("CANCELLED");
+
+        // 현재 조건으로 검색된 목록 조회
+        int filteredCount = clientOrderService.getOrderCount(cri); // 현재 조건에 따른 전체 목록 수
         List<ClientOrderVO> orderList = clientOrderService.getOrderList(cri);
         PageMaker pageMaker = new PageMaker(cri, totalCount);
 
+     // 모델에 값 전달
         model.addAttribute("orderList", orderList);
         model.addAttribute("pageMaker", pageMaker);
         model.addAttribute("cri", cri);
+
+        // 상태별 건수 전달
+        model.addAttribute("totalCount", allCount);
+        model.addAttribute("requestedCount", requestedCount);
+        model.addAttribute("confirmedCount", confirmedCount);
+        model.addAttribute("shippedCount", shippedCount);
+        model.addAttribute("cancelledCount", cancelledCount);
+        
+        
+        
+        
+        
+        
         return "clientOrder/orderList";
     }
     

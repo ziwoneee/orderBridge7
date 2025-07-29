@@ -45,6 +45,9 @@ public interface ClientDeliveryDAO {
      // 출하완료 목록
      List<ShipmentCompletedDTO> searchCompletedShipmentList(SearchCriteria cri);
      int countCompletedShipmentList(SearchCriteria cri);
+     
+     
+	void updateOrderDetailStatus(int detailId, String status);
 
    
      

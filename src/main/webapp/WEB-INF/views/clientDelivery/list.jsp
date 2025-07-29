@@ -2,6 +2,7 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+<c:set var="reservedOrderId" value="${reservedOrderId}" />
 
 <% java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
    String today = sdf.format(new java.util.Date()); %>
@@ -138,6 +139,8 @@
                                       <span class="badge border border-success text-success ml-2 d-flex align-items-center" style="gap: 5px;">
                                         <i class="fas fa-shipping-fast"></i> 출하
                                       </span>
+                                      
+                                     
                                     </c:if>
                                   </div>
                                   <c:set var="firstRow" value="false"/>
@@ -159,8 +162,25 @@
                             <td>
                               <c:choose>
                                 <c:when test="${item.stockQty ge item.orderQty}">
-                                  <span class="badge badge-success">가능</span>
-                                </c:when>
+<!--   						<span class="badge badge-success">가능</span> -->
+
+  					<c:choose>
+  <c:when test="${fn:contains(reservedOrderIds, group.clOrderId)}">
+    <button type="button" class="btn btn-sm btn-secondary mt-1" disabled>
+      <i class="fas fa-boxes"></i> 예약중
+    </button>
+  </c:when>
+  <c:otherwise>
+    <button type="button" class="btn btn-sm btn-outline-primary mt-1"
+            onclick="reserveStock('${group.clOrderId}')">
+      <i class="fas fa-boxes"></i> 예약
+    </button>
+  </c:otherwise>
+</c:choose>
+
+
+</c:when>
+
                                 <c:otherwise>
                                   <span class="badge badge-danger">부족</span>
                                 </c:otherwise>
@@ -363,6 +383,14 @@
     }
   });
 </script>
+<script>
+  function reserveStock(clOrderId) {
+    if (confirm("이 수주건의 재고를 예약하시겠습니까?")) {
+      location.href = "/shipment/reserve?clOrderId=" + clOrderId;
+    }
+  }
+</script>
+
 
 <style>
 /* 언더라인 탭 스타일 - 상단 라인 */

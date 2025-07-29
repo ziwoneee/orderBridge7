@@ -5,6 +5,8 @@ import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.ShipmentCompletedDTO;
 import com.itwillbs.dto.ShipmentPendingGroupDTO;
 import com.itwillbs.service.ClientDeliveryService;
+import com.itwillbs.service.StockReservationService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,6 +22,9 @@ public class ClientDeliveryController {
 
     @Autowired
     private ClientDeliveryService deliveryService;
+    
+    @Autowired
+    private StockReservationService reservationService;
 
     // ✅ 출하대기 그룹형 목록 조회
     @GetMapping("/pending")
@@ -81,6 +86,11 @@ public class ClientDeliveryController {
         List<ShipmentPendingGroupDTO> groupedList = deliveryService.getPendingShipmentGroupedList();
         model.addAttribute("groupedList", groupedList);
 
+        // ✅ 예약된 수주번호 목록 전달
+        List<String> reservedOrderIds = reservationService.getReservedOrderIds();
+        model.addAttribute("reservedOrderIds", reservedOrderIds);
+
+                
         // 출하완료 검색조건 보정
         List<String> allowed = Arrays.asList("deliveryId", "clOrderId", "deliveryDate", "productName", "clientName", "lotNo", "trackingNumber");
         if (cri.getSortColumn() == null || !allowed.contains(cri.getSortColumn())) cri.setSortColumn("deliveryDate");
@@ -96,10 +106,23 @@ public class ClientDeliveryController {
         model.addAttribute("completedList", completedList);
         model.addAttribute("pageMaker", pageMaker);
         model.addAttribute("cri", cri);
-        model.addAttribute("tab", tab); // 현재 탭 정보
+        model.addAttribute("tab", tab); 
 
-        return "clientDelivery/shipment_tabs";
+        return "clientDelivery/list";
     }
+    
+    @GetMapping("/reserve")
+    public String reserveStock(@RequestParam("clOrderId") String clOrderId, RedirectAttributes rttr) {
+        try {
+            reservationService.reserveStockByOrderId(clOrderId);
+            rttr.addFlashAttribute("reservedOrderId", clOrderId);
+            rttr.addFlashAttribute("message", "재고 예약이 완료되었습니다.");
+        } catch (Exception e) {
+            rttr.addFlashAttribute("message", "예약 중 오류가 발생했습니다.");
+        }
+        return "redirect:/shipment/list?tab=pending";
+    }
+
 
 
 }

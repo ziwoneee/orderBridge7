@@ -3,12 +3,12 @@ package com.itwillbs.service;
 import com.itwillbs.domain.ClientDeliveryVO;
 import com.itwillbs.domain.ProductOutboundVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.domain.StockReservationVO;
 import com.itwillbs.dto.LotStockDTO;
 import com.itwillbs.dto.ShipmentCompletedDTO;
 import com.itwillbs.dto.ShipmentPendingDTO;
 import com.itwillbs.dto.ShipmentPendingGroupDTO;
 import com.itwillbs.persistence.ClientDeliveryDAO;
-import com.itwillbs.persistence.ProductOutboundDAO;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,7 +25,10 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
     private ClientDeliveryDAO deliveryDAO;
 
     @Autowired
-    private ProductOutboundService outboundService; // ✅ 서비스로 변경 (기존 DAO 대체)
+    private ProductOutboundService outboundService;
+
+    @Autowired
+    private StockReservationService reservationService;
 
     @Override
     public List<ShipmentPendingDTO> getPendingShipmentList() {
@@ -38,76 +41,57 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
     }
 
     /**
-     * ✅ 수주번호 단위 출하 처리
-     * - 제품별 LOT에서 차감
-     * - 출하/출고 등록
-     * - 같은 송장번호로 묶음
+     * ✅ 수주번호 단위 출하 처리 (예약 기반)
      */
     @Transactional
     @Override
     public void processShipmentByOrderId(String clOrderId) {
-        List<ShipmentPendingDTO> itemList = deliveryDAO.selectItemsByOrderId(clOrderId);
-        boolean allShipped = true;
+        List<StockReservationVO> reservations = reservationService.getReservationsByOrderId(clOrderId);
 
-        // ✅ 수주번호 단위로 송장번호 1개 생성 (전체에 공유)
+        if (reservations == null || reservations.isEmpty()) return;
+
+        boolean allShipped = true;
         String trackingNumber = generateTrackingNumber();
 
-        for (ShipmentPendingDTO item : itemList) {
-            int remainingQty = item.getOrderQty();
+        for (StockReservationVO r : reservations) {
+            int reservedQty = r.getReservedQty();
 
-            if (item.getStockQty() < remainingQty) {
-                allShipped = false;
-                continue;
-            }
+            // ✅ 출하 등록
+            ClientDeliveryVO delivery = new ClientDeliveryVO();
+            delivery.setClOrderId(r.getClOrderId());
+            delivery.setProductId(r.getProductId());
+            delivery.setLotNo(r.getLotNo());
+            delivery.setDeliveryQty(reservedQty);
+            delivery.setDeliveryDate(new Date());
+            delivery.setDeliveryStatus("배송준비");
+            delivery.setClientId(r.getClientId());
+            delivery.setTrackingNumber(trackingNumber);
+            delivery.setCreatedAt(new Date());
+            delivery.setUpdatedAt(new Date());
 
-            List<LotStockDTO> lots = deliveryDAO.getAvailableLots(item.getProductId());
+            deliveryDAO.insertDelivery(delivery);
 
-            for (LotStockDTO lot : lots) {
-                if (remainingQty <= 0) break;
+            // ✅ 출고 등록
+            ProductOutboundVO outbound = new ProductOutboundVO();
+            outbound.setProductId(r.getProductId());
+            outbound.setLotNo(r.getLotNo());
+            outbound.setOutboundQty(reservedQty);
+            outbound.setOutboundDate(new Date());
+            outbound.setClientId(r.getClientId());
+            outbound.setManager(r.getManager());
+            outbound.setTrackingNumber(trackingNumber);
 
-                int useQty = Math.min(lot.getRemainingQty(), remainingQty);
+            outboundService.registerOutbound(outbound);
 
-                // ✅ 출하 등록
-                ClientDeliveryVO delivery = new ClientDeliveryVO();
-                delivery.setClOrderId(item.getClOrderId());
-                delivery.setProductId(item.getProductId());
-                delivery.setLotNo(lot.getLotNo());
-                delivery.setDeliveryQty(useQty);
-                delivery.setDeliveryDate(new Date());
-                delivery.setDeliveryStatus("배송준비");
-                delivery.setClientName(item.getClientName());
-                delivery.setClientId(item.getClientId());
-                delivery.setTrackingNumber(trackingNumber); // ✅ 동일 송장번호 사용
-                delivery.setCreatedAt(new Date());
-                delivery.setUpdatedAt(new Date());
-
-                deliveryDAO.insertDelivery(delivery);
-
-                // ✅ 출고 등록
-                ProductOutboundVO outbound = new ProductOutboundVO();
-                outbound.setProductId(item.getProductId());
-                outbound.setLotNo(lot.getLotNo());
-                outbound.setOutboundQty(useQty);
-                outbound.setOutboundDate(new Date());
-                outbound.setClientId(item.getClientId());
-                outbound.setManager(item.getManager());  
-                outbound.setTrackingNumber(trackingNumber); // ✅ 동일 송장번호 사용
-
-                outboundService.registerOutbound(outbound); // 출고 ID 자동 생성 + 재고 차감
-
-                remainingQty -= useQty;
-            }
-
-            if (remainingQty <= 0) {
-                deliveryDAO.updateOrderDetailStatus(item.getDetailId(), "SHIPPED");
-            } else {
-                allShipped = false;
-            }
+            // ✅ 상세 상태 SHIPPED 처리
+            deliveryDAO.updateOrderDetailStatus(r.getDetailId(), "SHIPPED");
         }
 
-        if (allShipped) {
-            deliveryDAO.updateClientOrderStatus(clOrderId, "SHIPPED");
-        }
+        // ✅ 마스터 상태도 SHIPPED 처리
+        deliveryDAO.updateClientOrderStatus(clOrderId, "SHIPPED");
+
+        // ✅ 예약 해제
+        reservationService.deleteReservation(clOrderId);
     }
 
     @Override

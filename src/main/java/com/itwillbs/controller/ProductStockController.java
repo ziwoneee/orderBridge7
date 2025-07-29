@@ -16,6 +16,7 @@ import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.ProductStockTransactionVO;
 import com.itwillbs.domain.ProductStockVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.LotStockDTO;
 import com.itwillbs.service.ProductStockService;
 
 @Controller
@@ -70,5 +71,13 @@ public class ProductStockController {
             @RequestParam("lot") String lotNo) {
         return productStockService.getStockDetail(productId, lotNo);
     }
+    
+ // ✅ 제품별 LOT별 가용 재고 조회 (출고/예약 고려)
+    @GetMapping("/product/available-lots")
+    @ResponseBody
+    public List<LotStockDTO> getAvailableLots(@RequestParam("productId") String productId) {
+        return productStockService.getAvailableLotsOrdered(productId);
+    }
+
 
 }

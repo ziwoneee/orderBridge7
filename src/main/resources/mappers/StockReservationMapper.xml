@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.itwillbs.mapper.StockReservationMapper">
+
+  <!-- ✅ 예약 등록 -->
+  <insert id="insertReservation" parameterType="com.itwillbs.domain.StockReservationVO">
+    INSERT INTO stock_reservation (
+      cl_order_id, product_id, lot_no, reserved_qty, reserved_at
+    ) VALUES (
+      #{clOrderId}, #{productId}, #{lotNo}, #{reservedQty}, NOW()
+    )
+  </insert>
+
+  <!-- ✅ 예약 해제 -->
+  <delete id="deleteReservation" parameterType="map">
+    DELETE FROM stock_reservation
+    WHERE cl_order_id = #{clOrderId}
+      AND product_id = #{productId}
+  </delete>
+
+  <!-- ✅ 예약 수량 조회 (수주번호 + 제품ID 기준) -->
+  <select id="getReservedQty" parameterType="map" resultType="int">
+    SELECT COALESCE(SUM(reserved_qty), 0)
+    FROM stock_reservation
+    WHERE cl_order_id = #{clOrderId}
+      AND product_id = #{productId}
+  </select>
+
+  <!-- ✅ 수주번호 기준 전체 예약 목록 -->
+  <select id="getReservationsByOrderId" parameterType="string" resultType="com.itwillbs.domain.StockReservationVO">
+  SELECT
+    sr.cl_order_id,
+    sr.product_id,
+    sr.lot_no,
+    sr.reserved_qty,
+    sr.detail_id,
+    sr.manager,
+    co.client_id                     
+  FROM stock_reservation sr
+  JOIN client_order co ON sr.cl_order_id = co.cl_order_id
+  WHERE sr.cl_order_id = #{clOrderId}
+</select>
+
+  
+  <!-- 예약 삭제: 수주번호 기준 -->
+<delete id="deleteByOrderId" parameterType="String">
+    DELETE FROM stock_reservation
+    WHERE cl_order_id = #{clOrderId}
+</delete>
+
+
+<!-- LOT별 가용 수량 (유통기한 오름차순) 조회 -->
+<select id="getAvailableLotsOrdered" parameterType="String" resultType="com.itwillbs.dto.LotStockDTO">
+  SELECT 
+    pi.product_id,
+    pi.lot_no,
+    pi.inbound_qty,
+    IFNULL(po.total_outbound_qty, 0) AS total_outbound_qty,
+    IFNULL(sr.total_reserved_qty, 0) AS reserved_qty,
+    (pi.inbound_qty - IFNULL(po.total_outbound_qty, 0) - IFNULL(sr.total_reserved_qty, 0)) AS available_qty,
+    pi.expire_date
+  FROM product_inbound pi
+  LEFT JOIN (
+    SELECT product_id, lot_no, SUM(outbound_qty) AS total_outbound_qty
+    FROM product_outbound
+    GROUP BY product_id, lot_no
+  ) po ON pi.product_id = po.product_id AND pi.lot_no = po.lot_no
+  LEFT JOIN (
+    SELECT product_id, lot_no, SUM(reserved_qty) AS total_reserved_qty
+    FROM stock_reservation
+    GROUP BY product_id, lot_no
+  ) sr ON pi.product_id = sr.product_id AND pi.lot_no = sr.lot_no
+  WHERE pi.product_id = #{productId}
+  HAVING available_qty > 0
+  ORDER BY pi.expire_date ASC
+</select>
+
+<!-- 특정 제품 + LOT 기준 예약 수량 조회 -->
+<select id="getReservedQtyByProductAndLot" resultType="int">
+  SELECT COALESCE(SUM(reserved_qty), 0)
+  FROM stock_reservation
+  WHERE product_id = #{productId}
+    AND lot_no = #{lotNo}
+</select>
+
+<select id="getAllReservedOrderIds" resultType="String">
+  SELECT DISTINCT cl_order_id FROM stock_reservation
+</select>
+
+  
+
+</mapper>

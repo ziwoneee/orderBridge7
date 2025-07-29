@@ -130,6 +130,13 @@ public class ClientDeliveryDAOImpl implements ClientDeliveryDAO {
         return sqlSession.selectOne(NAMESPACE + ".countCompletedShipmentList", cri);
     }
 
-    
+    @Override
+    public void updateOrderDetailStatus(int detailId, String status) {
+        Map<String, Object> paramMap = new HashMap<>();
+        paramMap.put("detailId", detailId);
+        paramMap.put("status", status);
+        sqlSession.update(NAMESPACE + ".updateOrderDetailStatus", paramMap);
+    }
+
     
 }

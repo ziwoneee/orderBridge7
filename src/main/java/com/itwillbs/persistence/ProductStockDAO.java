@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Param;
 import com.itwillbs.domain.ProductStockTransactionVO;
 import com.itwillbs.domain.ProductStockVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.LotStockDTO;
 
 public interface ProductStockDAO {
 	//재고현황리스트
@@ -23,5 +24,9 @@ public interface ProductStockDAO {
      List<ProductStockTransactionVO> getStockDetail(@Param("productId") String productId,
                                                    @Param("lotNo") String lotNo);
 
+
+     List<LotStockDTO> getAvailableLotsOrdered(String productId);
+
+   
 
 }

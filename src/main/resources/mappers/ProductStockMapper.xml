@@ -101,5 +101,41 @@
     <result property="qty" column="qty" />
     <result property="memo" column="memo" />
   </resultMap>
+  
+ <!-- ✅ 유통기한 빠른 순 LOT별 가용 재고 조회 (출고 + 예약 반영) -->
+<select id="getAvailableLotsOrdered" parameterType="String" resultType="com.itwillbs.dto.LotStockDTO">
+  SELECT 
+    pi.product_id,
+    pi.lot_no,
+    pi.inbound_qty,
+    IFNULL(po.total_outbound_qty, 0) AS total_outbound_qty,
+    IFNULL(sr.total_reserved_qty, 0) AS reserved_qty,
+    (pi.inbound_qty - IFNULL(po.total_outbound_qty, 0) - IFNULL(sr.total_reserved_qty, 0)) AS available_qty,
+    pi.expire_date
+  FROM product_inbound pi
+  LEFT JOIN (
+    SELECT product_id, lot_no, SUM(outbound_qty) AS total_outbound_qty
+    FROM product_outbound
+    GROUP BY product_id, lot_no
+  ) po ON pi.product_id = po.product_id AND pi.lot_no = po.lot_no
+  LEFT JOIN (
+    SELECT product_id, lot_no, SUM(reserved_qty) AS total_reserved_qty
+    FROM stock_reservation
+    GROUP BY product_id, lot_no
+  ) sr ON pi.product_id = sr.product_id AND pi.lot_no = sr.lot_no
+  WHERE pi.product_id = #{productId}
+  HAVING available_qty > 0
+  ORDER BY pi.expire_date ASC
+</select>
+
+
+  <!-- ✅ product_id + lot_no로 예약 수량 조회 -->
+<select id="getReservedQtyByProductAndLot" resultType="int" parameterType="map">
+  SELECT COALESCE(SUM(reserved_qty), 0)
+  FROM stock_reservation
+  WHERE product_id = #{productId} AND lot_no = #{lotNo}
+</select>
+  
+  
 
 </mapper>
