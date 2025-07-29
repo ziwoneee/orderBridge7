@@ -62,24 +62,14 @@
             
              <!-- 발주 목록 -->
             <div class="col-12">
-              <!-- 탭 -->
-              <div class="d-flex justify-content-between align-items-center mb-0">
-                <ul class="nav nav-underline-custom" id="statusTab" role="tablist">
-                  <li class="nav-item">
-                    <a class="nav-link ${empty param.status ? 'active' : ''}" 
-                       href="/material/order/list?keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
-                      발주 현황 <span class="badge badge-light ms-1"></span>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a class="nav-link ${param.status eq '발주 등록' ? 'active' : ''}" 
-                       href="/material/order/list?status=발주등록&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
-                      발주 등록 <span class="badge badge-light ms-1">${registeredCount}</span>
-                    </a>
-                  </li>
-                </ul>
-              </div>
-                  
+
+			<!-- 상단 제목 + 버튼 -->
+			<div class="d-flex justify-content-end align-items-center mb-3">
+			  <a href="/material/order/register" class="btn btn-primary">
+			    <i class="ti-plus"></i> 발주 등록
+			  </a>
+			</div>
+
               <!-- 테이블 -->
               <div class="table-responsive">
                 <table class="table table-hover">
