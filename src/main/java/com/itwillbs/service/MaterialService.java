@@ -24,6 +24,8 @@ public interface MaterialService {
 	List<MaterialVO> getMaterialListPage(SearchCriteria cri) throws Exception;
 
 	
+	// 목록 조회 (자재 발주관리 등록 폼에서 필요)
+	List<MaterialVO> getAllMaterials() throws Exception;
 
 
 }

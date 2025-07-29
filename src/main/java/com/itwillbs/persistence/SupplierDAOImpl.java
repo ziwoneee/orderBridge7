@@ -74,4 +74,10 @@ public class SupplierDAOImpl implements SupplierDAO {
         sqlSession.update(NAMESPACE + "updateSupplier", vo);
     }
 	
+	
+	// 목록 조회 (자재 발주관리 등록 폼에서 필요)
+	@Override
+	public List<SupplierVO> selectAllSuppliers() {
+	    return sqlSession.selectList(NAMESPACE + "selectAllSuppliers");
+	}
 }

@@ -185,3 +185,50 @@
 	.nav-underline-custom .nav-link.active .tab-count {
 	  background: #1C355E;
 	}
+
+	
+	
+/* 등록 카드 형식 css (협력사 신규 등록 참고) */
+  h5.section-title {
+    border-left: 5px solid #1C355E !important;
+    padding-left: 10px !important;
+    font-weight: 600 !important;
+    color: #1C355E !important;
+    margin-bottom: 1rem !important;
+  }
+
+  label {
+    font-weight: 500 !important;
+  }
+
+  .card-section {
+    border: 1px solid #dee2e6 !important;
+    padding: 2rem !important;
+    border-radius: 0.5rem !important;
+    background-color: #ffffff !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .form-control:focus {
+    border-color: #1C355E !important;
+    box-shadow: 0 0 0 0.1rem rgba(0, 51, 102, 0.25) !important;
+  }
+
+  .custom-navy {
+    background-color: #1C355E !important;  /* 남색 계열 */
+	color: #fff !important;
+	border: none !important;
+  }
+
+  .custom-navy:hover {
+    background-color: #001f4d !important;
+  }
+  
+  /* 필수 입력 항목 */
+  .form-label.required::after {
+    content: " *";
+    color: red;
+    margin-left: 2px;
+  }
+	
+	

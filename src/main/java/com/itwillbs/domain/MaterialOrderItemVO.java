@@ -11,7 +11,10 @@ public class MaterialOrderItemVO {
     private String materialId;            // 자재 ID (발주한 자재 ID)
     private int quantity;                 // 수량 (요청한 수량)
     private BigDecimal unitPrice;        // 단가 (단가)
-    private BigDecimal totalPrice;       // 총 금액 (수량 * 단가)
+    private BigDecimal totalPrice;           // 총 금액 (수량 * 단가)
     private String storageLocation;      // 입고창고 (자재 납입 예정 창고)
+    
+    // 화면 표시용 추가 필드
+    private String materialName;      // 자재명 (모달에서 사용)
 
 }

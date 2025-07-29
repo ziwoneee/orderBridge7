@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.itwillbs.mapper.MaterialOrderMapper">
+
+	<!-- 1. 발주 목록 조회 -->
+	<select id="selectOrderList" parameterType="com.itwillbs.domain.SearchCriteria" resultType="com.itwillbs.domain.MaterialOrderVO">
+	  SELECT 
+	    mo.order_id AS orderId,
+	    mo.supplier_id AS supplierId,
+	    mo.order_date AS orderDate,
+	    mo.order_status AS orderStatus,
+	    mo.expected_arrived_date AS expectedArrivedDate,
+	    mo.created_by AS createdBy,
+	    mo.note,
+	    <!--  대표 품명: 자재가 1건이면 그대로, 2건 이상이면 "외 N건" -->
+	    CASE 
+	      WHEN COUNT(moi.material_id) = 1 THEN MAX(m.material_name)
+	      ELSE CONCAT(MAX(m.material_name), ' 외 ', COUNT(moi.material_id) - 1, '건')
+	    END AS materialName,
+	    SUM(moi.quantity) AS totalQuantity,
+	    SUM(moi.total_price) AS totalPrice,
+	    MAX(moi.storage_location) AS storageLocation
+	  FROM material_order mo
+	  JOIN material_order_item moi ON mo.order_id = moi.order_id
+	  JOIN material m ON moi.material_id = m.material_id
+	  <where>
+	    <!-- 검색 조건 -->
+	    <if test="keyword != null and keyword != ''">
+	      (mo.order_id LIKE CONCAT('%', #{keyword}, '%')
+	      OR m.material_name LIKE CONCAT('%', #{keyword}, '%'))
+	    </if>
+	    <if test="startDate != null and startDate != ''">
+	      AND mo.order_date &gt;= #{startDate}
+	    </if>
+	    <if test="endDate != null and endDate != ''">
+	      AND mo.order_date &lt;= #{endDate}
+	    </if>
+	    <if test="status != null and status != ''">
+	      AND mo.order_status = #{status}
+	    </if>
+	  </where>
+	  GROUP BY mo.order_id
+	  
+	  <choose>
+	    <when test="sortColumn == 'order_id'">
+	      ORDER BY mo.order_id ${sortOrder}
+	    </when>
+	    <when test="sortColumn == 'order_date'">
+	      ORDER BY mo.order_date ${sortOrder}
+	    </when>
+	    <when test="sortColumn == 'expected_arrived_date'">
+	      ORDER BY mo.expected_arrived_date ${sortOrder}
+	    </when>
+	    <otherwise>
+	      ORDER BY mo.order_date DESC
+	    </otherwise>
+	</choose>
+
+	  LIMIT #{pageStart}, #{perPageNum}
+	</select>
+	
+	<!-- 2. 총 건수 -->
+	<select id="getTotalCount" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
+	  SELECT COUNT(DISTINCT mo.order_id)
+	  FROM material_order mo
+	  JOIN material_order_item moi ON mo.order_id = moi.order_id
+	  JOIN material m ON moi.material_id = m.material_id
+	  <where>
+	    <if test="keyword != null and keyword != ''">
+	      (mo.order_id LIKE CONCAT('%', #{keyword}, '%')
+	      OR m.material_name LIKE CONCAT('%', #{keyword}, '%'))
+	    </if>
+	    <if test="startDate != null and startDate != ''">
+	      AND mo.order_date &gt;= #{startDate}
+	    </if>
+	    <if test="endDate != null and endDate != ''">
+	      AND mo.order_date &lt;= #{endDate}
+	    </if>
+	    <if test="status != null and status != ''">
+	      AND mo.order_status = #{status}
+	    </if>
+	  </where>
+	</select>
+	
+	<!-- 발주번호 생성 -->
+	<select id="generateOrderId" resultType="String">
+	    SELECT CONCAT('PO-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-', LPAD(IFNULL(MAX(SUBSTRING(order_id, -3)), 0) + 1, 3, '0'))
+	    FROM material_order
+	    WHERE order_id LIKE CONCAT('PO-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '%')
+	</select>
+	
+	<!-- 발주 등록 -->
+	<insert id="insertOrder" parameterType="com.itwillbs.domain.MaterialOrderVO">
+	    INSERT INTO material_order (
+	        order_id, supplier_id, order_date, order_status,
+	        expected_arrived_date, created_by, note
+	    ) VALUES (
+	        #{orderId}, #{supplierId}, NOW(), #{orderStatus},
+	        #{expectedArrivedDate}, #{createdBy}, #{note}
+	    )
+	</insert>
+	
+	<!-- 발주 항목 등록 -->
+	<insert id="insertOrderItem" parameterType="com.itwillbs.domain.MaterialOrderItemVO">
+	    INSERT INTO material_order_item (
+	        order_item_id, order_id, material_id, quantity,
+	        unit_price, total_price, storage_location
+	    ) VALUES (
+	        UUID(), #{orderId}, #{materialId}, #{quantity},
+	        #{unitPrice}, #{totalPrice}, #{storageLocation}
+	    )
+	</insert>
+
+	
+
+</mapper>

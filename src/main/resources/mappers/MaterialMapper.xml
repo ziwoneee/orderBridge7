@@ -112,6 +112,11 @@
 	  LIMIT #{perPageNum} OFFSET #{pageStart}
 	</select>
 	
+	
+	<!-- 목록 조회 (자재 발주관리 등록 폼에서 필요) -->
+	<select id="selectAllMaterials" resultType="com.itwillbs.domain.MaterialVO">
+  		SELECT * FROM material ORDER BY material_name
+	</select>
 
 
 </mapper>

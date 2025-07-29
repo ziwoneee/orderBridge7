@@ -59,7 +59,6 @@ public class SupplierItemController {
     public List<SupplierItemVO> getSupplierItemList(@RequestParam("supplierId") String supplierId, Model model) throws Exception {
     	
     	System.out.println("✅ Ajax 요청 도착 - supplierId: " + supplierId);
-    	
     	List<SupplierItemVO> itemList = siService.getItemsBySupplier(supplierId);
     	
         

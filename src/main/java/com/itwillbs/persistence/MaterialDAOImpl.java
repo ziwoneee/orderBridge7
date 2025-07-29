@@ -80,6 +80,15 @@ public class MaterialDAOImpl implements MaterialDAO {
     public List<MaterialVO> getMaterialListPage(SearchCriteria cri) throws Exception {
         return sqlSession.selectList(NAMESPACE + "getMaterialListPage", cri);
     }
+
+    // 목록 조회 (자재 발주관리 등록 폼에서 필요)
+	@Override
+	public List<MaterialVO> selectAllMaterials() {
+		
+		return sqlSession.selectList(NAMESPACE + "selectAllMaterials");
+	}
+    
+    
 	
 
 }

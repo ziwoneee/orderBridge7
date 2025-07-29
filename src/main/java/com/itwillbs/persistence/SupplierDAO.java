@@ -35,5 +35,9 @@ public interface SupplierDAO {
     
     // 협력사 정보 수정 기능
  	void updateSupplier(SupplierVO vo) throws Exception;
+ 	
+ 	
+ 	// 목록 조회 (자재 발주관리 등록 폼에서 필요)
+ 	List<SupplierVO> selectAllSuppliers();
 
 }
