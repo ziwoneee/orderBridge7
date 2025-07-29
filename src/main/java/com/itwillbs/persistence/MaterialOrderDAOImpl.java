@@ -26,29 +26,29 @@ public class MaterialOrderDAOImpl implements MaterialOrderDAO {
     
     // 발주 목록 조회
     @Override
-    public List<MaterialOrderVO> getOrderList(SearchCriteria cri) {
+    public List<MaterialOrderVO> getOrderList(SearchCriteria cri) throws Exception {
         return sqlSession.selectList(NAMESPACE + "selectOrderList", cri);
     }
 
     // 전체 건수 조회
     @Override
-    public int getTotalCount(SearchCriteria cri) {
+    public int getTotalCount(SearchCriteria cri) throws Exception {
         return sqlSession.selectOne(NAMESPACE + "getTotalCount", cri);
     }
 
     // 발주 등록
     @Override
-    public String generateOrderId() {
+    public String generateOrderId() throws Exception {
         return sqlSession.selectOne(NAMESPACE + "generateOrderId");
     }
 
     @Override
-    public void insertOrder(MaterialOrderVO order) {
+    public void insertOrder(MaterialOrderVO order) throws Exception {
         sqlSession.insert(NAMESPACE + "insertOrder", order);
     }
 
     @Override
-    public void insertOrderItem(MaterialOrderItemVO item) {
+    public void insertOrderItem(MaterialOrderItemVO item) throws Exception {
         sqlSession.insert(NAMESPACE + "insertOrderItem", item);
     }
 

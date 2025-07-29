@@ -13,12 +13,12 @@ import com.itwillbs.dto.MaterialOrderDTO;
 public interface MaterialOrderService {
 	
 	// 발주 목록 조회
-    List<MaterialOrderVO> getOrderList(SearchCriteria cri);
+    List<MaterialOrderVO> getOrderList(SearchCriteria cri) throws Exception;
 
     // 총 건수 조회 (페이징)
-    int getTotalCount(SearchCriteria cri);
+    int getTotalCount(SearchCriteria cri) throws Exception;
 
     // 발주 등록
-    void insertOrder(MaterialOrderDTO orderDTO);
+    void insertOrder(MaterialOrderDTO orderDTO) throws Exception;
 
 }

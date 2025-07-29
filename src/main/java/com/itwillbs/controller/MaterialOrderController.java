@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.MaterialVO;
 import com.itwillbs.domain.PageMaker;
@@ -46,7 +47,7 @@ public class MaterialOrderController {
 	
 	// 발주 목록 조회 (검색, 정렬, 페이징 포함)
 	@GetMapping("/list")
-	public String orderList(SearchCriteria cri, Model model) {
+	public String orderList(SearchCriteria cri, Model model) throws Exception {
 		
 		// 1. 정렬 컬럼이 없으면 기본값 세팅 (안 해주면 ORDER BY desc 에러 발생)
 	    if (cri.getSortColumn() == null || cri.getSortColumn().isBlank()) {
@@ -75,7 +76,7 @@ public class MaterialOrderController {
 	
 	// 자재 발주 등록 페이지 이동 (GET)
 	@GetMapping("/register")
-	public String registerForm(Model model) {
+	public String registerForm(Model model) throws Exception {
 	    logger.debug("GET /material/order/register → 발주 등록 폼 이동");
 
 	    // 등록 시 선택할 거래처/자재 목록 불러오기 (예: 드롭다운용)
@@ -84,15 +85,28 @@ public class MaterialOrderController {
 
 	    model.addAttribute("supplierList", supplierList);
 	    model.addAttribute("materialList", materialList);
+	    model.addAttribute("menu", "material");
 	    return "material/order/register";
 	}
 
 	// 자재 발주 등록 처리 (POST)
 	@PostMapping("/register")
-	public String registerOrder(@ModelAttribute MaterialOrderDTO orderDTO) {
-	    logger.debug("POST /material/order/register → 발주 등록 처리");
+	public String registerOrder(@ModelAttribute MaterialOrderDTO orderDTO) throws Exception {
+		logger.debug("등록된 발주 데이터: " + orderDTO);
 
+	    // 기본 정보와 항목 리스트 가져오기
+	    MaterialOrderVO order = orderDTO.getOrder();
+	    List<MaterialOrderItemVO> itemList = orderDTO.getOrderItems();
+	    
+	    logger.debug("발주자: " + order.getCreatedBy()); // ❗여기서 NPE 가능
+	    logger.debug("항목 수: " + (itemList != null ? itemList.size() : "null"));
+
+	    logger.debug("발주자: " + order.getCreatedBy());
+	    logger.debug("항목 수: " + (itemList != null ? itemList.size() : 0));
+
+	    // 서비스 호출 (예시)
 	    mOrderService.insertOrder(orderDTO);
+	    
 	    return "redirect:/material/order/list";
 	}
 

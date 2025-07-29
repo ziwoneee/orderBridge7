@@ -13,14 +13,14 @@ import com.itwillbs.domain.SearchCriteria;
 public interface MaterialOrderDAO {
 	
 	 // 발주 목록 조회
-    List<MaterialOrderVO> getOrderList(SearchCriteria cri);
+    List<MaterialOrderVO> getOrderList(SearchCriteria cri) throws Exception;
 
     // 전체 건수 조회
-    int getTotalCount(SearchCriteria cri);
+    int getTotalCount(SearchCriteria cri) throws Exception;
 
     // 발주 등록
-    String generateOrderId();
-    void insertOrder(MaterialOrderVO order);
-    void insertOrderItem(MaterialOrderItemVO item);
+    String generateOrderId() throws Exception;
+    void insertOrder(MaterialOrderVO order) throws Exception;
+    void insertOrderItem(MaterialOrderItemVO item) throws Exception;
     
 }
