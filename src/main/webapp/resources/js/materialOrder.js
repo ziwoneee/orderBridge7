@@ -56,3 +56,57 @@
 	      });
 	    });
 	});
+
+  
+  
+  
+  //저장된 자재 리스트
+  let materialMap = {};
+
+  // 거래처 선택 시 자재 + 입고창고 목록 미리 받아두기
+  document.querySelector("select[name='supplierId']").addEventListener("change", function() {
+    const supplierId = this.value;
+
+    // 초기화
+    document.querySelectorAll("select[name$='.materialId']").forEach(select => {
+      select.innerHTML = '<option value="">선택</option>';
+    });
+
+    materialMap = {}; // 초기화
+
+    if (!supplierId) return;
+
+    fetch(`/supplierItem/list?supplierId=${supplierId}`)
+      .then(res => res.json())
+      .then(data => {
+        data.forEach(item => {
+          materialMap[item.materialId] = item; // key-value 저장
+        });
+
+        const options = Object.values(materialMap)
+          .map(item => `<option value="${item.materialId}">${item.materialName}</option>`)
+          .join("");
+
+        document.querySelectorAll("select[name$='.materialId']").forEach(select => {
+          select.innerHTML += options;
+        });
+      });
+  });
+
+  // 자재 선택 시 입고창고 자동 입력
+  document.addEventListener("change", function(e) {
+    if (e.target.matches("select[name$='.materialId']")) {
+      const selectedId = e.target.value;
+      const item = materialMap[selectedId];
+      if (!item) return;
+
+      // 같은 행의 창고 input에 입력
+      const row = e.target.closest("tr");
+      const locationInput = row.querySelector("input[name$='.storageLocation']");
+      if (locationInput) {
+        locationInput.value = item.storageLocation || '';
+      }
+    }
+  });
+
+  

@@ -37,7 +37,7 @@
               </div>
               <div class="col-md-3 mb-3">
                 <label>담당자</label>
-                <input type="text" name="createdBy" class="form-control" placeholder="홍길동" required>
+                <input type="text" name="createdBy" class="form-control" placeholder="예: 홍길동" required>
               </div>
               <div class="col-md-12">
                 <label>비고</label>
