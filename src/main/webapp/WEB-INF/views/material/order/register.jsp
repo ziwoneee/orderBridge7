@@ -11,7 +11,13 @@
     <div class="main-panel">
       <div class="content-wrapper">
         <h3 class="font-weight-bold mb-4">자재 발주 등록</h3>
-
+        
+        <c:if test="${not empty error}">
+		  <div class="alert alert-danger mb-3">
+		    ${error}
+		  </div>
+		</c:if>
+        
         <form action="/material/order/register" method="post">
 
           <!-- 기본 정보 섹션 - orderDate 제거 -->

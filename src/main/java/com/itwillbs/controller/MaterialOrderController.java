@@ -49,6 +49,13 @@ public class MaterialOrderController {
 	private MaterialService materialService;
 	
 	
+    private void setRegisterPageData(Model model) throws Exception {
+        model.addAttribute("supplierList", supplierService.getAllSuppliers());
+        model.addAttribute("materialList", materialService.getAllMaterials());
+        model.addAttribute("menu", "material");
+    }
+	
+	
 	// ✅ Date 바인딩 설정 추가
 	@InitBinder
 	public void initBinder(WebDataBinder binder) {
@@ -100,7 +107,7 @@ public class MaterialOrderController {
 
 	// 자재 발주 등록 처리 (POST)
 	@PostMapping("/register")
-	public String registerOrder(@ModelAttribute MaterialOrderDTO orderDTO) throws Exception {
+	public String registerOrder(@ModelAttribute MaterialOrderDTO orderDTO, Model model) throws Exception {
 		logger.info("registerOrder 컨트롤러 진입");
 		logger.debug("등록된 발주 데이터: " + orderDTO);
 
@@ -139,7 +146,6 @@ public class MaterialOrderController {
 	            if (unitPrice != null && quantity > 0) {
 	                BigDecimal total = unitPrice.multiply(new BigDecimal(quantity));
 	                item.setTotalPrice(total);
-	                System.out.println("항목 총금액 계산: " + quantity + " × " + unitPrice + " = " + total);
 	            } else {
 	                item.setTotalPrice(BigDecimal.ZERO);
 	            }
@@ -149,8 +155,14 @@ public class MaterialOrderController {
 	        }
 	    }
 	    
-	    // 서비스 호출
-	    mOrderService.insertOrder(orderDTO);
+	    try {
+	        mOrderService.insertOrder(orderDTO); // 납기일 유효성 검사 포함
+	    } catch (IllegalArgumentException e) {
+	        model.addAttribute("error", e.getMessage());
+	        setRegisterPageData(model);
+	        model.addAttribute("orderDTO", orderDTO);
+	        return "material/order/register";
+	    }
 	    
 	    return "redirect:/material/order/list";
 	}
