@@ -58,7 +58,7 @@
 	    <otherwise>
 	      ORDER BY mo.order_date DESC
 	    </otherwise>
-	  </choose>
+	</choose>
 
 	  LIMIT #{pageStart}, #{perPageNum}
 	</select>
@@ -86,12 +86,35 @@
 	  </where>
 	</select>
 	
-	<!-- 3. '발주등록' 상태 건수 -->
-	<select id="getRegisteredCount" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
-	  SELECT COUNT(DISTINCT mo.order_id)
-	  FROM material_order mo
-	  JOIN material_order_item moi ON mo.order_id = moi.order_id
-	  WHERE mo.order_status = '발주등록'
+	<!-- 발주번호 생성 -->
+	<select id="generateOrderId" resultType="String">
+	    SELECT CONCAT('PO-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-', LPAD(IFNULL(MAX(SUBSTRING(order_id, -3)), 0) + 1, 3, '0'))
+	    FROM material_order
+	    WHERE order_id LIKE CONCAT('PO-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '%')
 	</select>
+	
+	<!-- 발주 등록 -->
+	<insert id="insertOrder" parameterType="com.itwillbs.domain.MaterialOrderVO">
+	    INSERT INTO material_order (
+	        order_id, supplier_id, order_date, order_status,
+	        expected_arrived_date, created_by, note
+	    ) VALUES (
+	        #{orderId}, #{supplierId}, NOW(), #{orderStatus},
+	        #{expectedArrivedDate}, #{createdBy}, #{note}
+	    )
+	</insert>
+	
+	<!-- 발주 항목 등록 -->
+	<insert id="insertOrderItem" parameterType="com.itwillbs.domain.MaterialOrderItemVO">
+	    INSERT INTO material_order_item (
+	        order_item_id, order_id, material_id, quantity,
+	        unit_price, total_price, storage_location
+	    ) VALUES (
+	        UUID(), #{orderId}, #{materialId}, #{quantity},
+	        #{unitPrice}, #{totalPrice}, #{storageLocation}
+	    )
+	</insert>
+
+	
 
 </mapper>

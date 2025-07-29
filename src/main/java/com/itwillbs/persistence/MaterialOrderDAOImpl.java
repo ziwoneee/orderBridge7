@@ -7,6 +7,7 @@ import javax.inject.Inject;
 import org.apache.ibatis.session.SqlSession;
 import org.springframework.stereotype.Repository;
 
+import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
 
@@ -35,12 +36,22 @@ public class MaterialOrderDAOImpl implements MaterialOrderDAO {
         return sqlSession.selectOne(NAMESPACE + "getTotalCount", cri);
     }
 
-    // 등록 상태 건수 조회
+    // 발주 등록
     @Override
-    public int getRegisteredCount(SearchCriteria cri) {
-        return sqlSession.selectOne(NAMESPACE + "getRegisteredCount", cri);
+    public String generateOrderId() {
+        return sqlSession.selectOne(NAMESPACE + "generateOrderId");
     }
-    
+
+    @Override
+    public void insertOrder(MaterialOrderVO order) {
+        sqlSession.insert(NAMESPACE + "insertOrder", order);
+    }
+
+    @Override
+    public void insertOrderItem(MaterialOrderItemVO item) {
+        sqlSession.insert(NAMESPACE + "insertOrderItem", item);
+    }
+
     
 	
 	

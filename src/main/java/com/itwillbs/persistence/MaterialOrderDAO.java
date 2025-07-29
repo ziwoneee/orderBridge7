@@ -2,6 +2,7 @@ package com.itwillbs.persistence;
 
 import java.util.List;
 
+import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
 
@@ -17,7 +18,9 @@ public interface MaterialOrderDAO {
     // 전체 건수 조회
     int getTotalCount(SearchCriteria cri);
 
-    // 등록 상태 건수 조회
-    int getRegisteredCount(SearchCriteria cri);
+    // 발주 등록
+    String generateOrderId();
+    void insertOrder(MaterialOrderVO order);
+    void insertOrderItem(MaterialOrderItemVO item);
     
 }
