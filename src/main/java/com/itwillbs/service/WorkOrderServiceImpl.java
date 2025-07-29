@@ -58,4 +58,26 @@ public class WorkOrderServiceImpl implements WorkOrderService {
         return workOrderMapper.getWorkOrderTotalCount(cri);
     }
     
+
+    // [1] 작업지시 등록 가능한 확정 수주 목록 조회
+    @Override
+    public List<WorkOrderDTO> getConfirmedOrders(SearchCriteria cri) {
+        log.debug(" getConfirmedOrders() 호출");
+        return workOrderMapper.getConfirmedOrders(cri);
+    }
+
+
+    // 해당 목록의 전체 건수 조회
+    @Override
+    public int getConfirmedOrdersCount(SearchCriteria cri) {
+        log.debug(" getConfirmedOrdersCount() 호출");
+        return workOrderMapper.getConfirmedOrdersCount(cri);
+    }
+ // 수주번호로 제품 상세 목록 조회
+    @Override
+    public List<WorkOrderDTO> getOrderDetailList(String clOrderId) {
+        log.debug("▶ getOrderDetailList() 실행 - clOrderId: {}", clOrderId);
+        return workOrderMapper.getOrderDetailList(clOrderId);
+    }
+
 }
