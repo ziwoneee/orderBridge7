@@ -46,10 +46,18 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
         mOrderDAO.insertOrder(orderDTO.getOrder());
 
         // 3. order_item 테이블 insert (for each)
+        int index = 1;
         for (MaterialOrderItemVO item : orderDTO.getOrderItems()) {
             item.setOrderId(newOrderId); // 외래키 설정
+
+            // ✅ 자동 생성되는 order_item_id
+            String itemId = newOrderId + "-" + index;
+            item.setOrderItemId(itemId);
+            index++;
+
             mOrderDAO.insertOrderItem(item);
         }
+
     }
 	
 	

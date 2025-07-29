@@ -93,28 +93,37 @@
 	    WHERE order_id LIKE CONCAT('PO-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '%')
 	</select>
 	
-	<!-- 발주 등록 -->
+	<!-- 발주 등록 - Date 처리 수정 -->
 	<insert id="insertOrder" parameterType="com.itwillbs.domain.MaterialOrderVO">
 	    INSERT INTO material_order (
 	        order_id, supplier_id, order_date, order_status,
 	        expected_arrived_date, created_by, note
 	    ) VALUES (
-	        #{orderId}, #{supplierId}, NOW(), #{orderStatus},
-	        #{expectedArrivedDate}, #{createdBy}, #{note}
+	        #{orderId}, 
+	        #{supplierId}, 
+	        #{orderDate, jdbcType=DATE}, 
+	        #{orderStatus},
+	        #{expectedArrivedDate, jdbcType=DATE}, 
+	        #{createdBy}, 
+	        #{note}
 	    )
 	</insert>
 	
-	<!-- 발주 항목 등록 -->
+	<!-- 발주 항목 등록 - BigDecimal 처리 명시 -->
 	<insert id="insertOrderItem" parameterType="com.itwillbs.domain.MaterialOrderItemVO">
 	    INSERT INTO material_order_item (
 	        order_item_id, order_id, material_id, quantity,
 	        unit_price, total_price, storage_location
 	    ) VALUES (
-	        UUID(), #{orderId}, #{materialId}, #{quantity},
-	        #{unitPrice}, #{totalPrice}, #{storageLocation}
+	        #{orderItemId},
+	        #{orderId}, 
+	        #{materialId}, 
+	        #{quantity, jdbcType=INTEGER},
+	        #{unitPrice, jdbcType=DECIMAL}, 
+	        #{totalPrice, jdbcType=DECIMAL}, 
+	        #{storageLocation}
 	    )
 	</insert>
-
 	
 
 </mapper>
