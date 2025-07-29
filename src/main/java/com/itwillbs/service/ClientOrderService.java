@@ -33,4 +33,10 @@ public interface ClientOrderService {
     //수주 삭제하기
     void deleteOrder(String clOrderId);
 
+    //상태별 카운트
+    int countOrdersByStatus(String status);
+    int countAllOrders();
+
+    
+    
 }

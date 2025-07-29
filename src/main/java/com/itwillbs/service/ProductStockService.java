@@ -6,6 +6,7 @@ import java.util.Map;
 import com.itwillbs.domain.ProductStockTransactionVO;
 import com.itwillbs.domain.ProductStockVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.LotStockDTO;
 
 public interface ProductStockService {
 	//재고현황리스트
@@ -15,5 +16,6 @@ public interface ProductStockService {
     //입출고리스트       
        List<ProductStockTransactionVO> getStockDetail(String productId, String lotNo);
 
+       List<LotStockDTO> getAvailableLotsOrdered(String productId);
 
 }

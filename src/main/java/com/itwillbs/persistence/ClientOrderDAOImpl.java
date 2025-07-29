@@ -9,6 +9,7 @@ import org.apache.ibatis.session.SqlSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import com.itwillbs.domain.ClientOrderDetailVO;
 import com.itwillbs.domain.ClientOrderVO;
 import com.itwillbs.domain.SearchCriteria;
 
@@ -78,7 +79,20 @@ public class ClientOrderDAOImpl implements ClientOrderDAO {
         sqlSession.update(NAMESPACE + ".deleteOrder", clOrderId);
     }
 
+    //상태별 카운트
+    @Override
+    public int countAllOrders() {
+        return sqlSession.selectOne(NAMESPACE + ".countAllOrders");
+    }
 
-    
+    @Override
+    public int countOrdersByStatus(String status) {
+        return sqlSession.selectOne(NAMESPACE + ".countOrdersByStatus", status);
+    }
+
+    @Override
+    public List<ClientOrderDetailVO> getOrderDetailsByOrderId(String clOrderId) {
+        return sqlSession.selectList(NAMESPACE + ".getOrderDetailsByOrderId", clOrderId);
+    }
 
 }

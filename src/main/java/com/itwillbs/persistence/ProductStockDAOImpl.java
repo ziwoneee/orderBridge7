@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import com.itwillbs.domain.ProductStockTransactionVO;
 import com.itwillbs.domain.ProductStockVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.LotStockDTO;
 
 @Repository
 public class ProductStockDAOImpl implements ProductStockDAO {
@@ -61,8 +62,13 @@ public class ProductStockDAOImpl implements ProductStockDAO {
         ));
     }
 
+    /**
+     * ✅ 유통기한 빠른 순으로 LOT별 가용 재고 목록 조회
+     */
+    @Override
+    public List<LotStockDTO> getAvailableLotsOrdered(String productId) {
+        return sqlSession.selectList(NAMESPACE + ".getAvailableLotsOrdered", productId);
+    }
 
-
-    
     
 }

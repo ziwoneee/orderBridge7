@@ -71,10 +71,10 @@
           <input type="hidden" name="clOrderId" value="${order.clOrderId}" />
           <button type="submit" class="btn btn-sm btn-warning ml-2">입금확인</button>
         </form>
-        <!-- ✅ 삭제 버튼  -->
-      <form action="${pageContext.request.contextPath}/clientorder/delete" method="post" style="display:inline;" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+        <!-- ✅ 취소 버튼  -->
+      <form action="${pageContext.request.contextPath}/clientorder/delete" method="post" style="display:inline;" onsubmit="return confirm('정말 취소하시겠습니까?');">
         <input type="hidden" name="clOrderId" value="${order.clOrderId}" />
-        <button type="submit" class="btn btn-sm btn-danger ml-2">삭 제</button>
+        <button type="submit" class="btn btn-sm btn-danger ml-2">취 소</button>
       </form>
        </c:when>
         

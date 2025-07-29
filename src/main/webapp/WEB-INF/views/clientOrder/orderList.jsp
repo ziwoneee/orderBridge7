@@ -1,273 +1,208 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
-    <%
-    // 오늘 날짜를 yyyy-MM-dd로 request에 today로 저장
-    java.time.LocalDate today = java.time.LocalDate.now();
-    String todayStr = today.toString();
-    request.setAttribute("today", todayStr);
+<%
+  java.time.LocalDate today = java.time.LocalDate.now();
+  String todayStr = today.toString();
+  request.setAttribute("today", todayStr);
 %>
-    
+
 <div class="container-scroller">
-
-  <%@ include file="/WEB-INF/views/main/top.jsp" %>      
-
+  <%@ include file="/WEB-INF/views/main/top.jsp" %>
   <div class="container-fluid page-body-wrapper">
-
     <%@ include file="/WEB-INF/views/main/sidebar.jsp" %>
-    
-    
-    
-    
-      <!-- 본문 시작 -->
-      <div class="main-panel">
-        <div class="content-wrapper">
-          <div class="row">
-        
-        	<!-- 제목 -->
-			<div class="col-12 mb-4">
-			  <h3 class="font-weight-bold">수주 목록</h3>
-			</div>    
 
-
-            
-                <!-- 본문내용 시작 -->
-                <!-- ✅ 검색창 -->
-  	<div class="d-flex justify-content-between align-items-center mb-2">
-		
-        <form method="get" class="form-inline flex-wrap">
- <!-- 수주일자 기간 조회 추가 -->
-     <!-- 수주일자 기간 조회 -->
-        <label for="startDate" class="mr-1">수주일자</label>
-        <input type="date" id="startDate" name="startDate"
-            value="${empty cri.startDate ? '' : cri.startDate}"
-            max="${today}" class="form-control mr-2">
-        <span class="mx-1">~</span>
-        <input type="date" id="endDate" name="endDate"
-            value="${empty cri.endDate ? '' : cri.endDate}"
-            max="${today}" class="form-control mr-2">
-
-<!-- 거래처/제품명 검색 -->
- <input type="text" name="keyword" value="${cri.keyword}" class="form-control mr-2" placeholder="거래처/제품명 검색">
- 
-      <select name="status" class="form-control mr-2">
-    <option value="">전체상태</option>
-    <option value="REQUESTED"
-      <%
-          if ("REQUESTED".equals(request.getParameter("status"))) {
-              out.print("selected");
-          }
-      %>
-    >주문접수</option>
-    <option value="CONFIRMED"
-      <%
-          if ("CONFIRMED".equals(request.getParameter("status"))) {
-              out.print("selected");
-          }
-      %>
-    >확정</option>
-    <option value="SHIPPED"
-      <%
-          if ("SHIPPED".equals(request.getParameter("status"))) {
-              out.print("selected");
-          }
-      %>
-    >출하</option>
-    <option value="CANCELLED"
-      <%
-          if ("CANCELLED".equals(request.getParameter("status"))) {
-              out.print("selected");
-          }
-      %>
-    >취소</option>
-</select>
-
-        <button type="submit" class="btn btn-primary mr-2">검색</button>
-        
-         
-         </form>
-         
-         </div>
-        
-<!-- 구분선 -->
-<hr class="my-3">
-   
-<div class="d-flex justify-content-between align-items-center mb-2"> 
-  
-  
-     
-  <!-- 목록 다운로드 버튼 -->
-  <div class="col-auto">
-   
-         <div class="col-12 mb-3">
-            <ul class="nav nav-tabs">
-              <li class="nav-item">
-                <a class="nav-link ${param.status == null ? 'active' : ''}" href="?">전체</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link ${param.status == 'REQUESTED' ? 'active' : ''}" href="?status=REQUESTED">주문접수</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link ${param.status == 'CONFIRMED' ? 'active' : ''}" href="?status=CONFIRMED">확정</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link ${param.status == 'SHIPPED' ? 'active' : ''}" href="?status=SHIPPED">출하</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link ${param.status == 'CANCELLED' ? 'active' : ''}" href="?status=CANCELLED">취소</a>
-              </li>
-            </ul>
+    <!-- 본문 시작 -->
+    <div class="main-panel">
+      <div class="content-wrapper">
+        <div class="row">
+          <!-- 제목 -->
+          <div class="col-12 mb-4">
+            <h3 class="font-weight-bold">수주 목록</h3>
           </div>
-        </div>    </div>
-    
-  	<div class="table-responsive mt-4">
-     <table id="clorderTable" class="table table-bordered text-center">
-        <thead>
-        <tr>
-            <th><input type="checkbox" id="selectAll"></th>
-            <th>수주번호</th>
-            <th>거래처명</th>            
-            <th>수주일자</th>
-            <th>납기요청일</th>
-            <th>수주상태</th>
-            <th>메모</th>
-            <th>상세</th>
-        </tr>
-        </thead>
-        <tbody>
-        <c:forEach var="order" items="${orderList}">
-            <tr>
-                <td><input type="checkbox" name="orderChk" value="${order.clOrderId}"></td>
-                <td>${order.clOrderNum}</td>
-                <td>${order.clientName}</td>                
-                <td><fmt:formatDate value="${order.clOrderDate}" pattern="yyyy-MM-dd"/></td>
-                <td><fmt:formatDate value="${order.clDeliveryDate}" pattern="yyyy-MM-dd"/></td>
-                <td>
-                  <c:choose>
-                    <c:when test="${order.clOrderStatus == 'REQUESTED'}">
-                      <span class="badge badge-success" >접 수 </span>
-                    </c:when>
-                    <c:when test="${order.clOrderStatus == 'CONFIRMED'}">
-                      <span class="badge badge-danger" >확 정</span>
-                    </c:when>
-                    <c:when test="${order.clOrderStatus == 'SHIPPED'}">
-                      <span class="badge badge-warning">출 하</span>
-                    </c:when>
-                    <c:when test="${order.clOrderStatus == 'CANCELLED'}">
-                       <span class="badge badge-secondary">취 소</span>
-                    </c:when>
-                    <c:otherwise>
-                      <span style="color: #6c757d;">알 수 없음</span>
-                    </c:otherwise>
-                  </c:choose>
-                </td>
-                <td>${order.clOrderMemo}</td>
-                <td>
-                  <a href="${pageContext.request.contextPath}/clientorder/detail?clOrderId=${order.clOrderId}" class="btn btn-outline-secondary btn-sm">상세</a>
-                </td>
-            </tr>
-        </c:forEach>
-        </tbody>
-    </table>
-  
-         </div>  
-  </div>
-  
-    <div class = "text-right mb-3">
-      <a href="${pageContext.request.contextPath}/clientorder/register" class="btn btn-primary">+ 신규 수주 등록</a>   
-      </div> </div>
-      
-     <!-- ✅ 페이징 영역 -->
-          <!-- ✅ Bootstrap 페이징 스타일 -->
-<div class="d-flex justify-content-center mt-4">
-<nav>
-  <ul class="pagination justify-content-center mt-4">
 
-    <c:if test="${pageMaker.cri.page>1}">
-      <li class="page-item">
-        <a class="page-link" href="?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&laquo;</a>
-      </li>
-    </c:if>
+          <!-- 검색 영역 -->
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <form method="get" class="form-inline flex-wrap">
+              <label for="startDate" class="mr-1">수주일자</label>
+              <input type="date" id="startDate" name="startDate" value="${empty cri.startDate ? '' : cri.startDate}" max="${today}" class="form-control mr-2">
+              <span class="mx-1">~</span>
+              <input type="date" id="endDate" name="endDate" value="${empty cri.endDate ? '' : cri.endDate}" max="${today}" class="form-control mr-2">
 
-    <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
-      <li class="page-item ${p == cri.page ? 'active' : ''}">
-        <a class="page-link" href="?page=${p}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">${p}</a>
-      </li>
-    </c:forEach>
+              <input type="text" name="keyword" value="${cri.keyword}" class="form-control mr-2" placeholder="거래처/제품명 검색">
 
-    <c:if test="${pageMaker.cri.page<pageMaker.endPage}">
-      <li class="page-item">
-        <a class="page-link" href="?page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&raquo;</a>
-      </li>
-    </c:if>
+            <button type="submit" class="btn btn-primary mr-2">검색</button>
+            <a href="/clientorder/list" class="btn btn-light">
+                      <i class="ti-reload"></i> 초기화
+                    </a>            
+            </form>
+          </div>
+
+          <!-- 상태별 탭 -->
+          <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-0">
+  <ul class="nav nav-underline-custom" id="statusTab" role="tablist">
+
+    <!-- 전체 -->
+    <li class="nav-item">
+      <a class="nav-link ${param.status == null ? 'active' : ''}"
+         href="/clientorder/list?keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+        전체
+        <span class="badge badge-light ms-1">${totalCount}</span>
+      </a>
+    </li>
+
+    <!-- 주문접수 -->
+    <li class="nav-item">
+      <a class="nav-link ${param.status == 'REQUESTED' ? 'active' : ''}"
+         href="/clientorder/list?status=REQUESTED&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+        주문접수
+        <span class="badge badge-light ms-1">${requestedCount}</span>
+      </a>
+    </li>
+
+    <!-- 확정 -->
+    <li class="nav-item">
+      <a class="nav-link ${param.status == 'CONFIRMED' ? 'active' : ''}"
+         href="/clientorder/list?status=CONFIRMED&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+        확정
+        <span class="badge badge-light ms-1">${confirmedCount}</span>
+      </a>
+    </li>
+
+    <!-- 출하 -->
+    <li class="nav-item">
+      <a class="nav-link ${param.status == 'SHIPPED' ? 'active' : ''}"
+         href="/clientorder/list?status=SHIPPED&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+        출하
+        <span class="badge badge-light ms-1">${shippedCount}</span>
+      </a>
+    </li>
+
+    <!-- 취소 -->
+    <li class="nav-item">
+      <a class="nav-link ${param.status == 'CANCELLED' ? 'active' : ''}"
+         href="/clientorder/list?status=CANCELLED&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+        취소
+        <span class="badge badge-light ms-1">${cancelledCount}</span>
+      </a>
+    </li>
 
   </ul>
-  
-</nav>
-
 </div>
-<!-- 페이징 처리 끝 -->
+            
+          <!-- 수주 목록 테이블 -->
+          <div class="table-responsive mt-4">
+            <table id="clorderTable" class="table table-bordered text-center">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="selectAll"></th>
+                  <th>수주번호</th>
+                  <th>거래처명</th>
+                  <th>수주일자</th>
+                  <th>납기요청일</th>
+                  <th>수주상태</th>
+                  <th>메모</th>
+                  <th>상세</th>
+                </tr>
+              </thead>
+              <tbody>
+                <c:forEach var="order" items="${orderList}">
+                  <tr>
+                    <td><input type="checkbox" name="orderChk" value="${order.clOrderId}"></td>
+                    <td>${order.clOrderNum}</td>
+                    <td>${order.clientName}</td>
+                    <td><fmt:formatDate value="${order.clOrderDate}" pattern="yyyy-MM-dd"/></td>
+                    <td><fmt:formatDate value="${order.clDeliveryDate}" pattern="yyyy-MM-dd"/></td>
+                    <td>
+                      <c:choose>
+                        <c:when test="${order.clOrderStatus == 'REQUESTED'}">
+                          <span class="badge badge-success">접수</span>
+                        </c:when>
+                        <c:when test="${order.clOrderStatus == 'CONFIRMED'}">
+                          <span class="badge badge-danger">확정</span>
+                        </c:when>
+                        <c:when test="${order.clOrderStatus == 'SHIPPED'}">
+                          <span class="badge badge-warning">출하</span>
+                        </c:when>
+                        <c:when test="${order.clOrderStatus == 'CANCELLED'}">
+                          <span class="badge badge-secondary">취소</span>
+                        </c:when>
+                        <c:otherwise>
+                          <span style="color: #6c757d;">알 수 없음</span>
+                        </c:otherwise>
+                      </c:choose>
+                    </td>
+                    <td>${order.clOrderMemo}</td>
+                    <td>
+                      <a href="${pageContext.request.contextPath}/clientorder/detail?clOrderId=${order.clOrderId}" class="btn btn-outline-secondary btn-sm">상세</a>
+                    </td>
+                  </tr>
+                </c:forEach>
+              </tbody>
+            </table>
+          </div>
 
-     </div>
-        
-        <!-- content-wrapper 끝 -->
-	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
+          <!-- 등록 버튼 -->
+          <div class="text-right mb-3">
+            <a href="${pageContext.request.contextPath}/clientorder/register" class="btn btn-primary">+ 신규 수주 등록</a>
+          </div>
+</div>
+          <!-- 페이징 -->
+          <div class="d-flex justify-content-center mt-4">
+            <nav>
+              <ul class="pagination justify-content-center mt-4">
+                <c:if test="${pageMaker.cri.page > 1}">
+                  <li class="page-item">
+                    <a class="page-link" href="?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&laquo;</a>
+                  </li>
+                </c:if>
+                <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+                  <li class="page-item ${p == cri.page ? 'active' : ''}">
+                    <a class="page-link" href="?page=${p}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">${p}</a>
+                  </li>
+                </c:forEach>
+                <c:if test="${pageMaker.cri.page < pageMaker.endPage}">
+                  <li class="page-item">
+                    <a class="page-link" href="?page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&raquo;</a>
+                  </li>
+                </c:if>
+              </ul>
+            </nav>
+          </div>
+
+        </div>
+      <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
       </div>
-     <!-- 본문.jsp main-panel ends -->
-  </div>   
-  <!-- container-fluid page-body-wrapper 끝 -->
+    </div>
+  </div>
 </div>
-<!-- container-scroller 끝-->   
 
-<!-- 전체선택 JS -->
+<!-- 전체 선택 스크립트 -->
 <script>
-    document.getElementById('selectAll').onclick = function() {
-        var checkboxes = document.getElementsByName('orderChk');
-        for (var checkbox of checkboxes) {
-            checkbox.checked = this.checked;
-        }
+  document.getElementById('selectAll').onclick = function() {
+    var checkboxes = document.getElementsByName('orderChk');
+    for (var checkbox of checkboxes) {
+      checkbox.checked = this.checked;
     }
+  }
 </script>
 
-<script>
-function submitBulkStatus() {
-    // 선택된 체크박스 수집
-    var checked = document.querySelectorAll('input[name="orderChk"]:checked');
-    if (checked.length === 0) {
-        alert('상태를 변경할 수주를 선택하세요.');
-        return;
-    }
-    // 상태 선택 여부
-    var newStatus = document.getElementById('bulkStatus').value;
-    if (!newStatus) {
-        alert('변경할 수주상태를 선택하세요.');
-        return;
-    }
-    // ID 리스트 만들기 (콤마 구분)
-    var ids = Array.from(checked).map(c => c.value).join(',');
-    document.getElementById('bulkOrderIds').value = ids;
-
-    // 폼 전송
-    document.getElementById('bulkStatusForm').submit();
-}
-</script>
-<!-- ✅ DataTables JS -->
+<!-- DataTables -->
 <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
-
-<!-- ✅ DataTables 초기화 (정렬만 사용, 페이징X) -->
 <script>
-$(document).ready(function () {
-  $('#clorderTable').DataTable({
-    paging: false,        // ❌ 페이징 비활성 (서버 페이징 사용)
-    ordering: true,       // ✅ 정렬 가능
-    searching: false,     // ❌ 검색창 비활성 (직접 구현)
-    info: false,          // ❌ "n개 중 m개 표시 중" 비활성
-    columnDefs: [
-      { targets: [0,5,6,7], orderable: false }  // 정렬 제외 열 (사업자번호, 대표자명, 상세버튼)
-    ]
+  $(document).ready(function () {
+    $('#clorderTable').DataTable({
+      paging: false,
+      ordering: true,
+      searching: false,
+      info: false,
+      columnDefs: [
+        { targets: [0,5,6,7], orderable: false }
+      ]
+    });
   });
-});
 </script>
-
-

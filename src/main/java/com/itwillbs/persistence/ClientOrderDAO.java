@@ -2,6 +2,7 @@ package com.itwillbs.persistence;
 
 import java.util.List;
 
+import com.itwillbs.domain.ClientOrderDetailVO;
 import com.itwillbs.domain.ClientOrderVO;
 import com.itwillbs.domain.SearchCriteria;
 
@@ -29,7 +30,13 @@ public interface ClientOrderDAO {
  // 수주 삭제
     void deleteOrder(String clOrderId);
 
+//상태별 카운트
+    int countOrdersByStatus(String status);
+    
+    int countAllOrders();
 
+
+    List<ClientOrderDetailVO> getOrderDetailsByOrderId(String clOrderId);
 
     
 }

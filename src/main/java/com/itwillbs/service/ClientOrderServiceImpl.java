@@ -106,6 +106,17 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         // 마스터 삭제
         clientOrderDAO.deleteOrder(clOrderId);
     }
+//상태별 카운트
+    @Override
+    public int countOrdersByStatus(String status) {
+        return clientOrderDAO.countOrdersByStatus(status);
+    }
 
+    @Override
+    public int countAllOrders() {
+        return clientOrderDAO.countAllOrders();
+    }
+
+    
     
 }

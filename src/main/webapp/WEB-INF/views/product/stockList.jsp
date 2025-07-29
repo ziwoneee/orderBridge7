@@ -34,22 +34,26 @@
                 <thead class="thead-light">
                   <tr>
                     <th>제품명</th>
-                    <th>LOT 번호</th>
-                    <th>현재고</th>
-                    <th>안전재고</th>
-                    <th>생산일자</th>
-                    <th>유통기한</th>            
-                    <th>재고상태</th>
-                    <th>상세내역</th>
+    <th>LOT 번호</th>
+    <th>현재고</th>
+    <th>예약수량</th>
+    <th>가용수량</th>
+    <th>안전재고</th>
+    <th>생산일자</th>
+    <th>유통기한</th>            
+    <th>재고상태</th>
+    <th>상세내역</th>
                   </tr>
                 </thead>
                 <tbody>
                   <c:forEach var="item" items="${stockList}">
                     <tr>
                       <td>${item.productName}</td>
-                      <td>${item.lotNo}</td>
-                      <td>${item.stockQty}</td>
-                      <td>${item.safeQty}</td>
+      <td>${item.lotNo}</td>
+      <td>${item.stockQty}</td>
+      <td>${item.reservedQty}</td>
+      <td>${item.availableQty}</td>
+      <td>${item.safeQty}</td>
                       <td><fmt:formatDate value="${item.regDate}" pattern="yyyy-MM-dd"/></td>
                       <td><fmt:formatDate value="${item.expireDate}" pattern="yyyy-MM-dd"/></td>
                       <td>

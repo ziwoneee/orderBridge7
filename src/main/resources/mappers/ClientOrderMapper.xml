@@ -166,6 +166,21 @@
   WHERE cl_order_id = #{clOrderId}
 </update>
 
+<!-- 상태별 카운트 -->
+ <select id="countOrdersByStatus" parameterType="string" resultType="int">
+  SELECT COUNT(*) FROM client_order WHERE cl_order_status = #{status}
+</select>
+
+<select id="countAllOrders" resultType="int">
+  SELECT COUNT(*) FROM client_order
+</select>
+
+
+
+<select id="getOrderDetailsByOrderId" parameterType="string" resultType="com.itwillbs.domain.ClientOrderDetailVO">
+  SELECT * FROM client_order_detail
+  WHERE cl_order_id = #{clOrderId}
+</select>
 
   
 
