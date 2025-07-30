@@ -1,5 +1,5 @@
 /************************************************************
- * materialInbound.js
+ * materialInbound.js - 수정된 버전
  * - 자재 입고 관리 관련 JavaScript 기능 모음
  ************************************************************/
 
@@ -62,15 +62,18 @@ function processInbound(inboundId, button) {
   });
 }
 
-/* [3] 미입고 발주 목록 불러오기 - URL 수정 */
+/* [3] 미입고 발주 목록 불러오기 */
 function loadUnreceivedOrders(page = 1) {
-  console.log('미입고 발주 목록 요청 시작...');
+  console.log(`미입고 발주 목록 요청 - 페이지: ${page}`);
+  
+  // 미입고 발주 섹션 표시
+  $('#unreceivedOrdersSection').show();
   
   // 로딩 상태 표시
   const tbody = document.querySelector('#unreceivedOrderTable tbody');
   tbody.innerHTML = `
     <tr>
-      <td colspan="11" class="text-center py-4">
+      <td colspan="7" class="text-center py-4">
         <div class="spinner-border text-primary" role="status">
           <span class="sr-only">Loading...</span>
         </div>
@@ -80,53 +83,47 @@ function loadUnreceivedOrders(page = 1) {
   `;
 
   $.ajax({
-    url: "/material/inbound/unreceived-orders", // URL 수정
+    url: "/material/inbound/unreceived-orders",
     method: 'GET',
     dataType: 'json',
     data: {
-        page: 1,           // 기본 1페이지부터
-        perPageNum: 10     // 페이지당 10건
+        page: page,
+        perPageNum: 10
     },
     success: function(data) {
       console.log('응답 데이터:', data);
       renderUnreceivedOrders(data.list);
-      renderPagination(data.pageMaker);  // 페이징 버튼도 렌더링
+      renderPagination(data.pageMaker);
     },
     error: function(xhr, status, error) {
-      console.error('AJAX 오류 상세:', {
-        status: xhr.status,
-        statusText: xhr.statusText,
-        responseText: xhr.responseText,
-        error: error
-      });
+      console.error('AJAX 오류:', xhr.responseText);
       
       const tbody = document.querySelector('#unreceivedOrderTable tbody');
       tbody.innerHTML = `
         <tr>
-          <td colspan="11" class="text-center text-danger py-4">
+          <td colspan="7" class="text-center text-danger py-4">
             <i class="ti-alert"></i>
             <p class="mt-2">미입고 발주 목록을 불러오는 중 오류가 발생했습니다.</p>
-            <small>오류: ${xhr.status} - ${xhr.statusText}</small>
+            <small>오류: ${xhr.responseText}</small>
           </td>
         </tr>
       `;
-      
-      alert(`미입고 발주 목록을 불러오는 중 오류가 발생했습니다.\n상태코드: ${xhr.status}\n오류: ${error}`);
+      alert(`오류: ${xhr.responseText}`);
     }
   });
 }
 
-/* [4] 미입고 발주 테이블 렌더링 - 개선된 버전 */
+/* [4] 미입고 발주 테이블 렌더링 */
 function renderUnreceivedOrders(orderList) {
   console.log('렌더링할 주문 목록:', orderList);
   
   const tbody = document.querySelector('#unreceivedOrderTable tbody');
-  tbody.innerHTML = ''; // 기존 내용 초기화
+  tbody.innerHTML = '';
 
   if (!orderList || orderList.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="11" class="text-center text-muted py-4">
+        <td colspan="7" class="text-center text-muted py-4">
           <i class="ti-info-alt" style="font-size: 24px;"></i>
           <p class="mt-2">미입고 발주건이 없습니다.</p>
         </td>
@@ -155,34 +152,28 @@ function renderUnreceivedOrders(orderList) {
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       
       if (diffDays < 0) {
-        return '<span class="badge badge-danger badge-pill">지연</span>';
+        return '<span class="badge badge-danger badge-pill ml-1">지연</span>';
       } else if (diffDays <= 2) {
-        return `<span class="badge badge-warning badge-pill">D-${diffDays}</span>`;
+        return `<span class="badge badge-warning badge-pill ml-1">D-${diffDays}</span>`;
       }
       return '';
     };
 
     row.innerHTML = `
-      <td class="font-weight-medium">미등록</td> 
-      <td>-</td>
-      <td><span class="badge badge-danger">미입고</span></td> 
-      <td>${order.materialName || '발주 품목 다수'}</td>
-      <td class="text-end">${order.totalQuantity || 0}</td> 
-      <td class="text-end">0</td> 
-      <td class="font-weight-medium">${order.orderId}</td> 
+      <td>
+        <input type="checkbox" name="selectedOrders" value="${order.orderId}" class="order-checkbox">
+      </td>
+      <td class="font-weight-medium">${order.orderId}</td>
+      <td>${order.materialName || '-'}</td>
+      <td class="text-end">${order.totalQuantity.toLocaleString() || 0}</td>
       <td>
         ${formatTimestamp(order.expectedArrivedDate)}
         ${calculateDDay(order.expectedArrivedDate)}
-      </td> 
+      </td>
       <td>${order.createdBy || '-'}</td>
       <td>
         <button class="btn btn-sm btn-outline-info" onclick="viewOrderDetail('${order.orderId}')">
-          발주상세
-        </button>
-      </td> 
-      <td>
-        <button class="btn btn-outline-success btn-sm" onclick="registerInbound('${order.orderId}')">
-          입고등록
+          상세보기
         </button>
       </td>
     `;
@@ -192,66 +183,10 @@ function renderUnreceivedOrders(orderList) {
   console.log(`${orderList.length}개의 미입고 발주건을 렌더링했습니다.`);
 }
 
-/* [5] 날짜 포맷 (yyyy-MM-dd) */
-function formatDate(dateStr) {
-  if (!dateStr) return '-';
-  const date = new Date(dateStr);
-  const yyyy = date.getFullYear();
-  const mm = ('0' + (date.getMonth() + 1)).slice(-2);
-  const dd = ('0' + date.getDate()).slice(-2);
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-/* [6] 발주 상세 보기 */
-function viewOrderDetail(orderId) {
-  // 발주 상세 모달을 여는 기능 (구현 필요)
-  alert(`발주 상세보기: ${orderId}`);
-}
-
-/* [7] 입고 등록 처리 */
-function registerInbound(orderId) {
-  if (!confirm(`발주번호 ${orderId}를 입고 등록하시겠습니까?`)) return;
-  
-  $.ajax({
-    url: '/material/inbound/register',
-    type: 'POST',
-    data: { orderId: orderId },
-    success: function(response) {
-      alert('입고 등록이 완료되었습니다.');
-      location.reload(); // 페이지 새로고침
-    },
-    error: function(xhr, status, error) {
-      console.error('입고 등록 실패:', xhr.responseText);
-      alert('입고 등록 중 오류가 발생했습니다.');
-    }
-  });
-}
-
-/* [8] 선택된 발주 처리 (기존 호환성 유지) */
-function selectOrder(orderId) {
-  registerInbound(orderId);
-}
-
-/* [9] 문서 로딩 시 이벤트 바인딩 */
-$(document).ready(function() {
-  // 미입고건 불러오기 버튼 클릭 이벤트
-  $("button[onclick='loadUnreceivedOrders()']").on("click", function() {
-    loadUnreceivedOrders();
-  });
-  
-  // 기존 버튼 ID가 있다면 추가 바인딩
-  $("#btn-pending-orders").on("click", function() {
-    loadUnreceivedOrders();
-  });
-  
-  console.log('materialInbound.js 로드 완료');
-});
-
-
-/* [10] 페이징 버튼 렌더링 */
+/* [5] 페이징 버튼 렌더링 */
 function renderPagination(pageMaker) {
   const container = document.getElementById("unreceivedPagination");
-  container.innerHTML = ""; // 초기화
+  container.innerHTML = "";
 
   const ul = document.createElement("ul");
   ul.className = "pagination";
@@ -283,21 +218,57 @@ function renderPagination(pageMaker) {
   container.appendChild(ul);
 }
 
-/* [11] 미입고건을 DB에 저장 (material_inbound + item 테이블 insert) */
-$('#btn-insert-unreceived').on('click', function () {
-  if (!confirm('미입고 발주건을 입고관리 DB에 저장하시겠습니까?')) return;
+/* [6] 발주 상세 보기 */
+function viewOrderDetail(orderId) {
+  alert(`발주 상세보기 기능 구현 필요: ${orderId}`);
+}
+
+/* [7] 전체 선택/해제 */
+function toggleAllCheckboxes(checkAllBox) {
+  const checkboxes = document.querySelectorAll('input[name="selectedOrders"]');
+  checkboxes.forEach(checkbox => {
+    checkbox.checked = checkAllBox.checked;
+  });
+}
+
+/* [8] 선택된 발주 입고등록 */
+function registerSelectedOrders() {
+  const selectedOrders = [];
+  document.querySelectorAll('input[name="selectedOrders"]:checked').forEach(checkbox => {
+    selectedOrders.push(checkbox.value);
+  });
+
+  if (selectedOrders.length === 0) {
+    alert('입고등록할 발주를 선택해주세요.');
+    return;
+  }
+
+  if (!confirm(`선택된 ${selectedOrders.length}건의 발주를 입고등록하시겠습니까?`)) {
+    return;
+  }
 
   $.ajax({
     type: 'POST',
     url: '/material/inbound/insert-unreceived',
-    success: function () {
-      alert('미입고건이 성공적으로 DB에 저장되었습니다.');
-      // insert 후 미입고 목록 새로고침 (선택)
-      loadUnreceivedOrders();
+    data: { orderIds: selectedOrders },
+    traditional: true, // 배열 전송을 위한 설정
+    success: function(response) {
+      alert('선택된 발주건이 성공적으로 입고등록되었습니다.');
+      location.reload();
     },
-    error: function (xhr, status, error) {
-      console.error('미입고건 DB 저장 실패:', xhr.responseText);
-      alert('저장 중 오류가 발생했습니다.');
+    error: function(xhr, status, error) {
+      console.error('입고등록 실패:', xhr.responseText);
+      alert('입고등록 중 오류가 발생했습니다.\n' + xhr.responseText);
     }
   });
+}
+
+/* [9] 문서 로딩 시 이벤트 바인딩 */
+$(document).ready(function() {
+  // 미입고건 DB 저장 버튼 - 기존 방식 (전체 미입고건 등록)
+  $('#btn-insert-unreceived').on('click', function() {
+    registerSelectedOrders();
+  });
+  
+  console.log('materialInbound.js 로드 완료');
 });

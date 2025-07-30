@@ -118,13 +118,14 @@
 	<!-- - 대표 품명(1건) + 총 발주 수량 + 기본 입고수량(0) 조회           -->
 	<!-- - SearchCriteria의 LIMIT, OFFSET 기반 페이징 처리 적용            -->
 	<!-- =================================================================== -->
+	<!-- 미입고 발주 목록 조회 - 페이징 처리 (발주 상태 조건 추가) -->
 	<select id="selectUnreceivedOrdersPaging"
 	        resultType="com.itwillbs.dto.UnreceivedOrderDTO"
 	        parameterType="com.itwillbs.domain.SearchCriteria">
 	  SELECT 
-	    mo.order_id AS orderId,                           <!-- 발주번호 -->
-	    mo.created_by AS createdBy,                       <!-- 발주 담당자 -->
-	    mo.expected_arrived_date AS expectedArrivedDate,  <!-- 납기 예정일 -->
+	    mo.order_id AS orderId,                           
+	    mo.created_by AS createdBy,                       
+	    mo.expected_arrived_date AS expectedArrivedDate,  
 	
 	    <!-- 품명: 대표 품명만 표시 (여러 건일 경우 '외 N건' 표기) -->
 	    CASE 
@@ -132,20 +133,21 @@
 	      ELSE CONCAT(MAX(m.material_name), ' 외 ', COUNT(*) - 1, '건')
 	    END AS materialName,
 	
-	    SUM(moi.order_quantity) AS totalQuantity,               <!-- 발주 수량 합계 -->
-	    0 AS inboundQuantity                              <!-- 입고 수량 (기본 0으로 고정) -->
+	    SUM(moi.order_quantity) AS totalQuantity,               
+	    0 AS inboundQuantity                              
 	
 	  FROM 
 	    material_order mo
 	    JOIN material_order_item moi ON mo.order_id = moi.order_id
 	    JOIN material m ON moi.material_id = m.material_id
 	
-	  <!-- [조건] 발주 항목이 아직 한 번도 입고되지 않은 경우만 조회 -->
-	  WHERE NOT EXISTS (
-	    SELECT 1 
-	    FROM material_inbound_item mii
-	    WHERE mii.order_item_id = moi.order_item_id
-	  )
+	  <!-- [조건] 발주 상태가 '승인'이고 아직 한 번도 입고되지 않은 경우만 조회 -->
+	  WHERE mo.order_status = '승인'
+	    AND NOT EXISTS (
+	      SELECT 1 
+	      FROM material_inbound_item mii
+	      WHERE mii.order_item_id = moi.order_item_id
+	    )
 	
 	  GROUP BY mo.order_id
 	  ORDER BY mo.order_date DESC
@@ -153,31 +155,35 @@
 	  <!-- 페이징 처리 -->
 	  LIMIT #{pageStart}, #{perPageNum}
 	</select>
+
 	
 	<!-- =================================================================== -->
 	<!-- [미입고 발주 목록 전체 개수 조회]                                  -->
 	<!-- - 페이징 처리를 위한 COUNT 쿼리                                   -->
 	<!-- - DISTINCT로 중복 제거 후 발주 건 수만 카운트                      -->
 	<!-- =================================================================== -->
+	<!-- 미입고 발주 목록 전체 개수 조회 (발주 상태 조건 추가) -->
 	<select id="countUnreceivedOrders" resultType="int">
 	  SELECT COUNT(DISTINCT mo.order_id)
 	  FROM material_order mo
 	  JOIN material_order_item moi ON mo.order_id = moi.order_id
-	  WHERE NOT EXISTS (
-	    SELECT 1 
-	    FROM material_inbound_item mii
-	    WHERE mii.order_item_id = moi.order_item_id
-	  )
+	  WHERE mo.order_status = '승인'
+	    AND NOT EXISTS (
+	      SELECT 1 
+	      FROM material_inbound_item mii
+	      WHERE mii.order_item_id = moi.order_item_id
+	    )
 	</select>
 
 	
-	
-	<!-- 아직 입고되지 않은 발주 항목 조회 -->
+	<!-- 아직 입고되지 않은 발주 항목 조회 (발주 상태 조건 추가) -->
 	<select id="selectUnreceivedOrderItems" resultType="MaterialOrderItemVO">
 	  SELECT oi.order_item_id, oi.order_id, oi.material_id, oi.order_quantity
 	  FROM material_order_item oi
+	  JOIN material_order mo ON oi.order_id = mo.order_id
 	  LEFT JOIN material_inbound_item mii ON oi.order_item_id = mii.order_item_id
-	  WHERE mii.order_item_id IS NULL
+	  WHERE mo.order_status = '승인' 
+	    AND mii.order_item_id IS NULL
 	</select>
 	
 	<!-- 입고관리번호 자동 생성 (오늘 날짜 기준으로 증가) -->
@@ -196,9 +202,20 @@
 	
 	<!-- 입고 항목 INSERT -->
 	<insert id="insertMaterialInboundItem" parameterType="MaterialInboundItemVO">
-	  INSERT INTO material_inbound_item (inbound_id, order_item_id, material_id, order_quantity, received_quantity)
-	  VALUES (#{inboundId}, #{orderItemId}, #{materialId}, #{orderQuantity}, #{receivedQuantity})
+	  INSERT INTO material_inbound_item (inbound_id, order_item_id, material_id, quantity)
+	  VALUES (#{inboundId}, #{orderItemId}, #{materialId}, 0)
 	</insert>
+	
+	<!-- Mapper에 추가 -->
+	<select id="getUnreceivedOrderItemsByOrderId" resultType="MaterialOrderItemVO">
+	  SELECT oi.order_item_id, oi.order_id, oi.material_id, oi.order_quantity
+	  FROM material_order_item oi
+	  JOIN material_order mo ON oi.order_id = mo.order_id
+	  LEFT JOIN material_inbound_item mii ON oi.order_item_id = mii.order_item_id
+	  WHERE mo.order_status = '승인' 
+	    AND mii.order_item_id IS NULL
+	    AND oi.order_id = #{orderId}
+	</select>
 	
 
 </mapper>

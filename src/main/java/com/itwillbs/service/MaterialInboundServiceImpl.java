@@ -97,6 +97,42 @@ public class MaterialInboundServiceImpl implements MaterialInboundService{
 	        }
 	    }
 	}
+	
+	// MaterialInboundServiceImpl.java에 추가할 메서드
+	/**
+	 * 선택된 발주 ID 목록의 미입고건만 입고 등록
+	 */
+	@Override
+	public void insertSelectedUnreceivedOrders(String[] orderIds) {
+	    for (String orderId : orderIds) {
+	        // 해당 발주의 미입고 항목들만 조회
+	        List<MaterialOrderItemVO> orderItems = miDAO.getUnreceivedOrderItemsByOrderId(orderId);
+	        
+	        if (!orderItems.isEmpty()) {
+	            // 입고관리번호 생성
+	            String inboundId = miDAO.generateInboundId();
+	            
+	            // 입고 마스터 테이블 등록
+	            MaterialInboundVO inbound = new MaterialInboundVO();
+	            inbound.setInboundId(inboundId);
+	            inbound.setOrderId(orderId);
+	            inbound.setInboundStatus("미입고");
+	            inbound.setInboundDate(null);
+	            miDAO.insertMaterialInbound(inbound);
+	            
+	            // 입고 항목 테이블 등록
+	            for (MaterialOrderItemVO item : orderItems) {
+	                MaterialInboundItemVO itemVO = new MaterialInboundItemVO();
+	                itemVO.setInboundId(inboundId);
+	                itemVO.setOrderItemId(item.getOrderItemId());
+	                itemVO.setMaterialId(item.getMaterialId());
+	                itemVO.setOrderQuantity(item.getOrderQuantity());
+	                itemVO.setReceivedQuantity(0);
+	                miDAO.insertMaterialInboundItem(itemVO);
+	            }
+	        }
+	    }
+	}
 
 	
 

@@ -33,5 +33,10 @@ public interface MaterialInboundDAO {
 	void insertMaterialInbound(MaterialInboundVO vo);
 	void insertMaterialInboundItem(MaterialInboundItemVO vo);
 	
+	/**
+	 * 특정 발주 ID의 미입고 항목들만 조회
+	 */
+	List<MaterialOrderItemVO> getUnreceivedOrderItemsByOrderId(String orderId);
+	
 	
 }

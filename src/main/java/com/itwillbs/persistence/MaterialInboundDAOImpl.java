@@ -84,6 +84,14 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
 	public void insertMaterialInboundItem(MaterialInboundItemVO vo) {
 	    sqlSession.insert(NAMESPACE + "insertMaterialInboundItem", vo);
 	}
+	
+	
+
+	// MaterialInboundDAOImpl.java에 추가할 메서드
+	@Override
+	public List<MaterialOrderItemVO> getUnreceivedOrderItemsByOrderId(String orderId) {
+	    return sqlSession.selectList(NAMESPACE + "getUnreceivedOrderItemsByOrderId", orderId);
+	}
 
 	
 

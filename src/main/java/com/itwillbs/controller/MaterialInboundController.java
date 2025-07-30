@@ -15,6 +15,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.itwillbs.domain.MaterialOrderVO;
@@ -104,13 +105,21 @@ public class MaterialInboundController {
 	 */
 	@PostMapping("/insert-unreceived")
 	@ResponseBody
-	public ResponseEntity<String> insertUnreceivedOrders() {
+	public ResponseEntity<String> insertUnreceivedOrders(@RequestParam(required = false) String[] orderIds) {
 	    try {
-	        miService.insertUnreceivedOrders(); // Service에 처리 위임
-	        return ResponseEntity.ok("미입고건 DB 저장 성공");
+	        if (orderIds == null || orderIds.length == 0) {
+	            // 파라미터가 없으면 전체 미입고건 처리 (기존 방식)
+	            miService.insertUnreceivedOrders();
+	            return ResponseEntity.ok("전체 미입고건 DB 저장 성공");
+	        } else {
+	            // 선택된 발주 ID만 처리 (새로운 방식)
+	            miService.insertSelectedUnreceivedOrders(orderIds);
+	            return ResponseEntity.ok("선택된 발주건 DB 저장 성공");
+	        }
 	    } catch (Exception e) {
-	        e.printStackTrace();
-	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("DB 저장 실패");
+	        logger.error("미입고건 DB 저장 실패", e);
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                           .body("DB 저장 실패: " + e.getMessage());
 	    }
 	}
 

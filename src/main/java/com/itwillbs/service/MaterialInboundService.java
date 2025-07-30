@@ -27,4 +27,9 @@ public interface MaterialInboundService {
 	// 미입고 발주건을 입고관리 테이블
 	void insertUnreceivedOrders();
 	
+	/**
+	 * 선택된 발주 ID 목록의 미입고건만 입고 등록
+	 */
+	void insertSelectedUnreceivedOrders(String[] orderIds);
+	
 }
