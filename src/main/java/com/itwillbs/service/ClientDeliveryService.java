@@ -3,6 +3,7 @@ package com.itwillbs.service;
 import com.itwillbs.domain.ClientDeliveryVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.ShipmentCompletedDTO;
+import com.itwillbs.dto.ShipmentCompletedGroupDTO;
 import com.itwillbs.dto.ShipmentPendingDTO;
 import com.itwillbs.dto.ShipmentPendingGroupDTO;
 
@@ -30,6 +31,9 @@ public interface ClientDeliveryService {
 
     // ✅ 출하 완료 총 개수 조회 (페이징용)
     int countCompletedShipmentList(SearchCriteria cri);
+
+    // 출하 완료 목록 그룹 조회
+    List<ShipmentCompletedGroupDTO> getCompletedGroupedList(SearchCriteria cri);
 
 
    

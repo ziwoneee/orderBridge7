@@ -6,6 +6,7 @@ import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.StockReservationVO;
 import com.itwillbs.dto.LotStockDTO;
 import com.itwillbs.dto.ShipmentCompletedDTO;
+import com.itwillbs.dto.ShipmentCompletedGroupDTO;
 import com.itwillbs.dto.ShipmentPendingDTO;
 import com.itwillbs.dto.ShipmentPendingGroupDTO;
 import com.itwillbs.persistence.ClientDeliveryDAO;
@@ -15,8 +16,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ClientDeliveryServiceImpl implements ClientDeliveryService {
@@ -106,7 +110,8 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
     public void updateClientOrderStatus(String clOrderId, String status) {
         deliveryDAO.updateClientOrderStatus(clOrderId, status);
     }
-
+    
+   //출하 완료 항목
     @Override
     public List<ShipmentCompletedDTO> searchCompletedShipmentList(SearchCriteria cri) {
         return deliveryDAO.searchCompletedShipmentList(cri);
@@ -125,4 +130,34 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
         int random = (int) (Math.random() * 1000000);
         return date + "-" + String.format("%06d", random);
     }
+    
+ // ✅ 출하 완료 목록 (수주번호 기준 그룹형 구조)
+    @Override
+    public List<ShipmentCompletedGroupDTO> getCompletedGroupedList(SearchCriteria cri) {
+        List<ShipmentCompletedDTO> flatList = deliveryDAO.searchCompletedShipmentList(cri);
+
+        Map<String, ShipmentCompletedGroupDTO> groupedMap = new LinkedHashMap<>();
+
+        for (ShipmentCompletedDTO dto : flatList) {
+            String clOrderId = dto.getClOrderId();
+
+            // 해당 수주번호로 이미 그룹이 있으면 가져오고, 없으면 새로 생성
+            ShipmentCompletedGroupDTO group = groupedMap.get(clOrderId);
+            if (group == null) {
+                group = new ShipmentCompletedGroupDTO();
+                group.setClOrderId(clOrderId);
+                group.setClientName(dto.getClientName());
+                group.setDeliveryDate(dto.getDeliveryDate()); // 그룹 헤더에 표시할 출하일자
+                group.setProductList(new ArrayList<>());
+                groupedMap.put(clOrderId, group);
+            }
+
+            // 하위 제품 리스트에 추가
+            group.getProductList().add(dto);
+        }
+
+        return new ArrayList<>(groupedMap.values());
+    }
+
+    
 }
