@@ -22,11 +22,6 @@
       AND d.cl_order_id = #{clOrderId}
   </select>
 
-  <!-- CONFIRMED 상태 수주 총 개수 조회 -->
-  <select id="getConfirmedOrderTotalCount" resultType="int">
-    SELECT COUNT(*) FROM client_order WHERE cl_order_status = 'CONFIRMED'
-  </select>
-
   <!-- CONFIRMED 상태 수주 목록 페이징 조회 -->
   <select id="getConfirmedOrderList" resultType="com.itwillbs.domain.ClientOrderVO">
     SELECT
