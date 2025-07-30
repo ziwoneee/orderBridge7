@@ -13,7 +13,7 @@
 			unit,
 			unit_price,
 			storage_method,
-			storage_location,
+			warehouse_code,
 			lot_flag,
 			supply_unit
 		FROM material
@@ -29,7 +29,7 @@
 			 unit, 
 			 unit_price, 
 			 storage_method, 
-			 storage_location, 
+			 warehouse_code, 
 			 lot_flag, 
 			 supply_unit)
 		VALUES
@@ -39,7 +39,7 @@
 			 #{unit}, 
 			 #{unitPrice}, 
 			 #{storageMethod}, 
-			 #{storageLocation}, 
+			 #{warehouseCode}, 
 			 #{lotFlag}, 
 			 #{supplyUnit})
 	</insert>
@@ -52,7 +52,7 @@
 			unit = #{unit},
 			unit_price = #{unitPrice},
 			storage_method = #{storageMethod},
-			storage_location = #{storageLocation},
+			warehouse_code = #{warehouseCode},
 			lot_flag = #{lotFlag},
 			supply_unit = #{supplyUnit}
 		WHERE material_id = #{materialId}
@@ -99,7 +99,7 @@
 	    unit,
 	    unit_price,
 	    storage_method,
-	    storage_location,
+	    warehouse_code,
 	    lot_flag,
 	    supply_unit
 	  FROM material

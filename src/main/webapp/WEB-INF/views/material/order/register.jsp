@@ -83,7 +83,7 @@
 				      <input type="number" class="form-control" value="0" readonly>
 				      <input type="hidden" name="orderItems[0].totalPrice" value="0">
 				    </td>
-				    <td><input type="text" name="orderItems[0].storageLocation" class="form-control" readonly></td>
+				    <td><input type="text" name="orderItems[0].warehouseCode" class="form-control" readonly></td>
 				    <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button></td>
 				  </tr>
 				</tbody>

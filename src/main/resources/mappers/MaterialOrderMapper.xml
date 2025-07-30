@@ -23,7 +23,7 @@
 	    END AS materialName,
 	    SUM(moi.quantity) AS totalQuantity,
 	    SUM(moi.total_price) AS totalPrice,
-	    MAX(moi.storage_location) AS storageLocation
+	    MAX(moi.warehouse_code) AS warehouseCode
 	  FROM material_order mo
 	  JOIN material_order_item moi ON mo.order_id = moi.order_id
 	  JOIN material m ON moi.material_id = m.material_id
@@ -113,7 +113,7 @@
 	<insert id="insertOrderItem" parameterType="com.itwillbs.domain.MaterialOrderItemVO">
 	    INSERT INTO material_order_item (
 	        order_item_id, order_id, material_id, quantity,
-	        unit_price, total_price, storage_location
+	        unit_price, total_price, warehouse_code
 	    ) VALUES (
 	        #{orderItemId},
 	        #{orderId}, 
@@ -121,7 +121,7 @@
 	        #{quantity, jdbcType=INTEGER},
 	        #{unitPrice, jdbcType=DECIMAL}, 
 	        #{totalPrice, jdbcType=DECIMAL}, 
-	        #{storageLocation}
+	        #{warehouseCode}
 	    )
 	</insert>
 	

@@ -26,7 +26,7 @@ function addItemRow() {
       <input type="hidden" name="orderItems[${itemIndex}].totalPrice" value="0">
     </td>
     <td>
-      <input type="text" name="orderItems[${itemIndex}].storageLocation" class="form-control" readonly>
+      <input type="text" name="orderItems[${itemIndex}].warehouseCode" class="form-control" readonly>
     </td>
     <td>
       <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button>
@@ -123,10 +123,10 @@ document.addEventListener("change", function (e) {
 
     const row = e.target.closest("tr");
     const unitPriceInput = row.querySelector("input[name$='.unitPrice']");
-    const locationInput = row.querySelector("input[name$='.storageLocation']");
+    const locationInput = row.querySelector("input[name$='.warehouseCode']");
 
     if (unitPriceInput) unitPriceInput.value = item.unitPrice || '';
-    if (locationInput) locationInput.value = item.storageLocation || '';
+    if (locationInput) locationInput.value = item.warehouseCode || '';
 
     calculateTotal(unitPriceInput); // 총금액도 갱신
   }

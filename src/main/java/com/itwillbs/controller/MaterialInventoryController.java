@@ -33,7 +33,7 @@ public class MaterialInventoryController {
      * 자재 재고현황 리스트 조회
      * @param materialId 자재 ID (선택 필터)
      * @param materialName 자재명 (선택 필터)
-     * @param storageLocation 보관위치 (선택 필터)
+     * @param warehouseCode 보관창고 (선택 필터)
      * @param model View에 전달할 데이터 모델
      * @return JSP 페이지 경로
      */
