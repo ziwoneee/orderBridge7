@@ -18,6 +18,7 @@ import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.MaterialInboundSummaryDTO;
+import com.itwillbs.dto.UnreceivedOrderDTO;
 import com.itwillbs.service.MaterialInboundService;
 
 /**
@@ -87,7 +88,7 @@ public class MaterialInboundController {
      */
     @GetMapping("/unreceived-orders")
     @ResponseBody
-    public List<MaterialOrderVO> getUnreceivedOrders() {
+    public List<UnreceivedOrderDTO> getUnreceivedOrders() {
         return miService.getUnreceivedOrders();
     }
 	

@@ -5,6 +5,7 @@ import java.util.List;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.MaterialInboundSummaryDTO;
+import com.itwillbs.dto.UnreceivedOrderDTO;
 
 public interface MaterialInboundDAO {
 	
@@ -18,6 +19,6 @@ public interface MaterialInboundDAO {
 	List<MaterialOrderVO> selectPendingInboundOrders();
 	
 	// 미입고 발주건 목록 조회
-    List<MaterialOrderVO> selectUnreceivedOrders();
+    List<UnreceivedOrderDTO> selectUnreceivedOrders();
 
 }

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.MaterialInboundSummaryDTO;
+import com.itwillbs.dto.UnreceivedOrderDTO;
 import com.itwillbs.persistence.MaterialInboundDAO;
 
 @Service
@@ -42,7 +43,7 @@ public class MaterialInboundServiceImpl implements MaterialInboundService{
      * - 발주 항목 중 한 번도 입고처리된 적 없는 건만 조회
      */
     @Override
-    public List<MaterialOrderVO> getUnreceivedOrders() {
+    public List<UnreceivedOrderDTO> getUnreceivedOrders() {
         return miDAO.selectUnreceivedOrders();
     }
     

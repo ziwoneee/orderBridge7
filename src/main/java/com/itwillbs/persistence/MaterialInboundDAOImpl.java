@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.MaterialInboundSummaryDTO;
+import com.itwillbs.dto.UnreceivedOrderDTO;
 
 @Repository
 public class MaterialInboundDAOImpl implements MaterialInboundDAO {
@@ -47,7 +48,7 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
      * - 입고항목 테이블에 존재하지 않는 발주항목만 필터링
      */
     @Override
-    public List<MaterialOrderVO> selectUnreceivedOrders() {
+    public List<UnreceivedOrderDTO> selectUnreceivedOrders() {
         return sqlSession.selectList(NAMESPACE + "selectUnreceivedOrders");
     }
 	

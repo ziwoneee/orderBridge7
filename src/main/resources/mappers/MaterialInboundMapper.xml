@@ -133,20 +133,25 @@
 	
 	
 	<!-- 미입고 상태의 발주 목록 조회 -->
-	<select id="selectUnreceivedOrders" resultType="com.itwillbs.domain.MaterialOrderVO">
+	<select id="selectUnreceivedOrders" resultType="com.itwillbs.dto.UnreceivedOrderDTO">
 	  SELECT 
 	    mo.order_id AS orderId,
-	    mo.supplier_id AS supplierId,
-	    s.supplier_name AS supplierName,
-	    mo.order_date AS orderDate,
 	    mo.expected_arrived_date AS expectedArrivedDate,
 	    mo.created_by AS createdBy,
-	    mo.note,
-	    COUNT(moi.material_id) AS itemCount
-	  FROM 
+	    
+	    CASE 
+	      WHEN COUNT(*) = 1 THEN MAX(m.material_name)
+	      ELSE CONCAT(MAX(m.material_name), ' 외 ', COUNT(*) - 1, '건')
+	    END AS materialName,
+	    
+	    SUM(moi.quantity) AS totalQuantity,
+	    
+	    0 AS inboundQuantity
+	    
+	    FROM 
 	    material_order mo
 	    JOIN material_order_item moi ON mo.order_id = moi.order_id
-	    JOIN supplier s ON mo.supplier_id = s.supplier_id
+	    JOIN material m ON moi.material_id = m.material_id
 	  WHERE NOT EXISTS (
 	    SELECT 1 
 	    FROM material_inbound_item mii
