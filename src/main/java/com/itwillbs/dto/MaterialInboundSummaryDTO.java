@@ -19,5 +19,6 @@ public class MaterialInboundSummaryDTO {
     private String status;              // 진행현황 (입고완료 / 미입고 / 부분입고)
     private String handledBy;           // 입고 담당자
     private Date inboundDate;           // 입고일자
+    private Date expectedArrivedDate;   // 예상 입고일
 
 }
