@@ -38,6 +38,10 @@
                        value="${cri.keyword}"/>
                 <button type="submit" class="btn btn-primary mb-2">검색</button>
                 <a href="/client/register" class="btn btn-success mb-2">신규 등록</a>
+                
+                <a href="/client/list" class="btn btn-light">
+          <i class="ti-reload"></i> 초기화
+        </a>
               </div>
             </form>
           </div>

@@ -24,13 +24,7 @@ public class ClientDeliveryDAOImpl implements ClientDeliveryDAO {
     @Autowired
     private SqlSession sqlSession;
 
-    /** ✅ 출하 대기 목록 (평면) */
-    @Override
-    public List<ShipmentPendingDTO> selectPendingShipmentList() {
-        return sqlSession.selectList(NAMESPACE + ".selectPendingShipmentList");
-    }
-
-    /** ✅ 출하 대기 목록 (수주번호 그룹) */
+       /** ✅ 출하 대기 목록 (수주번호 그룹) */
     @Override
     public List<ShipmentPendingGroupDTO> getPendingShipmentGroupedList() {
         return sqlSession.selectList(NAMESPACE + ".getPendingShipmentGroupedList");
@@ -138,5 +132,17 @@ public class ClientDeliveryDAOImpl implements ClientDeliveryDAO {
         sqlSession.update(NAMESPACE + ".updateOrderDetailStatus", paramMap);
     }
 
+    
+    /** ✅ 출하 대기 목록 (검색 + 정렬 + 페이징 지원) */
+    @Override
+    public List<ShipmentPendingGroupDTO> searchPendingGroupedList(SearchCriteria cri) {
+        return sqlSession.selectList(NAMESPACE + ".searchPendingGroupedList", cri);
+    }
+
+    /** ✅ 출하 대기 목록 총 개수 (검색 조건 포함) */
+    @Override
+    public int countPendingGroupedList(SearchCriteria cri) {
+        return sqlSession.selectOne(NAMESPACE + ".countPendingGroupedList", cri);
+    }
     
 }

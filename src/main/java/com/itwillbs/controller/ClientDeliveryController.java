@@ -26,13 +26,13 @@ public class ClientDeliveryController {
     @Autowired
     private StockReservationService reservationService;
 
-    // ✅ 출하대기 그룹형 목록 조회
-    @GetMapping("/pending")
-    public String getGroupedPendingList(Model model) {
-        List<ShipmentPendingGroupDTO> groupedList = deliveryService.getPendingShipmentGroupedList();
-        model.addAttribute("groupedList", groupedList);
-        return "clientDelivery/list";
-    }
+//    // ✅ 출하대기 그룹형 목록 조회
+//    @GetMapping("/pending")
+//    public String getGroupedPendingList(Model model) {
+//        List<ShipmentPendingGroupDTO> groupedList = deliveryService.getPendingShipmentGroupedList();
+//        model.addAttribute("groupedList", groupedList);
+//        return "clientDelivery/list";
+//    }
 
     // ✅ 수주번호 단위 출하 처리
     @PostMapping("/process")
@@ -44,7 +44,7 @@ public class ClientDeliveryController {
         }
 
         rttr.addFlashAttribute("message", "출하 처리가 완료되었습니다.");
-        return "redirect:/shipment/pending";
+        return "redirect:/shipment/list";
     }
     
     // 출하 완료 목록 보기
@@ -83,8 +83,12 @@ public class ClientDeliveryController {
                                    @RequestParam(value = "tab", required = false, defaultValue = "pending") String tab,
                                    Model model) {
         // 출하대기 목록
-        List<ShipmentPendingGroupDTO> groupedList = deliveryService.getPendingShipmentGroupedList();
-        model.addAttribute("groupedList", groupedList);
+    	List<ShipmentPendingGroupDTO> groupedList = deliveryService.searchPendingGroupedList(cri);
+    	int totalPending = deliveryService.countPendingGroupedList(cri);
+    	PageMaker pendingPage = new PageMaker(cri, totalPending);
+
+    	model.addAttribute("groupedList", groupedList);
+    	model.addAttribute("pendingPage", pendingPage);
 
         // ✅ 예약된 수주번호 목록 전달
         List<String> reservedOrderIds = reservationService.getReservedOrderIds();
@@ -93,7 +97,7 @@ public class ClientDeliveryController {
                 
         // 출하완료 검색조건 보정
         List<String> allowed = Arrays.asList("deliveryId", "clOrderId", "deliveryDate", "productName", "clientName", "lotNo", "trackingNumber");
-        if (cri.getSortColumn() == null || !allowed.contains(cri.getSortColumn())) cri.setSortColumn("deliveryDate");
+        if (cri.getSortColumn() == null);
         if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) cri.setSortOrder("desc");
         if (cri.getStartDate() != null && cri.getStartDate().trim().isEmpty()) cri.setStartDate(null);
         if (cri.getEndDate() != null && cri.getEndDate().trim().isEmpty()) cri.setEndDate(null);

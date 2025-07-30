@@ -199,3 +199,21 @@
     color: #ccc;
   }
 </style>
+
+<script>
+  // 시작 날짜 선택 시 → 종료 날짜 최소값 변경
+  document.querySelector('input[name="startDate"]').addEventListener('change', function () {
+    const startDate = this.value;
+    const endDateInput = document.querySelector('input[name="endDate"]');
+
+    if (startDate) {
+      endDateInput.min = startDate;
+
+      // 현재 선택된 endDate가 startDate보다 이전이면 초기화
+      if (endDateInput.value && endDateInput.value < startDate) {
+        endDateInput.value = '';
+      }
+    }
+  });
+</script>
+

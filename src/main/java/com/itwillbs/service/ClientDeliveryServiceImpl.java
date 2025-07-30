@@ -30,10 +30,18 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
     @Autowired
     private StockReservationService reservationService;
 
+ // 출하대기 목록 (그룹형) - 검색 + 페이징 지원
     @Override
-    public List<ShipmentPendingDTO> getPendingShipmentList() {
-        return deliveryDAO.selectPendingShipmentList();
+    public List<ShipmentPendingGroupDTO> searchPendingGroupedList(SearchCriteria cri) {
+        return deliveryDAO.searchPendingGroupedList(cri);
     }
+
+    // 출하대기 총 개수 조회 (그룹형, 페이징용)
+    @Override
+    public int countPendingGroupedList(SearchCriteria cri) {
+        return deliveryDAO.countPendingGroupedList(cri);
+    }
+
 
     @Override
     public List<ShipmentPendingGroupDTO> getPendingShipmentGroupedList() {

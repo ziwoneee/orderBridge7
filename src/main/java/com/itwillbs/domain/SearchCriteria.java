@@ -41,6 +41,7 @@ public class SearchCriteria {
     private String endDate;       // 기간조회 종료일 (yyyy-MM-dd)
     private int totalCount;		 //
     private String mode;  // 목록전체보기
+    
 
     	
  // 방어 코드 추가

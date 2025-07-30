@@ -35,22 +35,20 @@
 		                <option value="product_name" ${cri.sortColumn eq 'product_name' ? 'selected' : ''}>제품명</option>
 		                <option value="lot_no" ${cri.sortColumn eq 'lot_no' ? 'selected' : ''}>LOT번호</option>
 		                <option value="client_name" ${cri.sortColumn eq 'client_name' ? 'selected' : ''}>담당자</option>
-		           
-		            </select>
-		            
-		            
+		         </select>
+		            		            
 		            <input type="text" name="keyword" value="${cri.keyword}" class="form-control mr-2" placeholder="제품명, ID, LOT, 거래처 검색">
-		            <input type="date" name="startDate" value="${cri.startDate}" class="form-control mr-2" max="<%= today %>">
-		            <input type="date" name="endDate" value="${cri.endDate}" class="form-control mr-2" max="<%= today %>">
+		            <input type="date" id="startDate" name="startDate" value="${cri.startDate}" class="form-control mr-2" max="<%= today %>">
+		            <input type="date" id ="endDate" name="endDate" value="${cri.endDate}" class="form-control mr-2" max="<%= today %>">
 				           
 		
 		            <button type="submit" class="btn btn-primary">조회</button>
 		             <a href="/product/outbound/list" class="btn btn-light">
-          <i class="ti-reload"></i> 초기화
-        </a>
-		        </form>
-		    </div>
-	<div row>
+			          <i class="ti-reload"></i> 초기화
+			        </a>
+					        </form>
+					    </div>
+			
 	    <c:if test="${not empty msg}">
 	        <div class="alert alert-success text-center">${msg}</div>
 	    </c:if>
@@ -59,9 +57,9 @@
 	     <div class="table-responsive mt-4">
 	    <table id=outboundTable class="table table-bordered table-striped table-hover text-center">
 	        <thead>
-  <tr>
-    <th>출고ID</th>
-    <th>제품ID</th>
+			  <tr>
+			    <th>출고ID</th>
+			    <th>제품ID</th>
 
     <!-- ✅ 제품명 정렬 -->
     <th>
@@ -168,8 +166,6 @@
 	    </table>
 	
 	   <!-- ✅ 페이징 영역 -->
-         <!-- 페이지네이션 -->
-<!-- ✅ Bootstrap 페이징 스타일 -->
 <div class="d-flex justify-content-center mt-4">
 <nav>
   <ul class="pagination justify-content-center mt-4">
@@ -201,7 +197,7 @@
  		  </div>
         <!-- content-wrapper 끝 -->
 	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
-	
+	</div>
      </div>
      <!-- 본문.jsp main-panel ends -->
   </div>   
@@ -214,4 +210,29 @@
     color: #ccc;
   }
 </style>
+ 
+ <script>
+  const startDateInput = document.getElementById("startDate");
+  const endDateInput = document.getElementById("endDate");
+
+  startDateInput.addEventListener("change", function () {
+    const selectedStart = this.value;
+    if (selectedStart) {
+      endDateInput.min = selectedStart;
+
+      // 현재 endDate가 startDate보다 이전이면 초기화
+      if (endDateInput.value && endDateInput.value < selectedStart) {
+        endDateInput.value = '';
+      }
+    }
+  });
+
+  // 페이지 진입 시에도 초기 min 세팅 (새로고침 대비)
+  window.addEventListener("DOMContentLoaded", function () {
+    if (startDateInput.value) {
+      endDateInput.min = startDateInput.value;
+    }
+  });
+</script>
+
  
