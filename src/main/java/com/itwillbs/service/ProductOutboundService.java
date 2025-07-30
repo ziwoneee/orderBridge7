@@ -12,6 +12,12 @@ public interface ProductOutboundService {
 	 int countOutboundList(SearchCriteria cri);
 	 
 	 String generateOutboundId();
+	 
+	 
+	 //상세보기
+	 ProductOutboundVO getOutboundDetail(String outboundId);
+
+	
 
 	 
 }

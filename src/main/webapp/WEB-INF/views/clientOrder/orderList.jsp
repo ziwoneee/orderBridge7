@@ -151,6 +151,7 @@
             <a href="${pageContext.request.contextPath}/clientorder/register" class="btn btn-primary">+ 신규 수주 등록</a>
           </div>
 </div>
+  </div>
           <!-- 페이징 -->
           <div class="d-flex justify-content-center mt-4">
             <nav>
@@ -174,7 +175,7 @@
             </nav>
           </div>
 
-        </div>
+      
       <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
       </div>
     </div>
@@ -191,18 +192,88 @@
   }
 </script>
 
-<!-- DataTables -->
-<script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
-<script>
-  $(document).ready(function () {
-    $('#clorderTable').DataTable({
-      paging: false,
-      ordering: true,
-      searching: false,
-      info: false,
-      columnDefs: [
-        { targets: [0,5,6,7], orderable: false }
-      ]
-    });
-  });
-</script>
+
+
+<style>
+/* 언더라인 탭 스타일 - 상단 라인 */
+.nav-underline-custom {
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 0;
+}
+
+.nav-underline-custom .nav-link {
+    border: none;
+    border-top: 3px solid transparent;
+    color: #6c757d;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    background: none;
+}
+
+.nav-underline-custom .nav-link.active {
+    color: #1C355E;
+    border-top-color: #1C355E;
+    background: none;
+    font-weight: 700;
+}
+
+.nav-underline-custom .nav-link:hover {
+    color: #1C355E;
+    border-top-color: rgba(28, 53, 94, 0.5);
+    background: none;
+}
+
+/* 배지 스타일 */
+.nav-link .badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* 체크박스 스타일 */
+.highlight-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: #28a745;
+    cursor: pointer;
+}
+
+.highlight-checkbox:hover {
+    box-shadow: 0 0 5px #28a745;
+    transform: scale(1.1);
+    transition: all 0.2s ease;
+}
+
+/* 테이블 호버 효과 */
+.table-hover tbody tr:hover {
+    background-color: rgba(28, 53, 94, 0.05);
+}
+
+/* 정렬 링크 스타일 */
+.table thead th a:hover {
+    color: #f8f9fa !important;
+    text-decoration: underline !important;
+}
+
+/* 페이지네이션 호버 효과 */
+.page-link:hover {
+    background-color: rgba(28, 53, 94, 0.1);
+    border-color: #1C355E;
+    color: #1C355E;
+}
+
+/* 버튼 호버 효과 */
+.btn-primary:hover {
+    background-color: #152a4a !important;
+    border-color: #152a4a !important;
+}
+
+/* 탭 콘텐츠 부드러운 전환 */
+.tab-content {
+    margin-top: 20px;
+}
+ .neutral-arrow {
+    color: #ccc;
+    font-size: 12px;
+    margin-left: 4px;
+  }
+</style>

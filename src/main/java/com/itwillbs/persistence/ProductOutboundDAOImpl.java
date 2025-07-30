@@ -36,6 +36,12 @@ public class ProductOutboundDAOImpl implements ProductOutboundDAO {
     public Integer getMaxOutboundSeqToday(String today) {
         return sqlSession.selectOne(NAMESPACE + ".getMaxOutboundSeqToday", today);
     }
+    //상세보기
+    @Override
+    public ProductOutboundVO getOutboundDetail(String outboundId) {
+        return sqlSession.selectOne(NAMESPACE + ".getOutboundDetail", outboundId);
+    }
+    
     
     
 }
