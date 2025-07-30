@@ -75,4 +75,10 @@ public class ProductOutboundServiceImpl implements ProductOutboundService {
         int nextSeq = (maxSeq != null) ? maxSeq + 1 : 1;
         return String.format("OUT-FG-%s-%03d", today, nextSeq);
     }
+    
+    //상세보기
+    @Override
+    public ProductOutboundVO getOutboundDetail(String outboundId) {
+        return outboundDAO.getOutboundDetail(outboundId);
+    }
 }

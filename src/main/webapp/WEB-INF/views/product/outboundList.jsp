@@ -158,12 +158,64 @@
 	                <td>${vo.remark}</td>
 	                
 	                <td>
-	    <a href="${pageContext.request.contextPath}/outbound/detail?outboundId=${vo.outboundId}" class="btn btn-sm btn-info">상세보기</a>
+	    <!-- 출고 내역 리스트에 있는 상세보기 버튼 -->
+<button class="btn btn-sm btn-outline-primary"
+        data-toggle="modal"
+        data-target="#outboundDetailModal"
+        data-id="${vo.outboundId}">
+  상세보기
+</button>
+
 	  </td>
 	            </tr>
 	        </c:forEach>
 	        </tbody>
 	    </table>
+	    
+	    <!-- 출고 상세정보 모달 -->
+<div class="modal fade" id="outboundDetailModal" tabindex="-1" role="dialog" aria-labelledby="outboundDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">출고 상세정보</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span>&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <table class="table table-bordered">
+          <tbody>
+            <tr>
+              <th>출고ID</th><td id="detail-outboundId"></td>
+              <th>제품명</th><td id="detail-productName"></td>
+            </tr>
+            <tr>
+              <th>LOT 번호</th><td id="detail-lotNo"></td>
+              <th>출고수량</th><td id="detail-outboundQty"></td>
+            </tr>
+            <tr>
+              <th>출고일자</th><td id="detail-outboundDate"></td>
+              <th>거래처명</th><td id="detail-clientName"></td>
+            </tr>
+            <tr>
+              <th>담당자</th><td id="detail-manager"></td>
+              <th>비고</th><td id="detail-remark"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+	    
 	
 	   <!-- ✅ 페이징 영역 -->
 <div class="d-flex justify-content-center mt-4">
@@ -235,4 +287,5 @@
   });
 </script>
 
+ <script src="/resources/js/outboundDetail.js"></script>
  

@@ -100,16 +100,17 @@
                       <td><fmt:formatDate value="${item.expireDate}" pattern="yyyy-MM-dd"/></td>
                       <td>
                         <c:choose>
-					  <c:when test="${item.stockQty == 0}">
-					    <span class="badge badge-secondary">완료</span>
-					  </c:when>
-					  <c:when test="${item.stockQty lt item.safeQty}">
-					    <span class="badge badge-danger">부족</span>
-					  </c:when>
-					  <c:otherwise>
-					    <span class="badge badge-success">정상</span>
-					  </c:otherwise>
-					</c:choose>
+  <c:when test="${item.stockQty == 0}">
+    <span class="badge badge-secondary">완료</span>
+  </c:when>
+  <c:when test="${item.availableQty lt item.safeQty}">
+    <span class="badge badge-danger">부족</span>
+  </c:when>
+  <c:otherwise>
+    <span class="badge badge-success">정상</span>
+  </c:otherwise>
+</c:choose>
+
 
                       </td>
                       <td>
@@ -184,10 +185,10 @@
         <table class="table table-sm table-bordered">
           <thead>
             <tr>
-              <th>입력일</th>
-              <th>구분</th>
-              <th>수량</th>
-              <th>비고</th>
+             <th>처리일자</th>
+		      <th>구분</th>
+		      <th>수량</th>
+		      <th>거래처</th>
             </tr>
           </thead>
           <tbody id="modalTransactionBody">
@@ -200,7 +201,7 @@
   </div>
 </div>
 
-<!-- JS 스크립트 -->
+<!-- 입출고 상세 모달창 -->
 <script>
   $('#detailModal').on('show.bs.modal', function (event) {
     const button = $(event.relatedTarget);
@@ -209,15 +210,16 @@
     $('#modalProductName').text(product);
     $('#modalLotNo').text(lot);
 
+    // AJAX 호출로 거래처명 포함 출고/입고 내역 조회
     $.getJSON("/product/transaction", { product: product, lot: lot }, function(data) {
       let html = data.length === 0
-        ? "<tr><td colspan='4'>내역이 없습니다.</td></tr>"
+        ? "<tr><td colspan='4'>입출고 내역이 없습니다.</td></tr>"
         : data.map(row => `
           <tr>
-            <td>${row.reg_date}</td>
+            <td>${row.regDate}</td>
             <td>${row.type}</td>
             <td>${row.qty}</td>
-            <td>${row.memo || ''}</td>
+            <td>${row.memo || row.clientName || ''}</td>
           </tr>`).join('');
       $('#modalTransactionBody').html(html);
     });
@@ -233,6 +235,7 @@
     document.getElementById('stockForm').submit();
   }
 </script>
+
 
 <script>
   // 시작 날짜 선택 시 → 종료 날짜 최소값 변경

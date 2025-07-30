@@ -42,41 +42,74 @@
       AND pi.reg_date <![CDATA[ <= ]]> #{endDate}
     </if>
 
-    <!-- ✅ 상태 필터 (재고 상태: 완료, 부족, 정상) -->
-    <if test="status != null and status != 'all'">
-      <choose>        
-        <when test="status == '정상'">
-          AND GREATEST(
-            pi.inbound_qty - IFNULL((
-              SELECT SUM(po.outbound_qty)
-              FROM product_outbound po
-              WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no
-            ), 0), 0) &gt;= 50
-        </when>
-        <when test="status == '부족'">
-          AND GREATEST(
-            pi.inbound_qty - IFNULL((
-              SELECT SUM(po.outbound_qty)
-              FROM product_outbound po
-              WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no
-            ), 0), 0) &lt; 50
-          AND GREATEST(
-            pi.inbound_qty - IFNULL((
-              SELECT SUM(po.outbound_qty)
-              FROM product_outbound po
-              WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no
-            ), 0), 0) &gt; 0
-        </when>
-        <when test="status == '완료'">
-          AND GREATEST(
-            pi.inbound_qty - IFNULL((
-              SELECT SUM(po.outbound_qty)
-              FROM product_outbound po
-              WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no
-            ), 0), 0) = 0
-        </when>
-      </choose>
-    </if>
+<!-- ✅ 상태 필터 (재고 상태: 완료, 부족, 정상) -->
+<if test="status != null and status != 'all'">
+  <choose>
+
+    <!-- ✅ 정상: 가용수량 >= 50 -->
+    <when test="status == '정상'">
+      AND (
+        pi.inbound_qty
+        - IFNULL((SELECT SUM(po.outbound_qty)
+                  FROM product_outbound po
+                  WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no), 0)
+        - IFNULL((SELECT SUM(sr.reserved_qty)
+                  FROM stock_reservation sr
+                  WHERE sr.product_id = pi.product_id AND sr.lot_no = pi.lot_no), 0)
+      ) &gt;= 50
+    </when>
+
+    <!-- ⚠️ 부족: 가용수량 < 50 AND 현재고 > 0 -->
+    <when test="status == '부족'">
+      AND (
+        (
+          pi.inbound_qty
+          - IFNULL((SELECT SUM(po.outbound_qty)
+                    FROM product_outbound po
+                    WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no), 0)
+          - IFNULL((SELECT SUM(sr.reserved_qty)
+                    FROM stock_reservation sr
+                    WHERE sr.product_id = pi.product_id AND sr.lot_no = pi.lot_no), 0)
+        ) &lt; 50
+      )
+      AND (
+        (
+          pi.inbound_qty
+          - IFNULL((SELECT SUM(po.outbound_qty)
+                    FROM product_outbound po
+                    WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no), 0)
+        ) &gt; 0
+      )
+    </when>
+
+    <!-- ⛔ 완료: 가용수량 = 0 AND 현재고 = 0 -->
+    <when test="status == '완료'">
+      AND (
+        (
+          pi.inbound_qty
+          - IFNULL((SELECT SUM(po.outbound_qty)
+                    FROM product_outbound po
+                    WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no), 0)
+          - IFNULL((SELECT SUM(sr.reserved_qty)
+                    FROM stock_reservation sr
+                    WHERE sr.product_id = pi.product_id AND sr.lot_no = pi.lot_no), 0)
+        ) = 0
+      )
+      AND (
+        (
+          pi.inbound_qty
+          - IFNULL((SELECT SUM(po.outbound_qty)
+                    FROM product_outbound po
+                    WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no), 0)
+        ) = 0
+      )
+    </when>
+
+  </choose>
+</if>
+
+
+
   </where>
 
   ORDER BY pi.reg_date DESC
@@ -149,23 +182,41 @@
   </update>
 
   <!-- ✅ 5. 입출고 내역 모달 조회 -->
-  <select id="getStockDetail"
-          parameterType="map"
-          resultMap="StockDetailMap">
-    SELECT reg_date, type, qty, memo
-    FROM product_stock_transaction
-    WHERE product_id = #{productId}
-      AND lot_no = #{lotNo}
-    ORDER BY reg_date DESC
-  </select>
+<!-- 입고 + 출고 내역을 하나로 조회하는 쿼리 -->
+<select id="getStockDetail" resultMap="StockDetailMap">
+  SELECT '입고' AS type,
+         pi.inbound_qty AS qty,
+         pi.reg_date AS reg_date,
+         NULL AS client_name,
+         '' AS memo
+  FROM product_inbound pi
+  WHERE pi.product_id = #{productId}
+    AND pi.lot_no = #{lotNo}
 
-  <!-- ✅ 6. resultMap (VO 전용) -->
-  <resultMap id="StockDetailMap" type="com.itwillbs.domain.ProductStockTransactionVO">
-    <result property="regDate" column="reg_date" />
-    <result property="type" column="type" />
-    <result property="qty" column="qty" />
-    <result property="memo" column="memo" />
-  </resultMap>
+  UNION ALL
+
+  SELECT '출고' AS type,
+         po.outbound_qty AS qty,
+         po.outbound_date AS reg_date,
+         c.client_name AS client_name,
+         '' AS memo
+  FROM product_outbound po
+  LEFT JOIN client c ON po.client_id = c.client_id
+  WHERE po.product_id = #{productId}
+    AND po.lot_no = #{lotNo}
+
+  ORDER BY reg_date ASC
+</select>
+
+ <!-- ✅ 6. resultMap (VO 전용) -->
+<resultMap id="StockDetailMap" type="com.itwillbs.domain.ProductStockTransactionVO">
+  <result property="type" column="type" />
+  <result property="qty" column="qty" />
+  <result property="regDate" column="reg_date" />
+  <result property="clientName" column="client_name" />
+  <result property="memo" column="memo" />
+</resultMap>
+
   
  <!-- ✅ 유통기한 빠른 순 LOT별 가용 재고 조회 (출고 + 예약 반영) -->
 <select id="getAvailableLotsOrdered" parameterType="String" resultType="com.itwillbs.dto.LotStockDTO">
