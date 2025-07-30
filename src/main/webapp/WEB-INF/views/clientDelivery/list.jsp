@@ -120,7 +120,7 @@
                         <th>거래처명</th>
                         <th>제품명</th>
                         <th>수주 수량</th>
-                        <th>현재 재고</th>
+                        <th>현재 재고</th>                      
                         <th>납기 요청일</th>
                         <th>출하 가능 여부</th>
                       </tr>
@@ -168,9 +168,11 @@
                             <td class="text-end">
                               <fmt:formatNumber value="${item.orderQty}" pattern="#,###"/>
                             </td>
+                            
                             <td class="text-end">
                               <fmt:formatNumber value="${item.stockQty}" pattern="#,###"/>
                             </td>
+                            
                             <td>
 							  <fmt:formatDate value="${item.clDeliveryDate}" pattern="yyyy-MM-dd"/>
 							  <c:if test="${item.clDeliveryDate != null}">

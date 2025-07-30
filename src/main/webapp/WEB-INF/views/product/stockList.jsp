@@ -99,17 +99,18 @@
                       <td><fmt:formatDate value="${item.regDate}" pattern="yyyy-MM-dd"/></td>
                       <td><fmt:formatDate value="${item.expireDate}" pattern="yyyy-MM-dd"/></td>
                       <td>
-                        <c:choose>
-  <c:when test="${item.stockQty == 0}">
+                        <c:choose>  
+  <c:when test="${item.availableQty == 0}">
     <span class="badge badge-secondary">완료</span>
-  </c:when>
-  <c:when test="${item.availableQty lt item.safeQty}">
+  </c:when>  
+  <c:when test="${item.availableQty > 0 && item.availableQty lt item.safeQty}">
     <span class="badge badge-danger">부족</span>
-  </c:when>
+  </c:when> 
   <c:otherwise>
     <span class="badge badge-success">정상</span>
   </c:otherwise>
 </c:choose>
+
 
 
                       </td>

@@ -102,7 +102,6 @@
 	            <div class="collapse ${menu eq 'product' ? 'show' : ''}" id="menu-product">
 	              <ul class="nav flex-column sub-menu">
 	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/product/stocklist">재고 현황</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/wms/placeorder/insertOrder">발주 관리</a></li>
 	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/product/inbound/list">입고 관리</a></li>
 	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/product/outbound/list">출고 관리</a></li>
 	              </ul>

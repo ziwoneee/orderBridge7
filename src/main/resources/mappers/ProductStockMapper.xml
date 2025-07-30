@@ -59,51 +59,38 @@
       ) &gt;= 50
     </when>
 
-    <!-- ⚠️ 부족: 가용수량 < 50 AND 현재고 > 0 -->
-    <when test="status == '부족'">
-      AND (
-        (
-          pi.inbound_qty
-          - IFNULL((SELECT SUM(po.outbound_qty)
-                    FROM product_outbound po
-                    WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no), 0)
-          - IFNULL((SELECT SUM(sr.reserved_qty)
-                    FROM stock_reservation sr
-                    WHERE sr.product_id = pi.product_id AND sr.lot_no = pi.lot_no), 0)
-        ) &lt; 50
-      )
-      AND (
-        (
-          pi.inbound_qty
-          - IFNULL((SELECT SUM(po.outbound_qty)
-                    FROM product_outbound po
-                    WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no), 0)
-        ) &gt; 0
-      )
-    </when>
+   <!-- ⚠️ 부족: 가용수량 < 50 AND 현재고 > 0 -->
+<when test="status == '부족'">
+  AND (
+    (
+      pi.inbound_qty
+      - IFNULL((SELECT SUM(po.outbound_qty)
+                FROM product_outbound po
+                WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no), 0)
+      - IFNULL((SELECT SUM(sr.reserved_qty)
+                FROM stock_reservation sr
+                WHERE sr.product_id = pi.product_id AND sr.lot_no = pi.lot_no), 0)
+    ) BETWEEN 1 AND 49
+  )
+</when>
 
-    <!-- ⛔ 완료: 가용수량 = 0 AND 현재고 = 0 -->
-    <when test="status == '완료'">
-      AND (
-        (
-          pi.inbound_qty
-          - IFNULL((SELECT SUM(po.outbound_qty)
-                    FROM product_outbound po
-                    WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no), 0)
-          - IFNULL((SELECT SUM(sr.reserved_qty)
-                    FROM stock_reservation sr
-                    WHERE sr.product_id = pi.product_id AND sr.lot_no = pi.lot_no), 0)
-        ) = 0
-      )
-      AND (
-        (
-          pi.inbound_qty
-          - IFNULL((SELECT SUM(po.outbound_qty)
-                    FROM product_outbound po
-                    WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no), 0)
-        ) = 0
-      )
-    </when>
+
+
+    <!-- ⛔ 완료: 가용수량 = 0 -->
+<when test="status == '완료'">
+  AND (
+    (
+      pi.inbound_qty
+      - IFNULL((SELECT SUM(po.outbound_qty)
+                FROM product_outbound po
+                WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no), 0)
+      - IFNULL((SELECT SUM(sr.reserved_qty)
+                FROM stock_reservation sr
+                WHERE sr.product_id = pi.product_id AND sr.lot_no = pi.lot_no), 0)
+    ) = 0
+  )
+</when>
+
 
   </choose>
 </if>
