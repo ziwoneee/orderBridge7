@@ -91,28 +91,11 @@
                 </ul>
                 
                 <!-- 작업지시 등록 버튼 - 팝업용 -->
-				<button type="button" class="btn btn-primary"
-				        style="background-color: #1C355E; border-color: #1C355E;"
-				        onclick="openOrderPopup();">
+				<a href="#" id="openOrderPopupBtn" class="btn btn-primary"
+				   style="background-color: #1C355E; border-color: #1C355E;">
 				  <i class="ti-plus"></i> 작업지시 등록
-				</button>
-				
-				<script>
-				function openOrderPopup() {
-					  // 화면 크기에 따라 적절한 팝업 크기 설정
-					  const width = Math.min(1400, screen.width * 0.9);  // 화면의 90% 또는 최대 1400px
-					  const height = Math.min(900, screen.height * 0.85); // 화면의 85% 또는 최대 900px
-					  const left = (screen.width - width) / 2;
-					  const top = (screen.height - height) / 2;
-
-					  window.open(
-					    '${pageContext.request.contextPath}/workorder/select-order',
-					    'selectOrderPopup',
-					    `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
-					  );
-					}
-				</script>  
-				          
+				</a>
+			         
               </div>
                   
               <!-- 테이블 -->
@@ -297,6 +280,84 @@
   <!-- container-fluid page-body-wrapper 끝 -->
 </div>
 <!-- container-scroller 끝-->
+
+<script>
+  $(document).ready(function () {
+
+    // 검색창 Enter 키
+    $('input[name="keyword"]').focus().on('keypress', function (e) {
+      if (e.which === 13) {
+        $(this).closest('form').submit();
+      }
+    });
+
+    // ESC 키로 팝업 닫기 - 팝업에서만 작동하도록 주의
+    $(document).on('keydown', function (e) {
+      if (e.key === 'Escape') {
+        if (window.opener) {
+          window.close();
+        }
+      }
+    });
+  });
+  
+  $(document).ready(function () {
+	  $('#openOrderPopupBtn').on('click', function (e) {
+	    e.preventDefault();
+	    
+	    // 팝업 크기
+	    const width = 1200;  // 충분한 너비
+		const height = 650;  // 충분한 높이
+	    
+	    // 듀얼 모니터 환경을 고려한 화면 중앙 계산
+	    const screenLeft = window.screenLeft !== undefined ? window.screenLeft : window.screenX;
+	    const screenTop = window.screenTop !== undefined ? window.screenTop : window.screenY;
+	    
+	    // 현재 브라우저 창 크기
+	    const innerWidth = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
+	    const innerHeight = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
+	    
+	    // 중앙 위치 계산
+	    const left = Math.round(screenLeft + (innerWidth / 2) - (width / 2));
+	    const top = Math.round(screenTop + (innerHeight / 2) - (height / 2));
+	    
+	    console.log('팝업 위치:', { left, top, width, height }); // 디버깅용
+	    
+	    // 옵션 문자열
+	    const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no,menubar=no,toolbar=no,location=no`;
+
+	    // 팝업 열기
+	    const popup = window.open(
+	      '${pageContext.request.contextPath}/workorder/select-order',
+	      'selectOrderPopup',
+	      features
+	    );
+	    
+	    // 팝업이 열렸는지 확인
+	    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+	      alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+	      return;
+	    }
+	    
+	    // 팝업에 포커스
+	    if (popup.focus) {
+	      popup.focus();
+	    }
+	    
+	    // 팝업이 로드된 후 위치 재조정 (브라우저 호환성을 위해)
+	    setTimeout(function() {
+	      if (popup && !popup.closed) {
+	        popup.moveTo(left, top);
+	        popup.resizeTo(width, height);
+	        if (popup.focus) {
+	          popup.focus();
+	        }
+	      }
+	    }, 100);
+	  });
+	});
+</script>
+				 
 
 <style>
 /* 언더라인 탭 스타일 - 상단 라인 */

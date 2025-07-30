@@ -1,83 +1,185 @@
 package com.itwillbs.service;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.WorkOrderDTO;
 import com.itwillbs.mapper.WorkOrderMapper;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 작업지시 서비스 구현체
+ * 작업지시 관련 서비스 구현체
  */
 @Service
 @Slf4j
 public class WorkOrderServiceImpl implements WorkOrderService {
-    
+
     @Autowired
     private WorkOrderMapper workOrderMapper;
-    
+
+    /**
+     * 작업지시 목록 조회 (검색, 페이징 포함)
+     */
     @Override
     public List<WorkOrderDTO> getWorkOrderList(SearchCriteria cri) {
-        log.info("작업지시 목록 조회 - 조건: {}", cri);
-        
-        // 기본 정렬 설정
-        if (cri.getSortColumn() == null) {
-            cri.setSortColumn("w.created_at");  
-            cri.setSortOrder("desc");
-        }
-        
-        return workOrderMapper.getWorkOrderList(cri);  
+        log.debug("▶ 작업지시 목록 조회 - 조건: {}", cri);
+        return workOrderMapper.selectWorkOrderList(cri);
     }
-    
+
+    /**
+     * 작업지시 전체 개수 조회 (검색 조건 포함)
+     */
     @Override
     public int getWorkOrderTotalCount(SearchCriteria cri) {
-        log.info("작업지시 총 개수 조회 - 조건: {}", cri);
-        return workOrderMapper.getWorkOrderTotalCount(cri);  
+        log.debug("▶ 작업지시 전체 개수 조회 - 조건: {}", cri);
+        return workOrderMapper.selectWorkOrderTotalCount(cri);
     }
-    
-    @Override
-    public WorkOrderDTO getWorkOrderDetail(String orderId) {
-        log.info("작업지시 상세 조회 - ID: {}", orderId);
-        return workOrderMapper.getWorkOrderDetail(orderId);  
-    }
-    
+
+    /**
+     * 전체 작업지시 개수 조회 (검색 조건 없음)
+     */
     @Override
     public int getAllCount() {
-        log.info("전체 작업지시 개수 조회");
-        SearchCriteria cri = new SearchCriteria();
-        return workOrderMapper.getWorkOrderTotalCount(cri);
+        log.debug("▶ 전체 작업지시 개수 조회");
+        return workOrderMapper.selectAllCount();
     }
-    
+
+    /**
+     * 상태별 작업지시 개수 조회
+     */
     @Override
     public int getCountByStatus(String status) {
-        log.info("상태별 작업지시 개수 조회 - 상태: {}", status);
-        SearchCriteria cri = new SearchCriteria();
-        cri.setStatus(status);
-        return workOrderMapper.getWorkOrderTotalCount(cri);
+        log.debug("▶ 상태별 작업지시 개수 조회 - 상태: {}", status);
+        return workOrderMapper.selectCountByStatus(status);
     }
-    
 
-    // [1] 작업지시 등록 가능한 확정 수주 목록 조회
+    /**
+     * 작업지시 상세 조회
+     */
+    @Override
+    public WorkOrderDTO getWorkOrderDetail(String orderId) {
+        log.debug("▶ 작업지시 상세 조회 - ID: {}", orderId);
+        return workOrderMapper.selectWorkOrderDetail(orderId);
+    }
+
+    /**
+     * 확정 수주 목록 조회 (작업지시 등록용)
+     */
     @Override
     public List<WorkOrderDTO> getConfirmedOrders(SearchCriteria cri) {
-        log.debug(" getConfirmedOrders() 호출");
-        return workOrderMapper.getConfirmedOrders(cri);
+        log.debug("▶ 확정 수주 목록 조회 - 조건: {}", cri);
+        return workOrderMapper.selectConfirmedOrders(cri);
     }
 
-
-    // 해당 목록의 전체 건수 조회
+    /**
+     * 확정 수주 개수 조회
+     */
     @Override
     public int getConfirmedOrdersCount(SearchCriteria cri) {
-        log.debug(" getConfirmedOrdersCount() 호출");
-        return workOrderMapper.getConfirmedOrdersCount(cri);
-    }
- // 수주번호로 제품 상세 목록 조회
-    @Override
-    public List<WorkOrderDTO> getOrderDetailList(String clOrderId) {
-        log.debug("▶ getOrderDetailList() 실행 - clOrderId: {}", clOrderId);
-        return workOrderMapper.getOrderDetailList(clOrderId);
+        log.debug("▶ 확정 수주 개수 조회 - 조건: {}", cri);
+        return workOrderMapper.selectConfirmedOrdersCount(cri);
     }
 
+    /**
+     * 작업지시 등록
+     */
+    @Override
+    @Transactional
+    public int registerWorkOrder(WorkOrderDTO workOrderDTO) {
+        log.info("▶ 작업지시 등록 - 수주번호: {}", workOrderDTO.getClOrderId());
+        
+        try {
+            // 작업지시번호 자동 생성
+            String orderId = generateOrderId();
+            workOrderDTO.setOrderId(orderId);
+            
+            // 기본값 설정
+            workOrderDTO.setStatus("WAITING");
+            workOrderDTO.setCreatedAt(new Date());
+            
+            log.info("▶ 생성된 작업지시번호: {}", orderId);
+            
+            // 작업지시 등록
+            int result = workOrderMapper.insertWorkOrder(workOrderDTO);
+            
+            if (result > 0) {
+                log.info("▶ 작업지시 등록 완료 - ID: {}", orderId);
+            } else {
+                log.error("▶ 작업지시 등록 실패 - 데이터베이스 오류");
+            }
+            
+            return result;
+            
+        } catch (Exception e) {
+            log.error("▶ 작업지시 등록 중 오류 발생", e);
+            throw new RuntimeException("작업지시 등록 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 작업지시 상태 변경
+     */
+    @Override
+    @Transactional
+    public int updateWorkOrderStatus(String orderId, String status) {
+        log.info("▶ 작업지시 상태 변경 - ID: {}, 상태: {}", orderId, status);
+        
+        try {
+            int result = workOrderMapper.updateWorkOrderStatus(orderId, status);
+            
+            if (result > 0) {
+                log.info("▶ 작업지시 상태 변경 완료 - ID: {}, 새상태: {}", orderId, status);
+            } else {
+                log.warn("▶ 작업지시 상태 변경 실패 - 해당 ID가 존재하지 않음: {}", orderId);
+            }
+            
+            return result;
+            
+        } catch (Exception e) {
+            log.error("▶ 작업지시 상태 변경 중 오류 발생", e);
+            throw new RuntimeException("작업지시 상태 변경 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 작업지시번호 자동 생성
+     * 형식: WO-YYYYMMDD-XXX (예: WO-20250729-001)
+     */
+    private String generateOrderId() {
+        try {
+            // 오늘 날짜
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+            String today = sdf.format(new Date());
+            
+            // 오늘 날짜의 최대 순번 조회
+            int maxSequence = workOrderMapper.selectTodayMaxSequence(today);
+            
+            // 다음 순번 계산 (3자리로 포맷)
+            int nextSequence = maxSequence + 1;
+            String sequenceStr = String.format("%03d", nextSequence);
+            
+            // 작업지시번호 생성
+            String orderId = "WO-" + today + "-" + sequenceStr;
+            
+            log.debug("▶ 작업지시번호 생성: {}", orderId);
+            return orderId;
+            
+        } catch (Exception e) {
+            log.error("▶ 작업지시번호 생성 실패", e);
+            throw new RuntimeException("작업지시번호 생성에 실패했습니다: " + e.getMessage());
+        }
+    }
+
+    // 수주번호 + 제품ID로 상세 조회
+    @Override
+    public WorkOrderDTO getOrderDetail(String clOrderId, String productId) {
+        return workOrderMapper.getOrderDetail(clOrderId, productId);
+    }
 }

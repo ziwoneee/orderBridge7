@@ -18,7 +18,7 @@ public class WorkOrderDTO {
     private String priority;       // 우선순위 (EMERGENCY, HIGH, NORMAL, LOW)
     private String status;         // 상태 (WAITING, READY, IN_PROGRESS, DONE 등)
 
-    //제품 정보
+    //제품 정보ㅁ
     private String productId;      // 제품 ID (FK)
     private String productName;    // 제품명
     private String unit;           // 제품 단위 (예: 개, 봉지)
@@ -35,4 +35,7 @@ public class WorkOrderDTO {
     //재고 및 계산 정보
     private int stockQty;          // 현재 재고 수량
     private int requiredQty;       // 예상 필요 수량 (재고 - 수주 기준 계산)
+    private int reservedQty;   	   // 예약 수량
+    private int availableQty;  	   // 가용 재고
+
 }

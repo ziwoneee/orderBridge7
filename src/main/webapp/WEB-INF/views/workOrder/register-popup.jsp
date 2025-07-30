@@ -3,279 +3,271 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <!DOCTYPE html>
 <html>
+
+<link rel="stylesheet" href="${pageContext.request.contextPath}/resources/css/popup-style.css">
+
 <head>
   <title>작업지시 등록</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.1">
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.6.0/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  
 </head>
+
 <body>
-  <div class="main-container">
-    <!-- 헤더 -->
-    <div class="form-header">
-      <i class="fas fa-clipboard-check"></i>
-      작업지시 등록
-    </div>
+  <div class="page-title">
+    <i class="fas fa-plus-circle"></i>
+    작업지시 등록
+  </div>
 
-    <!-- 폼 컨테이너 -->
-    <div class="form-container">
-      <form method="post" action="/workorder/register" id="registerForm">
-        <input type="hidden" name="clOrderId" value="${order.clOrderId}">
-        <input type="hidden" name="productId" value="${order.productId}">
-
-        <!-- 수주 정보 섹션 (읽기 전용) -->
-        <div class="readonly-section">
-          <h6 class="section-title">
-            <i class="fas fa-info-circle"></i>
-            수주 정보
-          </h6>
-          
-          <div class="form-row-custom">
+  <!-- 작업지시 등록 폼 -->
+  <div class="register-form-container">
+    <form id="workOrderForm" method="post" action="/workorder/register">
+      
+      <!-- 수주 정보 (읽기 전용) -->
+      <div class="info-section">
+        <h5 class="section-title">
+          <i class="fas fa-file-contract"></i> 수주 정보
+        </h5>
+        <div class="row">
+          <div class="col-md-6">
             <div class="form-group">
-              <label>
-                <i class="fas fa-hashtag"></i>
-                작업지시번호
-              </label>
-              <input type="text" name="orderId" class="form-control" 
-                     value="${generatedOrderId}" readonly>
-            </div>
-            
-            <div class="form-group">
-              <label>
-                <i class="fas fa-box"></i>
-                제품명
-              </label>
-              <input type="text" class="form-control" 
-                     value="${order.productName}" readonly>
+              <label class="form-label">수주번호</label>
+              <input type="text" class="form-control readonly-input" 
+                     value="${param.clOrderId}" readonly>
+              <input type="hidden" name="clOrderId" value="${param.clOrderId}">
             </div>
           </div>
-
-          <div class="form-row-custom">
+          <div class="col-md-6">
             <div class="form-group">
-              <label>
-                <i class="fas fa-calendar-alt"></i>
-                납기일
-              </label>
-              <input type="text" class="form-control" 
-                     value="<fmt:formatDate value='${order.dueDate}' pattern='yyyy-MM-dd'/>" readonly>
-            </div>
-            
-            <div class="form-group">
-              <label>
-                <i class="fas fa-industry"></i>
-                생산라인
-              </label>
-              <input type="text" class="form-control" 
-                     value="${order.lineId}" readonly>
+              <label class="form-label">거래처</label>
+              <input type="text" class="form-control readonly-input" 
+                     value="${param.clientName}" readonly>
             </div>
           </div>
         </div>
-
-        <!-- 작업지시 정보 섹션 -->
-        <div class="input-section">
-          <h6 class="section-title">
-            <i class="fas fa-cogs"></i>
-            작업지시 정보
-          </h6>
-
-          <div class="form-row-custom">
+        <div class="row">
+          <div class="col-md-8">
             <div class="form-group">
-              <label class="required">
-                <i class="fas fa-list-ol"></i>
-                작업 수량
-                <i class="fas fa-question-circle info-icon" 
-                   data-toggle="tooltip" 
-                   title="생산할 제품의 수량을 입력하세요"></i>
-              </label>
-              <input type="number" 
-                     name="orderQty" 
-                     class="form-control" 
-                     min="1" 
-                     value="${not empty param.orderQty ? param.orderQty : order.orderQty}"
-                     required
-                     oninput="validateQuantity(this)">
-              <div class="invalid-feedback">
-                올바른 수량을 입력해주세요 (1 이상)
-              </div>
+              <label class="form-label">제품명</label>
+              <input type="text" class="form-control readonly-input" 
+                     value="${param.productName}" readonly>
+              <input type="hidden" name="productId" value="${param.productId}">
             </div>
-
+          </div>
+          <div class="col-md-4">
             <div class="form-group">
-              <label class="required">
-                <i class="fas fa-flag"></i>
-                우선순위
-                <i class="fas fa-question-circle info-icon" 
-                   data-toggle="tooltip" 
-                   title="작업의 우선순위를 선택하세요"></i>
-              </label>
-              <select name="priority" class="form-control priority-select" required>
-                <option value="LOW" ${param.priority == 'LOW' ? 'selected' : ''}>
-                  🔵 낮음 - 여유있는 작업
-                </option>
-                <option value="NORMAL" ${param.priority == 'NORMAL' || empty param.priority ? 'selected' : ''}>
-                  🟢 보통 - 일반적인 작업
-                </option>
-                <option value="HIGH" ${param.priority == 'HIGH' ? 'selected' : ''}>
-                  🟡 높음 - 우선 처리 필요
-                </option>
-                <option value="EMERGENCY" ${param.priority == 'EMERGENCY' ? 'selected' : ''}>
-                  🔴 긴급 - 즉시 처리 필요
-                </option>
+              <label class="form-label">납기일</label>
+              <input type="text" class="form-control readonly-input" 
+                     value="${param.dueDate}" readonly>
+              <input type="hidden" name="dueDate" value="${param.dueDate}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 작업지시 정보 (입력) -->
+      <div class="input-section">
+        <h5 class="section-title">
+          <i class="fas fa-cogs"></i> 작업지시 정보
+        </h5>
+        <div class="row">
+          <div class="col-md-6">
+            <div class="form-group">
+              <label class="form-label required">생산라인</label>
+              <select class="form-control line-select" name="lineId" required>
+                <option value="">생산라인을 선택하세요</option>
+                <option value="L-01">L-01</option>
+                <option value="L-02">L-02</option>
+                <option value="L-03">L-03</option>
+
               </select>
             </div>
           </div>
-
-          <div class="form-group">
-            <label>
-              <i class="fas fa-sticky-note"></i>
-              작업 지시사항
-              <i class="fas fa-question-circle info-icon" 
-                 data-toggle="tooltip" 
-                 title="작업자에게 전달할 특별한 지시사항이 있으면 입력하세요"></i>
-            </label>
-            <textarea name="memo" 
-                      class="form-control" 
-                      rows="4" 
-                      placeholder="작업자에게 전달할 특별한 지시사항이나 주의사항을 입력하세요...&#10;예: 품질 검사 강화, 특별 포장 요구사항 등"
-                      maxlength="500"></textarea>
-            <small class="text-muted">
-              <span id="memoCount">0</span>/500자
-            </small>
+          <div class="col-md-6">
+            <div class="form-group">
+              <label class="form-label required">우선순위</label>
+              <select class="form-control priority-select" name="priority" required>
+                <option value="">우선순위를 선택하세요</option>
+                <option value="HIGH" class="priority-high">높음</option>
+                <option value="NORMAL" class="priority-normal" selected>보통</option>
+                <option value="LOW" class="priority-low">낮음</option>
+              </select>
+            </div>
           </div>
         </div>
+        <div class="row">
+          <div class="col-md-12">
+            <div class="form-group">
+              <label class="form-label required">지시수량</label>
+              <div class="input-group">
+                <input type="number" class="form-control quantity-input" 
+                       name="orderQty" value="${param.requiredQty}" 
+                       min="1" max="999999" required>
+                <div class="input-group-append">
+                  <span class="input-group-text">개</span>
+                </div>
+              </div>
+              <small class="form-text text-muted">
+                권장 생산수량: <span class="text-primary font-weight-bold">${param.requiredQty}개</span>
+              </small>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">특이사항</label>
+          <textarea class="form-control" name="remarks" rows="3" 
+                    placeholder="작업 시 주의사항이나 특이사항을 입력하세요"></textarea>
+        </div>
+      </div>
 
-        <!-- 버튼 그룹 -->
-        <div class="btn-group-custom">
-          <button type="button" class="btn btn-cancel" onclick="cancelForm()">
+      <!-- 버튼 영역 -->
+      <div class="button-section">
+        <div class="d-flex justify-content-end">
+          <button type="button" class="btn btn-light btn-lg mr-3" onclick="window.close()">
             <i class="fas fa-times"></i> 취소
           </button>
-          <button type="button" class="btn btn-register" onclick="submitForm()">
-            <i class="fas fa-check"></i> 등록
+          <button type="submit" class="btn btn-primary btn-lg register-btn">
+            <i class="fas fa-save"></i> 작업지시 등록
           </button>
         </div>
-        </form>
       </div>
-    </div>
 
+    </form>
+  </div>
 
-  <script>
-    $(document).ready(function() {
-      // 툴팁 초기화
-      $('[data-toggle="tooltip"]').tooltip();
-      
-      // 첫 번째 입력 필드에 포커스
-      $('input[name="orderQty"]').focus().select();
-      
-      // 메모 글자수 카운터
-      $('textarea[name="memo"]').on('input', function() {
-        const count = $(this).val().length;
-        $('#memoCount').text(count);
-        
-        if (count > 450) {
-          $('#memoCount').addClass('text-warning');
-        } else if (count > 480) {
-          $('#memoCount').addClass('text-danger').removeClass('text-warning');
+<script>
+$(document).ready(function() {
+  
+  // 폼 제출 처리
+  $('#workOrderForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    // 입력 검증
+    if (!validateForm()) {
+      return false;
+    }
+    
+    // 버튼 로딩 상태
+    const submitBtn = $('.register-btn');
+    const originalText = submitBtn.html();
+    submitBtn.html('<span class="spinner-border spinner-border-sm mr-2"></span>등록 중...').prop('disabled', true);
+    
+    // 폼 데이터 수집
+    const formData = $(this).serialize();
+    
+    $.ajax({
+      url: '/workorder/register',
+      type: 'POST',
+      data: formData,
+      dataType: 'json',
+      success: function(response) {
+        if (response.success) {
+          alert('작업지시가 성공적으로 등록되었습니다.\n작업지시번호: ' + response.orderId);
+          
+          // 부모 창 새로고침 (목록 업데이트)
+          if (window.opener) {
+            window.opener.location.reload();
+          }
+          
+          // 팝업 닫기
+          window.close();
         } else {
-          $('#memoCount').removeClass('text-warning text-danger');
+          alert('작업지시 등록에 실패했습니다: ' + response.message);
+          submitBtn.html(originalText).prop('disabled', false);
         }
-      });
-      
-      // 초기 글자수 설정
-      $('textarea[name="memo"]').trigger('input');
+      },
+      error: function(xhr, status, error) {
+        console.error('등록 실패:', error);
+        alert('작업지시 등록에 실패했습니다. 다시 시도해주세요.');
+        submitBtn.html(originalText).prop('disabled', false);
+      }
     });
-
-    // 수량 검증 함수
-    function validateQuantity(input) {
-      const value = parseInt(input.value);
-      const min = parseInt(input.getAttribute('min'));
-      
-      if (isNaN(value) || value < min) {
-        input.classList.add('is-invalid');
-        input.classList.remove('is-valid');
-        return false;
-      } else {
-        input.classList.add('is-valid');
-        input.classList.remove('is-invalid');
-        return true;
-      }
+  });
+  
+  // 폼 검증 함수
+  function validateForm() {
+    let isValid = true;
+    
+    // 생산라인 검증
+    if (!$('select[name="lineId"]').val()) {
+      showError('select[name="lineId"]', '생산라인을 선택해주세요.');
+      isValid = false;
     }
-
-    // 폼 제출 함수
-    function submitForm() {
-      const form = document.getElementById('registerForm');
-      const orderQtyInput = form.querySelector('input[name="orderQty"]');
-      const prioritySelect = form.querySelector('select[name="priority"]');
-      
-      // 입력값 검증
-      if (!validateQuantity(orderQtyInput)) {
-        alert('올바른 작업 수량을 입력해주세요.');
-        orderQtyInput.focus();
-        return;
-      }
-      
-      if (!prioritySelect.value) {
-        alert('우선순위를 선택해주세요.');
-        prioritySelect.focus();
-        return;
-      }
-      
-      // 확인 대화상자
-      const orderQty = orderQtyInput.value;
-      const priority = prioritySelect.options[prioritySelect.selectedIndex].text;
-      
-      if (confirm(`작업지시를 등록하시겠습니까?\n\n작업 수량: ${parseInt(orderQty).toLocaleString()}개\n우선순위: ${priority}`)) {
-        // 버튼 로딩 상태
-        const btn = event.target;
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 등록 중...';
-        btn.classList.add('btn-loading');
-        
-        // 일반적인 form submit 사용
-        try {
-          form.submit();
-        } catch (error) {
-          console.error('폼 제출 오류:', error);
-          alert('작업지시 등록 중 오류가 발생했습니다. 다시 시도해주세요.');
-          // 버튼 상태 복원
-          btn.innerHTML = originalText;
-          btn.classList.remove('btn-loading');
-        }
-      }
+    
+    // 우선순위 검증
+    if (!$('select[name="priority"]').val()) {
+      showError('select[name="priority"]', '우선순위를 선택해주세요.');
+      isValid = false;
     }
-
-    // 취소 함수
-    function cancelForm() {
-      if (confirm('작성 중인 내용이 있습니다. 정말 취소하시겠습니까?')) {
+    
+    // 수량 검증
+    const qty = parseInt($('input[name="orderQty"]').val());
+    if (!qty || qty < 1) {
+      showError('input[name="orderQty"]', '1개 이상 입력해주세요.');
+      isValid = false;
+    }
+    
+    return isValid;
+  }
+  
+  // 에러 표시 함수
+  function showError(selector, message) {
+    const field = $(selector);
+    field.addClass('is-invalid');
+    field.siblings('.invalid-feedback').remove();
+    field.after(`<div class="invalid-feedback">${message}</div>`);
+  }
+  
+  // 지시수량 입력 검증
+  $('.quantity-input').on('input', function() {
+    const value = parseInt($(this).val());
+    const recommended = parseInt('${param.requiredQty}');
+    
+    $(this).removeClass('is-invalid is-valid');
+    $(this).siblings('.invalid-feedback').remove();
+    
+    if (value > recommended * 2) {
+      $(this).addClass('is-invalid');
+      $(this).after('<div class="invalid-feedback">권장 수량의 2배를 초과할 수 없습니다.</div>');
+    } else if (value < 1) {
+      $(this).addClass('is-invalid');
+      $(this).after('<div class="invalid-feedback">1개 이상 입력해주세요.</div>');
+    } else {
+      $(this).addClass('is-valid');
+    }
+  });
+  
+  // 우선순위 선택 시 색상 변경
+  $('.priority-select').on('change', function() {
+    const priority = $(this).val();
+    $(this).removeClass('priority-high priority-normal priority-low is-invalid');
+    $(this).siblings('.invalid-feedback').remove();
+    
+    if (priority) {
+      $(this).addClass('priority-' + priority.toLowerCase());
+    }
+  });
+  
+  // 생산라인 선택 시 검증 해제
+  $('.line-select').on('change', function() {
+    if ($(this).val()) {
+      $(this).removeClass('is-invalid');
+      $(this).siblings('.invalid-feedback').remove();
+    }
+  });
+  
+  // ESC 키로 팝업 닫기
+  $(document).on('keydown', function(e) {
+    if (e.key === 'Escape') {
+      if (confirm('작업지시 등록을 취소하시겠습니까?')) {
         window.close();
       }
     }
+  });
+});
+</script>
 
-    // ESC 키로 창 닫기
-    $(document).on('keydown', function(e) {
-      if (e.key === 'Escape') {
-        cancelForm();
-      }
-    });
-
-    // Enter 키로 등록
-    $(document).on('keydown', function(e) {
-      if (e.ctrlKey && e.key === 'Enter') {
-        submitForm();
-      }
-    });
-
-    // 브라우저 닫기 이벤트 처리
-    window.addEventListener('beforeunload', function(e) {
-      // 입력된 내용이 있는지 확인
-      const hasInput = document.querySelector('textarea[name="memo"]').value.trim() !== '';
-      if (hasInput) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    });
-  </script>
-  
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
