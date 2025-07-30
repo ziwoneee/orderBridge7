@@ -24,6 +24,11 @@
               </div>
             </div>
             
+            <!-- 미입고건 불러오기 버튼 (입고관리 상단에 위치 추천) -->
+			<button type="button" class="btn btn-outline-dark mb-3" onclick="loadUnreceivedOrders()">
+			  <i class="ti-download"></i> 미입고건 불러오기
+			</button>
+            
             <!-- 검색 영역 -->
             <div class="col-12 mb-3">
               <form method="get" action="/material/inbound/list" class="forms-sample">
@@ -95,8 +100,8 @@
                   
               <!-- 테이블 -->
               <div class="table-responsive">
-                <table class="table table-hover">
-                  <thead style="background-color: #1C355E; color: white; border-top: none;">
+                <table class="table table-hover" id="unreceivedOrderTable">
+                  <thead>
                     <tr>
                       <th>
                         <a href="/material/inbound/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=inbound_id&sortOrder=${cri.sortColumn == 'inbound_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
