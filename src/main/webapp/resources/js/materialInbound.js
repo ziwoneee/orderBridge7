@@ -63,7 +63,7 @@ function processInbound(inboundId, button) {
 }
 
 /* [3] 미입고 발주 목록 불러오기 - URL 수정 */
-function loadUnreceivedOrders() {
+function loadUnreceivedOrders(page = 1) {
   console.log('미입고 발주 목록 요청 시작...');
   
   // 로딩 상태 표시
@@ -83,9 +83,14 @@ function loadUnreceivedOrders() {
     url: "/material/inbound/unreceived-orders", // URL 수정
     method: 'GET',
     dataType: 'json',
+    data: {
+        page: 1,           // 기본 1페이지부터
+        perPageNum: 10     // 페이지당 10건
+    },
     success: function(data) {
       console.log('응답 데이터:', data);
-      renderUnreceivedOrders(data);
+      renderUnreceivedOrders(data.list);
+      renderPagination(data.pageMaker);  // 페이징 버튼도 렌더링
     },
     error: function(xhr, status, error) {
       console.error('AJAX 오류 상세:', {
@@ -240,4 +245,59 @@ $(document).ready(function() {
   });
   
   console.log('materialInbound.js 로드 완료');
+});
+
+
+/* [10] 페이징 버튼 렌더링 */
+function renderPagination(pageMaker) {
+  const container = document.getElementById("unreceivedPagination");
+  container.innerHTML = ""; // 초기화
+
+  const ul = document.createElement("ul");
+  ul.className = "pagination";
+
+  // 이전 페이지 버튼
+  if (pageMaker.prev) {
+    const li = document.createElement("li");
+    li.className = "page-item";
+    li.innerHTML = `<a class="page-link" href="#" onclick="loadUnreceivedOrders(${pageMaker.startPage - 1})">&laquo;</a>`;
+    ul.appendChild(li);
+  }
+
+  // 페이지 번호 버튼들
+  for (let i = pageMaker.startPage; i <= pageMaker.endPage; i++) {
+    const li = document.createElement("li");
+    li.className = `page-item ${pageMaker.cri.page === i ? 'active' : ''}`;
+    li.innerHTML = `<a class="page-link" href="#" onclick="loadUnreceivedOrders(${i})">${i}</a>`;
+    ul.appendChild(li);
+  }
+
+  // 다음 페이지 버튼
+  if (pageMaker.next) {
+    const li = document.createElement("li");
+    li.className = "page-item";
+    li.innerHTML = `<a class="page-link" href="#" onclick="loadUnreceivedOrders(${pageMaker.endPage + 1})">&raquo;</a>`;
+    ul.appendChild(li);
+  }
+
+  container.appendChild(ul);
+}
+
+/* [11] 미입고건을 DB에 저장 (material_inbound + item 테이블 insert) */
+$('#btn-insert-unreceived').on('click', function () {
+  if (!confirm('미입고 발주건을 입고관리 DB에 저장하시겠습니까?')) return;
+
+  $.ajax({
+    type: 'POST',
+    url: '/material/inbound/insert-unreceived',
+    success: function () {
+      alert('미입고건이 성공적으로 DB에 저장되었습니다.');
+      // insert 후 미입고 목록 새로고침 (선택)
+      loadUnreceivedOrders();
+    },
+    error: function (xhr, status, error) {
+      console.error('미입고건 DB 저장 실패:', xhr.responseText);
+      alert('저장 중 오류가 발생했습니다.');
+    }
+  });
 });

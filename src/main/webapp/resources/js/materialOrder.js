@@ -16,7 +16,7 @@ function addItemRow() {
       </select>
     </td>
     <td>
-      <input type="number" name="orderItems[${itemIndex}].quantity" class="form-control" min="1" onchange="calculateTotal(this)" required>
+      <input type="number" name="orderItems[${itemIndex}].orderQuantity" class="form-control" min="1" onchange="calculateTotal(this)" required>
     </td>
     <td>
       <input type="number" name="orderItems[${itemIndex}].unitPrice" class="form-control" min="0" step="0.01" onchange="calculateTotal(this)" required>
@@ -49,7 +49,7 @@ function removeRow(btn) {
  */
 function calculateTotal(input) {
   const row = input.closest("tr");
-  const qtyInput = row.querySelector("input[name$='.quantity']");
+  const qtyInput = row.querySelector("input[name$='.orderQuantity']");
   const priceInput = row.querySelector("input[name$='.unitPrice']");
   
   const qty = parseFloat(qtyInput.value) || 0;
@@ -161,13 +161,13 @@ document.addEventListener('DOMContentLoaded', function() {
       materialSelects.forEach((select, index) => {
         if (select.value) {
           const row = select.closest('tr');
-          const qty = row.querySelector("input[name$='.quantity']").value;
+          const qty = row.querySelector("input[name$='.orderQuantity']").value;
           const price = row.querySelector("input[name$='.unitPrice']").value;
           const total = row.querySelector("input[type='hidden'][name$='.totalPrice']").value;
           
           console.log(`항목 ${index + 1}:`, {
             materialId: select.value,
-            quantity: qty,
+            orderQuantity: qty,
             unitPrice: price,
             totalPrice: total
           });

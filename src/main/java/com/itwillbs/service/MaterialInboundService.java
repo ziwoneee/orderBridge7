@@ -19,5 +19,12 @@ public interface MaterialInboundService {
 	List<MaterialOrderVO> getPendingInboundOrders();
 	
 	// 미입고 상태의 발주 목록 조회
-    List<UnreceivedOrderDTO> getUnreceivedOrders();
+	List<UnreceivedOrderDTO> getUnreceivedOrdersPaging(SearchCriteria cri);
+	// 미입고 발주 전체 개수
+	int getUnreceivedOrdersCount();
+	
+	
+	// 미입고 발주건을 입고관리 테이블
+	void insertUnreceivedOrders();
+	
 }

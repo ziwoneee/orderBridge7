@@ -77,7 +77,7 @@
 				        <option value="">거래처를 먼저 선택하세요</option>
 				      </select>
 				    </td>
-				    <td><input type="number" name="orderItems[0].quantity" class="form-control" min="1" onchange="calculateTotal(this)" required></td>
+				    <td><input type="number" name="orderItems[0].orderQuantity" class="form-control" min="1" onchange="calculateTotal(this)" required></td>
 				    <td><input type="number" name="orderItems[0].unitPrice" class="form-control" min="0" step="0.01" onchange="calculateTotal(this)" required></td>
 				    <td>
 				      <input type="number" class="form-control" value="0" readonly>

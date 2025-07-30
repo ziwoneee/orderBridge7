@@ -24,11 +24,6 @@
               </div>
             </div>
             
-            <!-- 미입고건 불러오기 버튼 (입고관리 상단에 위치 추천) -->
-			<button type="button" class="btn btn-outline-dark mb-3" onclick="loadUnreceivedOrders()">
-			  <i class="ti-download"></i> 미입고건 불러오기
-			</button>
-            
             <!-- 검색 영역 -->
             <div class="col-12 mb-3">
               <form method="get" action="/material/inbound/list" class="forms-sample">
@@ -65,6 +60,12 @@
                 <input type="hidden" name="perPageNum" value="${cri.perPageNum}">
               </form>
             </div>
+            
+                          
+            <!-- 미입고건 DB 저장 버튼 -->
+			<button id="btn-insert-unreceived" class="btn btn-outline-primary mb-3">
+			  <i class="ti-upload"></i> 미입고건 DB에 저장
+			</button>
             
             <!-- 자재 입고 목록 -->
             <div class="col-12">
@@ -261,6 +262,10 @@
                     </c:if>
                   </tbody>
                 </table>
+                
+                <!-- 미입고 페이징 영역 -->
+				<div class="mt-3 d-flex justify-content-center" id="unreceivedPagination"></div>
+                
               </div>
             </div>
          

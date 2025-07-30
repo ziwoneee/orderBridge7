@@ -1,6 +1,8 @@
 package com.itwillbs.controller;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -11,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -64,33 +67,53 @@ public class MaterialInboundController {
 	}
 
 	
-	
 
+	
 	/**
-     * 미입고 상태의 발주 목록 조회 (입고처리용)
-     * - 아직 입고되지 않은 발주건만 조회
-     */
-	@GetMapping("/pending-orders")
-	public ResponseEntity<?> getPendingInboundOrders() {
+	 * 미입고 발주 목록 - 페이징 JSON 응답
+	 * - 요청 예시: /material/inbound/unreceived-orders?page=1&perPageNum=10
+	 */
+	@GetMapping("/unreceived-orders")
+	@ResponseBody
+	public ResponseEntity<?> getUnreceivedOrders(SearchCriteria cri) {
 	    try {
-	        List<MaterialOrderVO> list = miService.getPendingInboundOrders();
-	        return ResponseEntity.ok(list);
+	        int totalCount = miService.getUnreceivedOrdersCount();
+	        cri.setTotalCount(totalCount);
+
+	        PageMaker pageMaker = new PageMaker(cri, totalCount);
+	        List<UnreceivedOrderDTO> list = miService.getUnreceivedOrdersPaging(cri);
+
+	        Map<String, Object> result = new HashMap<>();
+	        result.put("list", list);
+	        result.put("pageMaker", pageMaker);
+	        result.put("cri", cri);
+
+	        return ResponseEntity.ok().body(result);
+
 	    } catch (Exception e) {
-	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("불러오기 실패");
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                             .body("미입고 발주 목록 불러오기 실패");
 	    }
 	}
 
-	
-	
-    /**
-     * 미입고 상태의 발주 목록을 JSON 형태로 반환
-     * - 자재 입고가 한 번도 처리되지 않은 발주건만 필터링
-     */
-    @GetMapping("/unreceived-orders")
-    @ResponseBody
-    public List<UnreceivedOrderDTO> getUnreceivedOrders() {
-        return miService.getUnreceivedOrders();
-    }
+
+	/**
+	 * [POST] 미입고 발주건을 입고관리 테이블(material_inbound + material_inbound_item)에 저장
+	 * - 조건: 아직 입고되지 않은 발주항목(order_item_id 기준)
+	 * - 수행: 발주번호(order_id)별로 inbound_id를 생성하여 insert
+	 */
+	@PostMapping("/insert-unreceived")
+	@ResponseBody
+	public ResponseEntity<String> insertUnreceivedOrders() {
+	    try {
+	        miService.insertUnreceivedOrders(); // Service에 처리 위임
+	        return ResponseEntity.ok("미입고건 DB 저장 성공");
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("DB 저장 실패");
+	    }
+	}
+
 	
 	
 	
