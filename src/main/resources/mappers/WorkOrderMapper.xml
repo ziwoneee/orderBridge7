@@ -60,26 +60,26 @@
   </where>
   ORDER BY 
   <choose>
-    <when test="sortColumn != null and sortOrder != null">
-      <choose>
-        <when test="sortColumn == 'priority'">
-          CASE w.priority 
-            WHEN 'EMERGENCY' THEN 1
-            WHEN 'HIGH' THEN 2
-            WHEN 'NORMAL' THEN 3
-            WHEN 'LOW' THEN 4
-            ELSE 5
-          END ${sortOrder}
-        </when>
-        <otherwise>
-          ${sortColumn} ${sortOrder}
-        </otherwise>
-      </choose>
-    </when>
-    <otherwise>
-      w.created_at DESC
-    </otherwise>
-  </choose>
+  <when test="sortColumn != null and sortColumn != '' and sortOrder != null and sortOrder != ''">
+    <choose>
+      <when test="sortColumn == 'priority'">
+        CASE w.priority 
+          WHEN 'EMERGENCY' THEN 1
+          WHEN 'HIGH' THEN 2
+          WHEN 'NORMAL' THEN 3
+          WHEN 'LOW' THEN 4
+          ELSE 5
+        END ${sortOrder}
+      </when>
+      <otherwise>
+        ${sortColumn} ${sortOrder}
+      </otherwise>
+    </choose>
+  </when>
+  <otherwise>
+    w.created_at DESC
+  </otherwise>
+</choose>
   LIMIT #{pageStart}, #{perPageNum}
 </select>
 
@@ -164,8 +164,8 @@
   SELECT DISTINCT
     co.cl_order_id AS clOrderId,
     cod.product_id AS productId,
-    p.product_name AS productName,
-    p.unit,
+    p.product_name AS productName,       
+    p.unit AS unit,                      
     co.client_id AS clientId,
     cl.client_name AS clientName,
     co.cl_order_date AS clOrderDate,
@@ -185,12 +185,15 @@
     FROM stock_reservation 
     GROUP BY cl_order_id, product_id
   ) sr ON cod.cl_order_id = sr.cl_order_id AND cod.product_id = sr.product_id
-  WHERE co.cl_order_status = 'CONFIRMED'  
+
+  <where>
+    co.cl_order_status = 'CONFIRMED'
     AND NOT EXISTS (
       SELECT 1 FROM work_order wo 
       WHERE wo.cl_order_id = co.cl_order_id 
       AND wo.product_id = cod.product_id
     )
+
     <if test="keyword != null and keyword != ''">
       AND (
         co.cl_order_id LIKE CONCAT('%', #{keyword}, '%')
@@ -198,10 +201,11 @@
         OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
       )
     </if>
+  </where>
+
   ORDER BY co.cl_order_date DESC
   LIMIT #{pageStart}, #{perPageNum}
 </select>
-
 
   <!-- 확정 수주 개수 조회 (페이징용) -->
   <select id="selectConfirmedOrdersCount" resultType="int">
@@ -242,6 +246,7 @@
       order_qty,
       priority,
       status,
+      remarks,
       created_at
     ) VALUES (
       #{orderId},
@@ -251,6 +256,7 @@
       #{orderQty},
       #{priority},
       IFNULL(#{status}, 'WAITING'),
+      #{remarks}, 
       NOW()
     )
   </insert>
@@ -310,8 +316,15 @@
   </select>
   
   <!-- 수주번호 + 제품ID로 상세 조회 -->
-  <select id="getOrderDetail" resultType="com.itwillbs.dto.WorkOrderDTO">
-  SELECT
+<select id="getOrderDetail" resultType="com.itwillbs.dto.WorkOrderDTO">
+  <!-- 🔍 디버깅용: 실제 파라미터 값 확인 -->
+  SELECT 
+    '🔍 DEBUG: clOrderId=' AS debug1,
+    #{clOrderId} AS debug_clOrderId,
+    '🔍 DEBUG: productId=' AS debug2,
+    #{productId} AS debug_productId,
+    
+    -- 실제 쿼리
     cod.cl_order_id AS clOrderId,
     cod.product_id AS productId,
     p.product_name AS productName,
@@ -333,9 +346,10 @@
     FROM stock_reservation
     GROUP BY cl_order_id, product_id
   ) sr ON cod.cl_order_id = sr.cl_order_id AND cod.product_id = sr.product_id
-  WHERE co.cl_order_id = #{clOrderId}
+  WHERE cod.cl_order_id = #{clOrderId}
     AND cod.product_id = #{productId}
 </select>
+
 
 
 

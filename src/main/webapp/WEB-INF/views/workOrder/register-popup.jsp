@@ -9,8 +9,16 @@
 <head>
   <title>작업지시 등록</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.1">
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.6.0/css/bootstrap.min.css">
+  <!-- 🎯 핵심 CSS만 선별해서 사용 -->
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/vendors/css/vendor.bundle.base.css">
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/css/vertical-layout-light/style.css">
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/css/orderBridge.css">
+  
+  <!-- 아이콘용 CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@6.5.95/css/materialdesignicons.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  
+  <!-- jQuery -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 
@@ -20,121 +28,108 @@
     작업지시 등록
   </div>
 
-  <!-- 작업지시 등록 폼 -->
-  <div class="register-form-container">
-    <form id="workOrderForm" method="post" action="/workorder/register">
-      
-      <!-- 수주 정보 (읽기 전용) -->
-      <div class="info-section">
-        <h5 class="section-title">
-          <i class="fas fa-file-contract"></i> 수주 정보
-        </h5>
-        <div class="row">
-          <div class="col-md-6">
-            <div class="form-group">
-              <label class="form-label">수주번호</label>
-              <input type="text" class="form-control readonly-input" 
-                     value="${param.clOrderId}" readonly>
-              <input type="hidden" name="clOrderId" value="${param.clOrderId}">
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="form-group">
-              <label class="form-label">거래처</label>
-              <input type="text" class="form-control readonly-input" 
-                     value="${param.clientName}" readonly>
-            </div>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-md-8">
-            <div class="form-group">
-              <label class="form-label">제품명</label>
-              <input type="text" class="form-control readonly-input" 
-                     value="${param.productName}" readonly>
-              <input type="hidden" name="productId" value="${param.productId}">
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="form-group">
-              <label class="form-label">납기일</label>
-              <input type="text" class="form-control readonly-input" 
-                     value="${param.dueDate}" readonly>
-              <input type="hidden" name="dueDate" value="${param.dueDate}">
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- 작업지시 정보 (입력) -->
-      <div class="input-section">
-        <h5 class="section-title">
-          <i class="fas fa-cogs"></i> 작업지시 정보
-        </h5>
-        <div class="row">
-          <div class="col-md-6">
+      <!-- 작업지시 등록 폼 -->
+<form id="workOrderForm" method="post" action="/workorder/register">
+  <div class="container p-3">
+
+    <!-- 좌우 레이아웃 (반응형 2단) -->
+    <div class="row">
+      <!-- 작업지시 정보 (좌측) -->
+      <div class="col-md-6 mb-3">
+        <div class="card border-primary h-100">
+          <div class="card-header bg-primary text-white">
+            <i class="fas fa-cogs"></i> 작업지시 정보
+          </div>
+          <div class="card-body">
+            <!-- 생산라인 -->
             <div class="form-group">
-              <label class="form-label required">생산라인</label>
-              <select class="form-control line-select" name="lineId" required>
-                <option value="">생산라인을 선택하세요</option>
+              <label>생산라인 <span class="text-danger">*</span></label>
+              <select class="form-control" name="lineId" required>
+                <option value="">선택하세요</option>
                 <option value="L-01">L-01</option>
                 <option value="L-02">L-02</option>
                 <option value="L-03">L-03</option>
+              </select>
+            </div>
 
+            <!-- 우선순위 -->
+            <div class="form-group">
+              <label>우선순위 <span class="text-danger">*</span></label>
+              <select class="form-control" name="priority" required>
+                <option value="HIGH">높음</option>
+                <option value="NORMAL" selected>보통</option>
+                <option value="LOW">낮음</option>
               </select>
             </div>
-          </div>
-          <div class="col-md-6">
+
+            <!-- 지시수량 -->
             <div class="form-group">
-              <label class="form-label required">우선순위</label>
-              <select class="form-control priority-select" name="priority" required>
-                <option value="">우선순위를 선택하세요</option>
-                <option value="HIGH" class="priority-high">높음</option>
-                <option value="NORMAL" class="priority-normal" selected>보통</option>
-                <option value="LOW" class="priority-low">낮음</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-md-12">
-            <div class="form-group">
-              <label class="form-label required">지시수량</label>
-              <div class="input-group">
-                <input type="number" class="form-control quantity-input" 
-                       name="orderQty" value="${param.requiredQty}" 
-                       min="1" max="999999" required>
-                <div class="input-group-append">
-                  <span class="input-group-text">개</span>
-                </div>
-              </div>
+              <label>지시 수량 <span class="text-danger">*</span></label>
+              <input type="number" name="orderQty" class="form-control" value="${requiredQty}" min="1" max="999999" required>
               <small class="form-text text-muted">
-                권장 생산수량: <span class="text-primary font-weight-bold">${param.requiredQty}개</span>
+                권장 생산수량: <strong class="text-primary">${requiredQty}개</strong>
               </small>
             </div>
+
+            <!-- 특이사항 -->
+            <div class="form-group">
+              <label>특이사항</label>
+              <textarea class="form-control" name="remarks" rows="3" placeholder="작업 시 주의사항이나 특이사항 입력"></textarea>
+            </div>
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">특이사항</label>
-          <textarea class="form-control" name="remarks" rows="3" 
-                    placeholder="작업 시 주의사항이나 특이사항을 입력하세요"></textarea>
-        </div>
       </div>
 
-      <!-- 버튼 영역 -->
-      <div class="button-section">
-        <div class="d-flex justify-content-end">
-          <button type="button" class="btn btn-light btn-lg mr-3" onclick="window.close()">
-            <i class="fas fa-times"></i> 취소
-          </button>
-          <button type="submit" class="btn btn-primary btn-lg register-btn">
-            <i class="fas fa-save"></i> 작업지시 등록
-          </button>
+      <!-- 수주 정보 (우측) -->
+      <div class="col-md-6 mb-3">
+        <div class="card border-primary h-100 d-flex flex-column justify-content-between">
+          <div>
+            <div class="card-header bg-primary text-white">
+              <i class="fas fa-file-contract"></i> 수주 정보
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label>수주번호</label>
+                <input type="text" class="form-control" value="${clOrderId}" readonly>
+                <input type="hidden" name="clOrderId" value="${clOrderId}">
+              </div>
+              <div class="form-group">
+                <label>제품명</label>
+                <input type="text" class="form-control" value="${productName}" readonly>
+                <input type="hidden" name="productId" value="${productId}">
+              </div>
+              <div class="form-group">
+                <label>거래처</label>
+                <input type="text" class="form-control" value="${clientName}" readonly>
+              </div>
+              <div class="form-group">
+                <label>납기일</label>
+                <input type="text" class="form-control" value="<fmt:formatDate value='${dueDate}' pattern='yyyy-MM-dd' />" readonly>
+                <input type="hidden" name="dueDate" value="<fmt:formatDate value='${dueDate}' pattern='yyyy-MM-dd' />">
+              </div>
+              
+              <input type="hidden" name="status" value="WAITING">
+              
+            </div>
+          </div>
+          
+
+          <!-- 버튼 영역 -->
+          <div class="card-footer bg-transparent border-0 d-flex justify-content-between">
+            <button type="button" class="btn btn-light btn-lg" onclick="window.close()">
+              <i class="fas fa-times"></i> 취소
+            </button>
+            <button type="submit" class="btn btn-primary btn-lg">
+              <i class="fas fa-save"></i> 작업지시 등록
+            </button>
+          </div>
         </div>
       </div>
-
-    </form>
+    </div>
   </div>
+</form>
+
 
 <script>
 $(document).ready(function() {

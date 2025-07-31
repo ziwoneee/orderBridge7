@@ -29,7 +29,7 @@ public class WorkOrderServiceImpl implements WorkOrderService {
      */
     @Override
     public List<WorkOrderDTO> getWorkOrderList(SearchCriteria cri) {
-        log.debug("▶ 작업지시 목록 조회 - 조건: {}", cri);
+        log.debug(" 작업지시 목록 조회 - 조건: {}", cri);
         return workOrderMapper.selectWorkOrderList(cri);
     }
 
@@ -38,7 +38,7 @@ public class WorkOrderServiceImpl implements WorkOrderService {
      */
     @Override
     public int getWorkOrderTotalCount(SearchCriteria cri) {
-        log.debug("▶ 작업지시 전체 개수 조회 - 조건: {}", cri);
+        log.debug(" 작업지시 전체 개수 조회 - 조건: {}", cri);
         return workOrderMapper.selectWorkOrderTotalCount(cri);
     }
 
@@ -47,7 +47,7 @@ public class WorkOrderServiceImpl implements WorkOrderService {
      */
     @Override
     public int getAllCount() {
-        log.debug("▶ 전체 작업지시 개수 조회");
+        log.debug(" 전체 작업지시 개수 조회");
         return workOrderMapper.selectAllCount();
     }
 
@@ -56,7 +56,7 @@ public class WorkOrderServiceImpl implements WorkOrderService {
      */
     @Override
     public int getCountByStatus(String status) {
-        log.debug("▶ 상태별 작업지시 개수 조회 - 상태: {}", status);
+        log.debug(" 상태별 작업지시 개수 조회 - 상태: {}", status);
         return workOrderMapper.selectCountByStatus(status);
     }
 
@@ -65,7 +65,7 @@ public class WorkOrderServiceImpl implements WorkOrderService {
      */
     @Override
     public WorkOrderDTO getWorkOrderDetail(String orderId) {
-        log.debug("▶ 작업지시 상세 조회 - ID: {}", orderId);
+        log.debug(" 작업지시 상세 조회 - ID: {}", orderId);
         return workOrderMapper.selectWorkOrderDetail(orderId);
     }
 
@@ -74,7 +74,7 @@ public class WorkOrderServiceImpl implements WorkOrderService {
      */
     @Override
     public List<WorkOrderDTO> getConfirmedOrders(SearchCriteria cri) {
-        log.debug("▶ 확정 수주 목록 조회 - 조건: {}", cri);
+        log.debug(" 확정 수주 목록 조회 - 조건: {}", cri);
         return workOrderMapper.selectConfirmedOrders(cri);
     }
 
@@ -83,7 +83,7 @@ public class WorkOrderServiceImpl implements WorkOrderService {
      */
     @Override
     public int getConfirmedOrdersCount(SearchCriteria cri) {
-        log.debug("▶ 확정 수주 개수 조회 - 조건: {}", cri);
+        log.debug(" 확정 수주 개수 조회 - 조건: {}", cri);
         return workOrderMapper.selectConfirmedOrdersCount(cri);
     }
 
@@ -93,7 +93,7 @@ public class WorkOrderServiceImpl implements WorkOrderService {
     @Override
     @Transactional
     public int registerWorkOrder(WorkOrderDTO workOrderDTO) {
-        log.info("▶ 작업지시 등록 - 수주번호: {}", workOrderDTO.getClOrderId());
+        log.info(" 작업지시 등록 - 수주번호: {}", workOrderDTO.getClOrderId());
         
         try {
             // 작업지시번호 자동 생성
@@ -110,15 +110,15 @@ public class WorkOrderServiceImpl implements WorkOrderService {
             int result = workOrderMapper.insertWorkOrder(workOrderDTO);
             
             if (result > 0) {
-                log.info("▶ 작업지시 등록 완료 - ID: {}", orderId);
+                log.info(" 작업지시 등록 완료 - ID: {}", orderId);
             } else {
-                log.error("▶ 작업지시 등록 실패 - 데이터베이스 오류");
+                log.error(" 작업지시 등록 실패 - 데이터베이스 오류");
             }
             
             return result;
             
         } catch (Exception e) {
-            log.error("▶ 작업지시 등록 중 오류 발생", e);
+            log.error(" 작업지시 등록 중 오류 발생", e);
             throw new RuntimeException("작업지시 등록 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
@@ -129,21 +129,21 @@ public class WorkOrderServiceImpl implements WorkOrderService {
     @Override
     @Transactional
     public int updateWorkOrderStatus(String orderId, String status) {
-        log.info("▶ 작업지시 상태 변경 - ID: {}, 상태: {}", orderId, status);
+        log.info(" 작업지시 상태 변경 - ID: {}, 상태: {}", orderId, status);
         
         try {
             int result = workOrderMapper.updateWorkOrderStatus(orderId, status);
             
             if (result > 0) {
-                log.info("▶ 작업지시 상태 변경 완료 - ID: {}, 새상태: {}", orderId, status);
+                log.info(" 작업지시 상태 변경 완료 - ID: {}, 새상태: {}", orderId, status);
             } else {
-                log.warn("▶ 작업지시 상태 변경 실패 - 해당 ID가 존재하지 않음: {}", orderId);
+                log.warn(" 작업지시 상태 변경 실패 - 해당 ID가 존재하지 않음: {}", orderId);
             }
             
             return result;
             
         } catch (Exception e) {
-            log.error("▶ 작업지시 상태 변경 중 오류 발생", e);
+            log.error(" 작업지시 상태 변경 중 오류 발생", e);
             throw new RuntimeException("작업지시 상태 변경 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
@@ -168,11 +168,11 @@ public class WorkOrderServiceImpl implements WorkOrderService {
             // 작업지시번호 생성
             String orderId = "WO-" + today + "-" + sequenceStr;
             
-            log.debug("▶ 작업지시번호 생성: {}", orderId);
+            log.debug(" 작업지시번호 생성: {}", orderId);
             return orderId;
             
         } catch (Exception e) {
-            log.error("▶ 작업지시번호 생성 실패", e);
+            log.error(" 작업지시번호 생성 실패", e);
             throw new RuntimeException("작업지시번호 생성에 실패했습니다: " + e.getMessage());
         }
     }

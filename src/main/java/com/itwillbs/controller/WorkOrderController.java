@@ -39,6 +39,27 @@ public class WorkOrderController {
     public String list(SearchCriteria cri, Model model) {
         log.info("작업지시 목록 조회 - 조건: {}", cri);
         
+        // sortColumn 변환: alias → 실제 컬럼명으로 변환 (중요!)
+        if ("due_date".equals(cri.getSortColumn())) {
+            cri.setSortColumn("co.cl_delivery_date");
+        }
+        
+        // 정렬 허용 컬럼 목록
+        List<String> allowedColumns = List.of(
+            "w.order_id", "w.cl_order_id", "p.product_name", "cl.client_name",
+            "w.created_at", "w.status", "w.priority", "co.cl_delivery_date"
+        );
+
+
+        // 잘못된 정렬 컬럼/순서 방지
+        if (cri.getSortColumn() == null || cri.getSortColumn().trim().isEmpty() || !allowedColumns.contains(cri.getSortColumn())) {
+            cri.setSortColumn("w.created_at");
+        }
+
+        if (cri.getSortOrder() == null || !(cri.getSortOrder().equals("asc") || cri.getSortOrder().equals("desc"))) {
+            cri.setSortOrder("desc");
+        }
+        
         // 총 개수 및 페이징
         int totalCount = workOrderService.getWorkOrderTotalCount(cri);
         PageMaker pageMaker = new PageMaker(cri, totalCount);
@@ -46,6 +67,10 @@ public class WorkOrderController {
         // 목록 조회
         List<WorkOrderDTO> workOrderList = workOrderService.getWorkOrderList(cri);
         
+        for (WorkOrderDTO w : workOrderList) {
+            log.info("▶ 작업지시번호: {}, 납기일: {}", w.getOrderId(), w.getDueDate());
+        }
+       
         // 탭용 상태별 개수
         int allCount = workOrderService.getAllCount();
         int waitingCount = workOrderService.getCountByStatus("WAITING");
@@ -82,14 +107,19 @@ public class WorkOrderController {
     @GetMapping("/select-order")
     public String selectOrderPopup(SearchCriteria cri, Model model) {
         logger.debug("▶ selectOrderPopup() 호출");
-        // 전체 목록
+        
         List<WorkOrderDTO> confirmedList = workOrderService.getConfirmedOrders(cri);
         int totalCount = workOrderService.getConfirmedOrdersCount(cri);
-        // 모델로 전달
+        
+        //  PageMaker 대신 간단한 계산
+        int totalPages = (int) Math.ceil((double) totalCount / cri.getPerPageNum());
+        
         model.addAttribute("orderList", confirmedList);
         model.addAttribute("cri", cri);
         model.addAttribute("totalCount", totalCount);
-        return "/workOrder/select-order-popup"; // → JSP 위치
+        model.addAttribute("totalPages", totalPages); //  이것만 추가
+        
+        return "workOrder/select-order-popup";
     }
 
     
@@ -102,22 +132,51 @@ public class WorkOrderController {
             @RequestParam("productId") String productId,
             Model model) {
 
-        log.info("register-popup 호출: clOrderId={}, productId={}", clOrderId, productId);
+        log.info("🔥 register-popup 호출: clOrderId=[{}], productId=[{}]", clOrderId, productId);
 
-        WorkOrderDTO detail = workOrderService.getOrderDetail(clOrderId, productId);
-        if (detail == null) {
-            log.error(" getOrderDetail 결과 없음 → clOrderId={}, productId={}", clOrderId, productId);
-            throw new IllegalArgumentException("유효하지 않은 수주 정보입니다.");
+        // 🔍 파라미터 null 체크 강화
+        if (clOrderId == null || clOrderId.trim().isEmpty()) {
+            log.error("❌ clOrderId가 비어있음: [{}]", clOrderId);
+            throw new IllegalArgumentException("수주번호가 누락되었습니다.");
+        }
+        
+        if (productId == null || productId.trim().isEmpty()) {
+            log.error("❌ productId가 비어있음: [{}]", productId);
+            throw new IllegalArgumentException("제품ID가 누락되었습니다.");
         }
 
-        model.addAttribute("clOrderId", clOrderId);
-        model.addAttribute("productId", productId);
-        model.addAttribute("productName", detail.getProductName());
-        model.addAttribute("clientName", detail.getClientName());
-        model.addAttribute("dueDate", detail.getDueDate());
-        model.addAttribute("requiredQty", detail.getRequiredQty());
+        log.info("🔍 getOrderDetail 호출 전 - clOrderId=[{}], productId=[{}]", clOrderId, productId);
+        
+        try {
+            WorkOrderDTO detail = workOrderService.getOrderDetail(clOrderId, productId);
+            
+            log.info(" getOrderDetail 결과: {}", detail);
+            
+            if (detail == null) {
+                log.error(" getOrderDetail 결과 없음 → clOrderId=[{}], productId=[{}]", clOrderId, productId);
+                throw new IllegalArgumentException("유효하지 않은 수주 정보입니다.");
+            }
 
-        return "/workOrder/register-popup";
+            // 각 필드별로 확인
+            log.info(" detail 필드별 확인:");
+            log.info("  - productName: [{}]", detail.getProductName());
+            log.info("  - clientName: [{}]", detail.getClientName());
+            log.info("  - dueDate: [{}]", detail.getDueDate());
+            log.info("  - requiredQty: [{}]", detail.getRequiredQty());
+
+            model.addAttribute("clOrderId", clOrderId);
+            model.addAttribute("productId", productId);
+            model.addAttribute("productName", detail.getProductName());
+            model.addAttribute("clientName", detail.getClientName());
+            model.addAttribute("dueDate", detail.getDueDate());
+            model.addAttribute("requiredQty", detail.getRequiredQty());
+
+            return "workOrder/register-popup";
+            
+        } catch (Exception e) {
+            log.error(" getOrderDetail 호출 중 예외 발생:", e);
+            throw new IllegalArgumentException("수주 정보 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
     }
     
     
@@ -154,6 +213,9 @@ public class WorkOrderController {
         
         return ResponseEntity.ok(response);
     }
+    
+
+    
     
     /**
      * [POST] 작업지시 상태 변경

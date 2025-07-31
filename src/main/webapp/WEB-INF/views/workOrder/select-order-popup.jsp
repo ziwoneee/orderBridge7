@@ -4,27 +4,28 @@
 <!DOCTYPE html>
 <html>
 
-<link rel="stylesheet" href="${pageContext.request.contextPath}/resources/css/popup-style.css">
-
 <head>
   <title>확정 수주 선택</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.1">
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.6.0/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <!-- CSS & JS 링크 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/css/popup-style.css">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
 </head>
+
 <body>
+  <!-- 제목 -->
   <div class="page-title">
     <i class="fas fa-clipboard-list"></i>
     확정 수주 선택
   </div>
 
-  <!-- 검색 영역 - 개선된 구조 -->
+  <!-- 검색 영역 -->
   <div class="search-container">
     <form method="get" action="/workorder/select-order">
       <div class="search-form-wrapper">
-        <input type="text" name="keyword" class="form-control search-input" 
+        <input type="text" name="keyword" class="form-control search-input"
                placeholder="수주번호를 입력하세요" value="${cri.keyword}">
         <button type="submit" class="btn search-btn">
           <i class="fas fa-search"></i> 검색
@@ -50,33 +51,36 @@
         </thead>
         <tbody>
           <c:forEach var="order" items="${orderList}">
-			  <tr class="order-row"
-			      data-order-id="${order.clOrderId}"
-			      data-product-id="${order.productId}"
-			      data-product-name="${order.productName}"
-			      data-client-name="${order.clientName}"
-			      data-due-date="<fmt:formatDate value='${order.dueDate}' pattern='yyyy-MM-dd' />"
-			      data-required-qty="${order.requiredQty}"
-			      tabindex="0"
-			      onkeypress="if(event.key==='Enter') $(this).click()">
-			    <td>${order.clOrderId}</td>
-			    <td>${order.clientName}</td>
-			    <td>${order.productName}</td>
-			    <td><fmt:formatDate value="${order.clOrderDate}" pattern="yyyy-MM-dd"/></td>
-			    <td>
-			      <c:choose>
-			        <c:when test="${not empty order.dueDate}">
-			          <fmt:formatDate value="${order.dueDate}" pattern="yyyy-MM-dd"/>
-			        </c:when>
-			        <c:otherwise>-</c:otherwise>
-			      </c:choose>
-			    </td>
-			    <td><fmt:formatNumber value="${order.orderQty}" pattern="#,##0"/></td>
-			    <td class="production-qty">
-			      <fmt:formatNumber value="${order.requiredQty}" pattern="#,##0"/>
-			    </td>
-			  </tr>
-			</c:forEach>
+            <tr class="order-row"
+                data-order-id="${order.clOrderId}"
+                data-product-id="${order.productId}"
+                data-product-name="${empty order.productName ? '제품명없음' : order.productName}"
+                data-client-name="${empty order.clientName ? '거래처없음' : order.clientName}"
+                data-due-date="<fmt:formatDate value='${order.dueDate}' pattern='yyyy-MM-dd' />"
+                data-required-qty="${order.requiredQty}"
+                tabindex="0"
+                style="cursor: pointer;"
+                onkeypress="if(event.key==='Enter') $(this).click()">
+              <td>${empty order.clOrderId ? '-' : order.clOrderId}</td>
+              <td>${empty order.clientName ? '-' : order.clientName}</td>
+              <td>${empty order.productName ? '-' : order.productName}</td>
+              <td><fmt:formatDate value="${order.clOrderDate}" pattern="yyyy-MM-dd"/></td>
+              <td>
+                <c:choose>
+                  <c:when test="${not empty order.dueDate}">
+                    <fmt:formatDate value="${order.dueDate}" pattern="yyyy-MM-dd"/>
+                  </c:when>
+                  <c:otherwise>-</c:otherwise>
+                </c:choose>
+              </td>
+              <td><fmt:formatNumber value="${order.orderQty}" pattern="#,##0"/></td>
+              <td class="production-qty">
+                <fmt:formatNumber value="${order.requiredQty}" pattern="#,##0"/>
+              </td>
+            </tr>
+          </c:forEach>
+
+          <!-- 데이터 없을 때 메시지 -->
           <c:if test="${empty orderList}">
             <tr>
               <td colspan="7" class="empty-message text-center">
@@ -90,45 +94,78 @@
     </div>
   </div>
 
+  <!-- 페이징 영역 -->
+  <div class="pagination-container">
+    <nav aria-label="페이지 네비게이션">
+      <ul class="pagination justify-content-center">
+        <!-- 이전 버튼 -->
+        <c:if test="${cri.page > 1}">
+          <li class="page-item">
+            <a class="page-link" href="?page=${cri.page - 1}&keyword=${cri.keyword}">
+              <i class="fas fa-chevron-left"></i>
+            </a>
+          </li>
+        </c:if>
 
-<script>
+        <!-- 페이지 번호 -->
+        <c:set var="startPage" value="${cri.page - 2 > 0 ? cri.page - 2 : 1}" />
+        <c:set var="endPage" value="${startPage + 4 > totalPages ? totalPages : startPage + 4}" />
+
+        <c:forEach begin="${startPage}" end="${endPage}" var="pageNum">
+          <li class="page-item ${cri.page == pageNum ? 'active' : ''}">
+            <a class="page-link" href="?page=${pageNum}&keyword=${cri.keyword}">${pageNum}</a>
+          </li>
+        </c:forEach>
+
+        <!-- 다음 버튼 -->
+        <c:if test="${cri.page < totalPages}">
+          <li class="page-item">
+            <a class="page-link" href="?page=${cri.page + 1}&keyword=${cri.keyword}">
+              <i class="fas fa-chevron-right"></i>
+            </a>
+          </li>
+        </c:if>
+      </ul>
+    </nav>
+
+    <!-- 총 개수 -->
+    <div class="text-center mt-3 text-muted">
+      <small>총 ${totalCount}개 (${cri.page}/${totalPages} 페이지)</small>
+    </div>
+  </div>
+
+  <!-- JavaScript 동작 -->
+  <script>
   $(document).ready(function () {
-    // 검색창 포커스 + Enter submit
-    $('input[name="keyword"]').focus().on('keypress', function (e) {
-      if (e.which === 13) {
-        $(this).closest('form').submit();
-      }
+    console.log("페이지 로드됨: orderList size =", ${orderList.size()});
+
+    // 디버깅용: 각 행 정보 콘솔 출력
+    $('.order-row').each(function(index) {
+      const rowData = {
+        'order-id': $(this).attr('data-order-id'),
+        'product-id': $(this).attr('data-product-id'),
+        'product-name': $(this).attr('data-product-name'),
+        'client-name': $(this).attr('data-client-name')
+      };
+      console.log(`Row ${index}:`, rowData);
     });
 
-    // 행 클릭 시 → 현재 팝업 창이 register-popup.jsp로 이동
+    // 클릭 시 등록 화면으로 이동
     $('.order-row').on('click', function () {
-	  const clOrderId = $(this).data('order-id');
-	  const productId = $(this).data('product-id');
-	  const productName = encodeURIComponent($(this).data('product-name'));
-	  const clientName = encodeURIComponent($(this).data('client-name'));
-	  const dueDate = encodeURIComponent($(this).data('due-date'));
-	  const requiredQty = encodeURIComponent($(this).data('required-qty'));
-	
-	  const popupUrl = `/workorder/register-popup`
-		  + `?clOrderId=${clOrderId}`
-		  + `&productId=${productId}`
-		  + `&productName=${productName}`
-		  + `&clientName=${clientName}`
-		  + `&dueDate=${dueDate}`
-		  + `&requiredQty=${requiredQty}`;
-	
-	  location.href = popupUrl;
-	});
+      const clOrderId = $(this).attr('data-order-id');
+      const productId = $(this).attr('data-product-id');
 
-    // ESC로 팝업 닫기
-    $(document).on('keydown', function (e) {
-      if (e.key === 'Escape') {
-        window.close();
+      if (!clOrderId || !productId) {
+        alert(`⚠️ 필수 데이터 누락!\nclOrderId: ${clOrderId}\nproductId: ${productId}`);
+        return;
       }
+
+      const popupUrl = '/workorder/register-popup?clOrderId=' + clOrderId + '&productId=' + productId;
+      location.href = popupUrl;
     });
   });
-</script>
-  
+  </script>
+
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
