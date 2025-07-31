@@ -117,7 +117,7 @@
                       <td>
                         <button class="btn btn-outline-secondary btn-sm"
                                 data-toggle="modal"
-                                data-target="#detailModal"
+                                data-target="#lotHistoryModal"
                                 data-product="${item.productName}"
                                 data-lot="${item.lotNo}">
                           내역확인
@@ -173,69 +173,56 @@
 </div> <!-- container-scroller -->
 
 <!-- 모달 영역 -->
-<div class="modal fade" id="detailModal" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-lg" role="document">
+<!-- LOT 상세 모달 -->
+<div class="modal fade" id="lotHistoryModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
-      <div class="modal-header">
+
+      <!-- 제목 -->
+      <div class="modal-header bg-primary text-white">
         <h5 class="modal-title">
-          <span id="modalProductName"></span> (<span id="modalLotNo"></span>) 입출고 내역
+          <span id="modal-product-name"></span>
+          (<span id="modal-lot-no"></span>) 입출고 상세
         </h5>
-        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
       </div>
+
+      <!-- 상단 요약 -->
       <div class="modal-body">
-        <table class="table table-sm table-bordered">
-          <thead>
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>입고량:</strong> <span id="modal-inboundQty"></span></div>
+          <div class="col-md-6"><strong>총 출고량:</strong> <span id="modal-totalOutboundQty"></span></div>
+          <div class="col-md-6"><strong>예약 수량:</strong> <span id="modal-reservedQty"></span></div>
+          <div class="col-md-6"><strong>가용 수량:</strong> <span id="modal-availableQty"></span></div>
+          <div class="col-md-6"><strong>유통기한:</strong> <span id="modal-expireDate"></span></div>
+        </div>
+
+        <!-- 하단 테이블 -->
+        <table class="table table-bordered text-center">
+          <thead class="thead-dark">
             <tr>
-             <th>처리일자</th>
-		      <th>구분</th>
-		      <th>수량</th>
-		      <th>거래처</th>
+              <th>처리일자</th>
+              <th>구분</th>
+              <th>수량</th>
+              <th>거래처</th>
             </tr>
           </thead>
-          <tbody id="modalTransactionBody">
-            <!-- Ajax로 동적 삽입 -->
-          </tbody>
+          <tbody id="lotHistoryTableBody"></tbody>
         </table>
-        <div class="alert alert-info mt-3">제품의 실시간 입고/출고 내역을 확인할 수 있습니다.</div>
+
+        <div id="lotHistoryEmpty" class="alert alert-info text-center d-none">
+          입출고 내역이 없습니다.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-dismiss="modal">닫기</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- 입출고 상세 모달창 -->
-<script>
-  $('#detailModal').on('show.bs.modal', function (event) {
-    const button = $(event.relatedTarget);
-    const product = button.data('product');
-    const lot = button.data('lot');
-    $('#modalProductName').text(product);
-    $('#modalLotNo').text(lot);
 
-    // AJAX 호출로 거래처명 포함 출고/입고 내역 조회
-    $.getJSON("/product/transaction", { product: product, lot: lot }, function(data) {
-      let html = data.length === 0
-        ? "<tr><td colspan='4'>입출고 내역이 없습니다.</td></tr>"
-        : data.map(row => `
-          <tr>
-            <td>${row.regDate}</td>
-            <td>${row.type}</td>
-            <td>${row.qty}</td>
-            <td>${row.memo || row.clientName || ''}</td>
-          </tr>`).join('');
-      $('#modalTransactionBody').html(html);
-    });
-  });
-
-  function viewStock() {
-    document.querySelector('input[name="mode"]').value = 'stock';
-    document.getElementById('stockForm').submit();
-  }
-
-  function viewAll() {
-    document.querySelector('input[name="mode"]').value = 'all';
-    document.getElementById('stockForm').submit();
-  }
-</script>
 
 
 <script>
@@ -339,3 +326,6 @@
     margin-left: 4px;
   }
 </style>
+
+<script src="${pageContext.request.contextPath}/resources/js/lotHistory.js"></script>
+
