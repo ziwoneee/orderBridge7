@@ -1,4 +1,4 @@
-// ✅ 날짜 포맷 함수 추가
+// ✅ 날짜 포맷 함수
 function formatDate(timestamp) {
   const date = new Date(timestamp);
   const yyyy = date.getFullYear();
@@ -17,6 +17,7 @@ $(document).ready(function () {
       method: 'GET',
       data: { outboundId: outboundId },
       success: function (data) {
+        // ✅ 기본 필드
         $('#detail-outboundId').text(data.outboundId || '');
         $('#detail-productName').text(data.productName || '');
         $('#detail-lotNo').text(data.lotNo || '');
@@ -29,6 +30,17 @@ $(document).ready(function () {
         $('#detail-clientName').text(data.clientName || '');
         $('#detail-manager').text(data.manager || '');
         $('#detail-remark').text(data.remark || '');
+
+        // ✅ 제목용 제품명, 출하ID 삽입
+        $('#detail-productName-title').text(data.productName || '');
+        $('#detail-outboundId-title').text(data.outboundId || '');
+        $('#detail-clientName-title').text(data.clientName || '');
+
+        // ✅ 송장번호 표시
+        $('#detail-trackingNumber').text(data.trackingNumber || '');
+
+        // ✅ 모달 열기
+        $('#outboundDetailModal').modal('show');
       },
       error: function () {
         alert('상세정보를 불러오는데 실패했습니다.');

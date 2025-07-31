@@ -3,6 +3,7 @@ package com.itwillbs.controller;
 import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.ShipmentCompletedDTO;
+import com.itwillbs.dto.ShipmentCompletedGroupDTO;
 import com.itwillbs.dto.ShipmentPendingGroupDTO;
 import com.itwillbs.service.ClientDeliveryService;
 import com.itwillbs.service.StockReservationService;
@@ -82,38 +83,50 @@ public class ClientDeliveryController {
     public String showShipmentTabs(@ModelAttribute SearchCriteria cri,
                                    @RequestParam(value = "tab", required = false, defaultValue = "pending") String tab,
                                    Model model) {
-        // 출하대기 목록
-    	List<ShipmentPendingGroupDTO> groupedList = deliveryService.searchPendingGroupedList(cri);
-    	int totalPending = deliveryService.countPendingGroupedList(cri);
-    	PageMaker pendingPage = new PageMaker(cri, totalPending);
+        // ✅ 출하대기 목록
+        List<ShipmentPendingGroupDTO> groupedList = deliveryService.searchPendingGroupedList(cri);
+        int totalPending = deliveryService.countPendingGroupedList(cri);
+        PageMaker pendingPage = new PageMaker(cri, totalPending);
 
-    	model.addAttribute("groupedList", groupedList);
-    	model.addAttribute("pendingPage", pendingPage);
+        model.addAttribute("groupedList", groupedList);
+        model.addAttribute("pendingPage", pendingPage);
 
         // ✅ 예약된 수주번호 목록 전달
         List<String> reservedOrderIds = reservationService.getReservedOrderIds();
         model.addAttribute("reservedOrderIds", reservedOrderIds);
 
-                
-        // 출하완료 검색조건 보정
+        // ✅ 출하완료 검색조건 보정
         List<String> allowed = Arrays.asList("deliveryId", "clOrderId", "deliveryDate", "productName", "clientName", "lotNo", "trackingNumber");
-        if (cri.getSortColumn() == null);
-        if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) cri.setSortOrder("desc");
+
+        if (cri.getSortColumn() == null ) {
+            cri.setSortColumn("deliveryDate");
+        }
+
+        if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) {
+            cri.setSortOrder("desc");
+        }
+
         if (cri.getStartDate() != null && cri.getStartDate().trim().isEmpty()) cri.setStartDate(null);
         if (cri.getEndDate() != null && cri.getEndDate().trim().isEmpty()) cri.setEndDate(null);
 
-        // 출하완료 목록
+        // ✅ 출하완료 flat 리스트 (기존 테이블용, 유지)
         List<ShipmentCompletedDTO> completedList = deliveryService.searchCompletedShipmentList(cri);
         int totalCount = deliveryService.countCompletedShipmentList(cri);
         PageMaker pageMaker = new PageMaker(cri, totalCount);
 
-        model.addAttribute("completedList", completedList);
+        // ✅ 출하완료 그룹 리스트 (모달용 추가)
+        List<ShipmentCompletedGroupDTO> groupedCompletedList = deliveryService.getCompletedGroupedList(cri);
+
+        // ✅ 모델에 전달
+        model.addAttribute("completedList", completedList); // (선택: 기존 flat 테이블 유지 시)
+        model.addAttribute("groupedCompletedList", groupedCompletedList); // 👉 모달용!
         model.addAttribute("pageMaker", pageMaker);
         model.addAttribute("cri", cri);
-        model.addAttribute("tab", tab); 
+        model.addAttribute("tab", tab);
 
         return "clientDelivery/list";
     }
+
     
     @GetMapping("/reserve")
     public String reserveStock(@RequestParam("clOrderId") String clOrderId, RedirectAttributes rttr) {

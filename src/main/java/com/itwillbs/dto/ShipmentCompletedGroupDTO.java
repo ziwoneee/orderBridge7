@@ -10,5 +10,7 @@ public class ShipmentCompletedGroupDTO {
     private String clOrderId;
     private String clientName;
     private Date deliveryDate;
+    private String trackingNumber;
     private List<ShipmentCompletedDTO> productList;
+	
 }

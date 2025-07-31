@@ -4,6 +4,7 @@ import com.itwillbs.domain.ClientDeliveryVO;
 import com.itwillbs.domain.ProductOutboundVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.StockReservationVO;
+import com.itwillbs.dto.DeliveryHistoryDTO;
 import com.itwillbs.dto.LotStockDTO;
 import com.itwillbs.dto.ShipmentCompletedDTO;
 import com.itwillbs.dto.ShipmentCompletedGroupDTO;
@@ -67,9 +68,14 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
 
         for (StockReservationVO r : reservations) {
             int reservedQty = r.getReservedQty();
+            
+
+            // ✅ 출하 ID 생성
+            String deliveryId = generateDeliveryId();
 
             // ✅ 출하 등록
             ClientDeliveryVO delivery = new ClientDeliveryVO();
+            delivery.setDeliveryId(deliveryId);
             delivery.setClOrderId(r.getClOrderId());
             delivery.setProductId(r.getProductId());
             delivery.setLotNo(r.getLotNo());
@@ -140,24 +146,36 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
 
         for (ShipmentCompletedDTO dto : flatList) {
             String clOrderId = dto.getClOrderId();
-
-            // 해당 수주번호로 이미 그룹이 있으면 가져오고, 없으면 새로 생성
             ShipmentCompletedGroupDTO group = groupedMap.get(clOrderId);
             if (group == null) {
                 group = new ShipmentCompletedGroupDTO();
                 group.setClOrderId(clOrderId);
                 group.setClientName(dto.getClientName());
-                group.setDeliveryDate(dto.getDeliveryDate()); // 그룹 헤더에 표시할 출하일자
+                group.setDeliveryDate(dto.getDeliveryDate());
+                group.setTrackingNumber(dto.getTrackingNumber());
                 group.setProductList(new ArrayList<>());
                 groupedMap.put(clOrderId, group);
             }
-
-            // 하위 제품 리스트에 추가
             group.getProductList().add(dto);
         }
 
         return new ArrayList<>(groupedMap.values());
     }
 
+//출하 아이디 생성
+    @Override
+    public String generateDeliveryId() {
+        String today = new SimpleDateFormat("yyyyMMdd").format(new Date());
+        Integer maxSeq = deliveryDAO.getMaxDeliverySeqToday(today);
+        int nextSeq = (maxSeq == null) ? 1 : maxSeq + 1;
+        return String.format("DLV-%s-%03d", today, nextSeq);
     
+}
+ //수주관리 출하이력 조회   
+    @Override
+    public List<DeliveryHistoryDTO> getDeliveriesByOrderId(String clOrderId) {
+        return deliveryDAO.getDeliveriesByOrderId(clOrderId); 
+    
+   
+    }
 }

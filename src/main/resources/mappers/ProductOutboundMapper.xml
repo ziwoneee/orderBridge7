@@ -109,13 +109,22 @@
 <!-- 출고 상세정보 단건 조회 -->
 <select id="getOutboundDetail" parameterType="String" resultType="com.itwillbs.domain.ProductOutboundVO">
   SELECT 
-    po.*, 
-    p.product_name, 
-    c.client_name 
-  FROM product_outbound po
-  LEFT JOIN product p ON po.product_id = p.product_id
-  LEFT JOIN client c ON po.client_id = c.client_id
-  WHERE po.outbound_id = #{outboundId}
+  po.outbound_id,
+  po.product_id,
+  po.lot_no,
+  po.outbound_qty,
+  po.outbound_date,
+  po.tracking_number AS trackingNumber,   
+  po.client_id,
+  po.manager,
+  po.remark,
+  p.product_name,
+  c.client_name
+FROM product_outbound po
+LEFT JOIN product p ON po.product_id = p.product_id
+LEFT JOIN client c ON po.client_id = c.client_id
+WHERE po.outbound_id = #{outboundId}
+
 </select>
 
 

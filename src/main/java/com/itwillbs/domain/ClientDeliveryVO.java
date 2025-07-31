@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 public class ClientDeliveryVO {
 
-    private Long deliveryId;          // 고객사출하ID (출하 이력 고유 ID)
+    private String deliveryId;          // 고객사출하ID (출하 이력 고유 ID)
     private String clOrderId;         // 수주ID (출하 대상 주문 식별자)
     private Date deliveryDate;        // 출하일자 (출하 처리 일시)
     private int deliveryQty;          // 출하수량 (실제 출하된 수량)
@@ -23,6 +23,8 @@ public class ClientDeliveryVO {
     private boolean isPdfGenerated;    // PDF 생성 여부 ('Y', 'N')
     
     private String productId;
+
+	
 
 	
 	

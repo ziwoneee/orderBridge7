@@ -240,16 +240,55 @@
                 </div>
               </form>
             </div>
+            
+            <!-- ✅ 출하대기 전용 페이지네이션 -->
+<c:if test="${empty param.tab || param.tab == 'pending'}">
+  <div class="d-flex justify-content-center mt-4">
+    <nav>
+      <ul class="pagination justify-content-center mt-4">
+        <c:if test="${pendingPage.cri.page > 1}">
+          <li class="page-item">
+            <a class="page-link"
+               href="/shipment/list?tab=pending&page=${pendingPage.startPage - 1}&perPageNum=${pendingPage.cri.perPageNum}&keyword=${cri.keyword}">
+              &laquo;
+            </a>
+          </li>
+        </c:if>
+
+        <c:forEach var="p" begin="${pendingPage.startPage}" end="${pendingPage.endPage}">
+          <li class="page-item ${p == pendingPage.cri.page ? 'active' : ''}">
+            <a class="page-link"
+               href="/shipment/list?tab=pending&page=${p}&perPageNum=${pendingPage.cri.perPageNum}&keyword=${cri.keyword}">
+              ${p}
+            </a>
+          </li>
+        </c:forEach>
+
+        <c:if test="${pendingPage.cri.page < pendingPage.endPage}">
+          <li class="page-item">
+            <a class="page-link"
+               href="/shipment/list?tab=pending&page=${pendingPage.cri.page + 1}&perPageNum=${pendingPage.cri.perPageNum}&keyword=${cri.keyword}">
+              &raquo;
+            </a>
+          </li>
+        </c:if>
+      </ul>
+    </nav>
+  </div>
+</c:if>
+            
 
             <!-- 출하 완료 탭 내용 -->
-            <div class="tab-content" id="completedContent" style="display: ${param.tab == 'completed' ? 'block' : 'none'};">
-              <div class="table-responsive">
-                <table class="table table-hover">
-                  <thead style="background-color: #1C355E; color: white; border-top: none;">
-  <tr>
-    <th>출하 ID</th>
+    <!-- 출하 완료 탭 내용 -->
+<div class="tab-content" id="completedContent" style="display: ${param.tab == 'completed' ? 'block' : 'none'};">
 
-    <th>
+  <!-- ✅ 출하 완료 테이블 -->
+ 
+<div class="table-responsive">
+  <table class="table table-hover">
+    <thead style="background-color: #1C355E; color: white;">
+      <tr>
+         <th>
       <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=cl_order_id&sortOrder=${cri.sortColumn eq 'cl_order_id' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
          class="text-white text-decoration-none">
         수주번호
@@ -263,8 +302,7 @@
         </c:choose>
       </a>
     </th>
-
-    <th>
+        <th>
       <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=client_name&sortOrder=${cri.sortColumn eq 'client_name' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
          class="text-white text-decoration-none">
         거래처명
@@ -279,26 +317,7 @@
       </a>
     </th>
 
-    <th>
-  <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=product_name&sortOrder=${cri.sortColumn eq 'product_name' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
-     class="text-white text-decoration-none">
-    제품명
-    <c:choose>
-      <c:when test="${cri.sortColumn eq 'product_name'}">
-        <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
-      </c:when>
-      <c:otherwise>
-        <span class="neutral-arrow">⇅</span>
-      </c:otherwise>
-    </c:choose>
-  </a>
-</th>
-
-
-    <th>LOT번호</th>
-    <th>출하 수량</th>
-
-    <th>
+       <th>
       <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=delivery_date&sortOrder=${cri.sortColumn eq 'delivery_date' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
          class="text-white text-decoration-none">
         출하일자
@@ -313,95 +332,130 @@
       </a>
     </th>
 
-    <th>송장번호</th>
-    <th>상태</th>
-  </tr>
-</thead>
+        <th>상세보기</th>
+      </tr>
+    </thead>
+    <tbody>
+      <c:forEach var="group" items="${groupedCompletedList}" varStatus="status">
+        <tr>
+          <td>${group.clOrderId}</td>
+          <td>${group.clientName}</td>
+          <td><fmt:formatDate value="${group.deliveryDate}" pattern="yyyy-MM-dd"/></td>
+          <td>
+            <button type="button" class="btn btn-sm btn-outline-primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modal-${status.index}">
+              상세보기
+            </button>
+          </td>
+        </tr>
+      </c:forEach>
+    </tbody>
+  </table>
+</div>
 
-                  <tbody>
-                    <c:forEach var="item" items="${completedList}">
-                      <tr>
-                        <td class="font-weight-medium">${item.deliveryId}</td>
-                        <td>${item.clOrderId}</td>
-                        <td>${item.clientName}</td>
-                        <td>${item.productName}</td>
-                        <td>${item.lotNo}</td>
-                        <td class="text-end">
-                          <fmt:formatNumber value="${item.deliveryQty}" pattern="#,###"/>
-                        </td>
-                        <td>
-                          <fmt:formatDate value="${item.deliveryDate}" pattern="yyyy-MM-dd"/>
-                        </td>
-                        <td>${item.trackingNumber}</td>
-                        <td>
-                          <span class="badge badge-success">${item.deliveryStatus}</span>
-                        </td>
-                      </tr>
-                    </c:forEach>
-                    <!-- 데이터가 없을 때 -->
-                    <c:if test="${empty completedList}">
-                      <tr>
-                        <td colspan="9" class="text-center py-4">
-                          <div class="text-muted">
-                            <i class="ti-info-alt" style="font-size: 24px;"></i>
-                            <p class="mt-2">출하 완료된 항목이 없습니다.</p>
-                          </div>
-                        </td>
-                      </tr>
-                    </c:if>
-                  </tbody>
-                </table>
-              </div>
+<!-- ✅ 모달은 테이블 밖에서 출력해야 함 -->
+<c:forEach var="group" items="${groupedCompletedList}" varStatus="status">
+  <div class="modal fade" id="modal-${status.index}" tabindex="-1" aria-labelledby="modalLabel-${status.index}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalLabel-${status.index}">
+            출하 상세 내역 - ${group.clOrderId}
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+        </div>
+        <div class="modal-body">
+          <table class="table table-bordered table-sm">
+            <thead class="table-secondary">
+              <tr>
+                <th>출하 ID</th>
+                <th>제품명</th>
+                <th>LOT번호</th>
+                <th>출하 수량</th>
+                <th>송장번호</th>
+                <th>상태</th>
+              </tr>
+            </thead>
+            <tbody>
+              <c:forEach var="item" items="${group.productList}">
+                <tr>
+                  <td>${item.deliveryId}</td>
+                  <td>${item.productName}</td>
+                  <td>${item.lotNo}</td>
+                  <td class="text-end"><fmt:formatNumber value="${item.deliveryQty}" pattern="#,###"/></td>
+                  <td>${item.trackingNumber}</td>
+                  <td><span class="badge bg-success">${item.deliveryStatus}</span></td>
+                </tr>
+              </c:forEach>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</c:forEach>
 
-              <!-- 페이징 처리 (완료 탭에서만) -->
-              <c:if test="${param.tab == 'completed'}">
-                <div class="d-flex justify-content-center mt-4">
-                  <nav>
-                    <ul class="pagination justify-content-center mt-4">
-                      
-                      <c:if test="${pageMaker.cri.page > 1}">
-                        <li class="page-item">
-                          <a class="page-link" 
-                             href="/shipment/list?tab=completed&page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}"
-                             style="color: #1C355E;">
-                            &laquo;
-                          </a>
-                        </li>
-                      </c:if>
-                      
-                      <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
-                        <li class="page-item ${p == cri.page ? 'active' : ''}">
-                          <a class="page-link" 
-                             href="/shipment/list?tab=completed&page=${p}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}"
-                             style="${p == cri.page ? 'background-color: #1C355E; border-color: #1C355E; color: white;' : 'color: #1C355E;'}">
-                            ${p}
-                          </a>
-                        </li>
-                      </c:forEach>
-                      
-                      <c:if test="${pageMaker.cri.page < pageMaker.endPage}">
-                        <li class="page-item">
-                          <a class="page-link" 
-                             href="/shipment/list?tab=completed&page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}"
-                             style="color: #1C355E;">
-                            &raquo;
-                          </a>
-                        </li>
-                      </c:if>
-                      
-                    </ul>
-                  </nav>
-                </div>
-              </c:if>
+
+      <c:if test="${empty groupedCompletedList}">
+        <tr>
+          <td colspan="4" class="text-center py-4">
+            <div class="text-muted">
+              <i class="ti-info-alt" style="font-size: 24px;"></i>
+              <p class="mt-2">출하 완료된 항목이 없습니다.</p>
             </div>
+          </td>
+        </tr>
+      </c:if>
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ✅ 페이징 유지 -->
+<div class="d-flex justify-content-center mt-4">
+  <nav>
+    <ul class="pagination justify-content-center mt-4">
+      <c:if test="${pageMaker.cri.page > 1}">
+        <li class="page-item">
+          <a class="page-link"
+             href="/shipment/list?tab=completed&page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
+            &laquo;
+          </a>
+        </li>
+      </c:if>
+
+      <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+        <li class="page-item ${p == cri.page ? 'active' : ''}">
+          <a class="page-link"
+             href="/shipment/list?tab=completed&page=${p}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
+            ${p}
+          </a>
+        </li>
+      </c:forEach>
+
+      <c:if test="${pageMaker.cri.page < pageMaker.endPage}">
+        <li class="page-item">
+          <a class="page-link"
+             href="/shipment/list?tab=completed&page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
+            &raquo;
+          </a>
+        </li>
+      </c:if>
+    </ul>
+  </nav>
+</div>
+
+</div>
+    </div>
           </div>
        
-        </div>
-        
-      </div>
+      
       <!-- content-wrapper 끝 -->
       <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
-    </div>
+  </div>
+        
+      </div>
     <!-- 본문.jsp main-panel ends -->
   </div>   
   <!-- container-fluid page-body-wrapper 끝 -->
@@ -520,3 +574,5 @@
     margin-left: 4px;
   }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

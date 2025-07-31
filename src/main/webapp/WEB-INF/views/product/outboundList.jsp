@@ -172,48 +172,72 @@
 	        </tbody>
 	    </table>
 	    
-	    <!-- 출고 상세정보 모달 -->
-<div class="modal fade" id="outboundDetailModal" tabindex="-1" role="dialog" aria-labelledby="outboundDetailModalLabel" aria-hidden="true">
+	   
+<!-- 출고 상세 모달 -->
+<div class="modal fade" id="outboundDetailModal" tabindex="-1" role="dialog">
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
 
-      <div class="modal-header">
-        <h5 class="modal-title">출고 상세정보</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span>&times;</span>
-        </button>
-      </div>
+      <!-- 타이틀 영역 -->
+<div class="modal-header" style="background-color: #003366;">
+  <h5 class="modal-title text-white mb-0">
+    <span id="detail-productName-title"></span>
+    <span id="detail-outboundId-title"></span>
+    - 출고 상세정보
+  </h5>
+  <button type="button" class="close text-white" data-dismiss="modal">
+    <span>&times;</span>
+  </button>
+</div>
 
+
+      <!-- 내용 영역 -->
       <div class="modal-body">
-        <table class="table table-bordered">
-          <tbody>
+        <table class="table table-bordered table-sm text-center align-middle">
+          <colgroup>
+            <col style="width: 15%;">
+            <col style="width: 35%;">
+            <col style="width: 15%;">
+            <col style="width: 35%;">
+          </colgroup>
+           <tbody>
             <tr>
-              <th>출고ID</th><td id="detail-outboundId"></td>
-              <th>제품명</th><td id="detail-productName"></td>
+              <th class="bg-light">출고ID</th><td id="detail-outboundId"></td>
+              <th class="bg-light">제품명</th><td id="detail-productName"></td>
             </tr>
             <tr>
-              <th>LOT 번호</th><td id="detail-lotNo"></td>
-              <th>출고수량</th><td id="detail-outboundQty"></td>
+              <th class="bg-light">LOT 번호</th><td id="detail-lotNo"></td>
+              <th class="bg-light">출고수량</th><td id="detail-outboundQty"></td>
             </tr>
             <tr>
-              <th>출고일자</th><td id="detail-outboundDate"></td>
-              <th>거래처명</th><td id="detail-clientName"></td>
+              <th class="bg-light">출고일자</th><td id="detail-outboundDate"></td>
+              <th class="bg-light">거래처명</th><td id="detail-clientName"></td>
             </tr>
             <tr>
-              <th>담당자</th><td id="detail-manager"></td>
-              <th>비고</th><td id="detail-remark"></td>
+              <th class="bg-light">송장번호</th><td id="detail-trackingNumber"></td>
+              <th class="bg-light">담당자</th><td id="detail-manager"></td>
+            </tr>
+            <tr>
+              <th class="bg-light">비고</th>
+              <td colspan="3" id="detail-remark"></td>
             </tr>
           </tbody>
         </table>
+
+        <div class="alert alert-info text-center mt-5">
+         <span id="detail-clientName-title"></span> 출고의 상세 내역입니다.
+        </div> 
       </div>
 
+      <!-- 푸터 -->
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">닫기</button>
       </div>
 
     </div>
   </div>
 </div>
+
 
 	    
 	
