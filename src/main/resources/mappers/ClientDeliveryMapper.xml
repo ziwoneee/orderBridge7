@@ -298,7 +298,19 @@
   WHERE delivery_id LIKE CONCAT('DLV-', #{today}, '%')
 </select>
 
-
-
+<!-- 수주번호 기준 출하이력 조회 -->
+<select id="getDeliveriesByOrderId" parameterType="String" resultType="com.itwillbs.dto.DeliveryHistoryDTO">
+  SELECT
+    cd.product_id,
+    p.product_name,
+    cd.delivery_qty,
+    cd.lot_no,
+    cd.delivery_date,
+    cd.tracking_number
+  FROM client_delivery cd
+  JOIN product p ON cd.product_id = p.product_id
+  WHERE cd.cl_order_id = #{clOrderId}
+  ORDER BY cd.delivery_date ASC
+</select>
 
 </mapper>

@@ -2,6 +2,7 @@ package com.itwillbs.persistence;
 
 import com.itwillbs.domain.ClientDeliveryVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.DeliveryHistoryDTO;
 import com.itwillbs.dto.LotStockDTO;
 import com.itwillbs.dto.ShipmentCompletedDTO;
 import com.itwillbs.dto.ShipmentPendingDTO;
@@ -62,4 +63,8 @@ public interface ClientDeliveryDAO {
 
     // 출하 아이디 생성
     Integer getMaxDeliverySeqToday(String today);
+    
+    //출하내역 수주관리 상세조회
+    List<DeliveryHistoryDTO> getDeliveriesByOrderId(String clOrderId);
+    
 }

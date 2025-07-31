@@ -17,6 +17,7 @@ import com.itwillbs.domain.ProductVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.ClientOrderDetailVO;
 import com.itwillbs.service.ClientService;
+import com.itwillbs.service.ClientDeliveryService;
 import com.itwillbs.service.ClientOrderDetailService;
 import com.itwillbs.service.ClientOrderService;
 import com.itwillbs.service.ProductService;
@@ -37,6 +38,10 @@ public class ClientOrderController {
     @Autowired
     private ClientOrderDetailService clientOrderDetailService;
     
+    
+    @Autowired
+    private ClientDeliveryService deliveryService;
+   
     
     // 거래처 리스트 (자동완성/드롭다운용)
     @GetMapping("/clients")
@@ -197,7 +202,9 @@ public class ClientOrderController {
         model.addAttribute("order", order);
         model.addAttribute("detailList", detailList);
         model.addAttribute("totalPrice", totalPrice); // ✅ JSP에서 출력 가능
-
+        model.addAttribute("deliveryHistory", deliveryService.getDeliveriesByOrderId(clOrderId));
+        
+        
         return "clientOrder/orderDetail"; // JSP 경로: /WEB-INF/views/clientOrder/orderDetail.jsp
     }
 

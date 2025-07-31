@@ -2,6 +2,7 @@ package com.itwillbs.service;
 
 import com.itwillbs.domain.ClientDeliveryVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.DeliveryHistoryDTO;
 import com.itwillbs.dto.ShipmentCompletedDTO;
 import com.itwillbs.dto.ShipmentCompletedGroupDTO;
 import com.itwillbs.dto.ShipmentPendingDTO;
@@ -37,5 +38,8 @@ public interface ClientDeliveryService {
     
     //출하 아이디 생성
     String generateDeliveryId();
+    
+    //수주관리 상세내역 조회
+    List<DeliveryHistoryDTO> getDeliveriesByOrderId(String clOrderId);
    
 }

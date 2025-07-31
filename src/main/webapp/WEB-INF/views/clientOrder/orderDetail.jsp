@@ -107,7 +107,7 @@
     <!-- 수주 상세내역(제품별) -->
     <h4 class="mb-3">수주 상세 내역</h4>
     <table class="table table-striped table-bordered">
-        <thead class="thead-light">
+        <thead >
             <tr>
                 <th class="text-center">No</th>
                 <th class="text-center">제품명</th>
@@ -144,18 +144,53 @@
             
         </tbody>
     </table>
-   </div>
-    <div class="mt-4">
+
+    
+
+
+
+ <h4 class="mt-3"> 출하 이력</h4>
+<table class="table table-bordered mt-3">
+  <thead>
+    <tr>
+      <th>No</th>
+      <th>제품명</th>
+      <th>출하수량</th>
+      <th>LOT</th>
+      <th>출하일자</th>
+      <th>송장번호</th>
+    </tr>
+  </thead>
+  <tbody>
+    <c:forEach var="d" items="${deliveryHistory}" varStatus="status">
+      <tr>
+        <td>${status.index + 1}</td>
+        <td>${d.productName}</td>
+        <td>${d.deliveryQty}</td>
+        <td>${d.lotNo}</td>
+        <td><fmt:formatDate value="${d.deliveryDate}" pattern="yyyy-MM-dd"/></td>
+        <td>${d.trackingNumber}</td>
+      </tr>
+    </c:forEach>
+    <c:if test="${empty deliveryHistory}">
+      <tr><td colspan="6" class="text-center">출하 이력이 없습니다.</td></tr>
+    </c:if>
+  </tbody>
+</table>
+
+<div class="mt-4">
         <a href="${pageContext.request.contextPath}/clientorder/list" class="btn btn-secondary">목록으로</a>
     </div>
+
 </div>
+
 <!--  본문내용 끝 -->    
            
               <!-- 페이징 끝 -->
             </div>
           </div>
         </div>
-        
+		</div>
         
        </div>
         <!-- content-wrapper 끝 -->

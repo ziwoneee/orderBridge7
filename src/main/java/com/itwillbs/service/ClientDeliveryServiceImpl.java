@@ -4,6 +4,7 @@ import com.itwillbs.domain.ClientDeliveryVO;
 import com.itwillbs.domain.ProductOutboundVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.StockReservationVO;
+import com.itwillbs.dto.DeliveryHistoryDTO;
 import com.itwillbs.dto.LotStockDTO;
 import com.itwillbs.dto.ShipmentCompletedDTO;
 import com.itwillbs.dto.ShipmentCompletedGroupDTO;
@@ -170,4 +171,11 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
         return String.format("DLV-%s-%03d", today, nextSeq);
     
 }
+ //수주관리 출하이력 조회   
+    @Override
+    public List<DeliveryHistoryDTO> getDeliveriesByOrderId(String clOrderId) {
+        return deliveryDAO.getDeliveriesByOrderId(clOrderId); 
+    
+   
+    }
 }

@@ -2,6 +2,7 @@ package com.itwillbs.persistence;
 
 import com.itwillbs.domain.ClientDeliveryVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.DeliveryHistoryDTO;
 import com.itwillbs.dto.LotStockDTO;
 import com.itwillbs.dto.ShipmentCompletedDTO;
 import com.itwillbs.dto.ShipmentPendingDTO;
@@ -149,6 +150,12 @@ public class ClientDeliveryDAOImpl implements ClientDeliveryDAO {
     @Override
     public Integer getMaxDeliverySeqToday(String today) {
         return sqlSession.selectOne("com.itwillbs.mapper.ClientDeliveryMapper.getMaxDeliverySeqToday", today);
+    }
+    
+    // 수주관리 출하이력 조회
+    @Override
+    public List<DeliveryHistoryDTO> getDeliveriesByOrderId(String clOrderId) {
+        return sqlSession.selectList("com.itwillbs.mapper.ClientDeliveryMapper.getDeliveriesByOrderId", clOrderId);
     }
     
 }
