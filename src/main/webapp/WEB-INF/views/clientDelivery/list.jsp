@@ -413,38 +413,42 @@
 
 
 <!-- ✅ 페이징 유지 -->
-<div class="d-flex justify-content-center mt-4">
-  <nav>
-    <ul class="pagination justify-content-center mt-4">
-      <c:if test="${pageMaker.cri.page > 1}">
-        <li class="page-item">
-          <a class="page-link"
-             href="/shipment/list?tab=completed&page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
-            &laquo;
-          </a>
-        </li>
-      </c:if>
+<!-- ✅ 출하완료 탭에서만 페이징 출력 -->
+<c:if test="${param.tab == 'completed'}">
+  <div class="d-flex justify-content-center mt-4">
+    <nav>
+      <ul class="pagination justify-content-center mt-4">
+        <c:if test="${pageMaker.cri.page > 1}">
+          <li class="page-item">
+            <a class="page-link"
+               href="/shipment/list?tab=completed&page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
+              &laquo;
+            </a>
+          </li>
+        </c:if>
 
-      <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
-        <li class="page-item ${p == cri.page ? 'active' : ''}">
-          <a class="page-link"
-             href="/shipment/list?tab=completed&page=${p}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
-            ${p}
-          </a>
-        </li>
-      </c:forEach>
+        <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+          <li class="page-item ${p == cri.page ? 'active' : ''}">
+            <a class="page-link"
+               href="/shipment/list?tab=completed&page=${p}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
+              ${p}
+            </a>
+          </li>
+        </c:forEach>
 
-      <c:if test="${pageMaker.cri.page < pageMaker.endPage}">
-        <li class="page-item">
-          <a class="page-link"
-             href="/shipment/list?tab=completed&page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
-            &raquo;
-          </a>
-        </li>
-      </c:if>
-    </ul>
-  </nav>
-</div>
+        <c:if test="${pageMaker.cri.page < pageMaker.endPage}">
+          <li class="page-item">
+            <a class="page-link"
+               href="/shipment/list?tab=completed&page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
+              &raquo;
+            </a>
+          </li>
+        </c:if>
+      </ul>
+    </nav>
+  </div>
+</c:if>
+
 
 </div>
     </div>

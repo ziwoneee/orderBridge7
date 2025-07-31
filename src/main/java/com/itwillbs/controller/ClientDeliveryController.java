@@ -83,9 +83,12 @@ public class ClientDeliveryController {
     public String showShipmentTabs(@ModelAttribute SearchCriteria cri,
                                    @RequestParam(value = "tab", required = false, defaultValue = "pending") String tab,
                                    Model model) {
+    	System.out.println(cri);
         // ✅ 출하대기 목록
         List<ShipmentPendingGroupDTO> groupedList = deliveryService.searchPendingGroupedList(cri);
+        System.out.println(groupedList);
         int totalPending = deliveryService.countPendingGroupedList(cri);
+        System.out.println(totalPending);
         PageMaker pendingPage = new PageMaker(cri, totalPending);
 
         model.addAttribute("groupedList", groupedList);

@@ -242,52 +242,23 @@
   <where>
     co.cl_order_status = 'CONFIRMED'
     AND (cod.detail_status IS NULL OR cod.detail_status != 'SHIPPED')
-    <if test="keyword != null and keyword != ''">
-      AND (
-        co.cl_order_id LIKE CONCAT('%', #{keyword}, '%')
-        OR c.client_name LIKE CONCAT('%', #{keyword}, '%')
-        OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
-      )
-    </if>
+    
   </where>
   GROUP BY co.cl_order_id, c.client_name, p.product_id, p.product_name, cod.order_qty, cod.detail_id, co.cl_delivery_date
-  <choose>
-    <when test="sortColumn != null and sortColumn != ''">
-      ORDER BY
-      <choose>     
-      <when test="sortColumn == 'cl_order_id'">co.cl_order_id</when>
-      <when test="sortColumn == 'client_name'">c.client_name</when>
-      <when test="sortColumn == 'product_name'">p.product_name</when>
-      <when test="sortColumn == 'delivery_date'">co.cl_delivery_date</when>
-      <otherwise>co.cl_delivery_date</otherwise>
-    </choose>
-      ${sortOrder}
-    </when>
-    <otherwise>
-      ORDER BY co.cl_delivery_date ASC
-    </otherwise>
-  </choose>
-  LIMIT #{pageStart}, #{perPageNum}
+   LIMIT #{pageStart}, #{perPageNum}
 </select>
 
 
 
 <select id="countPendingGroupedList" parameterType="SearchCriteria" resultType="int">
-  SELECT COUNT(DISTINCT co.cl_order_id)
+  SELECT COUNT(co.cl_order_id)
   FROM client_order_detail cod
   JOIN client_order co ON cod.cl_order_id = co.cl_order_id
   JOIN client c ON co.client_id = c.client_id
   JOIN product p ON cod.product_id = p.product_id
   <where>
     co.cl_order_status = 'CONFIRMED'
-    AND (cod.detail_status IS NULL OR cod.detail_status != 'SHIPPED')
-    <if test="keyword != null and keyword != ''">
-      AND (
-        co.cl_order_id LIKE CONCAT('%', #{keyword}, '%')
-        OR c.client_name LIKE CONCAT('%', #{keyword}, '%')
-        OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
-      )
-    </if>
+    AND (cod.detail_status IS NULL OR cod.detail_status != 'SHIPPED')    
   </where>
 </select>
 
