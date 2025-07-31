@@ -5,7 +5,7 @@ import java.util.Date;
 
 @Data
 public class ShipmentCompletedDTO {
-    private Long deliveryId;
+    private String deliveryId;
     private String clOrderId;
     private String clientName;
     private String productId;

@@ -34,7 +34,8 @@ public interface ClientDeliveryService {
 
     // 출하 완료 목록 그룹 조회
     List<ShipmentCompletedGroupDTO> getCompletedGroupedList(SearchCriteria cri);
-
-
+    
+    //출하 아이디 생성
+    String generateDeliveryId();
    
 }

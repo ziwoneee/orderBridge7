@@ -83,11 +83,11 @@
   <!-- ✅ 출하 등록 -->
   <insert id="insertDelivery" parameterType="com.itwillbs.domain.ClientDeliveryVO">
     INSERT INTO client_delivery (
-      cl_order_id, product_id, lot_no, delivery_qty, delivery_date,
+      delivery_id, cl_order_id, product_id, lot_no, delivery_qty, delivery_date,
       delivery_status, client_id, tracking_number,
       created_at, updated_at, is_pdf_generated
     ) VALUES (
-      #{clOrderId}, #{productId}, #{lotNo}, #{deliveryQty}, #{deliveryDate},
+     #{deliveryId}, #{clOrderId}, #{productId}, #{lotNo}, #{deliveryQty}, #{deliveryDate},
       #{deliveryStatus}, #{clientId}, #{trackingNumber},
       #{createdAt}, #{updatedAt}, #{isPdfGenerated}
     )
@@ -177,7 +177,8 @@
     <choose>
       <when test="sortColumn != null and sortColumn != ''">
         ORDER BY
-        <choose>         
+        <choose>
+         <when test="sortColumn == 'deliveryId'">cd.delivery_id</when>         
           <when test="sortColumn == 'cl_order_id'">cd.cl_order_id</when>
           <when test="sortColumn == 'client_name'">c.client_name</when>
           <when test="sortColumn == 'product_name'">p.product_name</when>
@@ -253,13 +254,12 @@
   <choose>
     <when test="sortColumn != null and sortColumn != ''">
       ORDER BY
-      <choose>
-      <when test="sortColumn == 'delivery_id'">cd.delivery_id</when>
+      <choose>     
       <when test="sortColumn == 'cl_order_id'">co.cl_order_id</when>
       <when test="sortColumn == 'client_name'">c.client_name</when>
       <when test="sortColumn == 'product_name'">p.product_name</when>
       <when test="sortColumn == 'delivery_date'">co.cl_delivery_date</when>
-      <otherwise>cd.delivery_id</otherwise>
+      <otherwise>co.cl_delivery_date</otherwise>
     </choose>
       ${sortOrder}
     </when>
@@ -290,6 +290,15 @@
     </if>
   </where>
 </select>
+
+<!-- 오늘 날짜 기준 출하 ID의 최대 일련번호 조회 -->
+<select id="getMaxDeliverySeqToday" parameterType="String" resultType="Integer">
+  SELECT MAX(CAST(SUBSTRING(delivery_id, -3) AS UNSIGNED))
+  FROM client_delivery
+  WHERE delivery_id LIKE CONCAT('DLV-', #{today}, '%')
+</select>
+
+
 
 
 </mapper>

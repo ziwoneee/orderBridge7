@@ -145,4 +145,10 @@ public class ClientDeliveryDAOImpl implements ClientDeliveryDAO {
         return sqlSession.selectOne(NAMESPACE + ".countPendingGroupedList", cri);
     }
     
+    //출하 아이디 생성
+    @Override
+    public Integer getMaxDeliverySeqToday(String today) {
+        return sqlSession.selectOne("com.itwillbs.mapper.ClientDeliveryMapper.getMaxDeliverySeqToday", today);
+    }
+    
 }

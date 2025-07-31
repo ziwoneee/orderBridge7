@@ -59,4 +59,7 @@ public interface ClientDeliveryDAO {
     
     // 수주 상세 상태 업데이트 (int형 오버로드 대응)
     void updateOrderDetailStatus(int detailId, String status);
+
+    // 출하 아이디 생성
+    Integer getMaxDeliverySeqToday(String today);
 }
