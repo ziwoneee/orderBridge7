@@ -161,7 +161,7 @@
                         </td>
                         
                         <!-- 입고창고 -->
-                        <td>${order.storageLocation}</td>
+                        <td>${order.warehouseCode}</td>
                         
                         <!-- 단가계 -->
                         <td class="text-end">

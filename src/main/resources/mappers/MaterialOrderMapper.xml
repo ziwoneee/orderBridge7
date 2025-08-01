@@ -21,9 +21,9 @@
 	      WHEN COUNT(moi.material_id) = 1 THEN MAX(m.material_name)
 	      ELSE CONCAT(MAX(m.material_name), ' 외 ', COUNT(moi.material_id) - 1, '건')
 	    END AS materialName,
-	    SUM(moi.quantity) AS totalQuantity,
+	    SUM(moi.order_quantity) AS totalQuantity,
 	    SUM(moi.total_price) AS totalPrice,
-	    MAX(moi.storage_location) AS storageLocation
+	    MAX(moi.warehouse_code) AS warehouseCode
 	  FROM material_order mo
 	  JOIN material_order_item moi ON mo.order_id = moi.order_id
 	  JOIN material m ON moi.material_id = m.material_id
@@ -112,16 +112,16 @@
 	<!-- 발주 항목 등록 - BigDecimal 처리 명시 -->
 	<insert id="insertOrderItem" parameterType="com.itwillbs.domain.MaterialOrderItemVO">
 	    INSERT INTO material_order_item (
-	        order_item_id, order_id, material_id, quantity,
-	        unit_price, total_price, storage_location
+	        order_item_id, order_id, material_id, order_quantity,
+	        unit_price, total_price, warehouse_code
 	    ) VALUES (
 	        #{orderItemId},
 	        #{orderId}, 
 	        #{materialId}, 
-	        #{quantity, jdbcType=INTEGER},
+	        #{orderQuantity, jdbcType=INTEGER},
 	        #{unitPrice, jdbcType=DECIMAL}, 
 	        #{totalPrice, jdbcType=DECIMAL}, 
-	        #{storageLocation}
+	        #{warehouseCode}
 	    )
 	</insert>
 	

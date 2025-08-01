@@ -52,14 +52,14 @@
 		              <td>${material.unit}</td>
 		              <td><fmt:formatNumber value="${material.unitPrice}" pattern="#,##0"/></td>
 		              <td>${material.storageMethod}</td>
-		              <td>${material.storageLocation}</td>
+		              <td>${material.warehouseCode}</td>
 		              <td><c:if test="${material.lotFlag eq 'Y'}">Y</c:if><c:if test="${material.lotFlag ne 'Y'}">N</c:if></td>
 		              <td>${material.supplyUnit}</td>
 		              <td>
 		                <button type="button" class="btn btn-sm btn-outline-secondary"
 		                        onclick="fillForm('${material.materialId}','${material.materialName}','${material.materialType}',
 		                                          '${material.unit}','${material.unitPrice}','${material.storageMethod}',
-		                                          '${material.storageLocation}', '${material.lotFlag}','${material.supplyUnit}')">
+		                                          '${material.warehouseCode}', '${material.lotFlag}','${material.supplyUnit}')">
 		                  수정
 		                </button>
 		              </td>
@@ -145,7 +145,7 @@
 <!-- 수정 버튼 클릭 시, 기존 데이터 불러오기 -->
 <script>
 
-function fillForm(id, name, type, unit, price, storageMethod, storageLocation, lotFlag, supply) {
+function fillForm(id, name, type, unit, price, storageMethod, warehouseCode, lotFlag, supply) {
     // form에 값 세팅
     document.getElementById('materialId').value = id;
     document.getElementById('materialId').readOnly = true; // 수정시 ID 변경 못하게
@@ -154,7 +154,7 @@ function fillForm(id, name, type, unit, price, storageMethod, storageLocation, l
     document.getElementById('unit').value = unit;
     document.getElementById('unitPrice').value = price;
     document.getElementById('storageMethod').value = storageMethod;
-    document.getElementById('storageLocation').value = storageLocation;
+    document.getElementById('warehouseCode').value = warehouseCode;
     document.getElementById('lotFlag').value = lotFlag.trim();
     document.getElementById('supplyUnit').value = supply;
 
