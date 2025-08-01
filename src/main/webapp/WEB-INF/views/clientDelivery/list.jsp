@@ -127,93 +127,84 @@
                     </thead>
                     <tbody>
                       <c:forEach var="group" items="${groupedList}">
-                        <c:set var="shippable" value="true"/>
-                        <c:forEach var="item" items="${group.productList}">
-                          <c:if test="${item.stockQty lt item.orderQty}">
-                            <c:set var="shippable" value="false"/>
-                          </c:if>
-                        </c:forEach>
+  <c:set var="shippable" value="true"/>
+  <c:forEach var="item" items="${group.productList}">
+    <c:if test="${item.stockQty lt item.orderQty}">
+      <c:set var="shippable" value="false"/>
+    </c:if>
+  </c:forEach>
 
-                        <c:set var="firstRow" value="true"/>
-                        <c:forEach var="item" items="${group.productList}">
-                          <tr>
-                            <td class="text-center">
-                              <c:choose>
-                                <c:when test="${firstRow}">
-                                  <div class="d-flex justify-content-center align-items-center">
-                                    <input type="checkbox"
-                                           name="clOrderIds"
-                                           value="${group.clOrderId}"
-                                           class="highlight-checkbox"
-                                           <c:if test="${not shippable}">disabled</c:if> />
+  <!-- ✅ rowspan 계산 -->
+  <c:set var="rowCount" value="${fn:length(group.productList)}"/>
 
-                                    <c:if test="${shippable}">
-                                      <span class="badge border border-success text-success ml-2 d-flex align-items-center" style="gap: 5px;">
-                                        <i class="fas fa-shipping-fast"></i> 출하
-                                      </span>
-                                      
-                                     
-                                    </c:if>
-                                  </div>
-                                  <c:set var="firstRow" value="false"/>
-                                </c:when>
-                                <c:otherwise>
-                                  &nbsp;
-                                </c:otherwise>
-                              </c:choose>
-                            </td>
-                            <td class="font-weight-medium">${group.clOrderId}</td>
-                            <td>${group.clientName}</td>
-                            <td>${item.productName}</td>
-                            <td class="text-end">
-                              <fmt:formatNumber value="${item.orderQty}" pattern="#,###"/>
-                            </td>
-                            
-                            <td class="text-end">
-                              <fmt:formatNumber value="${item.stockQty}" pattern="#,###"/>
-                            </td>
-                            
-                            <td>
-							  <fmt:formatDate value="${item.clDeliveryDate}" pattern="yyyy-MM-dd"/>
-							  <c:if test="${item.clDeliveryDate != null}">
-							    <c:set var="dDay" value="${fn:split(today, '-')[0]}${fn:split(today, '-')[1]}${fn:split(today, '-')[2]}"/>
-							    <c:set var="dueDate" value="${fn:split(item.clDeliveryDate, '-')[0]}${fn:split(item.clDeliveryDate, '-')[1]}${fn:split(item.clDeliveryDate, '-')[2]}"/>
-							  </c:if>
-							
-							  <c:if test="${not empty item.clDeliveryDate}">
-							    <c:if test="${(item.clDeliveryDate.time - now.time)/(1000*60*60*24) le 5 && (item.clDeliveryDate.time - now.time)/(1000*60*60*24) ge 0}">
-							      <span class="badge badge-warning ml-2">임박</span>
-							    </c:if>
-							  </c:if>
-							</td>
+  <c:forEach var="item" items="${group.productList}" varStatus="status">
+    <tr>
+      <!-- ✅ 체크박스 및 출하 여부: 첫 행에만 출력 -->
+      <c:if test="${status.first}">
+        <td class="text-center" rowspan="${rowCount}">
+          <div class="d-flex justify-content-center align-items-center">
+            <input type="checkbox"
+                   name="clOrderIds"
+                   value="${group.clOrderId}"
+                   class="highlight-checkbox"
+                   <c:if test="${not shippable}">disabled</c:if> />
+            <c:if test="${shippable}">
+              <span class="badge border border-success text-success ml-2 d-flex align-items-center" style="gap: 5px;">
+                <i class="fas fa-shipping-fast"></i> 출하
+              </span>
+            </c:if>
+          </div>
+        </td>
 
-                              <td>
-                              <c:choose>
-                                <c:when test="${item.stockQty ge item.orderQty}">
-					<!-- <span class="badge badge-success">가능</span> -->
-					
-					  					<c:choose>
-					  <c:when test="${fn:contains(reservedOrderIds, group.clOrderId)}">
-					    <button type="button" class="btn btn-sm btn-secondary mt-1" disabled>
-					      <i class="fas fa-boxes"></i> 예약중
-					    </button>
-					  </c:when>
-					  <c:otherwise>
-					    <button type="button" class="btn btn-sm btn-outline-primary mt-1"
-					            onclick="reserveStock('${group.clOrderId}')">
-					      <i class="fas fa-boxes"></i> 예약
-					    </button>
-					  </c:otherwise>
-					</c:choose>										
-					</c:when>
-                                <c:otherwise>
-                                  <span class="badge badge-danger">부족</span>
-                                </c:otherwise>
-                              </c:choose>
-                            </td>
-                          </tr>
-                        </c:forEach>
-                      </c:forEach>
+        <!-- ✅ 수주번호: 첫 행에만 rowspan -->
+        <td class="font-weight-medium" rowspan="${rowCount}">
+          ${group.clOrderId}
+        </td>
+        
+         <!-- ✅ 고객사명: 첫 행에만 rowspan -->
+        <td class="font-weight-medium" rowspan="${rowCount}">
+          ${group.clientName}
+        </td>
+      </c:if>
+
+      <!-- ✅ 나머지 칼럼은 반복 -->     
+      <td>${item.productName}</td>
+      <td class="text-end"><fmt:formatNumber value="${item.orderQty}" pattern="#,###"/></td>
+      <td class="text-end"><fmt:formatNumber value="${item.stockQty}" pattern="#,###"/></td>
+      <td>
+        <fmt:formatDate value="${item.clDeliveryDate}" pattern="yyyy-MM-dd"/>
+        <c:if test="${not empty item.clDeliveryDate}">
+          <c:if test="${(item.clDeliveryDate.time - now.time)/(1000*60*60*24) le 5 && (item.clDeliveryDate.time - now.time)/(1000*60*60*24) ge 0}">
+            <span class="badge badge-warning ml-2">임박</span>
+          </c:if>
+        </c:if>
+      </td>
+      <td>
+        <c:choose>
+          <c:when test="${item.stockQty ge item.orderQty}">
+            <c:choose>
+              <c:when test="${fn:contains(reservedOrderIds, group.clOrderId)}">
+                <button type="button" class="btn btn-sm btn-secondary mt-1" disabled>
+                  <i class="fas fa-boxes"></i> 예약중
+                </button>
+              </c:when>
+              <c:otherwise>
+                <button type="button" class="btn btn-sm btn-outline-primary mt-1"
+                        onclick="reserveStock('${group.clOrderId}')">
+                  <i class="fas fa-boxes"></i> 예약
+                </button>
+              </c:otherwise>
+            </c:choose>
+          </c:when>
+          <c:otherwise>
+            <span class="badge badge-danger">부족</span>
+          </c:otherwise>
+        </c:choose>
+      </td>
+    </tr>
+  </c:forEach>
+</c:forEach>
+
                       <!-- 데이터가 없을 때 -->
                       <c:if test="${empty groupedList}">
                         <tr>
