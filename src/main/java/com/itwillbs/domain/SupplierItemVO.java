@@ -23,6 +23,6 @@ public class SupplierItemVO {
     private String materialType;   // 자재유형 (조인된 필드)
     
     // 화면용 필드 (material 테이블의 입고창고 정보)
-    private String storageLocation;  
+    private String warehouseCode;    
 
 }

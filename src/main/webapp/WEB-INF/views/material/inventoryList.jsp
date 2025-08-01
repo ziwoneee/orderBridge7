@@ -96,7 +96,7 @@
 					  </c:if>
 	          	  </td>
 		          <td><fmt:formatDate value="${inv.lastMovementDate}" pattern="yyyy-MM-dd" /></td>
-		          <td>${inv.storageLocation}</td>
+		          <td>${inv.warehouseCode}</td>
 		          <td>${inv.actualQuantity}</td>
 		          <!-- LOT 상세 버튼 -->
 		          <td>

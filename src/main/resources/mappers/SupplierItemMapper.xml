@@ -16,7 +16,7 @@
 	  <result property="note" column="note"/>
 	  <result property="createdAt" column="created_at"/>
 	  <result property="updatedAt" column="updated_at"/>
-	  <result property="storageLocation" column="storage_location"/>
+	  <result property="warehouseCode" column="warehouse_code"/>
   </resultMap>
   	
   <!-- 특정 협력사가 공급하는 자재 목록 조회 - supplier_item + material 조인 -->
@@ -45,7 +45,7 @@
 	    si.updated_at,
 	    m.material_name AS material_name,
 	    m.material_type AS material_type,
-	    m.storage_location AS storage_location
+	    m.warehouse_code AS warehouse_code
 	  FROM supplier_item si
 	  JOIN material m ON si.material_id = m.material_id
 	  WHERE si.supplier_id = #{supplierId}
