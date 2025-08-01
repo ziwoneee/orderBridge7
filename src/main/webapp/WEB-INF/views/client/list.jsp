@@ -133,36 +133,35 @@
   </table>
 </div>
 
- <!-- ✅ 페이징 영역 -->
-         <!-- 페이지네이션 -->
+ 
 <!-- ✅ Bootstrap 페이징 스타일 -->
-<div class="d-flex justify-content-center mt-4">
-<nav>
-  <ul class="pagination justify-content-center mt-4">
+<!-- ✅ Bootstrap 중앙정렬 페이지네이션 (최적화 구조) -->
+<div class="container mt-4">
+  <nav class="d-flex justify-content-center">
+    <ul class="pagination">
 
-    <c:if test="${pageMaker.cri.page>1}">
-      <li class="page-item">
-        <a class="page-link" href="?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&laquo;</a>
-      </li>
-    </c:if>
+      <c:if test="${pageMaker.cri.page>1}">
+        <li class="page-item">
+          <a class="page-link" href="?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&laquo;</a>
+        </li>
+      </c:if>
 
-    <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
-      <li class="page-item ${p == cri.page ? 'active' : ''}">
-        <a class="page-link" href="?page=${p}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">${p}</a>
-      </li>
-    </c:forEach>
+      <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+        <li class="page-item ${p == cri.page ? 'active' : ''}">
+          <a class="page-link" href="?page=${p}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">${p}</a>
+        </li>
+      </c:forEach>
 
-    <c:if test="${pageMaker.cri.page<pageMaker.endPage}">
-      <li class="page-item">
-        <a class="page-link" href="?page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&raquo;</a>
-      </li>
-    </c:if>
+      <c:if test="${pageMaker.cri.page<pageMaker.endPage}">
+        <li class="page-item">
+          <a class="page-link" href="?page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&raquo;</a>
+        </li>
+      </c:if>
 
-  </ul>
-  
-</nav>
-
+    </ul>
+  </nav>
 </div>
+
 <!-- 페이징 처리 끝 -->
  		  </div>
         <!-- content-wrapper 끝 -->

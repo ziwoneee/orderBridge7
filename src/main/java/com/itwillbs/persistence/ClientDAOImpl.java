@@ -50,6 +50,13 @@ public class ClientDAOImpl implements ClientDAO {
         sqlSession.update(NAMESPACE + ".updateClient", client);
     }
 
+    //고객사 활성화 목록
+    @Override
+    public List<ClientVO> getActiveClients() {
+        return sqlSession.selectList(NAMESPACE + ".getActiveClients");
+    }
+
+    
     
     
 }

@@ -1,5 +1,6 @@
 package com.itwillbs.service;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,4 +56,27 @@ public class ProductStockServiceImpl implements ProductStockService {
     public List<LotStockDTO> getAvailableLotsOrdered(String productId) {
         return productStockDAO.getAvailableLotsOrdered(productId);
     }
+    
+    //입출고 모달
+    @Override
+    public List<ProductStockTransactionVO> getStockDetailByLot(String lotNo) {
+        return productStockDAO.getLotHistoryByLot(lotNo);
+    }
+    
+    //재고저장
+    @Override
+    public void insertTransaction(String type, String lotNo, int qty, String productId, String clientId, String manager) {
+        ProductStockTransactionVO tx = new ProductStockTransactionVO();
+        tx.setType(type);
+        tx.setLotNo(lotNo);
+        tx.setQty(qty);
+        tx.setProductId(productId);
+        tx.setClientId(clientId);
+        tx.setManager(manager);
+        tx.setRegDate(new Date());
+        productStockDAO.insertTransaction(tx);
+    }
+
+
+    
 }

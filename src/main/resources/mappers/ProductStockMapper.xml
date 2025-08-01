@@ -239,6 +239,26 @@
   WHERE product_id = #{productId} AND lot_no = #{lotNo}
 </select>
   
+  <!-- 입출고 모달창 -->
+<select id="getLotHistoryByLot" parameterType="String" resultType="com.itwillbs.domain.ProductStockTransactionVO">
+  SELECT
+    pt.*,
+    c.client_name
+  FROM product_transaction pt
+  LEFT JOIN client c ON pt.client_id = c.client_id
+  WHERE pt.lot_no = #{lotNo}
+  ORDER BY pt.reg_date ASC
+</select>
+
+  
+  <!-- 재고 저장 -->
+  <insert id="insertTransaction" parameterType="com.itwillbs.domain.ProductStockTransactionVO">
+  INSERT INTO product_transaction (
+    lot_no, type, qty, client_id, product_id, reg_date, manager, remark
+  ) VALUES (
+    #{lotNo}, #{type}, #{qty}, #{clientId}, #{productId}, NOW(), #{manager}, #{remark}
+  )
+</insert>
   
 
 </mapper>

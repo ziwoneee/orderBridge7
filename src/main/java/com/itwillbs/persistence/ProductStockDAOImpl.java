@@ -69,6 +69,19 @@ public class ProductStockDAOImpl implements ProductStockDAO {
     public List<LotStockDTO> getAvailableLotsOrdered(String productId) {
         return sqlSession.selectList(NAMESPACE + ".getAvailableLotsOrdered", productId);
     }
+    
+    // ✅ LOT 번호로 입출고 이력 조회
+    @Override
+    public List<ProductStockTransactionVO> getLotHistoryByLot(String lotNo) {
+        return sqlSession.selectList(NAMESPACE + ".getLotHistoryByLot", lotNo);
+    }
+    
+    //재고 저장
+    @Override
+    public void insertTransaction(ProductStockTransactionVO tx) {
+        sqlSession.insert("com.itwillbs.mapper.ProductStockMapper.insertTransaction", tx);
+    }
+
 
     
 }

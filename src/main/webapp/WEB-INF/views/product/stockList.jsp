@@ -115,13 +115,13 @@
 
                       </td>
                       <td>
-                        <button class="btn btn-outline-secondary btn-sm"
-                                data-toggle="modal"
-                                data-target="#lotHistoryModal"
-                                data-product="${item.productName}"
-                                data-lot="${item.lotNo}">
-                          내역확인
-                        </button>
+                       <button class="btn btn-outline-secondary btn-sm open-lot-modal"
+        data-productid="${item.productName}"  <%-- UI 표시용으로만 씀 --%>
+        data-product="${item.productName}"
+        data-lot="${item.lotNo}">
+  내역확인
+</button>
+
                       </td>
                     </tr>
                   </c:forEach>
@@ -135,6 +135,58 @@
             </div>
           </div>
  </div> <!-- row -->
+ <!-- 모달 영역 -->
+<!-- LOT 상세 모달 -->
+<div class="modal fade" id="lotHistoryModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+
+      <!-- 제목 -->
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          <span id="modal-product-name"></span>
+          (<span id="modal-lot-no"></span>) 입출고 상세
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+      </div>
+
+      <!-- 상단 요약 -->
+      <div class="modal-body">
+        <div class="row mb-3">
+          <div class="col-md-6"><strong>입고량:</strong> <span id="modal-inboundQty"></span></div>
+          <div class="col-md-6"><strong>총 출고량:</strong> <span id="modal-totalOutboundQty"></span></div>
+          <div class="col-md-6"><strong>예약 수량:</strong> <span id="modal-reservedQty"></span></div>
+          <div class="col-md-6"><strong>가용 수량:</strong> <span id="modal-availableQty"></span></div>
+          <div class="col-md-6"><strong>유통기한:</strong> <span id="modal-expireDate"></span></div>
+        </div>
+
+        <!-- 하단 테이블 -->
+        <table class="table table-bordered text-center">
+          <thead class="thead-dark">
+            <tr>
+              <th>처리일자</th>
+              <th>거래처</th>
+              <th>수량</th>
+              <th>구분</th>
+            </tr>
+          </thead>
+          <tbody id="lotHistoryTableBody"></tbody>
+        </table>
+
+        <div id="lotHistoryEmpty" class="alert alert-info text-center d-none">
+          입출고 내역이 없습니다.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-dismiss="modal">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+ 
+ 
            <!-- ✅ 페이징 영역 -->
 <div class="d-flex justify-content-center mt-4">
 <nav>
@@ -172,55 +224,6 @@
   </div> <!-- container-fluid -->
 </div> <!-- container-scroller -->
 
-<!-- 모달 영역 -->
-<!-- LOT 상세 모달 -->
-<div class="modal fade" id="lotHistoryModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-
-      <!-- 제목 -->
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title">
-          <span id="modal-product-name"></span>
-          (<span id="modal-lot-no"></span>) 입출고 상세
-        </h5>
-        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
-      </div>
-
-      <!-- 상단 요약 -->
-      <div class="modal-body">
-        <div class="row mb-3">
-          <div class="col-md-6"><strong>입고량:</strong> <span id="modal-inboundQty"></span></div>
-          <div class="col-md-6"><strong>총 출고량:</strong> <span id="modal-totalOutboundQty"></span></div>
-          <div class="col-md-6"><strong>예약 수량:</strong> <span id="modal-reservedQty"></span></div>
-          <div class="col-md-6"><strong>가용 수량:</strong> <span id="modal-availableQty"></span></div>
-          <div class="col-md-6"><strong>유통기한:</strong> <span id="modal-expireDate"></span></div>
-        </div>
-
-        <!-- 하단 테이블 -->
-        <table class="table table-bordered text-center">
-          <thead class="thead-dark">
-            <tr>
-              <th>처리일자</th>
-              <th>구분</th>
-              <th>수량</th>
-              <th>거래처</th>
-            </tr>
-          </thead>
-          <tbody id="lotHistoryTableBody"></tbody>
-        </table>
-
-        <div id="lotHistoryEmpty" class="alert alert-info text-center d-none">
-          입출고 내역이 없습니다.
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-dismiss="modal">닫기</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 
 
