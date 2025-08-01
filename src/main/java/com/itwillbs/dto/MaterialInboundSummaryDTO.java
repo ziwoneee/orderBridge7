@@ -2,10 +2,13 @@ package com.itwillbs.dto;
 
 import java.util.Date;
 
+import lombok.Data;
+
 /**
  * 입고 목록 요약 DTO
  * - 대표 자재명, 총 수량, 진행 상태 등을 포함하여 리스트 테이블에서 사용
  */
+@Data
 public class MaterialInboundSummaryDTO {
 	
 	private String inboundId;           // 입고관리번호
