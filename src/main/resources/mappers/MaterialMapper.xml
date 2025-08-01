@@ -74,6 +74,10 @@
 
 	</select>
 	
+	<select id="getMaxMaterialId" resultType="string">
+   		SELECT MAX(material_id) FROM material
+	</select>
+	
 	<!-- 자재 등록 -->
 	<insert id="insertMaterial" parameterType="com.itwillbs.domain.MaterialVO">
 		INSERT INTO material
@@ -93,7 +97,7 @@
 			 #{unit}, 
 			 #{unitPrice}, 
 			 #{storageMethod}, 
-			 #{storageLocation}, 
+			 #{warehouseCode}, 
 			 #{lotFlag}, 
 			 #{supplyUnit})
 	</insert>
@@ -126,12 +130,6 @@
 		FROM material 
 		WHERE material_id = #{materialId}
 	</select>
-	
-	<!-- 자재 ID 자동부여 -->
-	<select id="getMaxMaterialId" resultType="string">
-    	SELECT MAX(material_id) FROM material
-	</select>
-	
 	
 	<!-- 목록 조회 (자재 발주관리 등록 폼에서 필요) -->
 	<select id="selectAllMaterials" resultType="com.itwillbs.domain.MaterialVO">

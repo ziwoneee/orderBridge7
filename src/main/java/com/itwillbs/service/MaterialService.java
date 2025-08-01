@@ -12,6 +12,7 @@ public interface MaterialService {
 	int getMaterialCount(SearchCriteria cri) throws Exception;		 // 자재 총 개수 조회 (검색된 자재의 수)
 
 	// 자재 등록
+	String getMaxMaterialId() throws Exception;
 	public void insertMaterial(MaterialVO vo) throws Exception;
 	
 	// 자재 수정

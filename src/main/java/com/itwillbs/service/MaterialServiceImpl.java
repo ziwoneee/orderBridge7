@@ -31,6 +31,10 @@ public class MaterialServiceImpl implements MaterialService {
     }
 
 	// 자재 등록
+    @Override
+    public String getMaxMaterialId() throws Exception {
+        return mDAO.getMaxMaterialId();
+    }
 	@Override
 	public void insertMaterial(MaterialVO vo) throws Exception {
 		

@@ -70,6 +70,19 @@ public class MaterialController {
 	    return "master/materialList"; // 반환할 JSP 경로
 	}
 	
+	
+	// 0. 자재 등록 페이지 이동 (GET)
+	@GetMapping("/register")
+	public String registerForm(Model model) throws Exception {
+	    // 자재ID 자동 생성
+	    String nextId = createNextId(mService.getMaxMaterialId());
+	    MaterialVO vo = new MaterialVO();
+	    vo.setMaterialId(nextId); // 생성된 ID를 미리 세팅 (선택)
+
+	    model.addAttribute("material", vo);         // VO 전달
+	    model.addAttribute("menu", "material");     // 상단 메뉴 활성화용
+	    return "master/materialRegister";           // JSP 위치
+	}
 
 	
 	// 2. 자재 신규 등록
@@ -92,7 +105,7 @@ public class MaterialController {
 		}
 		
 		// 목록 페이지로 리다이렉트
-		return "redirect:/master/materialList";
+		return "redirect:/material/list";
 	}
 	
 	
@@ -113,23 +126,5 @@ public class MaterialController {
 	
 	
 } // MaterialController 끝
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
