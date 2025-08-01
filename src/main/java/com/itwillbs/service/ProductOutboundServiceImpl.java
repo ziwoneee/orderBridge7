@@ -21,6 +21,9 @@ public class ProductOutboundServiceImpl implements ProductOutboundService {
 
     @Autowired
     private ProductStockDAO stockDAO;
+    
+    @Autowired
+    private ProductStockService productStockService;
 
     /**
      * ✅ 출고 등록 서비스
@@ -50,6 +53,11 @@ public class ProductOutboundServiceImpl implements ProductOutboundService {
 
         // 6. 재고 차감 처리 (해당 제품 + LOT 기준)
         stockDAO.decreaseStockQty(vo.getProductId(), vo.getLotNo(), vo.getOutboundQty());
+   
+     // ✅ 출고 이력 기록
+        productStockService.insertTransaction("출고", vo.getLotNo(), vo.getOutboundQty(), vo.getProductId(), vo.getClientId(), "시스템");
+
+    
     }
 
     /**

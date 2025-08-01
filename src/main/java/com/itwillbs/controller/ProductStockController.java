@@ -66,13 +66,11 @@ public class ProductStockController {
     // ✅ 모달 상세 내역
     @GetMapping("/product/transaction")
     @ResponseBody
-    public List<ProductStockTransactionVO> getStockDetail(@RequestParam("product") String productId,
-                                                          @RequestParam("lot") String lotNo) {
-        System.out.println("받은 productId : " + productId);
-        System.out.println("받은 lotNo     : " + lotNo);
-        
-        return productStockService.getStockDetail(productId, lotNo);
+    public List<ProductStockTransactionVO> getStockDetail(@RequestParam("lot") String lotNo) {
+        System.out.println("받은 lotNo : " + lotNo);
+        return productStockService.getStockDetailByLot(lotNo);
     }
+
 
     
  // ✅ 제품별 LOT별 가용 재고 조회 (출고/예약 고려)

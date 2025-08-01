@@ -27,6 +27,11 @@ public interface ProductStockDAO {
 
      List<LotStockDTO> getAvailableLotsOrdered(String productId);
 
-   
+  // ✅ LOT 번호로 입출고 이력 조회
+     List<ProductStockTransactionVO> getLotHistoryByLot(String lotNo);
+
+     
+     void insertTransaction(ProductStockTransactionVO tx);
+
 
 }

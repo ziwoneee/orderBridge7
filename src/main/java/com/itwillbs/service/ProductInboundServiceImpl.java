@@ -25,6 +25,9 @@ public class ProductInboundServiceImpl implements ProductInboundService {
 
     @Autowired
     private ProductionResultDAO productionResultDAO;
+    
+    @Autowired
+    private ProductStockService productStockService;
 
     // ✅ 실제 입고 등록
     @Transactional
@@ -36,6 +39,9 @@ public class ProductInboundServiceImpl implements ProductInboundService {
 
         inboundDAO.insertInbound(vo);
         stockDAO.upsertStockQty(vo.getProductId(), vo.getLotNo(), vo.getInboundQty());
+    
+        // ✅ 입고 이력 기록
+        productStockService.insertTransaction("입고", vo.getLotNo(), vo.getInboundQty(), vo.getProductId(), null, "시스템");
     }
 
     // ✅ 생산 결과 기반 임시 조회용 리스트
