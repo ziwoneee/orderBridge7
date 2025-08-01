@@ -47,9 +47,10 @@ public class ClientOrderController {
     @GetMapping("/clients")
     @ResponseBody
     public List<ClientVO> getClientList() {
-        return clientService.getAllClients();
-    }
+        return clientService.getActiveClients();  // ✅ 활성 고객사만
 
+    }
+    
     // 제품 리스트 (드롭다운용)
     @GetMapping("/products")
     @ResponseBody

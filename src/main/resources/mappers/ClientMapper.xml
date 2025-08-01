@@ -160,6 +160,12 @@
   WHERE client_id = #{clientId}
 </update>
 
+<!-- 고객사 활성화 목록 -->
+<select id="getActiveClients" resultType="com.itwillbs.domain.ClientVO">
+  SELECT * FROM client
+  WHERE status_code = 1
+</select>
+
   
 
 </mapper>

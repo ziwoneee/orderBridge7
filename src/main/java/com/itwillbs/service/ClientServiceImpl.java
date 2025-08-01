@@ -47,6 +47,12 @@ public class ClientServiceImpl implements ClientService {
         clientDao.updateClient(client);
     }
 
+    //고객사 활성화 목록
+    @Override
+    public List<ClientVO> getActiveClients() {
+        return clientDao.getActiveClients();
+    }
+
     
     
 }

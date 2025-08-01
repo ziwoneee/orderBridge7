@@ -16,5 +16,6 @@ public interface ClientService {
 
     void updateClient(ClientVO client); //고객사 수정
 
+    List<ClientVO> getActiveClients(); //고객사 활성화목록
 
 }
