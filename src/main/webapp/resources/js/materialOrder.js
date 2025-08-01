@@ -16,7 +16,7 @@ function addItemRow() {
       </select>
     </td>
     <td>
-      <input type="number" name="orderItems[${itemIndex}].quantity" class="form-control" min="1" onchange="calculateTotal(this)" required>
+      <input type="number" name="orderItems[${itemIndex}].orderQuantity" class="form-control" min="1" onchange="calculateTotal(this)" required>
     </td>
     <td>
       <input type="number" name="orderItems[${itemIndex}].unitPrice" class="form-control" min="0" step="0.01" onchange="calculateTotal(this)" required>
@@ -26,7 +26,7 @@ function addItemRow() {
       <input type="hidden" name="orderItems[${itemIndex}].totalPrice" value="0">
     </td>
     <td>
-      <input type="text" name="orderItems[${itemIndex}].storageLocation" class="form-control" readonly>
+      <input type="text" name="orderItems[${itemIndex}].warehouseCode" class="form-control" readonly>
     </td>
     <td>
       <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button>
@@ -49,7 +49,7 @@ function removeRow(btn) {
  */
 function calculateTotal(input) {
   const row = input.closest("tr");
-  const qtyInput = row.querySelector("input[name$='.quantity']");
+  const qtyInput = row.querySelector("input[name$='.orderQuantity']");
   const priceInput = row.querySelector("input[name$='.unitPrice']");
   
   const qty = parseFloat(qtyInput.value) || 0;
@@ -123,10 +123,10 @@ document.addEventListener("change", function (e) {
 
     const row = e.target.closest("tr");
     const unitPriceInput = row.querySelector("input[name$='.unitPrice']");
-    const locationInput = row.querySelector("input[name$='.storageLocation']");
+    const locationInput = row.querySelector("input[name$='.warehouseCode']");
 
     if (unitPriceInput) unitPriceInput.value = item.unitPrice || '';
-    if (locationInput) locationInput.value = item.storageLocation || '';
+    if (locationInput) locationInput.value = item.warehouseCode || '';
 
     calculateTotal(unitPriceInput); // 총금액도 갱신
   }
@@ -161,13 +161,13 @@ document.addEventListener('DOMContentLoaded', function() {
       materialSelects.forEach((select, index) => {
         if (select.value) {
           const row = select.closest('tr');
-          const qty = row.querySelector("input[name$='.quantity']").value;
+          const qty = row.querySelector("input[name$='.orderQuantity']").value;
           const price = row.querySelector("input[name$='.unitPrice']").value;
           const total = row.querySelector("input[type='hidden'][name$='.totalPrice']").value;
           
           console.log(`항목 ${index + 1}:`, {
             materialId: select.value,
-            quantity: qty,
+            orderQuantity: qty,
             unitPrice: price,
             totalPrice: total
           });
