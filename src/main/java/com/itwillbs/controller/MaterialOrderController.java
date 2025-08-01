@@ -129,7 +129,7 @@ public class MaterialOrderController {
 	        itemList.removeIf(item -> 
 	            item.getMaterialId() == null || 
 	            item.getMaterialId().trim().isEmpty() || 
-	            item.getQuantity() <= 0
+	            item.getOrderQuantity() <= 0
 	        );
 	    }
 	    
@@ -141,10 +141,10 @@ public class MaterialOrderController {
 	    for (MaterialOrderItemVO item : itemList) {
 	        try {
 	            BigDecimal unitPrice = item.getUnitPrice();
-	            int quantity = item.getQuantity();
+	            int orderQuantity = item.getOrderQuantity();
 	            
-	            if (unitPrice != null && quantity > 0) {
-	                BigDecimal total = unitPrice.multiply(new BigDecimal(quantity));
+	            if (unitPrice != null && orderQuantity > 0) {
+	                BigDecimal total = unitPrice.multiply(new BigDecimal(orderQuantity));
 	                item.setTotalPrice(total);
 	            } else {
 	                item.setTotalPrice(BigDecimal.ZERO);

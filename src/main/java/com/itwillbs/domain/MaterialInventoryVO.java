@@ -13,7 +13,7 @@ public class MaterialInventoryVO {
     private String lotNo;               // LOT 번호 (자재의 LOT 구분값)
     private Date expirationDate;        // 유통기한 (해당 자재의 유통기한)
     private Date receivedDate;          // 입고일 (입고된 날짜)
-    private String storageLocation;     // 보관 위치 (보관 장소 코드 또는 위치)
+    private String warehouseCode;       // 보관 창고 (보관 장소 코드 또는 위치)
     private String status;              // 상태 (정상, 폐기예정 등 상태값)
     private String inventoryStatus;     // 재고 상태 판단 값 (현재고와 실제 재고 비교 결과)
     private Date lastUpdated;           // 최종 수정일 (재고 상태 수정 시각)

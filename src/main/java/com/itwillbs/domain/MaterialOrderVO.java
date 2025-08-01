@@ -19,6 +19,9 @@ public class MaterialOrderVO {
     private String materialName;   			 // 대표 자재명
     private int totalQuantity;      		 // 총 수량
     private BigDecimal totalPrice; 			 // 총 금액 (기존과 다른 의미로 사용)
-    private String storageLocation; 		 // 대표 입고창고
+    private String warehouseCode; 		     // 대표 입고창고
+    
+    // 입고
+    private String supplierName;             // 공급처명 (JOIN 결과)
 
 }
