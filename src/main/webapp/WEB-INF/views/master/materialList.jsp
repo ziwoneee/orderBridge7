@@ -20,22 +20,100 @@
 			<div class="col-12 mb-4">
 			  <h3 class="font-weight-bold">자재 정보</h3>
 			</div>
+			
+			<!-- [1] 검색 조건 줄 -->
+			<div class="d-flex flex-wrap align-items-center justify-content-between mb-2">
+			
+			  <form method="get" action="/material/list" class="form-inline flex-wrap">
+			    <input type="text" name="keyword" class="form-control mr-2 mb-2" placeholder="자재명 검색" value="${cri.keyword}" />
+			
+			    <select name="materialType" class="form-control mr-2 mb-2">
+			      <option value="">전체 유형</option>
+			      <option value="생육" ${cri.materialType == '생육' ? 'selected' : ''}>생육</option>
+			      <option value="채소류" ${cri.materialType == '채소류' ? 'selected' : ''}>채소류</option>
+			    </select>
+			
+			    <select name="storageMethod" class="form-control mr-2 mb-2">
+			      <option value="">전체 보관법</option>
+			      <option value="냉장" ${cri.storageMethod == '냉장' ? 'selected' : ''}>냉장</option>
+			      <option value="냉동" ${cri.storageMethod == '냉동' ? 'selected' : ''}>냉동</option>
+			      <option value="상온" ${cri.storageMethod == '상온' ? 'selected' : ''}>상온</option>
+			    </select>
+			
+			    <select name="lotFlag" class="form-control mr-2 mb-2">
+			      <option value="">LOT관리 여부</option>
+			      <option value="Y" ${cri.lotFlag == 'Y' ? 'selected' : ''}>Y</option>
+			      <option value="N" ${cri.lotFlag == 'N' ? 'selected' : ''}>N</option>
+			    </select>
+			
+			    <button type="submit" class="btn btn-primary mr-2 mb-2">검색</button>
+			    <a href="/material/list" class="btn btn-light mb-2"><i class="ti-reload"></i> 초기화</a>
+			  </form>
+			
+			</div>
+			
+			<!-- [2] 신규 등록 버튼 한 줄 아래 정렬 -->
+			<div class="text-right mb-3">
+			  <a href="/material/register" class="btn btn-success">신규 등록</a>
+			</div>
 
-		<!-- 제목 + 버튼 -->
-	    <div class="col-md-6 text-right">
-	      <button class="btn btn-primary" onclick="toggleForm()">신규 등록</button>
-	    </div>
-		
+
+		    
 		<!-- 목록 테이블 -->
-		<div class="table-responsive mt-4">
-		  <table class="table table-bordered table-hover table-header-dark">
+		<div class="table-responsive">
+		  <table class="table table-hover">
 		       <thead>
 		          <tr>
-		            <th>자재ID</th>
-		            <th>자재명</th>
-		            <th>유형</th>
+		            <th>
+				      <a href="?page=1&keyword=${cri.keyword}&sortColumn=material_id&sortOrder=${cri.sortColumn == 'material_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}"
+				         class="text-white text-decoration-none">
+				        자재ID
+				        <c:choose>
+				          <c:when test="${cri.sortColumn == 'material_id'}">
+				            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+				          </c:when>
+				          <c:otherwise>⇅</c:otherwise>
+				        </c:choose>
+				      </a>
+		            </th>
+		            
+		            <th>
+				      <a href="?page=1&keyword=${cri.keyword}&sortColumn=material_name&sortOrder=${cri.sortColumn == 'material_name' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}"
+				         class="text-white text-decoration-none">
+				        자재명
+				        <c:choose>
+				          <c:when test="${cri.sortColumn == 'material_name'}">
+				            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+				          </c:when>
+				          <c:otherwise>⇅</c:otherwise>
+				        </c:choose>
+				      </a>
+		            </th>
+		            <th>
+				      <a href="?page=1&keyword=${cri.keyword}&sortColumn=material_type&sortOrder=${cri.sortColumn == 'material_type' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}"
+				         class="text-white text-decoration-none">
+				        유형
+				        <c:choose>
+				          <c:when test="${cri.sortColumn == 'material_type'}">
+				            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+				          </c:when>
+				          <c:otherwise>⇅</c:otherwise>
+				        </c:choose>
+				      </a>
+				    </th>
 		            <th>단위</th>
-		            <th>단가</th>
+		             <th>
+				      <a href="?page=1&keyword=${cri.keyword}&sortColumn=unit_price&sortOrder=${cri.sortColumn == 'unit_price' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}"
+				         class="text-white text-decoration-none">
+				        단가
+				        <c:choose>
+				          <c:when test="${cri.sortColumn == 'unit_price'}">
+				            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+				          </c:when>
+				          <c:otherwise>⇅</c:otherwise>
+				        </c:choose>
+				      </a>
+				    </th>
 		            <th>보관법</th>
 		            <th>보관창고</th>
 		            <th>LOT관리</th>
@@ -57,9 +135,7 @@
 		              <td>${material.supplyUnit}</td>
 		              <td>
 		                <button type="button" class="btn btn-sm btn-outline-secondary"
-		                        onclick="fillForm('${material.materialId}','${material.materialName}','${material.materialType}',
-		                                          '${material.unit}','${material.unitPrice}','${material.storageMethod}',
-		                                          '${material.warehouseCode}', '${material.lotFlag}','${material.supplyUnit}')">
+		                       onclick="location.href='/material/edit?materialId=${material.materialId}'">
 		                  수정
 		                </button>
 		              </td>
@@ -69,40 +145,17 @@
 		      </table>
 		    </div>
 		  </div>
-
-		<!-- 등록/수정 폼: 처음엔 숨김 -->
-		<div class="card mt-4" id="formCard" style="display: none;">
-		  <div class="card-body">
-		    <h4 class="card-title">자재 등록 / 수정</h4>
-		    <form action="/material/save" method="post" id="materialForm">
-		      
-		      <div class="form-group">
-		        <label>자재ID</label>
-		        <input type="text" name="materialId" id="materialId" class="form-control" readonly placeholder="자동생성됩니다.">
-		      </div>
-		      
-		      <div class="form-group">
-		        <label>자재명</label>
-		        <input type="text" name="materialName" id="materialName" class="form-control" required>
-		      </div>
-		
-		      <!-- 유형, 단위, 단가, 보관법, 창고 등 동일한 형식 반복 -->
-		
-		      <button type="submit" class="btn btn-primary mr-2">저장</button>
-		      <button type="button" class="btn btn-light" onclick="resetForm()">초기화</button>
-		    </form>
-		  </div>
-		</div>
 		
 		  <!-- 페이징 처리 시작 -->
-			<div class="mt-4 d-flex justify-content-center">
-			  <ul class="pagination">
+			<div class="d-flex justify-content-center mt-4">
+			 <nav>
+			  <ul class="pagination justify-content-center mt-4">
 			
 			    <!-- 이전 버튼 -->
-			    <c:if test="${pageMaker.prev}">
+			    <c:if test="${pageMaker.cri.page > 1}">
 			      <li class="page-item">
 			        <a class="page-link"
-			           href="?page=${pageMaker.startPage - 1}&keyword=${cri.keyword}"
+			           href="?page=${pageMaker.startPage - 1}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}"
 			           aria-label="Previous">
 			          <span aria-hidden="true">&laquo;</span>
 			        </a>
@@ -113,22 +166,22 @@
 			    <c:forEach var="i" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
 			      <li class="page-item ${cri.page == i ? 'active' : ''}">
 			        <a class="page-link"
-			           href="?page=${i}&keyword=${cri.keyword}">${i}</a>
+			           href="?page=${i}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">${i}</a>
 			      </li>
 			    </c:forEach>
 			
 			    <!-- 다음 버튼 -->
-			    <c:if test="${pageMaker.next}">
+			    <c:if test="${pageMaker.cri.page < pageMaker.endPage}">
 			      <li class="page-item">
 			        <a class="page-link"
-			           href="?page=${pageMaker.endPage + 1}&keyword=${cri.keyword}"
+			           href="?page=${pageMaker.endPage + 1}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}"
 			           aria-label="Next">
 			          <span aria-hidden="true">&raquo;</span>
 			        </a>
 			      </li>
 			    </c:if>
-			
 			  </ul>
+			 </nav>
 			</div>
 			<!-- 페이징 처리 끝 -->
 
@@ -142,32 +195,38 @@
 </div>
 <!-- container-scroller 끝-->   
 
-<!-- 수정 버튼 클릭 시, 기존 데이터 불러오기 -->
 <script>
+  function fillForm(materialId, materialName, materialType, unit, unitPrice, storageMethod, warehouseCode, lotFlag, supplyUnit) {
+    // 폼 보이기
+    document.getElementById("formCard").style.display = "block";
 
-function fillForm(id, name, type, unit, price, storageMethod, warehouseCode, lotFlag, supply) {
-    // form에 값 세팅
-    document.getElementById('materialId').value = id;
-    document.getElementById('materialId').readOnly = true; // 수정시 ID 변경 못하게
-    document.getElementById('materialName').value = name;
-    document.getElementById('materialType').value = type;
-    document.getElementById('unit').value = unit;
-    document.getElementById('unitPrice').value = price;
-    document.getElementById('storageMethod').value = storageMethod;
-    document.getElementById('warehouseCode').value = warehouseCode;
-    document.getElementById('lotFlag').value = lotFlag.trim();
-    document.getElementById('supplyUnit').value = supply;
+    // 값 채우기
+    document.getElementById("materialId").value = materialId;
+    document.getElementById("materialName").value = materialName;
+    
+    // 셀렉트 박스 설정
+    setSelectedValue("materialType", materialType);
+    setSelectedValue("unit", unit);
+    document.getElementById("unitPrice").value = unitPrice;
+    setSelectedValue("storageMethod", storageMethod);
+    setSelectedValue("warehouseCode", warehouseCode);
+    setSelectedValue("lotFlag", lotFlag);
+    document.getElementById("supplyUnit").value = supplyUnit;
+  }
 
-    // 탭 이동
-    var formTab = new bootstrap.Tab(document.getElementById('form-tab'));
-    formTab.show();
-}
+  function setSelectedValue(selectId, value) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    for (let i = 0; i < select.options.length; i++) {
+      if (select.options[i].value === value) {
+        select.selectedIndex = i;
+        break;
+      }
+    }
+  }
 
-
-
-function resetForm() {
-    document.getElementById('materialForm').reset();					// 전체 입력 초기화
-    document.getElementById('materialId').value = '';					// ID 초기화
-    document.getElementById('materialId').readOnly = true; 				// 항상 readonly 유지
-}
+  function resetForm() {
+    document.getElementById("materialForm").reset();
+    document.getElementById("formCard").style.display = "none";
+  }
 </script>

@@ -18,12 +18,23 @@ public class MaterialServiceImpl implements MaterialService {
 
 	// 1. 자재 목록 조회
 	@Override
-	public List<MaterialVO> getMaterialList() throws Exception {
+	public List<MaterialVO> getMaterialList(SearchCriteria cri) throws Exception {
 
-		return mDAO.getMaterialList();
+		return mDAO.getMaterialList(cri);
 	}
+	
+	
+	// 페이징용 전체 개수
+    @Override
+    public int getMaterialCount(SearchCriteria cri) throws Exception {
+        return mDAO.getMaterialCount(cri);
+    }
 
 	// 자재 등록
+    @Override
+    public String getMaxMaterialId() throws Exception {
+        return mDAO.getMaxMaterialId();
+    }
 	@Override
 	public void insertMaterial(MaterialVO vo) throws Exception {
 		
@@ -57,31 +68,23 @@ public class MaterialServiceImpl implements MaterialService {
 	
 	// 자재 수정
 	@Override
-	public void updateMaterial(MaterialVO vo) throws Exception {
-		
-		mDAO.updateMaterial(vo);
+	public MaterialVO getMaterial(String materialId) throws Exception {
+	    return mDAO.getMaterial(materialId);
 	}
+
+	@Override
+	public void updateMaterial(MaterialVO vo) throws Exception {
+	    mDAO.updateMaterial(vo);
+	}
+
 
 	// 자재 존재 여부 확인 (수정인지 등록인지 구분용)
 	@Override
 	public boolean checkMaterial(String materialId) throws Exception {
 		
 		// 해당 자재ID로 자재가 존재하는지 확인 (null 아니면 존재함)
-		return mDAO.selectMaterialById(materialId) != null;
+		return mDAO.getMaterial(materialId) != null;
 	}
-	
-	
-	// 페이징용 전체 개수
-    @Override
-    public int getMaterialCount(SearchCriteria cri) throws Exception {
-        return mDAO.getMaterialCount(cri);
-    }
-
-    // 페이징용 리스트 조회
-    @Override
-    public List<MaterialVO> getMaterialListPage(SearchCriteria cri) throws Exception {
-        return mDAO.getMaterialListPage(cri);
-    }
 	
 	
     // 목록 조회 (자재 발주관리 등록 폼에서 필요)

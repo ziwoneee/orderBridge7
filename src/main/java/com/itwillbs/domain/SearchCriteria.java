@@ -98,8 +98,11 @@ public class SearchCriteria {
     
     
     
-    
-    
+    // 자재 정보에 필요
+    private String materialType;
+    private String storageMethod;
+    private String lotFlag;
+
     
     
     
