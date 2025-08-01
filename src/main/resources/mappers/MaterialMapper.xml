@@ -5,19 +5,73 @@
 <mapper namespace="com.itwillbs.mapper.MaterialMapper">
 
 	<!-- 1. 자재 목록 조회 -->
-	<select id="getMaterialList" resultType="com.itwillbs.domain.MaterialVO">
+	<select id="getMaterialList" parameterType="com.itwillbs.domain.SearchCriteria" resultType="com.itwillbs.domain.MaterialVO">
 		SELECT
-			material_id,
-			material_name,
-			material_type,
-			unit,
-			unit_price,
-			storage_method,
-			warehouse_code,
-			lot_flag,
-			supply_unit
-		FROM material
-		ORDER BY material_iD ASC
+	    material_id,
+	    material_name,
+	    material_type,
+	    unit,
+	    unit_price,
+	    storage_method,
+	    warehouse_code,
+	    lot_flag,
+	    supply_unit
+	  FROM material
+	<where>
+	  <!-- 자재명 -->
+	  <if test="keyword != null and keyword != ''">
+	    material_name LIKE CONCAT('%', #{keyword}, '%')
+	  </if>
+	
+	  <!-- 자재 유형 -->
+	  <if test="materialType != null and materialType != ''">
+	    AND material_type = #{materialType}
+	  </if>
+	
+	  <!-- 보관 방법 -->
+	  <if test="storageMethod != null and storageMethod != ''">
+	    AND storage_method = #{storageMethod}
+	  </if>
+	
+	  <!-- 로트번호 사용 여부 -->
+	  <if test="lotFlag != null and lotFlag != ''">
+	    AND lot_flag = #{lotFlag}
+	  </if>
+	</where>
+	  <!-- 정렬 조건: 컬럼명, 방향 -->
+	  <if test="sortColumn != null and sortOrder != null">
+	    ORDER BY ${sortColumn} ${sortOrder}
+	  </if>
+	  <!-- 페이징 처리 -->
+	  LIMIT #{perPageNum} OFFSET #{pageStart}
+	</select>
+	
+	<!-- 자재 총 개수 조회 (검색 조건에 맞는 자재 개수) -->
+	<select id="getMaterialCount" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
+	  SELECT COUNT(*)
+	  FROM material
+	  <where>
+	  <!-- 자재명 -->
+	  <if test="keyword != null and keyword != ''">
+	    material_name LIKE CONCAT('%', #{keyword}, '%')
+	  </if>
+	
+	  <!-- 자재 유형 -->
+	  <if test="materialType != null and materialType != ''">
+	    AND material_type = #{materialType}
+	  </if>
+	
+	  <!-- 보관 방법 -->
+	  <if test="storageMethod != null and storageMethod != ''">
+	    AND storage_method = #{storageMethod}
+	  </if>
+	
+	  <!-- 로트번호 사용 여부 -->
+	  <if test="lotFlag != null and lotFlag != ''">
+	    AND lot_flag = #{lotFlag}
+	  </if>
+	</where>
+
 	</select>
 	
 	<!-- 자재 등록 -->
@@ -76,40 +130,6 @@
 	<!-- 자재 ID 자동부여 -->
 	<select id="getMaxMaterialId" resultType="string">
     	SELECT MAX(material_id) FROM material
-	</select>
-	
-	
-	<!-- 전체 수 -->
-	<select id="getMaterialCount" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
-	  SELECT COUNT(*)
-	  FROM material
-	  <where>
-	    <if test="keyword != null and keyword != ''">
-	      material_name LIKE CONCAT('%', #{keyword}, '%')
-	    </if>
-	  </where>
-	</select>
-	
-	<!-- 페이징 리스트 -->
-	<select id="getMaterialListPage" parameterType="com.itwillbs.domain.SearchCriteria" resultType="com.itwillbs.domain.MaterialVO">
-	  SELECT
-	    material_id,
-	    material_name,
-	    material_type,
-	    unit,
-	    unit_price,
-	    storage_method,
-	    warehouse_code,
-	    lot_flag,
-	    supply_unit
-	  FROM material
-	  <where>
-	    <if test="keyword != null and keyword != ''">
-	      material_name LIKE CONCAT('%', #{keyword}, '%')
-	    </if>
-	  </where>
-	  ORDER BY material_id ASC
-	  LIMIT #{perPageNum} OFFSET #{pageStart}
 	</select>
 	
 	

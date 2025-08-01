@@ -25,9 +25,15 @@ public class MaterialDAOImpl implements MaterialDAO {
 	
 	// 1. 자재 목록 조회
 	@Override
-	public List<MaterialVO> getMaterialList() throws Exception {
+	public List<MaterialVO> getMaterialList(SearchCriteria cri) throws Exception {
 		
-		return sqlSession.selectList(NAMESPACE + "getMaterialList");
+		return sqlSession.selectList(NAMESPACE + "getMaterialList", cri);
+	}
+	
+	@Override
+	public int getMaterialCount(SearchCriteria cri) throws Exception {
+	    // 매퍼에서 제공하는 쿼리 실행, 조건에 맞는 자재 개수 조회
+	    return sqlSession.selectOne(NAMESPACE + "getMaterialCount", cri);
 	}
 
 	// 자재 등록
@@ -67,19 +73,6 @@ public class MaterialDAOImpl implements MaterialDAO {
 		
 	    return sqlSession.selectOne(NAMESPACE + "getMaxMaterialId");
 	}
-
-	
-	// 전체 개수
-    @Override
-    public int getMaterialCount(SearchCriteria cri) throws Exception {
-        return sqlSession.selectOne(NAMESPACE + "getMaterialCount", cri);
-    }
-
-    // 페이징 리스트
-    @Override
-    public List<MaterialVO> getMaterialListPage(SearchCriteria cri) throws Exception {
-        return sqlSession.selectList(NAMESPACE + "getMaterialListPage", cri);
-    }
 
     // 목록 조회 (자재 발주관리 등록 폼에서 필요)
 	@Override

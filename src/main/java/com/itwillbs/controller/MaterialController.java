@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -37,28 +38,36 @@ public class MaterialController {
 	 * GET 방식 -> /material/list
 	 * 
 	 */
-	@RequestMapping(value="/list", method = RequestMethod.GET)
+	@GetMapping("/list")
 	public String materialList(SearchCriteria cri, Model model) throws Exception {
-		logger.info(" materialList() 실행 ");
-		logger.info(" /views/material/list.jsp 페이지 이동 ");
 		
-		// 전체 자재 건수
-	    int totalCount = mService.getMaterialCount(cri);
-	    cri.setTotalCount(totalCount);
+		// [1] 정렬 기준 기본값 설정
+	    if (cri.getSortColumn() == null || cri.getSortColumn().isEmpty()) {
+	        cri.setSortColumn("material_id"); // 기본 정렬 컬럼
+	        cri.setSortOrder("asc");          // 기본 정렬 방향
+	    }
 
-	    // PageMaker 생성
+	    // [2] 페이징 값 유효성 체크 (예외 방지)
+	    if (cri.getPage() <= 0) cri.setPage(1);
+	    if (cri.getPerPageNum() <= 0) cri.setPerPageNum(10);
+
+	    // [3] 전체 자재 수 조회
+	    int totalCount = mService.getMaterialCount(cri);
+	    cri.setTotalCount(totalCount); // ← JSP에서도 cri.totalCount로 사용 가능
+
+	    // [4] 자재 목록 조회 (검색 + 정렬 + 페이징 포함)
+	    List<MaterialVO> materialList = mService.getMaterialList(cri);
+
+	    // [5] PageMaker 생성 (startPage, endPage 계산용)
 	    PageMaker pageMaker = new PageMaker(cri, totalCount);
 
-	    // 페이징된 자재 목록 조회
-	    List<MaterialVO> materialList = mService.getMaterialListPage(cri);
-
-	    // View 전달
+	    // [6] View에 데이터 전달
 	    model.addAttribute("materialList", materialList);
 	    model.addAttribute("pageMaker", pageMaker);
-	    model.addAttribute("cri", cri); // 검색 조건 유지용
-	    
-		return "master/materialList";
-		
+	    model.addAttribute("cri", cri);
+	    model.addAttribute("menu", "material"); // 상단 메뉴 활성화용 (선택)
+
+	    return "master/materialList"; // 반환할 JSP 경로
 	}
 	
 
