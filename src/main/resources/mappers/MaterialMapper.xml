@@ -102,26 +102,27 @@
 			 #{supplyUnit})
 	</insert>
 
+	<!-- 자재 단건 조회 -->
+	<select id="getMaterial" parameterType="String" resultType="com.itwillbs.domain.MaterialVO">
+	    SELECT * FROM material WHERE material_id = #{materialId}
+	</select>
+	
 	<!-- 자재 수정 -->
 	<update id="updateMaterial" parameterType="com.itwillbs.domain.MaterialVO">
-		UPDATE material SET
-			material_name = #{materialName},
-			material_type = #{materialType},
-			unit = #{unit},
-			unit_price = #{unitPrice},
-			storage_method = #{storageMethod},
-			warehouse_code = #{warehouseCode},
-			lot_flag = #{lotFlag},
-			supply_unit = #{supplyUnit}
-		WHERE material_id = #{materialId}
-	</update>
-	
-	<!-- 자재ID로 자재 1건 조회 (수정/존재 확인용) -->
-	<select id="selectMaterialById" parameterType="String" resultType="com.itwillbs.domain.MaterialVO">
-	    SELECT * 
-	    FROM material 
+	    UPDATE material
+	    SET
+	        material_name = #{materialName},
+	        material_type = #{materialType},
+	        unit = #{unit},
+	        unit_price = #{unitPrice},
+	        storage_method = #{storageMethod},
+	        warehouse_code = #{warehouseCode},
+	        lot_flag = #{lotFlag},
+	        supply_unit = #{supplyUnit},
+	        unit_usage_per_pack = #{unitUsagePerPack}
 	    WHERE material_id = #{materialId}
-	</select>
+	</update>
+
 	
 
 	<!-- 자재 존재 여부 확인 -->

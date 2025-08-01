@@ -15,10 +15,8 @@ public interface MaterialDAO {
 	public void insertMaterial(MaterialVO vo) throws Exception;
 	
 	// 자재 수정
+	public MaterialVO getMaterial(String materialId) throws Exception;
 	public void updateMaterial(MaterialVO vo) throws Exception;
-	
-	// 자재ID 기준으로 해당 자재 조회 (단건)
-	public MaterialVO selectMaterialById(String materialId) throws Exception;
 	
 	// 자재 존재 여부 확인 (COUNT 방식, 선택적으로 사용)
 	public boolean checkMaterial(String materialId) throws Exception;

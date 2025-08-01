@@ -135,9 +135,7 @@
 		              <td>${material.supplyUnit}</td>
 		              <td>
 		                <button type="button" class="btn btn-sm btn-outline-secondary"
-		                        onclick="fillForm('${material.materialId}','${material.materialName}','${material.materialType}',
-		                                          '${material.unit}','${material.unitPrice}','${material.storageMethod}',
-		                                          '${material.warehouseCode}', '${material.lotFlag}','${material.supplyUnit}')">
+		                       onclick="location.href='/material/edit?materialId=${material.materialId}'">
 		                  수정
 		                </button>
 		              </td>
@@ -147,30 +145,6 @@
 		      </table>
 		    </div>
 		  </div>
-
-		<!-- 등록/수정 폼: 처음엔 숨김 -->
-		<div class="card mt-4" id="formCard" style="display: none;">
-		  <div class="card-body">
-		    <h4 class="card-title">자재 등록 / 수정</h4>
-		    <form action="/material/save" method="post" id="materialForm">
-		      
-		      <div class="form-group">
-		        <label>자재ID</label>
-		        <input type="text" name="materialId" id="materialId" class="form-control" readonly placeholder="자동생성됩니다.">
-		      </div>
-		      
-		      <div class="form-group">
-		        <label>자재명</label>
-		        <input type="text" name="materialName" id="materialName" class="form-control" required>
-		      </div>
-		
-		      <!-- 유형, 단위, 단가, 보관법, 창고 등 동일한 형식 반복 -->
-		
-		      <button type="submit" class="btn btn-primary mr-2">저장</button>
-		      <button type="button" class="btn btn-light" onclick="resetForm()">초기화</button>
-		    </form>
-		  </div>
-		</div>
 		
 		  <!-- 페이징 처리 시작 -->
 			<div class="d-flex justify-content-center mt-4">
@@ -220,3 +194,39 @@
   <!-- container-fluid page-body-wrapper 끝 -->
 </div>
 <!-- container-scroller 끝-->   
+
+<script>
+  function fillForm(materialId, materialName, materialType, unit, unitPrice, storageMethod, warehouseCode, lotFlag, supplyUnit) {
+    // 폼 보이기
+    document.getElementById("formCard").style.display = "block";
+
+    // 값 채우기
+    document.getElementById("materialId").value = materialId;
+    document.getElementById("materialName").value = materialName;
+    
+    // 셀렉트 박스 설정
+    setSelectedValue("materialType", materialType);
+    setSelectedValue("unit", unit);
+    document.getElementById("unitPrice").value = unitPrice;
+    setSelectedValue("storageMethod", storageMethod);
+    setSelectedValue("warehouseCode", warehouseCode);
+    setSelectedValue("lotFlag", lotFlag);
+    document.getElementById("supplyUnit").value = supplyUnit;
+  }
+
+  function setSelectedValue(selectId, value) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    for (let i = 0; i < select.options.length; i++) {
+      if (select.options[i].value === value) {
+        select.selectedIndex = i;
+        break;
+      }
+    }
+  }
+
+  function resetForm() {
+    document.getElementById("materialForm").reset();
+    document.getElementById("formCard").style.display = "none";
+  }
+</script>

@@ -16,6 +16,7 @@ public interface MaterialService {
 	public void insertMaterial(MaterialVO vo) throws Exception;
 	
 	// 자재 수정
+	public MaterialVO getMaterial(String materialId) throws Exception;
 	public void updateMaterial(MaterialVO vo) throws Exception;
 	
 	// 자재 존재 여부 확인 (수정인지 등록인지 구분용)

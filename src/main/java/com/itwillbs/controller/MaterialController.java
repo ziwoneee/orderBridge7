@@ -121,6 +121,19 @@ public class MaterialController {
 
 	    return String.format("RM-%04d", nextNum);
 	}
+	
+	
+	/**
+	 * 자재 수정 폼으로 이동
+	 * GET /material/edit?materialId=RM-0001
+	 */
+	@GetMapping("/edit")
+	public String editForm(@RequestParam("materialId") String materialId, Model model) throws Exception {
+	    MaterialVO vo = mService.getMaterial(materialId); // 기존 정보 조회
+	    model.addAttribute("material", vo); // VO 전달
+	    model.addAttribute("menu", "material"); // 메뉴 활성화용
+	    return "master/materialRegister"; // 같은 등록 JSP 재사용
+	}
 
 	
 	

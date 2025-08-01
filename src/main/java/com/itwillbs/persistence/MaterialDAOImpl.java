@@ -45,19 +45,17 @@ public class MaterialDAOImpl implements MaterialDAO {
 
 	// 자재 수정
 	@Override
-	public void updateMaterial(MaterialVO vo) throws Exception {
-
-		sqlSession.update(NAMESPACE + "updateMaterial", vo);
-	}
-	
-	// 자재ID 기준으로 해당 자재 조회 (단건)
-	@Override
-	public MaterialVO selectMaterialById(String materialId) throws Exception {
+	public MaterialVO getMaterial(String materialId) throws Exception {
 		
 		// 해당 자재ID로 자재 1건 조회 (없으면 null 반환)
-		return sqlSession.selectOne(NAMESPACE + "selectMaterialById", materialId);
+	    return sqlSession.selectOne(NAMESPACE + "getMaterial", materialId);
 	}
 
+	@Override
+	public void updateMaterial(MaterialVO vo) throws Exception {
+	    sqlSession.update(NAMESPACE + "updateMaterial", vo);
+	}
+	
 
 	// 자재 존재 여부 확인
 	@Override

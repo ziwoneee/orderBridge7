@@ -68,17 +68,22 @@ public class MaterialServiceImpl implements MaterialService {
 	
 	// 자재 수정
 	@Override
-	public void updateMaterial(MaterialVO vo) throws Exception {
-		
-		mDAO.updateMaterial(vo);
+	public MaterialVO getMaterial(String materialId) throws Exception {
+	    return mDAO.getMaterial(materialId);
 	}
+
+	@Override
+	public void updateMaterial(MaterialVO vo) throws Exception {
+	    mDAO.updateMaterial(vo);
+	}
+
 
 	// 자재 존재 여부 확인 (수정인지 등록인지 구분용)
 	@Override
 	public boolean checkMaterial(String materialId) throws Exception {
 		
 		// 해당 자재ID로 자재가 존재하는지 확인 (null 아니면 존재함)
-		return mDAO.selectMaterialById(materialId) != null;
+		return mDAO.getMaterial(materialId) != null;
 	}
 	
 	
