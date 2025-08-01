@@ -18,4 +18,5 @@ public class UnreceivedOrderDTO {
     private int totalQuantity;       // 발주 총 수량
     private int inboundQuantity;     // 입고된 수량 (기본 0)
 
+    
 }
