@@ -64,6 +64,10 @@
 	  </where>
 
 	  GROUP BY i.inbound_id
+	  
+	  <if test="status != null and status != ''">
+    	HAVING status = #{status}
+ 	  </if>
 
 	  <!-- 정렬 -->
 	  <if test="sortColumn != null and sortOrder != null">
