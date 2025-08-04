@@ -16,6 +16,9 @@ public class ProductStockVO {
     private String lotNo;         // LOT 번호
     private Date regDate;         // 등록일
     private Date expireDate;      // 유통기한
+    private int reservedQty;   // 예약 수량
+    private int availableQty;  // 가용 수량 = 현재고 - 예약수량
+
     
  // ✅ 입출고 상세내역 포함
     private List<StockTransaction> transactions;
@@ -28,7 +31,5 @@ public class ProductStockVO {
         private String memo;   // 비고
     }
     
-    private int reservedQty;   // 예약 수량
-    private int availableQty;  // 가용 수량 = 현재고 - 예약수량
-
+    
 }

@@ -260,5 +260,21 @@
   )
 </insert>
   
+  
+  <!-- 예약시 수량 증감 -->
+  <update id="increaseReservedQty" parameterType="map">
+  UPDATE product_stock
+  SET reserved_qty = reserved_qty + #{qty},
+      available_qty = available_qty - #{qty}
+  WHERE product_id = #{productId} AND lot_no = #{lotNo}
+</update>
+
+<update id="decreaseReservedQty" parameterType="map">
+  UPDATE product_stock
+  SET reserved_qty = reserved_qty - #{qty},
+      available_qty = available_qty + #{qty}
+  WHERE product_id = #{productId} AND lot_no = #{lotNo}
+</update>
+  
 
 </mapper>

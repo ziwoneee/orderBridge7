@@ -245,6 +245,7 @@
     
   </where>
   GROUP BY co.cl_order_id, c.client_name, p.product_id, p.product_name, cod.order_qty, cod.detail_id, co.cl_delivery_date
+   ORDER BY co.cl_delivery_date ASC
    LIMIT #{pageStart}, #{perPageNum}
 </select>
 

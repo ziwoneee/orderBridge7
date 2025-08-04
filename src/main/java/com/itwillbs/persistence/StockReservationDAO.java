@@ -19,5 +19,8 @@ public interface StockReservationDAO {
     int getReservedQtyByProductAndLot(Map<String, Object> param);
     
     List<String> getAllReservedOrderIds();
+    
+    int countReservationsByOrderId(String clOrderId);
+
 
 }

@@ -130,18 +130,28 @@ public class ClientDeliveryController {
         return "clientDelivery/list";
     }
 
-    
+ // ✅ 예약 등록
     @GetMapping("/reserve")
     public String reserveStock(@RequestParam("clOrderId") String clOrderId, RedirectAttributes rttr) {
-        try {
-            reservationService.reserveStockByOrderId(clOrderId);
-            rttr.addFlashAttribute("reservedOrderId", clOrderId);
-            rttr.addFlashAttribute("message", "재고 예약이 완료되었습니다.");
-        } catch (Exception e) {
-            rttr.addFlashAttribute("message", "예약 중 오류가 발생했습니다.");
+        boolean success = reservationService.reserveStockByOrderId(clOrderId);
+        if (success) {
+            rttr.addFlashAttribute("message", "예약 완료");
+        } else {
+            rttr.addFlashAttribute("message", "예약 실패: 재고 부족 또는 이미 예약됨");
         }
         return "redirect:/shipment/list?tab=pending";
     }
+
+    // ✅ 예약 해지 
+    @GetMapping("/unreserve")
+    public String releaseStock(@RequestParam("clOrderId") String clOrderId, RedirectAttributes rttr) {
+        reservationService.deleteReservation(clOrderId);
+        rttr.addFlashAttribute("message", "예약 해제 완료");
+        return "redirect:/shipment/list?tab=pending";
+    }
+
+
+    
 
 
 

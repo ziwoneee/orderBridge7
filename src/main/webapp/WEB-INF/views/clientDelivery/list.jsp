@@ -179,28 +179,32 @@
           </c:if>
         </c:if>
       </td>
-      <td>
-        <c:choose>
-          <c:when test="${item.stockQty ge item.orderQty}">
-            <c:choose>
-              <c:when test="${fn:contains(reservedOrderIds, group.clOrderId)}">
-                <button type="button" class="btn btn-sm btn-secondary mt-1" disabled>
-                  <i class="fas fa-boxes"></i> 예약중
-                </button>
-              </c:when>
-              <c:otherwise>
-                <button type="button" class="btn btn-sm btn-outline-primary mt-1"
-                        onclick="reserveStock('${group.clOrderId}')">
-                  <i class="fas fa-boxes"></i> 예약
-                </button>
-              </c:otherwise>
-            </c:choose>
-          </c:when>
-          <c:otherwise>
-            <span class="badge badge-danger">부족</span>
-          </c:otherwise>
-        </c:choose>
-      </td>
+     <td>
+  <c:choose>
+    <c:when test="${item.stockQty ge item.orderQty}">
+      <c:choose>
+        <c:when test="${fn:contains(reservedOrderIds, group.clOrderId)}">
+          <!-- 예약중 상태일 때 버튼 -->
+          <button type="button" class="btn btn-sm btn-outline-secondary mt-1"
+                  onclick="toggleReservation('${group.clOrderId}', true)">
+            <i class="fas fa-times-circle"></i> 예약중
+          </button>
+        </c:when>
+        <c:otherwise>
+          <!-- 예약 전 상태일 때 버튼 -->
+          <button type="button" class="btn btn-sm btn-outline-primary mt-1"
+                  onclick="toggleReservation('${group.clOrderId}', false)">
+            <i class="fas fa-boxes"></i> 예약
+          </button>
+        </c:otherwise>
+      </c:choose>
+    </c:when>
+    <c:otherwise>
+      <span class="badge badge-danger">부족</span>
+    </c:otherwise>
+  </c:choose>
+</td>
+
     </tr>
   </c:forEach>
 </c:forEach>
@@ -481,6 +485,20 @@
   function reserveStock(clOrderId) {
     if (confirm("이 수주건의 재고를 예약하시겠습니까?")) {
       location.href = "/shipment/reserve?clOrderId=" + clOrderId;
+    }
+  }
+  
+  
+</script>
+<script>
+  function toggleReservation(clOrderId, isReserved) {
+    const action = isReserved ? "예약을 해지" : "재고를 예약";
+    const url = isReserved 
+      ? "/shipment/unreserve?clOrderId=" + clOrderId 
+      : "/shipment/reserve?clOrderId=" + clOrderId;
+
+    if (confirm("이 수주건의 " + action + "하시겠습니까?")) {
+      location.href = url;
     }
   }
 </script>

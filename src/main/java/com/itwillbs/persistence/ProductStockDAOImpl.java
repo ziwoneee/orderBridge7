@@ -82,6 +82,26 @@ public class ProductStockDAOImpl implements ProductStockDAO {
         sqlSession.insert("com.itwillbs.mapper.ProductStockMapper.insertTransaction", tx);
     }
 
+    
+    //예약시 수량 증감
+    @Override
+    public void increaseReservedQty(String productId, String lotNo, int qty) {
+        Map<String, Object> param = new HashMap<>();
+        param.put("productId", productId);
+        param.put("lotNo", lotNo);
+        param.put("qty", qty);
+        sqlSession.update(NAMESPACE + ".increaseReservedQty", param);
+    }
+
+    @Override
+    public void decreaseReservedQty(String productId, String lotNo, int qty) {
+        Map<String, Object> param = new HashMap<>();
+        param.put("productId", productId);
+        param.put("lotNo", lotNo);
+        param.put("qty", qty);
+        sqlSession.update(NAMESPACE + ".decreaseReservedQty", param);
+    }
+
 
     
 }

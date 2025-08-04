@@ -18,6 +18,7 @@ public interface ProductStockDAO {
     
     //입출고 현황 업데이트
     void upsertStockQty(String productId, String lotNo, int qty);
+    
     void decreaseStockQty(String productId, String lotNo, int qty);
     
     //입출고 모달창    
@@ -32,6 +33,12 @@ public interface ProductStockDAO {
 
      
      void insertTransaction(ProductStockTransactionVO tx);
+
+   //예약시 수량 증감     
+     void increaseReservedQty(String productId, String lotNo, int qty);
+
+     void decreaseReservedQty(String productId, String lotNo, int qty);
+	
 
 
 }

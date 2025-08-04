@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 @Service
@@ -34,63 +35,72 @@ public class StockReservationServiceImpl implements StockReservationService {
     @Autowired
     private ClientOrderDAO orderDAO;
 
+    /**
+     * 단일 예약 등록
+     */
     @Override
     public void reserveStock(StockReservationVO vo) {
         reservationDAO.insertReservation(vo);
+        stockDAO.increaseReservedQty(vo.getProductId(), vo.getLotNo(), vo.getReservedQty()); // ✅ lotNo 추가
     }
 
+    /**
+     * 단일 예약 해제 (제품 기준)
+     */
     @Override
     public void releaseStock(String clOrderId, String productId) {
-        reservationDAO.deleteReservation(clOrderId, productId);
+        // 수주번호 + 제품ID 기준 예약 목록 조회
+        List<StockReservationVO> reservations = reservationDAO.getReservationsByOrderId(clOrderId);
+        
+        for (StockReservationVO r : reservations) {
+            if (r.getProductId().equals(productId)) {
+                // 예약 삭제
+                reservationDAO.deleteReservation(clOrderId, productId);
+
+                // 재고 복원 (LOT 단위)
+                stockDAO.decreaseReservedQty(r.getProductId(), r.getLotNo(), r.getReservedQty());
+            }
+        }
     }
 
+
+    /**
+     * 예약 수량 조회 (수주번호 + 제품 기준)
+     */
     @Override
     public int getReservedQty(String clOrderId, String productId) {
         return reservationDAO.getReservedQty(clOrderId, productId);
     }
 
+    /**
+     * 수주 전체 예약 목록 조회
+     */
     @Override
     public List<StockReservationVO> getReservationsByOrderId(String clOrderId) {
         return reservationDAO.getReservationsByOrderId(clOrderId);
     }
 
+    /**
+     * 수주 전체 예약 등록 및 재고 반영
+     */
     @Override
-    public void deleteReservation(String clOrderId) {
+    public boolean reserveStockByOrderId(String clOrderId) {
         reservationDAO.deleteByOrderId(clOrderId);
-    }
 
-    @Override
-    public void reserveStockByOrderId(String clOrderId) {
-    	  // ✅ 기존 예약 삭제 (중복 방지)
-        reservationDAO.deleteByOrderId(clOrderId);    	
-    	
-        // 1. 수주 상세 항목 조회
         List<ClientOrderDetailVO> orderDetails = orderDAO.getOrderDetailsByOrderId(clOrderId);
+        boolean success = true;
 
         for (ClientOrderDetailVO detail : orderDetails) {
-            String productId = detail.getProductId();                    
+            String productId = detail.getProductId();
             int requiredQty = detail.getOrderQty();
 
-            // 🔽 여기 로그 추가
-            System.out.println("▶ 수주번호: " + clOrderId);
-            System.out.println("▶ 제품ID: " + productId + ", 수주 수량: " + requiredQty);
-
-            // 2. LOT별 재고 조회 (유통기한 빠른 순)
             List<LotStockDTO> lotStocks = stockDAO.getAvailableLotsOrdered(productId);
-
-            int totalAvailable = 0;
-            for (LotStockDTO lot : lotStocks) {
-                totalAvailable += lot.getAvailableQty();
-                System.out.println("   - LOT: " + lot.getLotNo() + ", 가용 수량: " + lot.getAvailableQty());
-            }
-
-            System.out.println("▶ 전체 가용 수량 합계: " + totalAvailable);
+            boolean reserved = false;
 
             for (LotStockDTO lot : lotStocks) {
                 if (requiredQty <= 0) break;
 
                 int allocQty = Math.min(requiredQty, lot.getAvailableQty());
-                
                 if (allocQty <= 0) continue;
 
                 StockReservationVO reservation = new StockReservationVO();
@@ -104,31 +114,60 @@ public class StockReservationServiceImpl implements StockReservationService {
                 reservation.setCreatedAt(new Date());
 
                 reservationDAO.insertReservation(reservation);
-                requiredQty -= allocQty;
+                stockDAO.increaseReservedQty(productId, lot.getLotNo(), allocQty);
 
-                // 🔽 예약된 수량 출력
-                System.out.println("   → 예약된 LOT: " + lot.getLotNo() + ", 예약 수량: " + allocQty + ", 남은 수량: " + requiredQty);
+                requiredQty -= allocQty;
+                reserved = true;
             }
 
-            if (requiredQty > 0) {
-                System.out.println("⚠ 재고 부족! 예약 실패 - 제품ID: " + productId + ", 부족 수량: " + requiredQty);
-          }
+            if (!reserved || requiredQty > 0) {
+                System.out.println("⚠ 예약 실패: 제품 " + productId + " - 부족 수량: " + requiredQty);
+                success = false;
+            }
+        }
+
+        return success; // ✅ boolean 반환 추가
+    }
+
+
+    /**
+     * 수주 전체 예약 해제 및 재고 복원
+     */
+    @Override
+    public void deleteReservation(String clOrderId) {
+        // 예약 내역 조회
+        List<StockReservationVO> reservations = reservationDAO.getReservationsByOrderId(clOrderId);
+
+        for (StockReservationVO r : reservations) {
+            // 예약 해제
+            reservationDAO.deleteReservation(r.getClOrderId(), r.getProductId());
+
+            // 예약 수량 만큼 재고에서 복원
+            stockDAO.decreaseReservedQty(r.getProductId(), r.getLotNo(), r.getReservedQty());
         }
     }
 
-   
-
+    /**
+     * 제품 기준 LOT별 가용 수량 조회
+     */
     @Override
     public List<LotStockDTO> getAvailableLotsOrdered(String productId) {
         return reservationDAO.getAvailableLotsOrdered(productId);
     }
 
-    
+    /**
+     * 예약 중인 수주번호 목록 조회
+     */
     @Override
     public List<String> getReservedOrderIds() {
-        return reservationDAO.getAllReservedOrderIds(); // 중복 제거된 수주번호 목록
+        return reservationDAO.getAllReservedOrderIds();
     }
 
-    
+    /**
+     * 해당 수주번호가 예약 상태인지 여부 확인
+     */
+    @Override
+    public boolean isReserved(String clOrderId) {
+        return reservationDAO.countReservationsByOrderId(clOrderId) > 0;
+    }
 }
-
