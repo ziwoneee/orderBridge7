@@ -52,20 +52,22 @@ function openLotHistoryModal(lotNo, productId) {
       $('#modal-expireDate').text(response.expireDate ? formatDate(response.expireDate) : '-');
 
       // 테이블 렌더링
-      const history = response;
+      const history = response.history || [];
+
       $('#lotHistoryTableBody').empty();
 
    // ✅ 데이터가 없으면 안내 문구 출력
-      if (!response || response.length === 0) {
-        $('#lotHistoryEmpty').removeClass('d-none');  // 안내 문구 보이기
-        $('#lotHistoryModal').modal('show');
-        return;
-      }
+      if (!history || history.length === 0) {
+    	  $('#lotHistoryEmpty').removeClass('d-none');  // 안내 문구 보이기
+    	  $('#lotHistoryModal').modal('show');
+    	  return;
+    	}
+
 
       // ✅ 데이터가 있을 경우 안내 문구 숨기고 테이블 출력
       $('#lotHistoryEmpty').addClass('d-none');
       // 테이블에 입출고 이력 추가
-      response.forEach(entry => {
+      history.forEach(entry => {
         const row = `
           <tr>
             <td>${formatDate(entry.regDate)}</td>
