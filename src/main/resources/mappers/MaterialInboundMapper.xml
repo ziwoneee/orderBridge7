@@ -248,9 +248,22 @@
 	
 	<!-- 입고ID로 자재 항목 조회 -->
 	<select id="getInboundItemsByInboundId" parameterType="string" resultType="com.itwillbs.domain.MaterialInboundItemVO">
-	    SELECT * 
-	    FROM material_inbound_item
-	    WHERE inbound_id = #{inboundId}
+	     SELECT 
+		    ii.inbound_item_id,
+		    ii.inbound_id,
+		    ii.material_id,
+		    m.material_name,
+		    ii.order_quantity,
+		    ii.quantity,
+		    ii.warehouse_code,
+		    ii.lot_no,
+		    ii.expiration_date,
+		    ii.unit_price,
+		    ii.total_price,
+		    ii.inbound_status
+		  FROM material_inbound_item ii
+		  JOIN material m ON ii.material_id = m.material_id
+		  WHERE ii.inbound_id = #{inboundId}
 	</select>
 	
 	<!-- 입고 완료 처리 -->

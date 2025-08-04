@@ -1,8 +1,11 @@
 package com.itwillbs.controller;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import javax.inject.Inject;
 
@@ -164,7 +167,26 @@ public class MaterialInboundController {
 	    }
 	}
 
-	
+
+    /**
+     * LOT 번호 생성 API
+     * - 형식: LOT-자재ID-YYYYMMDD-랜덤3자리
+     * - 예시: LOT-RM-0001-20250804-123
+     */
+    @GetMapping("/generate-lot")
+    @ResponseBody
+    public String generateLotNumber(@RequestParam("materialId") String materialId) {
+    	 logger.debug("LOT 요청 materialId: {}", materialId);  // 디버깅 로그 추가
+    	
+        // 1. 오늘 날짜를 yyyyMMdd 형식으로 생성
+        String today = new SimpleDateFormat("yyyyMMdd").format(new Date());
+
+        // 2. 랜덤 3자리 숫자 생성 (100~999)
+        int random = new Random().nextInt(900) + 100;
+
+        // 3. LOT번호 조합 및 반환
+        return "LOT-" + materialId + "-" + today + "-" + random;
+    }
 	
 	
 	

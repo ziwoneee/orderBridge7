@@ -16,4 +16,8 @@ public class MaterialInboundItemDTO {
     private int quantity;              // 입고 수량
     private String warehouseCode;      // 창고 코드 (WH001 등)
 
+    private String materialName;
+    private int orderQuantity;
+    private String inboundStatus;
+    
 }

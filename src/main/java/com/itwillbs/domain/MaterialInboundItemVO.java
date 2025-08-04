@@ -26,5 +26,6 @@ public class MaterialInboundItemVO {
     // 화면 출력용 필드
     private String orderItemId;
     private int receivedQuantity;
-
+    private String materialName;
+    
 }
