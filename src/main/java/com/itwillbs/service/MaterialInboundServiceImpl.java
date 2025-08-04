@@ -1,11 +1,17 @@
 package com.itwillbs.service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.itwillbs.domain.MaterialInboundItemVO;
@@ -13,6 +19,7 @@ import com.itwillbs.domain.MaterialInboundVO;
 import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.MaterialInboundItemDTO;
 import com.itwillbs.dto.MaterialInboundSummaryDTO;
 import com.itwillbs.dto.UnreceivedOrderDTO;
 import com.itwillbs.persistence.MaterialInboundDAO;
@@ -22,7 +29,10 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
 	
 	@Inject
 	private MaterialInboundDAO miDAO;
+	
+	private static final Logger logger = LoggerFactory.getLogger(MaterialInboundServiceImpl.class);
 
+	
 	// 입고 목록 조회
 	@Override
 	public List<MaterialInboundSummaryDTO> getInboundList(SearchCriteria cri) throws Exception {
@@ -32,14 +42,14 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
 
 	// 목록 전체 수 조회
 	@Override
-    public int getInboundListCount(SearchCriteria cri) {
+    public int getInboundListCount(SearchCriteria cri) throws Exception {
 
         return miDAO.getInboundListCount(cri);
     }
 
 	// 입고되지 않은 발주건들만 조회 (inbound에 없는 order)
 	@Override
-    public List<MaterialOrderVO> getPendingInboundOrders() {
+    public List<MaterialOrderVO> getPendingInboundOrders() throws Exception {
         return miDAO.selectPendingInboundOrders();
     }
 
@@ -48,12 +58,12 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
      * - 발주 항목 중 한 번도 입고처리된 적 없는 건만 조회
      */
 	@Override
-	public List<UnreceivedOrderDTO> getUnreceivedOrdersPaging(SearchCriteria cri) {
+	public List<UnreceivedOrderDTO> getUnreceivedOrdersPaging(SearchCriteria cri) throws Exception {
 	    return miDAO.getUnreceivedOrdersPaging(cri);
 	}
 
 	@Override
-	public int getUnreceivedOrdersCount() {
+	public int getUnreceivedOrdersCount() throws Exception {
 	    return miDAO.getUnreceivedOrdersCount();
 	}
 
@@ -64,7 +74,7 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
 	 * - 해당 발주에 속한 자재 항목들도 함께 입고 항목 테이블에 등록
 	 */
 	@Override
-	public void insertUnreceivedOrders() {
+	public void insertUnreceivedOrders() throws Exception {
 	    // 1. 미입고 발주 항목 전체 조회
 	    List<MaterialOrderItemVO> unreceivedItems = miDAO.getUnreceivedOrderItems();
 
@@ -103,35 +113,148 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
 	 * 선택된 발주 ID 목록의 미입고건만 입고 등록
 	 */
 	@Override
-	public void insertSelectedUnreceivedOrders(String[] orderIds) {
+	public void insertSelectedUnreceivedOrders(String[] orderIds) throws Exception {
+	    Map<String, Boolean> uniqueOrderMap = new HashMap<>();
 	    for (String orderId : orderIds) {
-	        // 해당 발주의 미입고 항목들만 조회
-	        List<MaterialOrderItemVO> orderItems = miDAO.getUnreceivedOrderItemsByOrderId(orderId);
+	        if (orderId != null && !orderId.trim().isEmpty()) {
+	            uniqueOrderMap.put(orderId.trim(), true);
+	        }
+	    }
 
-	        if (!orderItems.isEmpty()) {
-	            // 입고관리번호 생성
-	            String inboundId = miDAO.generateInboundId();
+	    for (String orderId : uniqueOrderMap.keySet()) {
+	        try {
+	            List<MaterialOrderItemVO> orderItems = miDAO.getUnreceivedOrderItemsByOrderId(orderId);
+	            if (!orderItems.isEmpty()) {
+	                String inboundId = miDAO.generateInboundId();
 
-	            // 입고 마스터 테이블 등록
-	            MaterialInboundVO inbound = new MaterialInboundVO();
-	            inbound.setInboundId(inboundId);
-	            inbound.setOrderId(orderId);
-	            inbound.setInboundStatus("미입고");
-	            inbound.setInboundDate(null);
-	            miDAO.insertMaterialInbound(inbound);
+	                // 입고 마스터 등록
+	                MaterialInboundVO inbound = new MaterialInboundVO();
+	                inbound.setInboundId(inboundId);
+	                inbound.setOrderId(orderId);
+	                inbound.setInboundStatus("미입고");
+	                inbound.setInboundDate(null);
+	                inbound.setHandledBy("system");
+	                miDAO.insertMaterialInbound(inbound);
 
-	            // 입고 항목 테이블 등록
-	            for (MaterialOrderItemVO item : orderItems) {
-	                MaterialInboundItemVO itemVO = new MaterialInboundItemVO();
-	                itemVO.setInboundId(inboundId);
-	                itemVO.setOrderItemId(item.getOrderItemId());
-	                itemVO.setMaterialId(item.getMaterialId());
-	                itemVO.setOrderQuantity(item.getOrderQuantity());
-	                itemVO.setReceivedQuantity(0);
-	                miDAO.insertMaterialInboundItem(itemVO);
+	                // 📌 inbound_item_id 자동 생성 prefix
+	                String today = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
+	                String prefix = "IN-RM-ITEM-" + today + "-";
+
+	                int seq = 1;
+	                String latestId = miDAO.getLatestInboundItemId(prefix);
+	                if (latestId != null) {
+	                    String[] parts = latestId.split("-");
+	                    seq = Integer.parseInt(parts[4]) + 1;
+	                }
+
+	                // 각 항목 insert
+	                for (MaterialOrderItemVO item : orderItems) {
+	                    String inboundItemId = String.format("%s%03d", prefix, seq++);
+
+	                    MaterialInboundItemVO itemVO = new MaterialInboundItemVO();
+	                    itemVO.setInboundItemId(inboundItemId);
+	                    itemVO.setInboundId(inboundId);
+	                    itemVO.setOrderItemId(item.getOrderItemId());
+	                    itemVO.setMaterialId(item.getMaterialId());
+	                    itemVO.setOrderQuantity(item.getOrderQuantity());
+	                    itemVO.setQuantity(0); // receivedQuantity → quantity
+	                    itemVO.setInboundStatus("미입고");
+
+	                    itemVO.setCreatedDate(new Date());
+	                    itemVO.setUpdatedDate(new Date());
+
+	                    miDAO.insertMaterialInboundItem(itemVO);
+	                }
 	            }
+	        } catch (Exception e) {
+	            System.out.println("발주 ID " + orderId + " 처리 중 오류 발생: " + e.getMessage());
+	            throw new RuntimeException("발주 ID " + orderId + " 처리 실패: " + e.getMessage());
 	        }
 	    }
 	}
+	
+	
+	// 입고처리
+	/**
+	 * 입고 ID에 해당하는 자재 항목들을 입고 처리
+	 * - 수량 > 0 인 자재만 처리
+	 * - LOT, 유통기한, 수량이 입력된 자재 기준으로만 처리
+	 * - 처리 가능한 항목 1건 이상이면 전체 상태도 갱신
+	 */
+	@Override
+	public void processInbound(String inboundId) throws Exception {
+	    // 1. 해당 입고건의 모든 자재 항목 조회
+	    List<MaterialInboundItemVO> itemList = miDAO.getInboundItemsByInboundId(inboundId);
+
+	    boolean anyProcessed = false;
+
+	    for (MaterialInboundItemVO item : itemList) {
+	        // 2. 수량이 1 이상인 항목만 처리
+	        if (item.getQuantity() > 0) {
+
+	            // (1) 재고 존재 여부 확인
+	            boolean exists = miDAO.checkInventoryExists(item.getMaterialId(), item.getWarehouseCode());
+
+	            // (2) 재고 반영
+	            if (exists) {
+	                miDAO.updateInventoryQuantity(item.getMaterialId(), item.getWarehouseCode(), item.getQuantity());
+	            } else {
+	                miDAO.insertInventory(item.getMaterialId(), item.getWarehouseCode(), item.getQuantity());
+	            }
+
+	            // (3) 해당 자재 항목의 상태를 '입고완료'로 변경 + LOT 생성일 갱신
+	            miDAO.markItemAsReceived(item.getInboundItemId());
+
+	            anyProcessed = true;
+	        }
+	    }
+
+	    // 3. 입고된 항목이 하나도 없다면 예외 발생
+	    if (!anyProcessed) {
+	        throw new Exception("입고 가능한 수량이 있는 자재가 없습니다.");
+	    }
+
+	    // 4. 입고 마스터 상태 및 입고일자(now) 갱신
+	    miDAO.updateInboundMasterStatus(inboundId);
+	}
+
+	
+	
+	@Override
+	public void processInboundItem(MaterialInboundItemDTO dto) throws Exception {
+	    // 1. 유효성 검사
+	    if (dto.getQuantity() <= 0) {
+	        throw new Exception("입고 수량이 0 이하인 자재가 있습니다.");
+	    }
+	    if (dto.getLotNo() == null || dto.getLotNo().isEmpty()) {
+	        throw new Exception("LOT 번호가 누락되었습니다.");
+	    }
+	    if (dto.getExpirationDate() == null || dto.getExpirationDate().isEmpty()) {
+	        throw new Exception("유통기한이 누락되었습니다.");
+	    }
+
+	    // 2. 입고 상세 항목(inbound_item) 업데이트
+	    // - lot_no, expiration_date, quantity, warehouse_code, inbound_status, lot_created_date(now)
+	    miDAO.updateInboundItem(dto);  // Mapper에 update 쿼리 필요
+
+	    // 3. 재고(material_inventory) 반영
+	    // - 기존 재고 있으면 update, 없으면 insert
+	    boolean exists = miDAO.checkInventoryExists(dto.getMaterialId(), dto.getWarehouseCode());
+
+	    if (exists) {
+	        miDAO.updateInventoryQuantity(dto.getMaterialId(), dto.getWarehouseCode(), dto.getQuantity());
+	    } else {
+	        miDAO.insertInventory(dto.getMaterialId(), dto.getWarehouseCode(), dto.getQuantity());
+	    }
+
+	    // 4. 입고일자(now) 입력 + 입고상태 갱신 (입고완료 or 부분입고)
+	    miDAO.updateInboundMasterStatus(dto.getInboundId()); // 전체 입고수량 확인 후 상태 결정
+
+	    // 참고: 필요 시 로그 또는 LOT 이력 저장 등 추가 가능
+	}
+
+
+
+	
 
 }

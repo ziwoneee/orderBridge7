@@ -71,7 +71,7 @@
 			<div class="col-12 mb-4" id="unreceivedOrdersSection" style="display: none;">
 			  <div class="card">
 			    <div class="card-header d-flex justify-content-between align-items-center">
-			      <h5 class="mb-0">📋 미입고 발주 목록</h5>
+			      <h5 class="mb-0">미입고 발주 목록</h5>
 			      <div>
 			        <button id="btn-insert-unreceived" class="btn btn-outline-success btn-sm">
 			          <i class="ti-upload"></i> 선택된 발주 입고등록
@@ -258,7 +258,7 @@
                             <c:if test="${daysDiff <= 2 && daysDiff >= 0}">
                               <span class="badge badge-warning badge-pill">D-${Math.ceil(daysDiff)}</span>
                             </c:if>
-                            <c:if test="${daysDiff < 0}">
+                            <c:if test="${daysDiff < 0 && inbound.status ne '입고완료'}">
                               <span class="badge badge-danger badge-pill">지연</span>
                             </c:if>
                           </c:if>
@@ -279,13 +279,13 @@
                         <td>
                           <c:if test="${inbound.status eq '미입고'}">
                             <button class="btn btn-outline-success btn-sm"
-                                    onclick="processInbound('${inbound.inboundId}', this)">
+                                    onclick="openInboundModal('${inbound.inboundId}', this)">
                               입고처리
                             </button>
                           </c:if>
                           <c:if test="${inbound.status eq '부분입고'}">
                             <button class="btn btn-outline-warning btn-sm"
-                                    onclick="processInbound('${inbound.inboundId}', this)">
+                                    onclick="openInboundModal('${inbound.inboundId}', this)">
                               추가입고
                             </button>
                           </c:if>
@@ -425,7 +425,7 @@
 			    </div>
 			  </div>
 			</div>
-          
+         <%@ include file="/WEB-INF/views/material/inbound/inboundModal.jsp" %>
         </div>
         <!-- content-wrapper 끝 -->
      <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>

@@ -1,6 +1,8 @@
 package com.itwillbs.persistence;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -12,6 +14,7 @@ import com.itwillbs.domain.MaterialInboundVO;
 import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.MaterialInboundItemDTO;
 import com.itwillbs.dto.MaterialInboundSummaryDTO;
 import com.itwillbs.dto.UnreceivedOrderDTO;
 
@@ -34,14 +37,14 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
 
 	// 목록 전체 수 조회
 	@Override
-	public int getInboundListCount(SearchCriteria cri) {
+	public int getInboundListCount(SearchCriteria cri) throws Exception {
 
 		return sqlSession.selectOne(NAMESPACE + "getInboundListCount", cri);
 	}
 
 	// material_order 기준으로 아직 입고기록이 없는 발주건만 조회
 	@Override
-    public List<MaterialOrderVO> selectPendingInboundOrders() {
+    public List<MaterialOrderVO> selectPendingInboundOrders() throws Exception {
         return sqlSession.selectList(NAMESPACE + "selectPendingInboundOrders");
     }
 	
@@ -50,12 +53,12 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
      * - 입고항목 테이블에 존재하지 않는 발주항목만 필터링
      */
 	@Override
-	public List<UnreceivedOrderDTO> getUnreceivedOrdersPaging(SearchCriteria cri) {
+	public List<UnreceivedOrderDTO> getUnreceivedOrdersPaging(SearchCriteria cri) throws Exception {
 	    return sqlSession.selectList(NAMESPACE + "selectUnreceivedOrdersPaging", cri);
 	}
 
 	@Override
-	public int getUnreceivedOrdersCount() {
+	public int getUnreceivedOrdersCount() throws Exception {
 	    return sqlSession.selectOne(NAMESPACE + "countUnreceivedOrders");
 	}
 
@@ -63,24 +66,24 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
 	// 미입고 DB 등록
 	// DAOImpl
 	@Override
-	public List<MaterialOrderItemVO> getUnreceivedOrderItems() {
+	public List<MaterialOrderItemVO> getUnreceivedOrderItems() throws Exception {
 	    // 아직 입고되지 않은 발주항목만 조회 (order_item_id 기준으로 join 체크)
 	    return sqlSession.selectList(NAMESPACE + "selectUnreceivedOrderItems");
 	}
 
 	@Override
-	public String generateInboundId() {
+	public String generateInboundId() throws Exception {
 	    // 오늘 날짜 기준으로 IN-RM-yyyyMMdd-001 형식의 입고ID 생성
 	    return sqlSession.selectOne(NAMESPACE + "generateInboundId");
 	}
 
 	@Override
-	public void insertMaterialInbound(MaterialInboundVO vo) {
+	public void insertMaterialInbound(MaterialInboundVO vo) throws Exception {
 	    sqlSession.insert(NAMESPACE + "insertMaterialInbound", vo);
 	}
 
 	@Override
-	public void insertMaterialInboundItem(MaterialInboundItemVO vo) {
+	public void insertMaterialInboundItem(MaterialInboundItemVO vo) throws Exception {
 	    sqlSession.insert(NAMESPACE + "insertMaterialInboundItem", vo);
 	}
 
@@ -88,8 +91,83 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
 
 	// MaterialInboundDAOImpl.java에 추가할 메서드
 	@Override
-	public List<MaterialOrderItemVO> getUnreceivedOrderItemsByOrderId(String orderId) {
+	public List<MaterialOrderItemVO> getUnreceivedOrderItemsByOrderId(String orderId) throws Exception {
 	    return sqlSession.selectList(NAMESPACE + "getUnreceivedOrderItemsByOrderId", orderId);
 	}
+	
+	// inbound_item_id 자동 생성용
+	@Override
+	public String getLatestInboundItemId(String prefix) throws Exception {
+	    return sqlSession.selectOne(NAMESPACE + "getLatestInboundItemId", prefix);
+	}
 
+	// 입고ID로 입고 항목 목록 조회
+	@Override
+	public List<MaterialInboundItemVO> getInboundItemsByInboundId(String inboundId) throws Exception {
+	    return sqlSession.selectList(NAMESPACE + "getInboundItemsByInboundId", inboundId);
+	}
+
+	// 입고 완료 처리
+	@Override
+	public void updateInboundStatusCompleted(String inboundId) throws Exception {
+	    sqlSession.update(NAMESPACE + "updateInboundStatusCompleted", inboundId);
+	}
+
+	
+	
+	
+	// LOT, 유통기한, 수량, 창고코드 등 포함하여 입고 상세 항목 갱신
+	@Override
+	public void updateInboundItem(MaterialInboundItemDTO dto) throws Exception {
+	    sqlSession.update(NAMESPACE + "updateInboundItem", dto);
+	}
+
+	// 자재 ID + 창고코드 기준으로 재고 존재 여부 확인
+	@Override
+	public boolean checkInventoryExists(String materialId, String warehouseCode) throws Exception {
+	    Map<String, Object> param = new HashMap<>();
+	    param.put("materialId", materialId);
+	    param.put("warehouseCode", warehouseCode);
+
+	    Integer result = sqlSession.selectOne(NAMESPACE + "checkInventoryExists", param);
+	    return result != null && result > 0;
+	}
+
+	// 기존 재고에 입고 수량 추가
+	@Override
+	public void updateInventoryQuantity(String materialId, String warehouseCode, int quantity) throws Exception {
+	    Map<String, Object> param = new HashMap<>();
+	    param.put("materialId", materialId);
+	    param.put("warehouseCode", warehouseCode);
+	    param.put("quantity", quantity);
+
+	    sqlSession.update(NAMESPACE + "updateInventoryQuantity", param);
+	}
+
+	// 재고 테이블 신규 등록
+	@Override
+	public void insertInventory(String materialId, String warehouseCode, int quantity) throws Exception {
+	    Map<String, Object> param = new HashMap<>();
+	    param.put("materialId", materialId);
+	    param.put("warehouseCode", warehouseCode);
+	    param.put("quantity", quantity);
+
+	    sqlSession.insert(NAMESPACE + "insertInventory", param);
+	}
+
+	// 입고 마스터 상태 및 입고일자 갱신 (전체 항목 기준)
+	@Override
+	public void updateInboundMasterStatus(String inboundId) throws Exception {
+	    sqlSession.update(NAMESPACE + "updateInboundMasterStatus", inboundId);
+	}
+
+	
+	@Override
+	public void markItemAsReceived(String inboundItemId) throws Exception {
+	    sqlSession.update(NAMESPACE + "markItemAsReceived", inboundItemId);
+	}
+
+
+	
+	
 }

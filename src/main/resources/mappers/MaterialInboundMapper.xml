@@ -64,6 +64,10 @@
 	  </where>
 
 	  GROUP BY i.inbound_id
+	  
+	  <if test="status != null and status != ''">
+    	HAVING status = #{status}
+ 	  </if>
 
 	  <!-- 정렬 -->
 	  <if test="sortColumn != null and sortOrder != null">
@@ -109,75 +113,46 @@
 
 
 
-
-
-
 	<!-- =================================================================== -->
-	<!-- [미입고 발주 목록 조회 - 페이징 처리]                               -->
-	<!-- - 입고가 한 번도 처리되지 않은 발주건만 대상                      -->
-	<!-- - 대표 품명(1건) + 총 발주 수량 + 기본 입고수량(0) 조회           -->
-	<!-- - SearchCriteria의 LIMIT, OFFSET 기반 페이징 처리 적용            -->
-	<!-- =================================================================== -->
-	<!-- 미입고 발주 목록 조회 - 페이징 처리 (발주 상태 조건 추가) -->
-	<select id="selectUnreceivedOrdersPaging"
-	        resultType="com.itwillbs.dto.UnreceivedOrderDTO"
-	        parameterType="com.itwillbs.domain.SearchCriteria">
-	  SELECT 
-	    mo.order_id AS orderId,                           
-	    mo.created_by AS createdBy,                       
-	    mo.expected_arrived_date AS expectedArrivedDate,  
-
-	    <!-- 품명: 대표 품명만 표시 (여러 건일 경우 '외 N건' 표기) -->
-	    CASE 
-	      WHEN COUNT(*) = 1 THEN MAX(m.material_name)
-	      ELSE CONCAT(MAX(m.material_name), ' 외 ', COUNT(*) - 1, '건')
-	    END AS materialName,
-
-	    SUM(moi.order_quantity) AS totalQuantity,               
-	    0 AS inboundQuantity                              
-
-	  FROM 
-	    material_order mo
-	    JOIN material_order_item moi ON mo.order_id = moi.order_id
-	    JOIN material m ON moi.material_id = m.material_id
-
-	  <!-- [조건] 발주 상태가 '승인'이고 아직 한 번도 입고되지 않은 경우만 조회 -->
-	  WHERE mo.order_status = '승인'
-	    AND NOT EXISTS (
-	      SELECT 1 
-	      FROM material_inbound_item mii
-	      WHERE mii.order_item_id = moi.order_item_id
-	    )
-
-	  GROUP BY mo.order_id
-	  ORDER BY mo.order_date DESC
-
-	  <!-- 페이징 처리 -->
-	  LIMIT #{pageStart}, #{perPageNum}
+	<!-- 미입고 발주 목록 조회 - 페이징 처리 -->
+	<select id="selectUnreceivedOrdersPaging" parameterType="com.itwillbs.domain.SearchCriteria"
+        resultType="com.itwillbs.dto.UnreceivedOrderDTO">
+	   SELECT 
+		  mo.order_id,
+		  mo.supplier_id,
+		  mo.expected_arrived_date,
+		  mo.created_by AS handled_by,
+		  GROUP_CONCAT(m.material_name SEPARATOR ', ') as material_names,
+		  SUM(moi.order_quantity) as total_order_quantity
+		FROM material_order mo
+		JOIN material_order_item moi ON mo.order_id = moi.order_id
+		JOIN material m ON moi.material_id = m.material_id
+		LEFT JOIN material_inbound_item mii ON moi.order_item_id = mii.order_item_id
+		WHERE mo.order_status = '승인'
+		  AND mii.order_item_id IS NULL
+		GROUP BY 
+		  mo.order_id,
+		  mo.supplier_id,
+		  mo.expected_arrived_date,
+		  mo.created_by    
+		ORDER BY mo.order_id DESC
+		LIMIT 0, 10
 	</select>
 
 
-	<!-- =================================================================== -->
-	<!-- [미입고 발주 목록 전체 개수 조회]                                  -->
-	<!-- - 페이징 처리를 위한 COUNT 쿼리                                   -->
-	<!-- - DISTINCT로 중복 제거 후 발주 건 수만 카운트                      -->
-	<!-- =================================================================== -->
-	<!-- 미입고 발주 목록 전체 개수 조회 (발주 상태 조건 추가) -->
+	<!-- 미입고 발주 개수 조회 -->
 	<select id="countUnreceivedOrders" resultType="int">
-	  SELECT COUNT(DISTINCT mo.order_id)
-	  FROM material_order mo
-	  JOIN material_order_item moi ON mo.order_id = moi.order_id
-	  WHERE mo.order_status = '승인'
-	    AND NOT EXISTS (
-	      SELECT 1 
-	      FROM material_inbound_item mii
-	      WHERE mii.order_item_id = moi.order_item_id
-	    )
+	    SELECT COUNT(DISTINCT mo.order_id)
+	    FROM material_order mo
+	    JOIN material_order_item moi ON mo.order_id = moi.order_id
+	    LEFT JOIN material_inbound_item mii ON moi.order_item_id = mii.order_item_id
+	    WHERE mo.order_status = '승인'
+	    AND mii.order_item_id IS NULL
 	</select>
 
 
 	<!-- 아직 입고되지 않은 발주 항목 조회 (발주 상태 조건 추가) -->
-	<select id="selectUnreceivedOrderItems" resultType="MaterialOrderItemVO">
+	<select id="selectUnreceivedOrderItems" resultType="com.itwillbs.domain.MaterialOrderItemVO">
 	  SELECT oi.order_item_id, oi.order_id, oi.material_id, oi.order_quantity
 	  FROM material_order_item oi
 	  JOIN material_order mo ON oi.order_id = mo.order_id
@@ -185,37 +160,183 @@
 	  WHERE mo.order_status = '승인' 
 	    AND mii.order_item_id IS NULL
 	</select>
+	
 
 	<!-- 입고관리번호 자동 생성 (오늘 날짜 기준으로 증가) -->
 	<select id="generateInboundId" resultType="String">
 	  SELECT CONCAT('IN-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-', 
-       				 LPAD(IFNULL(MAX(CAST(SUBSTRING_INDEX(inbound_id, '-', -1) AS UNSIGNED)), 0) + 1, 3, '0')) 
+	         LPAD(COALESCE(MAX(CAST(SUBSTRING_INDEX(inbound_id, '-', -1) AS UNSIGNED)), 0) + 1, 3, '0'))
 	  FROM material_inbound 
-	  WHERE inbound_id LIKE CONCAT('IN-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '%');
+	  WHERE inbound_id LIKE CONCAT('IN-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-%')
 	</select>
+	
+	
 
 	<!-- 입고 마스터 INSERT -->
-	<insert id="insertMaterialInbound" parameterType="MaterialInboundVO">
-	  INSERT INTO material_inbound (inbound_id, order_id, inbound_status)
-	  VALUES (#{inboundId}, #{orderId}, #{inboundStatus})
+	<insert id="insertMaterialInbound" parameterType="com.itwillbs.domain.MaterialInboundVO">
+	    INSERT INTO material_inbound (
+	        inbound_id,
+	        order_id,
+	        inbound_status,
+	        inbound_date,
+	        handled_by,
+	        created_date,
+	        updated_date
+	    ) VALUES (
+	        #{inboundId},
+	        #{orderId},
+	        #{inboundStatus},
+	        #{inboundDate},
+	        #{handledBy},
+	        NOW(),
+	        NOW()
+	    )
 	</insert>
+	
+    <!-- inbound_item_id 자동 생성: 날짜 기반 + 일련번호 방식 -->
+    <select id="getLatestInboundItemId" parameterType="String" resultType="String">
+      SELECT inbound_item_id
+      FROM material_inbound_item
+      WHERE inbound_item_id LIKE CONCAT(#{prefix}, '%')
+      ORDER BY inbound_item_id DESC
+     LIMIT 1
+    </select>
 
-	<!-- 입고 항목 INSERT -->
-	<insert id="insertMaterialInboundItem" parameterType="MaterialInboundItemVO">
-	  INSERT INTO material_inbound_item (inbound_id, order_item_id, material_id, quantity)
-	  VALUES (#{inboundId}, #{orderItemId}, #{materialId}, 0)
-	</insert>
+	<!-- 입고 항목 등록 (수정된 버전) -->
+	<insert id="insertMaterialInboundItem" parameterType="com.itwillbs.domain.MaterialInboundItemVO">
+	    INSERT INTO material_inbound_item (
+	      inbound_item_id,
+	      inbound_id,
+	      order_item_id,
+	      material_id,
+	      order_quantity,
+	      quantity,
+	      inbound_status,
+	      created_date,
+	      updated_date
+	    ) VALUES (
+	      #{inboundItemId},
+	      #{inboundId},
+	      #{orderItemId},
+	      #{materialId},
+	      #{orderQuantity},
+	      #{quantity},
+	      #{inboundStatus},
+	      NOW(),
+	      NOW()
+	    )
+	  </insert>
 
-	<!-- Mapper에 추가 -->
-	<select id="getUnreceivedOrderItemsByOrderId" resultType="MaterialOrderItemVO">
-	  SELECT oi.order_item_id, oi.order_id, oi.material_id, oi.order_quantity
-	  FROM material_order_item oi
-	  JOIN material_order mo ON oi.order_id = mo.order_id
-	  LEFT JOIN material_inbound_item mii ON oi.order_item_id = mii.order_item_id
-	  WHERE mo.order_status = '승인' 
-	    AND mii.order_item_id IS NULL
-	    AND oi.order_id = #{orderId}
+	<!-- 특정 발주의 미입고 항목 조회 -->
+	<select id="getUnreceivedOrderItemsByOrderId" parameterType="String" 
+	        resultType="com.itwillbs.domain.MaterialOrderItemVO">
+	    SELECT 
+	        moi.order_item_id,
+	        moi.order_id,
+	        moi.material_id,
+	        moi.order_quantity,
+	        m.material_name,
+	        m.unit_price
+	    FROM material_order_item moi
+	    JOIN material m ON moi.material_id = m.material_id
+	    LEFT JOIN material_inbound_item mii ON moi.order_item_id = mii.order_item_id
+	    WHERE moi.order_id = #{orderId}
+	    AND mii.order_item_id IS NULL  <!-- 아직 입고되지 않은 항목만 -->
 	</select>
+	
+	
+	
+	<!-- 입고ID로 자재 항목 조회 -->
+	<select id="getInboundItemsByInboundId" parameterType="string" resultType="com.itwillbs.domain.MaterialInboundItemVO">
+	     SELECT 
+		    ii.inbound_item_id,
+		    ii.inbound_id,
+		    ii.material_id,
+		    m.material_name,
+		    ii.order_quantity,
+		    ii.quantity,
+		    ii.warehouse_code,
+		    ii.lot_no,
+		    ii.expiration_date,
+		    ii.unit_price,
+		    ii.total_price,
+		    ii.inbound_status
+		  FROM material_inbound_item ii
+		  JOIN material m ON ii.material_id = m.material_id
+		  WHERE ii.inbound_id = #{inboundId}
+	</select>
+	
+	<!-- 입고 완료 처리 -->
+	<update id="updateInboundStatusCompleted" parameterType="string">
+	    UPDATE material_inbound
+	    SET inbound_status = '입고완료',
+	        inbound_date = NOW()
+	    WHERE inbound_id = #{inboundId}
+	</update>
+	
+	
+	
+	
+	<!-- [1] 입고 상세 항목 업데이트 -->
+	<update id="updateInboundItem" parameterType="com.itwillbs.dto.MaterialInboundItemDTO">
+	  UPDATE material_inbound_item
+	  SET lot_no = #{lotNo},
+	      expiration_date = #{expirationDate},
+	      quantity = #{quantity},
+	      warehouse_code = #{warehouseCode},
+	      inbound_status = '입고완료',
+	      lot_created_date = NOW()
+	  WHERE inbound_id = #{inboundId}
+	    AND material_id = #{materialId}
+	</update>
+	
+	<!-- [2] 재고 존재 여부 확인 -->
+	<select id="checkInventoryExists" resultType="int">
+	  SELECT COUNT(*) FROM material_inventory
+	  WHERE material_id = #{materialId}
+	    AND warehouse_code = #{warehouseCode}
+	</select>
+	
+	<!-- [3] 재고 수량 업데이트 -->
+	<update id="updateInventoryQuantity">
+	  UPDATE material_inventory
+	  SET quantity = quantity + #{quantity}
+	  WHERE material_id = #{materialId}
+	    AND warehouse_code = #{warehouseCode}
+	</update>
+	
+	<!-- [4] 재고 신규 삽입 -->
+	<insert id="insertInventory">
+	  INSERT INTO material_inventory (material_id, warehouse_code, quantity)
+	  VALUES (#{materialId}, #{warehouseCode}, #{quantity})
+	</insert>
+	
+	<!-- [5] 입고 마스터 상태 및 입고일 갱신 -->
+	<update id="updateInboundMasterStatus">
+	  UPDATE material_inbound
+	  SET inbound_date = NOW(),
+	      inbound_status = (
+	        SELECT
+	          CASE
+	            WHEN SUM(i.order_qty) = SUM(i.quantity) THEN '입고완료'
+	            WHEN SUM(i.quantity) = 0 THEN '미입고'
+	            ELSE '부분입고'
+	          END
+	        FROM material_inbound_item i
+	        WHERE i.inbound_id = #{inboundId}
+	      )
+	  WHERE inbound_id = #{inboundId}
+	</update>
+	
+	
+	<update id="markItemAsReceived">
+	  UPDATE material_inbound_item
+	  SET inbound_status = '입고완료',
+	      lot_created_date = NOW()
+	  WHERE inbound_item_id = #{inboundItemId}
+	</update>
+	
+	
 
 
 </mapper>
