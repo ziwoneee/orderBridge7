@@ -105,6 +105,14 @@
   SELECT DISTINCT cl_order_id FROM stock_reservation
 </select>
 
+<!-- 수주번호 기준 예약 수 카운트 -->
+<select id="countReservationsByOrderId" parameterType="String" resultType="int">
+  SELECT COUNT(*) 
+  FROM stock_reservation 
+  WHERE cl_order_id = #{clOrderId}
+</select>
+
+
   
 
 </mapper>
