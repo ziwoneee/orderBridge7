@@ -258,7 +258,7 @@
                             <c:if test="${daysDiff <= 2 && daysDiff >= 0}">
                               <span class="badge badge-warning badge-pill">D-${Math.ceil(daysDiff)}</span>
                             </c:if>
-                            <c:if test="${daysDiff < 0}">
+                            <c:if test="${daysDiff < 0 && inbound.status ne '입고완료'}">
                               <span class="badge badge-danger badge-pill">지연</span>
                             </c:if>
                           </c:if>
