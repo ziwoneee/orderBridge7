@@ -30,7 +30,7 @@ public interface ProductStockDAO {
 
   // ✅ LOT 번호로 입출고 이력 조회
      List<ProductStockTransactionVO> getLotHistoryByLot(String lotNo);
-
+     ProductStockVO getLotSummary(String lotNo);
      
      void insertTransaction(ProductStockTransactionVO tx);
 
@@ -38,6 +38,15 @@ public interface ProductStockDAO {
      void increaseReservedQty(String productId, String lotNo, int qty);
 
      void decreaseReservedQty(String productId, String lotNo, int qty);
+	
+     
+     void insertTransaction(String type, String lotNo, int qty, String productId, String clientId, String manager);
+	 
+     void insertOrUpdateStock(Map<String, Object> param);
+     
+	void decreaseStockQty(Map<String, Object> stockParam);
+
+
 	
 
 

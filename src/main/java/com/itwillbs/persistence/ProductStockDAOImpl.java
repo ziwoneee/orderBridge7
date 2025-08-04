@@ -1,5 +1,6 @@
 package com.itwillbs.persistence;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,11 @@ public class ProductStockDAOImpl implements ProductStockDAO {
     @Autowired
     private SqlSession sqlSession;
     
+    @Autowired
+    private ProductStockDAO productStockDAO;
+
+    
+       
     private static final String NAMESPACE = "com.itwillbs.mapper.ProductStockMapper";
 
     
@@ -76,11 +82,38 @@ public class ProductStockDAOImpl implements ProductStockDAO {
         return sqlSession.selectList(NAMESPACE + ".getLotHistoryByLot", lotNo);
     }
     
+    @Override
+    public ProductStockVO getLotSummary(String lotNo) {
+        return sqlSession.selectOne(NAMESPACE + ".getLotSummary", lotNo);
+    }
+    
     //재고 저장
     @Override
-    public void insertTransaction(ProductStockTransactionVO tx) {
-        sqlSession.insert("com.itwillbs.mapper.ProductStockMapper.insertTransaction", tx);
+    public void insertTransaction(String type, String lotNo, int qty, String productId, String clientId, String manager) {
+        ProductStockTransactionVO tx = new ProductStockTransactionVO();
+        tx.setType(type);
+        tx.setLotNo(lotNo);
+        tx.setQty(qty);
+        tx.setProductId(productId);
+        tx.setClientId(clientId);
+        tx.setManager(manager);
+        tx.setRegDate(new Date());
+        
+        productStockDAO.insertTransaction(tx);
+
+        // ✅ product_stock 테이블 업데이트
+        Map<String, Object> stockParam = new HashMap<>();
+        stockParam.put("productId", productId);
+        stockParam.put("lotNo", lotNo);
+        stockParam.put("qty", qty);
+
+        if ("입고".equals(type)) {
+            productStockDAO.insertOrUpdateStock(stockParam); // 아래에 Mapper 예시 나옵니다
+        } else if ("출고".equals(type)) {
+            productStockDAO.decreaseStockQty(stockParam);
+        }
     }
+
 
     
     //예약시 수량 증감
@@ -101,6 +134,25 @@ public class ProductStockDAOImpl implements ProductStockDAO {
         param.put("qty", qty);
         sqlSession.update(NAMESPACE + ".decreaseReservedQty", param);
     }
+    
+    @Override
+    public void insertOrUpdateStock(Map<String, Object> param) {
+        sqlSession.insert(NAMESPACE + ".insertOrUpdateStock", param);
+    }
+
+    @Override
+    public void insertTransaction(ProductStockTransactionVO tx) {
+        sqlSession.insert(NAMESPACE + ".insertTransaction", tx);
+    }
+
+
+    @Override
+    public void decreaseStockQty(Map<String, Object> stockParam) {
+        sqlSession.update(NAMESPACE + ".decreaseStockQty", stockParam);
+    }
+
+
+
 
 
     

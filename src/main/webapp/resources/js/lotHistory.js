@@ -40,6 +40,8 @@ function openLotHistoryModal(lotNo, productId) {
     data: { lot: lotNo },  // ✅ product 파라미터 제거
     success: function (response) {
       console.log("✅ 서버 응답:", response);
+      console.log("✅ 유통기한 확인:", response.expireDate);
+
 
       $('#modal-lot-no').text(lotNo);
       $('#modal-product-name').text(productId || '-'); // 화면 표시용

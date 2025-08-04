@@ -155,18 +155,21 @@
 
   <!-- ✅ 3. 입고 시: 있으면 +, 없으면 INSERT -->
   <insert id="upsertStockQty">
-    INSERT INTO product_stock (product_id, lot_no, stock_qty, safe_qty, reg_date)
-    VALUES (#{productId}, #{lotNo}, #{qty}, 50, NOW())
-    ON DUPLICATE KEY UPDATE
-      stock_qty = stock_qty + #{qty}
-  </insert>
+  INSERT INTO product_stock (product_id, lot_no, stock_qty, safe_qty, reg_date, expire_date)
+  VALUES (#{productId}, #{lotNo}, #{qty}, 50, NOW(), #{expireDate})
+  ON DUPLICATE KEY UPDATE
+    stock_qty = stock_qty + #{qty},
+    expire_date = #{expireDate}
+</insert>
+
 
   <!-- ✅ 4. 출고 시: 수량 감소 (음수 방지) -->
   <update id="decreaseStockQty">
-    UPDATE product_stock
-    SET stock_qty = GREATEST(stock_qty - #{qty}, 0)
-    WHERE product_id = #{productId} AND lot_no = #{lotNo}
-  </update>
+  UPDATE product_stock
+  SET stock_qty = GREATEST(stock_qty - #{qty}, 0)
+  WHERE product_id = #{productId} AND lot_no = #{lotNo}
+</update>
+
 
   <!-- ✅ 5. 입출고 내역 모달 조회 -->
 <!-- 입고 + 출고 내역을 하나로 조회하는 쿼리 -->
@@ -261,20 +264,93 @@
 </insert>
   
   
-  <!-- 예약시 수량 증감 -->
-  <update id="increaseReservedQty" parameterType="map">
+ <!-- 예약 수량 증가 -->
+<update id="increaseReservedQty" parameterType="map">
   UPDATE product_stock
-  SET reserved_qty = reserved_qty + #{qty},
-      available_qty = available_qty - #{qty}
+  SET
+    reserved_qty = reserved_qty + #{qty},
+    available_qty = GREATEST(available_qty - #{qty}, 0)
   WHERE product_id = #{productId} AND lot_no = #{lotNo}
 </update>
 
+<!-- 예약 수량 감소 (예약 해지) -->
 <update id="decreaseReservedQty" parameterType="map">
   UPDATE product_stock
-  SET reserved_qty = reserved_qty - #{qty},
-      available_qty = available_qty + #{qty}
+  SET
+    reserved_qty = GREATEST(reserved_qty - #{qty}, 0),
+    available_qty = stock_qty - GREATEST(reserved_qty - #{qty}, 0)
   WHERE product_id = #{productId} AND lot_no = #{lotNo}
 </update>
-  
+
+
+<resultMap id="LotSummaryMap" type="com.itwillbs.domain.ProductStockVO">
+  <result property="productId" column="product_id"/>
+  <result property="productName" column="product_name"/>
+  <result property="lotNo" column="lot_no"/>
+  <result property="regDate" column="reg_date"/>
+  <result property="expireDate" column="expire_date"/>
+  <result property="stockQty" column="stock_qty"/>
+  <result property="reservedQty" column="reserved_qty"/>
+  <result property="availableQty" column="available_qty"/>
+
+  <collection property="transactions" ofType="com.itwillbs.domain.ProductStockTransactionVO">
+    <result property="type" column="type"/>
+    <result property="qty" column="qty"/>
+    <result property="regDate" column="transaction_date"/>
+    <result property="remark" column="remark"/>
+    <result property="clientName" column="client_name"/>
+  </collection>
+</resultMap>
+
+
+<!-- LOT별 수치 요약 + 입출고 이력 포함 -->
+<select id="getLotSummary" parameterType="String" resultMap="LotSummaryMap">
+  SELECT 
+    ps.product_id,
+    p.product_name,                     <!-- ✅ 조인해서 가져오기 -->
+    ps.lot_no,
+    ps.reg_date,
+    ps.expire_date,
+    ps.stock_qty,
+    ps.reserved_qty,
+    ps.available_qty,
+    pt.type,
+    pt.qty,
+    pt.reg_date AS transaction_date,
+    pt.remark,
+    c.client_name
+  FROM product_stock ps
+  LEFT JOIN product_transaction pt ON ps.lot_no = pt.lot_no
+  LEFT JOIN client c ON pt.client_id = c.client_id
+  LEFT JOIN product p ON ps.product_id = p.product_id   <!-- ✅ product_name 조인 -->
+  WHERE ps.lot_no = #{lotNo}
+</select>
+
+
+
+<!-- 입출고 이력 매핑 -->
+<resultMap id="ProductStockMap" type="com.itwillbs.domain.ProductStockVO">
+  <id property="lotNo" column="lot_no"/>
+  <result property="productId" column="product_id"/>
+  <result property="productName" column="product_name"/>
+  <result property="unit" column="unit"/>
+  <result property="stockQty" column="stock_qty"/>
+  <result property="safeQty" column="safe_qty"/>
+  <result property="regDate" column="reg_date"/>
+  <result property="expireDate" column="expire_date"/>
+  <result property="reservedQty" column="reserved_qty"/>
+  <result property="availableQty" column="available_qty"/>
+
+  <!-- ✅ 입출고 이력 리스트 join 결과 매핑 -->
+  <collection property="transactions" ofType="com.itwillbs.domain.ProductStockTransactionVO">
+    <result property="type" column="type"/>
+    <result property="qty" column="qty"/>
+    <result property="regDate" column="transaction_date"/>
+    <result property="memo" column="remark"/>
+  </collection>
+</resultMap>
+
+
+ 
 
 </mapper>

@@ -152,13 +152,28 @@
 
       <!-- 상단 요약 -->
       <div class="modal-body">
-        <div class="row mb-3">
-          <div class="col-md-6"><strong>입고량:</strong> <span id="modal-inboundQty"></span></div>
-          <div class="col-md-6"><strong>총 출고량:</strong> <span id="modal-totalOutboundQty"></span></div>
-          <div class="col-md-6"><strong>예약 수량:</strong> <span id="modal-reservedQty"></span></div>
-          <div class="col-md-6"><strong>가용 수량:</strong> <span id="modal-availableQty"></span></div>
-          <div class="col-md-6"><strong>유통기한:</strong> <span id="modal-expireDate"></span></div>
-        </div>
+  <table class="table table-bordered table-sm">
+    <tbody>
+      <tr>
+        <th class="bg-light">입고량</th>
+        <td><span id="modal-inboundQty">-</span></td>
+        <th class="bg-light">총 출고량</th>
+        <td><span id="modal-totalOutboundQty">-</span></td>
+      </tr>
+      <tr>
+        <th class="bg-light">예약 수량</th>
+        <td><span id="modal-reservedQty">-</span></td>
+        <th class="bg-light">가용 수량</th>
+        <td><span id="modal-availableQty">-</span></td>
+      </tr>
+      <tr>
+        <th class="bg-light">유통기한</th>
+        <td colspan="3"><span id="modal-expireDate">-</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
 
         <!-- 하단 테이블 -->
         <table class="table table-bordered text-center">

@@ -25,5 +25,7 @@ public interface ProductStockService {
        //재고저장
        void insertTransaction(String type, String lotNo, int qty, String productId, String clientId, String manager);
 
-       
+       //
+       ProductStockVO getLotSummary(String lotNo);
+
 }

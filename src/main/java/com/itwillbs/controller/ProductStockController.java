@@ -3,7 +3,9 @@ package com.itwillbs.controller;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -66,10 +68,33 @@ public class ProductStockController {
     // ✅ 모달 상세 내역
     @GetMapping("/product/transaction")
     @ResponseBody
-    public List<ProductStockTransactionVO> getStockDetail(@RequestParam("lot") String lotNo) {
-        System.out.println("받은 lotNo : " + lotNo);
-        return productStockService.getStockDetailByLot(lotNo);
+    public Map<String, Object> getStockDetail(@RequestParam("lot") String lotNo) {
+        Map<String, Object> result = new HashMap<>();
+
+        // 1. 입출고/예약 이력
+        List<ProductStockTransactionVO> history = productStockService.getStockDetailByLot(lotNo);
+        result.put("history", history);
+
+        // 2. 상단에 표시할 LOT별 수치 정보
+        ProductStockVO summary = productStockService.getLotSummary(lotNo);
+        if (summary != null) {
+            result.put("inboundQty", summary.getInboundQty());
+            result.put("totalOutboundQty", summary.getOutboundQty());
+            result.put("reservedQty", summary.getReservedQty());
+            result.put("availableQty", summary.getAvailableQty());
+            result.put("expireDate", summary.getExpireDate());
+        } else {
+            // 기본값 처리
+            result.put("inboundQty", 0);
+            result.put("totalOutboundQty", 0);
+            result.put("reservedQty", 0);
+            result.put("availableQty", 0);
+            result.put("expireDate", null);
+        }
+
+        return result;
     }
+
 
 
     

@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 
 import lombok.Data;
+import com.itwillbs.domain.ProductStockTransactionVO; 
 
 @Data
 public class ProductStockVO {
@@ -21,15 +22,27 @@ public class ProductStockVO {
 
     
  // ✅ 입출고 상세내역 포함
-    private List<StockTransaction> transactions;
+ // ✅ 리팩토링 후
+    private List<ProductStockTransactionVO> transactions;
 
-    @Data
-    public static class StockTransaction {
-        private Date regDate;  // 등록일
-        private String type;   // '입고' or '출고'
-        private int qty;       // 수량
-        private String memo;   // 비고
+       
+    public int getInboundQty() {
+        if (transactions == null) return 0;
+        return transactions.stream()
+                .filter(t -> "입고".equals(t.getType()))
+                .mapToInt(ProductStockTransactionVO::getQty)
+                .sum();
     }
+
+    public int getOutboundQty() {
+        if (transactions == null) return 0;
+        return transactions.stream()
+                .filter(t -> "출고".equals(t.getType()))
+                .mapToInt(ProductStockTransactionVO::getQty)
+                .sum();
+    }
+
+    
     
     
 }
