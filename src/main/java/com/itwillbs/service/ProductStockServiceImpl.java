@@ -78,5 +78,11 @@ public class ProductStockServiceImpl implements ProductStockService {
     }
 
 
+    //
+    @Override
+    public ProductStockVO getLotSummary(String lotNo) {
+        return productStockDAO.getLotSummary(lotNo);
+    }
+
     
 }
