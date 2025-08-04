@@ -18,10 +18,13 @@ public class MaterialInboundItemVO {
     private String warehouseCode;      // 보관 창고 코드 (예: WH001)
     private Date supplyDueDate;        // 납기일 (실제 납품 예정일)
     private String inboundStatus;      // 진행상태 (미입고, 입고완료 등)
+    private int orderQuantity;		   // 발주수량 (미입고 여부 판단 가능)
+    
+    private Date createdDate;
+    private Date updatedDate;
     
     // 화면 출력용 필드
     private String orderItemId;
     private int receivedQuantity;
-    private int orderQuantity;
 
 }

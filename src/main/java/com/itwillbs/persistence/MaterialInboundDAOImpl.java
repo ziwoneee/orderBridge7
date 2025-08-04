@@ -91,5 +91,14 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
 	public List<MaterialOrderItemVO> getUnreceivedOrderItemsByOrderId(String orderId) {
 	    return sqlSession.selectList(NAMESPACE + "getUnreceivedOrderItemsByOrderId", orderId);
 	}
+	
+	// inbound_item_id 자동 생성용
+	@Override
+	public String getLatestInboundItemId(String prefix) {
+	    return sqlSession.selectOne(NAMESPACE + "getLatestInboundItemId", prefix);
+	}
 
+
+	
+	
 }

@@ -113,22 +113,26 @@
 	<!-- 미입고 발주 목록 조회 - 페이징 처리 -->
 	<select id="selectUnreceivedOrdersPaging" parameterType="com.itwillbs.domain.SearchCriteria"
         resultType="com.itwillbs.dto.UnreceivedOrderDTO">
-	    SELECT 
-	        mo.order_id,
-	        mo.supplier_id,
-	        mo.expected_arrived_date,
-	        mo.handled_by,
-	        GROUP_CONCAT(m.material_name SEPARATOR ', ') as material_names,
-	        SUM(moi.order_quantity) as total_order_quantity
-	    FROM material_order mo
-	    JOIN material_order_item moi ON mo.order_id = moi.order_id
-	    JOIN material m ON moi.material_id = m.material_id
-	    LEFT JOIN material_inbound_item mii ON moi.order_item_id = mii.order_item_id
-	    WHERE mo.order_status = '승인'
-	    AND mii.order_item_id IS NULL  <!-- 아직 입고되지 않은 발주만 -->
-	    GROUP BY mo.order_id, mo.supplier_id, mo.expected_arrived_date, mo.handled_by
-	    ORDER BY mo.order_id DESC
-	    LIMIT #{startRow}, #{perPageNum}
+	   SELECT 
+		  mo.order_id,
+		  mo.supplier_id,
+		  mo.expected_arrived_date,
+		  mo.created_by AS handled_by,
+		  GROUP_CONCAT(m.material_name SEPARATOR ', ') as material_names,
+		  SUM(moi.order_quantity) as total_order_quantity
+		FROM material_order mo
+		JOIN material_order_item moi ON mo.order_id = moi.order_id
+		JOIN material m ON moi.material_id = m.material_id
+		LEFT JOIN material_inbound_item mii ON moi.order_item_id = mii.order_item_id
+		WHERE mo.order_status = '승인'
+		  AND mii.order_item_id IS NULL
+		GROUP BY 
+		  mo.order_id,
+		  mo.supplier_id,
+		  mo.expected_arrived_date,
+		  mo.created_by    
+		ORDER BY mo.order_id DESC
+		LIMIT 0, 10
 	</select>
 
 
@@ -144,7 +148,7 @@
 
 
 	<!-- 아직 입고되지 않은 발주 항목 조회 (발주 상태 조건 추가) -->
-	<select id="selectUnreceivedOrderItems" resultType="MaterialOrderItemVO">
+	<select id="selectUnreceivedOrderItems" resultType="com.itwillbs.domain.MaterialOrderItemVO">
 	  SELECT oi.order_item_id, oi.order_id, oi.material_id, oi.order_quantity
 	  FROM material_order_item oi
 	  JOIN material_order mo ON oi.order_id = mo.order_id
@@ -156,21 +160,13 @@
 
 	<!-- 입고관리번호 자동 생성 (오늘 날짜 기준으로 증가) -->
 	<select id="generateInboundId" resultType="String">
-	    SELECT CONCAT('IN-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-', 
-	           LPAD(COALESCE(MAX(CAST(SUBSTRING(inbound_id, 15) AS UNSIGNED)), 0) + 1, 3, '0'))
-	    FROM material_inbound 
-	    WHERE inbound_id LIKE CONCAT('IN-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-%')
+	  SELECT CONCAT('IN-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-', 
+	         LPAD(COALESCE(MAX(CAST(SUBSTRING_INDEX(inbound_id, '-', -1) AS UNSIGNED)), 0) + 1, 3, '0'))
+	  FROM material_inbound 
+	  WHERE inbound_id LIKE CONCAT('IN-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-%')
 	</select>
 	
 	
-	<!-- 입고 항목 ID 자동 생성 -->
-	<select id="generateInboundItemId" resultType="String">
-	    SELECT CONCAT('II-', DATE_FORMAT(NOW(), '%Y%m%d'), '-', 
-	           LPAD(COALESCE(MAX(CAST(SUBSTRING(inbound_item_id, 12) AS UNSIGNED)), 0) + 1, 3, '0'))
-	    FROM material_inbound_item 
-	    WHERE inbound_item_id LIKE CONCAT('II-', DATE_FORMAT(NOW(), '%Y%m%d'), '-%')
-	</select>
-
 
 	<!-- 입고 마스터 INSERT -->
 	<insert id="insertMaterialInbound" parameterType="com.itwillbs.domain.MaterialInboundVO">
@@ -192,29 +188,40 @@
 	        NOW()
 	    )
 	</insert>
+	
+    <!-- inbound_item_id 자동 생성: 날짜 기반 + 일련번호 방식 -->
+    <select id="getLatestInboundItemId" parameterType="String" resultType="String">
+      SELECT inbound_item_id
+      FROM material_inbound_item
+      WHERE inbound_item_id LIKE CONCAT(#{prefix}, '%')
+      ORDER BY inbound_item_id DESC
+     LIMIT 1
+    </select>
 
 	<!-- 입고 항목 등록 (수정된 버전) -->
 	<insert id="insertMaterialInboundItem" parameterType="com.itwillbs.domain.MaterialInboundItemVO">
 	    INSERT INTO material_inbound_item (
-	        inbound_item_id,
-	        inbound_id,
-	        order_item_id,
-	        material_id,
-	        order_quantity,
-	        received_quantity,
-	        created_date,
-	        updated_date
+	      inbound_item_id,
+	      inbound_id,
+	      order_item_id,
+	      material_id,
+	      order_quantity,
+	      quantity,
+	      inbound_status,
+	      created_date,
+	      updated_date
 	    ) VALUES (
-	        #{inboundItemId},
-	        #{inboundId},
-	        #{orderItemId},
-	        #{materialId},
-	        #{orderQuantity},
-	        #{receivedQuantity},
-	        NOW(),
-	        NOW()
+	      #{inboundItemId},
+	      #{inboundId},
+	      #{orderItemId},
+	      #{materialId},
+	      #{orderQuantity},
+	      #{quantity},
+	      #{inboundStatus},
+	      NOW(),
+	      NOW()
 	    )
-	</insert>
+	  </insert>
 
 	<!-- 특정 발주의 미입고 항목 조회 -->
 	<select id="getUnreceivedOrderItemsByOrderId" parameterType="String" 

@@ -12,5 +12,7 @@ public class MaterialInboundVO {
     private String handledBy;         // 입고 담당자 (입고 처리자 이름 또는 ID)
     private String inboundStatus; 	  // 입고 상태
     private String note;              // 비고 (비고 또는 특이사항)
+    private Date createdDate;
+    private Date updatedDate;
 
 }

@@ -87,8 +87,8 @@ function loadUnreceivedOrders(page = 1) {
     method: 'GET',
     dataType: 'json',
     data: {
-        page: page,
-        perPageNum: 10
+        page: page,           // page로 수정 (기존: page)
+        perPageNum: 10       // perPageNum로 수정 (기존: perPageNum)
     },
     success: function(data) {
       console.log('응답 데이터:', data);
@@ -113,7 +113,7 @@ function loadUnreceivedOrders(page = 1) {
   });
 }
 
-/* [4] 미입고 발주 테이블 렌더링 */
+/* [4] 미입고 발주 테이블 렌더링 - 수정된 버전 */
 function renderUnreceivedOrders(orderList) {
   console.log('렌더링할 주문 목록:', orderList);
   
@@ -164,13 +164,13 @@ function renderUnreceivedOrders(orderList) {
         <input type="checkbox" name="selectedOrders" value="${order.orderId}" class="order-checkbox">
       </td>
       <td class="font-weight-medium">${order.orderId}</td>
-      <td>${order.materialName || '-'}</td>
-      <td class="text-end">${order.totalQuantity.toLocaleString() || 0}</td>
+      <td>${order.materialNames || order.materialName || '-'}</td>
+      <td class="text-end">${(order.totalOrderQuantity || order.totalQuantity || 0).toLocaleString()}</td>
       <td>
         ${formatTimestamp(order.expectedArrivedDate)}
         ${calculateDDay(order.expectedArrivedDate)}
       </td>
-      <td>${order.createdBy || '-'}</td>
+      <td>${order.handledBy || order.createdBy || '-'}</td>
       <td>
         <button class="btn btn-sm btn-outline-info" onclick="viewOrderDetail('${order.orderId}')">
           상세보기
@@ -231,11 +231,18 @@ function toggleAllCheckboxes(checkAllBox) {
   });
 }
 
-/* [8] 선택된 발주 입고등록 */
+/* [8] 선택된 발주 입고등록 - 수정된 버전 */
 function registerSelectedOrders() {
   const selectedOrders = [];
+  const addedIds = {}; // 중복 체크를 위한 객체 (HashMap 대신)
+  
   document.querySelectorAll('input[name="selectedOrders"]:checked').forEach(checkbox => {
-    selectedOrders.push(checkbox.value);
+    const orderId = checkbox.value;
+    // 중복 체크 (이미 추가된 ID가 아닌 경우만 추가)
+    if (orderId && !addedIds[orderId]) {
+      selectedOrders.push(orderId);
+      addedIds[orderId] = true;
+    }
   });
 
   if (selectedOrders.length === 0) {
@@ -246,6 +253,11 @@ function registerSelectedOrders() {
   if (!confirm(`선택된 ${selectedOrders.length}건의 발주를 입고등록하시겠습니까?`)) {
     return;
   }
+
+  // 버튼 비활성화 및 로딩 표시
+  const button = $('#btn-insert-unreceived');
+  const originalText = button.html();
+  button.html('<i class="ti-reload"></i> 처리중...').prop('disabled', true);
 
   $.ajax({
     type: 'POST',
@@ -259,6 +271,10 @@ function registerSelectedOrders() {
     error: function(xhr, status, error) {
       console.error('입고등록 실패:', xhr.responseText);
       alert('입고등록 중 오류가 발생했습니다.\n' + xhr.responseText);
+    },
+    complete: function() {
+      // 버튼 상태 복원
+      button.html(originalText).prop('disabled', false);
     }
   });
 }
