@@ -288,3 +288,72 @@ $(document).ready(function() {
   
   console.log('materialInbound.js 로드 완료');
 });
+
+
+
+
+
+
+//입고처리 버튼 클릭 시
+$('#btnSaveInbound').click(function () {
+	  const lotNo = $('#lotNo').val().trim();
+	  const expirationDate = $('#expirationDate').val().trim();
+	  const quantity = parseInt($('#quantity').val(), 10);
+	  const warehouseCode = $('#warehouseCode').val();
+	  const materialId = $('#materialId').val(); // <- 반드시 있어야 함
+	  const inboundId = $('#inboundId').text().trim();
+
+	  // 유효성 검사
+	  if (!lotNo) return alert('LOT 번호를 입력하거나 자동 생성해야 합니다.');
+	  if (!expirationDate) return alert('유통기한을 입력해주세요.');
+	  if (!quantity || quantity <= 0) return alert('입고 수량은 1 이상이어야 합니다.');
+	  if (!warehouseCode) return alert('창고를 선택해주세요.');
+	  if (!materialId) return alert('자재 ID가 없습니다.');
+
+	  // DTO 전송 데이터
+	  const inboundItemData = {
+	    inboundId: inboundId,
+	    materialId: materialId,
+	    lotNo: lotNo,
+	    expirationDate: expirationDate,
+	    quantity: quantity,
+	    warehouseCode: warehouseCode
+	  };
+
+	  // Ajax 전송
+	  $.ajax({
+	    url: '/material/inbound/item/process',
+	    type: 'POST',
+	    contentType: 'application/json',
+	    data: JSON.stringify(inboundItemData),
+	    success: function () {
+	      alert('입고 처리가 완료되었습니다.');
+	      $('#inboundDetailModal').modal('hide');
+	      location.reload();
+	    },
+	    error: function (xhr) {
+	      console.error('입고 처리 실패:', xhr.responseText);
+	      alert('입고 처리 중 오류가 발생했습니다.\n' + xhr.responseText);
+	    }
+	  });
+	});
+
+
+//입고 모달 열기 (자재 항목 정보 바인딩)
+function openInboundModal(item) {
+  // LOT번호 자동 생성 (예: LOT-RM-0011-4921)
+  const randomCode = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  const lotNo = `LOT-${item.materialId}-${randomCode}`;
+
+  // 모달에 값 세팅
+  $('#materialId').val(item.materialId); // 숨겨져 있을 수 있음
+  $('#materialName').val(item.materialName); // 자재명 readonly
+  $('#lotNo').val(lotNo); // 자동 생성
+  $('#expirationDate').val(item.expirationDate || ''); // 서버에서 온 값
+  $('#quantity').val(item.orderQuantity || 0); // 발주수량
+  $('#warehouseCode').val('WH001'); // 기본창고 선택 (예시)
+  $('#inboundId').val(item.inboundId); // 반드시 필요
+
+  $('#inboundModal').modal('show');
+}
+

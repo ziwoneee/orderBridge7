@@ -14,6 +14,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.MaterialInboundItemDTO;
 import com.itwillbs.dto.MaterialInboundSummaryDTO;
 import com.itwillbs.dto.UnreceivedOrderDTO;
 import com.itwillbs.service.MaterialInboundService;
@@ -124,12 +126,44 @@ public class MaterialInboundController {
 	}
 
 	
+	/**
+	 * [POST] 입고 처리 수행
+	 * - 조건: 해당 inboundId의 모든 자재가 입고 가능 조건을 만족해야 함
+	 * - 수행: 입고일 입력 + 상태 '입고완료'로 변경
+	 */
+	@PostMapping("/process")
+	@ResponseBody
+	public ResponseEntity<String> processInbound(@RequestParam("inboundId") String inboundId) {
+	    try {
+	        miService.processInbound(inboundId); // 서비스 호출
+	        return ResponseEntity.ok("입고 처리 완료");
+	    } catch (Exception e) {
+	        logger.error("입고 처리 중 오류 발생", e);
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                             .body("입고 처리 실패: " + e.getMessage());
+	    }
+	}
+
 	
-	
-	
-	
-	
-	
+	/**
+	 * [POST] 개별 자재 항목 입고 처리
+	 * - 조건: 자재 수량 > 0, LOT 번호, 유통기한, 창고 정보 필수
+	 * - 수행: material_inbound_item 상태 변경 + 재고 반영
+	 */
+	@PostMapping("/item/process")
+	@ResponseBody
+	public ResponseEntity<String> processInboundItem(@RequestBody MaterialInboundItemDTO dto) {
+	    try {
+	        // 서비스 계층 호출
+	        miService.processInboundItem(dto);
+	        return ResponseEntity.ok("입고처리 완료");
+	    } catch (Exception e) {
+	        logger.error("개별 입고처리 중 오류 발생", e);
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                             .body("입고처리 실패: " + e.getMessage());
+	    }
+	}
+
 	
 	
 	
