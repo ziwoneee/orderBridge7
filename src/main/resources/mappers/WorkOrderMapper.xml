@@ -6,7 +6,7 @@
 <mapper namespace="com.itwillbs.mapper.WorkOrderMapper">
 
     <!-- ================================================================== -->
-    <!-- 작업지시 목록 조회 (검색 + 정렬 + 페이징)                              -->
+    <!-- 작업지시 목록 조회 (검색 + 정렬 + 페이징)                          -->
     <!-- ================================================================== -->
     <select id="selectWorkOrderList" resultType="com.itwillbs.dto.WorkOrderDTO">
         SELECT
@@ -92,7 +92,7 @@
     </select>
 
     <!-- ================================================================== -->
-    <!-- 작업지시 전체 건수 조회 (페이징용)                                     -->
+    <!-- 작업지시 전체 건수 조회 (페이징용)                                 -->
     <!-- ================================================================== -->
     <select id="selectWorkOrderTotalCount" resultType="int">
         SELECT COUNT(*)
@@ -123,7 +123,7 @@
     </select>
 
     <!-- ================================================================== -->
-    <!-- 카운트 조회 쿼리들                                                    -->
+    <!-- 카운트 조회 쿼리들                                                 -->
     <!-- ================================================================== -->
     
     <!-- 전체 작업지시 개수 조회 -->
@@ -140,7 +140,7 @@
     </select>
 
     <!-- ================================================================== -->
-    <!-- 작업지시 상세 조회                                                   -->
+    <!-- 작업지시 상세 조회                                                 -->
     <!-- ================================================================== -->
     <select id="selectWorkOrderDetail" parameterType="string" resultType="com.itwillbs.dto.WorkOrderDTO">
         SELECT
@@ -182,7 +182,7 @@
     </select>
 
     <!-- ================================================================== -->
-    <!-- 확정 수주 목록 조회 (작업지시 등록용)                                  -->
+    <!-- 확정 수주 목록 조회 (작업지시 등록용)                              -->
     <!-- ================================================================== -->
     <select id="selectConfirmedOrders" resultType="com.itwillbs.dto.WorkOrderDTO">
         SELECT DISTINCT
@@ -259,7 +259,7 @@
     </select>
 
     <!-- ================================================================== -->
-    <!-- 수주번호 + 제품ID로 상세 조회                                         -->
+    <!-- 수주번호 + 제품ID로 상세 조회                                      -->
     <!-- ================================================================== -->
     <select id="getOrderDetail" resultType="com.itwillbs.dto.WorkOrderDTO">
         SELECT 
@@ -293,7 +293,7 @@
     </select>
 
     <!-- ================================================================== -->
-    <!-- BOM 조회 관련                                                       -->
+    <!-- BOM 조회 관련                                                      -->
     <!-- ================================================================== -->
     
     <!-- 제품ID로 ACTIVE한 BOM ID 가져오기 -->
@@ -320,7 +320,7 @@
     </select>
 
     <!-- ================================================================== -->
-    <!-- 작업지시 CUD 작업                                                   -->
+    <!-- 작업지시 CUD 작업                                                  -->
     <!-- ================================================================== -->
     
     <!-- 오늘 날짜의 작업지시 최대 순번 조회 (자동번호 생성용) -->
@@ -380,9 +380,35 @@
         DELETE FROM work_order 
         WHERE order_id = #{orderId}
     </delete>
+    
+    <!-- 작업지시 상세 조회 (작업지시번호 기준) -->
+	<select id="getWorkOrderDetail" resultType="com.itwillbs.dto.WorkOrderDTO">
+		  SELECT 
+		    wo.order_id,
+		    wo.cl_order_id,
+		    wo.product_id,
+		    p.product_name,
+		    p.unit,
+		    wo.line_id,
+		    pl.line_name,
+		    wo.order_qty,
+		    wo.priority,
+		    wo.status,
+		    wo.created_at,
+		    co.client_id,
+		    c.client_name,
+		    co.cl_order_date,
+		    co.cl_delivery_date AS due_date
+		  FROM work_order wo
+		  JOIN product p ON wo.product_id = p.product_id
+		  JOIN production_line pl ON wo.line_id = pl.line_id
+		  JOIN client_order co ON wo.cl_order_id = co.cl_order_id
+		  JOIN client c ON co.client_id = c.client_id
+		  WHERE wo.order_id = #{orderId}
+	</select>
 
     <!-- ================================================================== -->
-    <!-- 생산라인별 작업지시 목록 조회                                         -->
+    <!-- 생산라인별 작업지시 목록 조회                                      -->
     <!-- ================================================================== -->
     <select id="selectWorkOrdersByLine" parameterType="string" resultType="com.itwillbs.dto.WorkOrderDTO">
         SELECT

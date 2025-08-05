@@ -150,6 +150,49 @@ public class WorkOrderServiceImpl implements WorkOrderService {
             throw new RuntimeException("작업지시 상태 변경 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
+    
+    /**
+     * 작업지시 수정
+     * - 수량, 우선순위만 수정 가능
+     */
+    @Override
+    @Transactional
+    public void updateWorkOrder(WorkOrderDTO dto) {
+        log.info("작업지시 수정 요청 - ID: {}", dto.getOrderId());
+        try {
+            int result = workOrderMapper.updateWorkOrder(dto);
+            if (result > 0) {
+                log.info("작업지시 수정 성공 - ID: {}", dto.getOrderId());
+            } else {
+                log.warn("작업지시 수정 실패 - 해당 ID 없음: {}", dto.getOrderId());
+                throw new RuntimeException("해당 작업지시가 존재하지 않습니다.");
+            }
+        } catch (Exception e) {
+            log.error("작업지시 수정 중 오류", e);
+            throw new RuntimeException("작업지시 수정 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 작업지시 삭제
+     */
+    @Override
+    @Transactional
+    public void deleteWorkOrder(String orderId) {
+        log.info("작업지시 삭제 요청 - ID: {}", orderId);
+        try {
+            int result = workOrderMapper.deleteWorkOrder(orderId);
+            if (result > 0) {
+                log.info("작업지시 삭제 성공 - ID: {}", orderId);
+            } else {
+                log.warn("작업지시 삭제 실패 - ID 없음: {}", orderId);
+                throw new RuntimeException("해당 작업지시가 존재하지 않습니다.");
+            }
+        } catch (Exception e) {
+            log.error("작업지시 삭제 중 오류", e);
+            throw new RuntimeException("작업지시 삭제 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
 
     /**
      * 작업지시번호 자동 생성
