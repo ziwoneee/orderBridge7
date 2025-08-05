@@ -20,4 +20,7 @@ public class MaterialInboundItemDTO {
     private int orderQuantity;
     private String inboundStatus;
     
+    private int unitPrice;
+    private int totalPrice;
+
 }

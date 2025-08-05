@@ -63,7 +63,12 @@ public interface MaterialInboundDAO {
 
 	// 개별 항목 입고 상태 '입고완료' + LOT 생성일자 갱신
 	void markItemAsReceived(String inboundItemId) throws Exception;
+	
+	// 입고 마스터 조회
+	MaterialInboundVO getInboundMaster(String inboundId) throws Exception;
 
+	// 발주 정보 조회
+	MaterialOrderVO getOrderInfoByOrderId(String orderId) throws Exception;
 
 
 

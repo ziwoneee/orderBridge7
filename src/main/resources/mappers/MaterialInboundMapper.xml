@@ -258,8 +258,6 @@
 		    ii.warehouse_code,
 		    ii.lot_no,
 		    ii.expiration_date,
-		    ii.unit_price,
-		    ii.total_price,
 		    ii.inbound_status
 		  FROM material_inbound_item ii
 		  JOIN material m ON ii.material_id = m.material_id
@@ -286,6 +284,8 @@
 	      warehouse_code = #{warehouseCode},
 	      inbound_status = '입고완료',
 	      lot_created_date = NOW()
+	      unit_price = #{unitPrice},
+		  total_price = #{totalPrice},
 	  WHERE inbound_id = #{inboundId}
 	    AND material_id = #{materialId}
 	</update>
@@ -335,6 +335,31 @@
 	      lot_created_date = NOW()
 	  WHERE inbound_item_id = #{inboundItemId}
 	</update>
+	
+	
+	<!-- 입고 마스터 조회 -->
+	<select id="getInboundMaster" parameterType="string" resultType="com.itwillbs.domain.MaterialInboundVO">
+	  SELECT 
+	     i.inbound_id,
+	     i.order_id,
+	     i.inbound_status,
+	     i.handled_by,
+	     i.inbound_date,
+	     o.expected_arrived_date AS supply_due_date,
+	     o.order_date,
+	     o.supplier_id
+	  FROM material_inbound i
+	  LEFT JOIN material_order o ON i.order_id = o.order_id
+	  WHERE i.inbound_id = #{inboundId}
+	</select>
+	
+	<!-- 발주 정보 조회 -->
+	<select id="getOrderInfoByOrderId" parameterType="string" resultType="com.itwillbs.domain.MaterialOrderVO">
+	  SELECT *
+	  FROM material_order
+	  WHERE order_id = #{orderId}
+	</select>
+	
 	
 	
 

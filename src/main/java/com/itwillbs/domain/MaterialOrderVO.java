@@ -1,6 +1,5 @@
 package com.itwillbs.domain;
 
-import java.math.BigDecimal;
 import java.util.Date;
 import lombok.Data;
 
@@ -18,7 +17,7 @@ public class MaterialOrderVO {
 	// 화면 표시용 추가 필드들
     private String materialName;   			 // 대표 자재명
     private int totalQuantity;      		 // 총 수량
-    private BigDecimal totalPrice; 			 // 총 금액 (기존과 다른 의미로 사용)
+    private int totalPrice; 			 // 총 금액 (기존과 다른 의미로 사용)
     private String warehouseCode; 		     // 대표 입고창고
     
     // 입고

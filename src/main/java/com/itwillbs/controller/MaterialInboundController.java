@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.MaterialInboundDTO;
 import com.itwillbs.dto.MaterialInboundItemDTO;
 import com.itwillbs.dto.MaterialInboundSummaryDTO;
 import com.itwillbs.dto.UnreceivedOrderDTO;
@@ -168,26 +169,69 @@ public class MaterialInboundController {
 	}
 
 
-    /**
-     * LOT 번호 생성 API
-     * - 형식: LOT-자재ID-YYYYMMDD-랜덤3자리
-     * - 예시: LOT-RM-0001-20250804-123
-     */
-    @GetMapping("/generate-lot")
-    @ResponseBody
-    public String generateLotNumber(@RequestParam("materialId") String materialId) {
-    	 logger.debug("LOT 요청 materialId: {}", materialId);  // 디버깅 로그 추가
-    	
-        // 1. 오늘 날짜를 yyyyMMdd 형식으로 생성
-        String today = new SimpleDateFormat("yyyyMMdd").format(new Date());
+	/**
+	 * LOT 번호 생성 API (수정된 버전)
+	 * - 형식: LOT-자재ID-YYYYMMDD-랜덤3자리
+	 * - 예시: LOT-RM-0001-20250804-123
+	 */
+	@GetMapping("/generate-lot")
+	@ResponseBody
+	public ResponseEntity<String> generateLotNumber(@RequestParam("materialId") String materialId) {
+	    try {
+	        logger.debug("LOT 요청 materialId: {}", materialId);
+	        
+	        // 유효성 검사
+	        if (materialId == null || materialId.trim().isEmpty()) {
+	            return ResponseEntity.badRequest().body("자재 ID가 누락되었습니다.");
+	        }
+	        
+	        // 1. 오늘 날짜를 yyyyMMdd 형식으로 생성
+	        String today = new SimpleDateFormat("yyyyMMdd").format(new Date());
 
-        // 2. 랜덤 3자리 숫자 생성 (100~999)
-        int random = new Random().nextInt(900) + 100;
+	        // 2. 랜덤 3자리 숫자 생성 (100~999)
+	        int random = new Random().nextInt(900) + 100;
 
-        // 3. LOT번호 조합 및 반환
-        return "LOT-" + materialId + "-" + today + "-" + random;
-    }
+	        // 3. LOT번호 조합 및 반환
+	        String lotNumber = "LOT-" + materialId + "-" + today + "-" + random;
+	        
+	        logger.debug("생성된 LOT 번호: {}", lotNumber);
+	        
+	        return ResponseEntity.ok(lotNumber);
+	        
+	    } catch (Exception e) {
+	        logger.error("LOT 번호 생성 중 오류 발생", e);
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                           .body("LOT 번호 생성 실패: " + e.getMessage());
+	    }
+	}
 	
+	
+	
+	
+	/**
+	 * [GET] 입고 상세 조회 (입고ID 기준)
+	 * - 자재 항목 포함한 DTO 반환
+	 * - 호출 예: /material/inbound/detail?inboundId=IN-RM-20250804-001
+	 */
+	@GetMapping("/detail")
+	@ResponseBody
+	public ResponseEntity<?> getInboundDetail(@RequestParam("inboundId") String inboundId) {
+	    try {
+	        // 서비스 호출
+	        MaterialInboundDTO dto = miService.getInboundDetail(inboundId);
+
+	        if (dto == null) {
+	            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("입고 정보를 찾을 수 없습니다.");
+	        }
+
+	        return ResponseEntity.ok(dto);
+	    } catch (Exception e) {
+	        logger.error("입고 상세 조회 실패", e);
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                             .body("입고 상세 조회 실패: " + e.getMessage());
+	    }
+	}
+
 	
 	
 	

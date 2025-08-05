@@ -279,13 +279,13 @@
                         <td>
                           <c:if test="${inbound.status eq '미입고'}">
                             <button class="btn btn-outline-success btn-sm"
-                                    onclick="openInboundModal('${inbound.inboundId}', this)">
+                                    onclick="openInboundModal('${inbound.inboundId}')">
                               입고처리
                             </button>
                           </c:if>
                           <c:if test="${inbound.status eq '부분입고'}">
                             <button class="btn btn-outline-warning btn-sm"
-                                    onclick="openInboundModal('${inbound.inboundId}', this)">
+                                    onclick="showInboundDetail('${inbound.inboundId}')">
                               추가입고
                             </button>
                           </c:if>

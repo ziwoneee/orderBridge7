@@ -1,6 +1,5 @@
 package com.itwillbs.controller;
 
-import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -137,21 +136,21 @@ public class MaterialOrderController {
 	        throw new IllegalArgumentException("발주 항목이 없습니다.");
 	    }
 	    
-	    // ✅ 총금액 계산 (BigDecimal 안전하게 처리)
+	 // ✅ 총금액 계산 (int 기반)
 	    for (MaterialOrderItemVO item : itemList) {
 	        try {
-	            BigDecimal unitPrice = item.getUnitPrice();
+	            int unitPrice = item.getUnitPrice();
 	            int orderQuantity = item.getOrderQuantity();
-	            
-	            if (unitPrice != null && orderQuantity > 0) {
-	                BigDecimal total = unitPrice.multiply(new BigDecimal(orderQuantity));
+
+	            if (unitPrice > 0 && orderQuantity > 0) {
+	                int total = unitPrice * orderQuantity;
 	                item.setTotalPrice(total);
 	            } else {
-	                item.setTotalPrice(BigDecimal.ZERO);
+	                item.setTotalPrice(0);
 	            }
 	        } catch (Exception e) {
 	            logger.error("총금액 계산 오류: " + e.getMessage(), e);
-	            item.setTotalPrice(BigDecimal.ZERO);
+	            item.setTotalPrice(0);
 	        }
 	    }
 	    

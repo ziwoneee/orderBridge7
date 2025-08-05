@@ -14,5 +14,11 @@ public class MaterialInboundVO {
     private String note;              // 비고 (비고 또는 특이사항)
     private Date createdDate;
     private Date updatedDate;
+    
+    
+    private Date expectedArrivedDate;  // 예상입고일
+    private Date orderDate;            // 발주일자
+    private String supplierId;         // 거래처 ID
+
 
 }

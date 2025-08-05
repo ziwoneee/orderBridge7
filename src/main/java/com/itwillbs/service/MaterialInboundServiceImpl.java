@@ -19,6 +19,7 @@ import com.itwillbs.domain.MaterialInboundVO;
 import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.MaterialInboundDTO;
 import com.itwillbs.dto.MaterialInboundItemDTO;
 import com.itwillbs.dto.MaterialInboundSummaryDTO;
 import com.itwillbs.dto.UnreceivedOrderDTO;
@@ -160,6 +161,10 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
 	                    itemVO.setQuantity(0); // receivedQuantity → quantity
 	                    itemVO.setInboundStatus("미입고");
 
+	                    // 단가 및 총금액 추가
+	                    itemVO.setUnitPrice(item.getUnitPrice());
+	                    itemVO.setTotalPrice(0); // 초기에는 입고수량이 0이라 총금액도 0
+	                    
 	                    itemVO.setCreatedDate(new Date());
 	                    itemVO.setUpdatedDate(new Date());
 
@@ -235,7 +240,13 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
 
 	    // 2. 입고 상세 항목(inbound_item) 업데이트
 	    // - lot_no, expiration_date, quantity, warehouse_code, inbound_status, lot_created_date(now)
-	    miDAO.updateInboundItem(dto);  // Mapper에 update 쿼리 필요
+	    
+	    // 총금액 계산 추가
+	    int totalPrice = dto.getUnitPrice() * dto.getQuantity();
+	    dto.setTotalPrice(totalPrice);
+
+	    // ✅ 단가, 총금액 포함하여 업데이트 (Mapper에 해당 필드 포함해야 함)
+	    miDAO.updateInboundItem(dto);
 
 	    // 3. 재고(material_inventory) 반영
 	    // - 기존 재고 있으면 update, 없으면 insert
@@ -252,6 +263,37 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
 
 	    // 참고: 필요 시 로그 또는 LOT 이력 저장 등 추가 가능
 	}
+	
+	
+	
+	// 입고 상세 조회 (입고ID 기준)
+	@Override
+	public MaterialInboundDTO getInboundDetail(String inboundId) throws Exception {
+	    MaterialInboundDTO dto = new MaterialInboundDTO();
+
+	    // 1. 입고 마스터 정보 조회
+	    MaterialInboundVO inbound = miDAO.getInboundMaster(inboundId);
+	    if (inbound == null) return null;
+
+	    // 2. 발주 정보 추가 (예상입고일, 주문일자, 거래처)
+	    MaterialOrderVO order = miDAO.getOrderInfoByOrderId(inbound.getOrderId());
+	    if (order != null) {
+	        inbound.setExpectedArrivedDate(order.getExpectedArrivedDate()); // MaterialInboundVO에 필드 있으면
+	        inbound.setOrderDate(order.getOrderDate());
+	        inbound.setSupplierId(order.getSupplierId());
+	    }
+
+	    dto.setInbound(inbound); // ✅ 여기 핵심! VO 전체 주입
+
+	    // 3. 자재 항목 목록
+	    List<MaterialInboundItemVO> items = miDAO.getInboundItemsByInboundId(inboundId);
+	    dto.setInboundItems(items);
+
+	    return dto;
+	}
+
+
+	
 
 
 

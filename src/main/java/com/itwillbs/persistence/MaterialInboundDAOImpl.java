@@ -167,6 +167,18 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
 	    sqlSession.update(NAMESPACE + "markItemAsReceived", inboundItemId);
 	}
 
+	
+	// 입고 마스터 조회
+	@Override
+	public MaterialInboundVO getInboundMaster(String inboundId) {
+	    return sqlSession.selectOne(NAMESPACE + "getInboundMaster", inboundId);
+	}
+	
+	// 발주 정보 조회
+	@Override
+	public MaterialOrderVO getOrderInfoByOrderId(String orderId) {
+	    return sqlSession.selectOne(NAMESPACE + "getOrderInfoByOrderId", orderId);
+	}
 
 	
 	
