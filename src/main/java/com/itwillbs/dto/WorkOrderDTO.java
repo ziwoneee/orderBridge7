@@ -2,6 +2,7 @@ package com.itwillbs.dto;
 
 import java.util.Date;
 
+
 import org.springframework.format.annotation.DateTimeFormat;
 
 import lombok.Data;
@@ -44,5 +45,6 @@ public class WorkOrderDTO {
     private int availableQty;  	   // 가용 재고
     
     private String remarks; // 특이사항
+
 
 }

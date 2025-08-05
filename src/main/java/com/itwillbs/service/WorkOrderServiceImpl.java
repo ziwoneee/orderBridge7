@@ -4,11 +4,13 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.BomItemDTO;
 import com.itwillbs.dto.WorkOrderDTO;
 import com.itwillbs.mapper.WorkOrderMapper;
 
@@ -23,6 +25,7 @@ public class WorkOrderServiceImpl implements WorkOrderService {
 
     @Autowired
     private WorkOrderMapper workOrderMapper;
+
 
     /**
      * 작업지시 목록 조회 (검색, 페이징 포함)
@@ -177,9 +180,39 @@ public class WorkOrderServiceImpl implements WorkOrderService {
         }
     }
 
-    // 수주번호 + 제품ID로 상세 조회
+    /**
+     * 수주번호 + 제품ID로 상세 조회
+     */
     @Override
     public WorkOrderDTO getOrderDetail(String clOrderId, String productId) {
         return workOrderMapper.getOrderDetail(clOrderId, productId);
     }
+
+    /**
+     * BOM 기준 자재 소요량 계산
+     * - 제품 ID와 지시 수량을 기반으로
+     * - 1팩당 BOM 사용량 * 지시 수량 계산
+     * @param productId 제품 ID
+     * @param orderQty 지시 수량
+     * @return 자재ID, 자재명, 단위, 사용량 포함된 리스트
+     */
+    @Override
+    public List<BomItemDTO> calculateMaterialUsage(String productId, int orderQty) {
+        log.debug(" BOM 자재 계산 - productId={}, orderQty={}", productId, orderQty);
+
+        // 1단계: 제품 ID로 활성화된 BOM ID 조회
+        String bomId = workOrderMapper.getActiveBomIdByProductId(productId);
+        log.debug(" 조회된 활성 BOM ID: {}", bomId);
+
+        if (bomId == null) {
+            log.warn(" 활성 BOM 없음 - productId={}", productId);
+            return List.of(); // 빈 리스트 반환
+        }
+
+        // 2단계: BOM ID로 자재 목록 조회
+        List<BomItemDTO> bomList = workOrderMapper.getBomDetailByBomId(bomId, orderQty);
+
+        return bomList;
+    }
+    
 }
