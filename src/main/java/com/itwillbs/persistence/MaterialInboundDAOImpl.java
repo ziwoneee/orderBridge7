@@ -216,5 +216,12 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
 	    return sqlSession.selectOne(NAMESPACE + "getTotalInboundQuantity", orderItemId);
 	}
 	
+	@Override
+	public int getReceivedQtyByInboundItemId(String inboundItemId) throws Exception {
+		
+	    return sqlSession.selectOne(NAMESPACE + "getReceivedQtyByInboundItemId", inboundItemId);
+	}
+
+	
 	
 }

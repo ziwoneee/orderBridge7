@@ -119,11 +119,17 @@ function openInboundModal(itemOrId) {
       $('#materialName').val(item.materialName);
       $('#lotNo').val(lotNo);
       $('#expirationDate').val(item.expirationDate || '');
-      $('#quantity').val(item.orderQuantity || item.orderQty || 0);
+      
+      // 남은 수량 자동 계산: 발주수량 - 현재까지 입고된 수량
+      const orderedQty = item.orderQuantity || 0;
+      const receivedQty = item.quantity || 0;
+      const remainQty = Math.max(orderedQty - receivedQty, 0); // 음수 방지
+
+      $('#quantity').val(remainQty);  // 남은 수량 자동 입력
+
       $('#warehouseCode').val('WH001');
       $('#inboundId').val(item.inboundId);
       $('#orderItemId').val(item.orderItemId);
-      console.log('입고 처리용 item 객체:', item);
       
       $('#inboundModal').modal('show');
     },

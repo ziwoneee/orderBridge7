@@ -409,6 +409,15 @@
 	</select>
 	
 	
+	<!-- 개별 항목의 현재 입고 수량 조회 -->
+	<select id="getReceivedQtyByInboundItemId" resultType="int">
+	    SELECT IFNULL(quantity, 0)
+	    FROM material_inbound_item
+	    WHERE inbound_item_id = #{inboundItemId}
+	</select>
+		
+	
+	
 
 
 </mapper>

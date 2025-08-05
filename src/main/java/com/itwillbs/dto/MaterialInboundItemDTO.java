@@ -27,4 +27,6 @@ public class MaterialInboundItemDTO {
     
     private String orderItemId;
 
+	public String inboundItemId;
+
 }

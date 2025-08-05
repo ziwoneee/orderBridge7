@@ -88,6 +88,9 @@ public interface MaterialInboundDAO {
 
 	// 특정 order_item_id의 누적 입고 수량 조회 (부분입고/입고완료 여부 판단용)
 	public int getTotalInboundQuantity(String orderItemId) throws Exception;
+	
+	int getReceivedQtyByInboundItemId(String inboundItemId) throws Exception;
+
 
 
 

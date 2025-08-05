@@ -212,45 +212,40 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
         if (dto.getQuantity() <= 0) throw new Exception("입고 수량이 0 이하인 자재가 있습니다.");
         if (dto.getLotNo() == null || dto.getLotNo().isEmpty()) throw new Exception("LOT 번호가 누락되었습니다.");
         if (dto.getExpirationDate() == null) throw new Exception("유통기한이 누락되었습니다.");
-        
+
+        // 총 금액 계산
         dto.setTotalPrice(dto.getUnitPrice() * dto.getQuantity());
-        
-        // 입고 상태 분기 설정
+
+        // === 1. 기존 입고 수량 가져오기 ===
+        int prevQty = miDAO.getReceivedQtyByInboundItemId(dto.getInboundItemId()); // 기존 DB 수량
+        int deltaQty = dto.getQuantity();  // 이번에 추가로 입고할 수량
+        int newTotalQty = prevQty + deltaQty;  // 누적 수량
+
+        // === 2. 발주 수량과 비교하여 상태 판단 ===
         MaterialOrderItemVO orderItem = miDAO.getOrderItemById(dto.getOrderItemId());
-        
-        System.out.println(">>> DTO 값: " + dto);
-        System.out.println(">>> orderItemId: " + dto.getOrderItemId());
+        if (orderItem == null) throw new RuntimeException("orderItem 조회 결과가 null입니다: " + dto.getOrderItemId());
 
-        if(orderItem == null) {
-            throw new RuntimeException("orderItem 조회 결과가 null입니다: " + dto.getOrderItemId());
-        }
+        int orderQty = orderItem.getOrderQuantity();
+        String newStatus = newTotalQty >= orderQty ? "입고완료" : "부분입고";
 
-        // 누적 입고 수량 계산
-        int previousInboundQty = getTotalInboundQuantity(dto.getOrderItemId()); // 새로 추가된 서비스 메서드
-        int newTotalQty = previousInboundQty + dto.getQuantity();
-        int orderedQty = orderItem.getOrderQuantity();
-
-        if (newTotalQty >= orderedQty) {
-            dto.setInboundStatus("입고완료");
-        } else {
-            dto.setInboundStatus("부분입고");
-        }
-
-
-        // 입고 항목 업데이트
+        // === 3. 입고 항목 테이블 업데이트 ===
+        dto.setQuantity(newTotalQty);  // 누적 수량으로 업데이트
+        dto.setInboundStatus(newStatus);
         miDAO.updateInboundItem(dto);
 
-        // 재고 처리
+        // === 4. 재고 반영 ===
         boolean exists = miDAO.checkInventoryExists(dto.getMaterialId(), dto.getWarehouseCode());
 
         if (exists) {
-            miDAO.updateInventoryQuantity(dto.getMaterialId(), dto.getWarehouseCode(), dto.getQuantity());
+            // 재고는 deltaQty 만큼만 증가
+            miDAO.updateInventoryQuantity(dto.getMaterialId(), dto.getWarehouseCode(), deltaQty);
         } else {
+            // 신규 재고 등록
             MaterialInventoryVO vo = new MaterialInventoryVO();
             String inventoryId = generateInventoryId();
             vo.setInventoryId(inventoryId);
             vo.setMaterialId(dto.getMaterialId());
-            vo.setQuantity(dto.getQuantity());
+            vo.setQuantity(deltaQty);  // 여기에는 실제 입고 수량만
             vo.setLotNo(dto.getLotNo());
             vo.setExpirationDate(dto.getExpirationDate());
             vo.setReceivedDate(new Date());
@@ -261,9 +256,10 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
             miDAO.insertInventory(vo);
         }
 
-        // 입고 마스터 상태 갱신 (모든 항목 기준 자동 처리)
+        // === 5. 입고 마스터 상태 갱신 ===
         miDAO.updateInboundMasterStatus(dto.getInboundId());
     }
+
 
     /**
      * 입고 마스터 및 자재 목록 상세 조회
