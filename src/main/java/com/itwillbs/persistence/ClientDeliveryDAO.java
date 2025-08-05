@@ -11,6 +11,8 @@ import com.itwillbs.dto.ShipmentProductDTO;
 
 import java.util.List;
 
+import org.apache.ibatis.annotations.Param;
+
 public interface ClientDeliveryDAO {
 
         
@@ -66,5 +68,17 @@ public interface ClientDeliveryDAO {
     
     //출하내역 수주관리 상세조회
     List<DeliveryHistoryDTO> getDeliveriesByOrderId(String clOrderId);
+ 
+    //출하 취소
+    void revertClientOrderStatus(String clOrderId);
+    
+    ClientDeliveryVO getDeliveryById(String deliveryId);
+    
+    //출하 상태 변경
+    void updateDeliveryStatus(@Param("deliveryId") String deliveryId, @Param("status") String status);
+
+
+
+	
     
 }

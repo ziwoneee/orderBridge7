@@ -42,4 +42,13 @@ public interface ClientDeliveryService {
     //수주관리 상세내역 조회
     List<DeliveryHistoryDTO> getDeliveriesByOrderId(String clOrderId);
    
+    //출하 취소
+    void cancelDelivery(String deliveryId);
+    
+    //출하 상태 변경
+    void updateDeliveryStatus(String deliveryId, String status);
+
+
+  
+    
 }

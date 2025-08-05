@@ -350,6 +350,12 @@
   </collection>
 </resultMap>
 
+<!-- 출하 취소 -->
+<update id="increaseLotStock" parameterType="map">
+  UPDATE product_stock
+  SET stock_qty = stock_qty + #{qty}
+  WHERE product_id = #{productId} AND lot_no = #{lotNo}
+</update>
 
  
 

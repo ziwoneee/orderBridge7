@@ -9,7 +9,7 @@ public class BOMDetailVO {
     private String bomDetailId;
     private String bomId;
     private String materialId;
-    private int qty;
+    private double qty;
     private String unit;
     private String remark;
     private String materialType; // "육수", "원료"

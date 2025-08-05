@@ -89,4 +89,11 @@ public class ProductOutboundServiceImpl implements ProductOutboundService {
     public ProductOutboundVO getOutboundDetail(String outboundId) {
         return outboundDAO.getOutboundDetail(outboundId);
     }
+    
+    //취소시 출고이력삭제
+    @Override
+    public void deleteOutboundByOrderId(String clOrderId) {
+        outboundDAO.deleteOutboundByOrderId(clOrderId);
+    }
+
 }

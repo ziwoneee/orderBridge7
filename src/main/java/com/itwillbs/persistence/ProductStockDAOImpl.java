@@ -151,7 +151,27 @@ public class ProductStockDAOImpl implements ProductStockDAO {
         sqlSession.update(NAMESPACE + ".decreaseStockQty", stockParam);
     }
 
+    //출하 취소
+    @Override
+    public void increaseLotStock(String productId, String lotNo, int deliveryQty) {
+        // 1. 재고 복원
+        Map<String, Object> param = new HashMap<>();
+        param.put("productId", productId);
+        param.put("lotNo", lotNo);
+        param.put("qty", deliveryQty);
+        sqlSession.update(NAMESPACE + ".increaseLotStock", param);
 
+        // 2. 이력 기록
+        ProductStockTransactionVO tx = new ProductStockTransactionVO();
+        tx.setType("취소"); // 출하 취소
+        tx.setLotNo(lotNo);
+        tx.setQty(deliveryQty);
+        tx.setProductId(productId);
+        tx.setRegDate(new Date());
+        tx.setManager("system"); // 또는 현재 로그인 사용자 ID
+
+        sqlSession.insert(NAMESPACE + ".insertTransaction", tx);
+    }
 
 
 

@@ -158,4 +158,27 @@ public class ClientDeliveryDAOImpl implements ClientDeliveryDAO {
         return sqlSession.selectList("com.itwillbs.mapper.ClientDeliveryMapper.getDeliveriesByOrderId", clOrderId);
     }
     
+    //출하 취소
+    @Override
+    public void revertClientOrderStatus(String clOrderId) {
+        sqlSession.update(NAMESPACE + ".revertClientOrderStatus", clOrderId);
+    }
+    
+    @Override
+    public ClientDeliveryVO getDeliveryById(String deliveryId) {
+        return sqlSession.selectOne(NAMESPACE + ".getDeliveryById", deliveryId);
+    }
+    
+    //출하상태변경
+    @Override
+    public void updateDeliveryStatus(String deliveryId, String status) {
+    	sqlSession.update("com.itwillbs.mapper.ClientDeliveryMapper.updateDeliveryStatus", Map.of(
+    		    "deliveryId", deliveryId,
+    		    "status", status
+    		));
+
+    }
+
+
+    
 }

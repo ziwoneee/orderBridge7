@@ -12,6 +12,23 @@
 
 <% java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
    String today_1 = sdf.format(new java.util.Date()); %>
+   
+   <%
+    java.time.LocalDate today = java.time.LocalDate.now();
+    java.time.LocalDate tomorrow = today.plusDays(1);
+    java.text.SimpleDateFormat sdfDate = new java.text.SimpleDateFormat("yyyy-MM-dd");
+    java.text.SimpleDateFormat sdfHour = new java.text.SimpleDateFormat("HH");
+
+    String todayStr = sdfDate.format(new java.util.Date());
+    String tomorrowStr = tomorrow.toString();
+    int currentHour = Integer.parseInt(sdfHour.format(new java.util.Date()));
+
+    request.setAttribute("todayStr", todayStr);
+    request.setAttribute("tomorrowStr", tomorrowStr);
+    request.setAttribute("currentHour", String.valueOf(currentHour));
+
+%>
+   
 
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
@@ -328,24 +345,38 @@
     </th>
 
         <th>상세보기</th>
+        <th>관 리</th>
       </tr>
     </thead>
-    <tbody>
-      <c:forEach var="group" items="${groupedCompletedList}" varStatus="status">
-        <tr>
-          <td>${group.clOrderId}</td>
-          <td>${group.clientName}</td>
-          <td><fmt:formatDate value="${group.deliveryDate}" pattern="yyyy-MM-dd"/></td>
-          <td>
-            <button type="button" class="btn btn-sm btn-outline-primary"
-                    data-bs-toggle="modal"
-                    data-bs-target="#modal-${status.index}">
-              상세보기
-            </button>
-          </td>
-        </tr>
-      </c:forEach>
-    </tbody>
+   <tbody>
+  <c:forEach var="group" items="${groupedCompletedList}" varStatus="status">
+    <tr>
+      <td>${group.clOrderId}</td>
+      <td>${group.clientName}</td>
+      <td><fmt:formatDate value="${group.deliveryDate}" pattern="yyyy-MM-dd"/></td>
+
+      <td>
+        <button type="button" class="btn btn-sm btn-outline-primary"
+                data-bs-toggle="modal"
+                data-bs-target="#modal-${status.index}">
+          상세보기
+        </button>
+      </td>
+
+ <td>
+  <form method="post" action="/shipment/cancel" style="display:inline;"
+        onsubmit="return confirm('출하를 취소하시겠습니까?');">
+    <input type="hidden" name="deliveryId" value="${group.productList[0].deliveryId}" />
+    <button type="submit" class="btn btn-sm btn-outline-danger">출하 취소</button>
+  </form>
+</td>
+
+
+
+
+    </tr>
+  </c:forEach>
+</tbody>
   </table>
 </div>
 

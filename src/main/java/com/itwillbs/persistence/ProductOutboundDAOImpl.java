@@ -42,6 +42,13 @@ public class ProductOutboundDAOImpl implements ProductOutboundDAO {
         return sqlSession.selectOne(NAMESPACE + ".getOutboundDetail", outboundId);
     }
     
+    //출하취소시 삭제
+    @Override
+    public void deleteOutboundByOrderId(String clOrderId) {
+        sqlSession.delete("com.itwillbs.mapper.ProductOutboundMapper.deleteOutboundByOrderId", clOrderId);
+    }
+
+
     
     
 }
