@@ -1,6 +1,5 @@
 package com.itwillbs.domain;
 
-import java.math.BigDecimal;
 import lombok.Data;
 
 @Data
@@ -10,7 +9,7 @@ public class MaterialVO {
     private String materialName;         // 자재명 (예: 양지머리, 대파)
     private String materialType;         // 자재 유형 (예: 식육, 채소류, 포장재)
     private String unit;                 // 단위 (kg, g, 개 등 재고 수량이 어떤 단위로 관리되는지의 컬럼)
-    private BigDecimal unitPrice;        // 단가 (기본 단가)
+    private int unitPrice;        // 단가 (기본 단가)
     private String storageMethod;        // 보관 방법 (냉동/냉장/상온 등)
     private String warehouseCode;        // 보관 창고 (예: WH001)
     private double unitUsagePerPack;	 // 1팩당 사용량

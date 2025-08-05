@@ -14,6 +14,8 @@
           <!-- 숨은 필드 -->
           <input type="hidden" id="materialId">
           <input type="hidden" id="inboundId">
+          <input type="hidden" id="orderItemId" />
+          <input type="hidden" id="inboundItemId" />
         
           <!-- 자재명 -->
           <div class="form-group">
@@ -44,8 +46,9 @@
             <label>창고 선택 <span class="text-danger">*</span></label>
             <select class="form-control" id="warehouseCode" name="warehouseCode" required>
               <option value="">-- 창고 선택 --</option>
-              <option value="WH001">WH001 - 본창고</option>
-              <option value="WH002">WH002 - 외부창고</option>
+              <option value="WH001">WH001</option>
+              <option value="WH002">WH002</option>
+              <option value="WH003">WH003</option>
             </select>
           </div>
         </div>

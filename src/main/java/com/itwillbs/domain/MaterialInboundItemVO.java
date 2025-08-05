@@ -1,5 +1,6 @@
 package com.itwillbs.domain;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import lombok.Data;
 
@@ -19,6 +20,9 @@ public class MaterialInboundItemVO {
     private Date supplyDueDate;        // 납기일 (실제 납품 예정일)
     private String inboundStatus;      // 진행상태 (미입고, 입고완료 등)
     private int orderQuantity;		   // 발주수량 (미입고 여부 판단 가능)
+    private int unitPrice;    		   // 단가
+    private int totalPrice;  		   // 총금액
+
     
     private Date createdDate;
     private Date updatedDate;

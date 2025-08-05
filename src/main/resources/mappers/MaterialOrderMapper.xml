@@ -109,7 +109,7 @@
 	    )
 	</insert>
 	
-	<!-- 발주 항목 등록 - BigDecimal 처리 명시 -->
+	<!-- 발주 항목 등록 -->
 	<insert id="insertOrderItem" parameterType="com.itwillbs.domain.MaterialOrderItemVO">
 	    INSERT INTO material_order_item (
 	        order_item_id, order_id, material_id, order_quantity,
@@ -118,9 +118,9 @@
 	        #{orderItemId},
 	        #{orderId}, 
 	        #{materialId}, 
-	        #{orderQuantity, jdbcType=INTEGER},
-	        #{unitPrice, jdbcType=DECIMAL}, 
-	        #{totalPrice, jdbcType=DECIMAL}, 
+	        #{orderQuantity},
+	        #{unitPrice}, 
+	        #{totalPrice}, 
 	        #{warehouseCode}
 	    )
 	</insert>

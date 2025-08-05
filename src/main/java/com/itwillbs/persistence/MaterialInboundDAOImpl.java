@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import com.itwillbs.domain.MaterialInboundItemVO;
 import com.itwillbs.domain.MaterialInboundVO;
+import com.itwillbs.domain.MaterialInventoryVO;
 import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
@@ -167,6 +168,59 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
 	    sqlSession.update(NAMESPACE + "markItemAsReceived", inboundItemId);
 	}
 
+	
+	// 입고 마스터 조회
+	@Override
+	public MaterialInboundVO getInboundMaster(String inboundId) {
+	    return sqlSession.selectOne(NAMESPACE + "getInboundMaster", inboundId);
+	}
+	
+	// 발주 정보 조회
+	@Override
+	public MaterialOrderVO getOrderInfoByOrderId(String orderId) {
+	    return sqlSession.selectOne(NAMESPACE + "getOrderInfoByOrderId", orderId);
+	}
+	
+	
+	// 재고 ID 자동 생성 (형식: INV-RM-YYYYMMDD-001)
+	@Override
+	public void insertInventory(MaterialInventoryVO vo) {
+	    sqlSession.insert(NAMESPACE + "insertInventory", vo);
+	}
+
+	@Override
+	public int getTodayInventorySequence(String date) {
+	    return sqlSession.selectOne(NAMESPACE + "getTodayInventorySequence", date);
+	}
+
+	
+	// 발주 항목 단건 조회 (추가입고용)
+	@Override
+	public MaterialOrderItemVO getOrderItemById(String orderItemId) throws Exception {
+		
+	    return sqlSession.selectOne(NAMESPACE + "getOrderItemById", orderItemId);
+	}
+	
+	// 누적 입고 수량 조회 (order_item_id 기준)
+	@Override
+	public int getTotalReceivedQtyByOrderItemId(String orderItemId) throws Exception {
+		
+	    Integer totalQty = sqlSession.selectOne(NAMESPACE + "getTotalReceivedQtyByOrderItemId", orderItemId);
+	    return totalQty != null ? totalQty : 0;
+	}
+
+
+	// 특정 order_item_id의 누적 입고 수량 합계 반환
+	@Override
+	public int getTotalInboundQuantity(String orderItemId) {
+	    return sqlSession.selectOne(NAMESPACE + "getTotalInboundQuantity", orderItemId);
+	}
+	
+	@Override
+	public int getReceivedQtyByInboundItemId(String inboundItemId) throws Exception {
+		
+	    return sqlSession.selectOne(NAMESPACE + "getReceivedQtyByInboundItemId", inboundItemId);
+	}
 
 	
 	

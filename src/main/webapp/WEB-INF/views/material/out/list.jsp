@@ -318,7 +318,7 @@
 			              <th>작업지시일자</th>
 			              <td id="workOrderDate"></td>
 			              <th>생산라인</th>
-  						  <td id="lineId"></td>
+			              <td id="lineId"></td>
 			            </tr>
 			            <tr>
 			              <th>출고관리번호</th>
@@ -341,8 +341,8 @@
 			
 			        <!-- 자재 재고 정보 -->
 			        <h6 class="mt-4">자재 재고 정보</h6>
-			        <table class="table table-bordered text-center">
-			          <thead>
+			         <table class="table table-bordered text-center">
+			          <thead style="background-color: #1C355E; color: white;">
 			            <tr>
 			              <th>품목코드</th>
 			              <th>품명</th>

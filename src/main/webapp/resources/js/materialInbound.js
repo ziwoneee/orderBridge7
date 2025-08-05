@@ -2,93 +2,195 @@
  * materialInbound.js - 자재 입고 관리 관련 JavaScript 기능 모음 (수정본)
  ************************************************************/
 
+// 날짜 포맷 함수
+function formatDateString(timestamp) {
+  if (!timestamp) return '-';
+  const date = new Date(timestamp);
+  return date.toISOString().substring(0, 10); // 'yyyy-MM-dd'
+}
+
 /* [1] 입고 상세 모달 불러오기 */
 function loadInboundDetail(inboundId) {
+  console.log('입고 상세 조회 요청:', inboundId);
+  
   $.ajax({
     url: '/material/inbound/detail',
     method: 'GET',
     data: { inboundId: inboundId },
     success: function(data) {
-      $('#inboundId').text(data.inboundId);
-      $('#orderId').text(data.orderId);
-      $('#expectedArrivedDate').text(data.expectedArrivedDate);
-      $('#orderDate').text(data.orderDate);
-      $('#supplierId').text(data.supplierId);
-      $('#inboundDate').text(data.inboundDate);
-      $('#handledBy').text(data.handledBy);
-      $('#modalStatus').text(data.status);
+      console.log('상세 정보 응답:', data);
+      
+      // 기본 정보 설정
+      $('#inboundId').text(data.inbound.inboundId || '-');
+      $('#orderId').text(data.inbound.orderId || '-');
+      $('#expectedArrivedDate').text(formatDateString(data.inbound.expectedArrivedDate));
+      $('#orderDate').text(formatDateString(data.inbound.orderDate));
+      $('#supplierId').text(data.inbound.supplierId || '-');
+      $('#inboundDate').text(formatDateString(data.inbound.inboundDate));
+      $('#handledBy').text(data.inbound.handledBy || '-');
+      $('#modalStatus').text(data.inbound.inboundStatus || '-');
 
+      // 항목 정보 렌더링
       const tbody = $("#inboundInfo").empty();
+      const items = data.inboundItems; // ✅ 올바른 필드명 사용
 
-      data.items.forEach(item => {
-        console.log('item 내용:', item); // 디버깅용
+      if (items && items.length > 0) {
+        items.forEach(item => {
+          const safeItem = encodeURIComponent(JSON.stringify(item));
 
-        const safeItem = encodeURIComponent(JSON.stringify(item));
-
-        const row = `
+          const row = `
+            <tr>
+              <td>${item.materialId}</td>
+              <td>${item.materialName}</td>
+              <td class="text-end">${(item.orderQuantity || 0).toLocaleString()}</td>
+              <td class="text-end">${(item.quantity || 0).toLocaleString()}</td>
+              <td class="text-end">${(item.unitPrice || 0).toLocaleString()}</td>
+              <td class="text-end">${(item.totalPrice || 0).toLocaleString()}</td>
+              <td class="text-center">
+                ${item.inboundStatus !== '입고완료' ? 
+                  `<button class="btn btn-sm btn-outline-success btn-inbound"
+                          data-item='${safeItem}'>
+                    입고처리
+                  </button>` : 
+                  '<span class="badge badge-success">완료</span>'
+                }
+              </td>
+            </tr>
+          `;
+          tbody.append(row);
+        });
+      } else {
+        tbody.append(`
           <tr>
-            <td>${item.materialId}</td>
-            <td>${item.materialName}</td>
-            <td>${item.orderQty}</td>
-            <td>${item.inboundQty}</td>
-            <td>${item.unitPrice}</td>
-            <td>${item.totalPrice}</td>
-            <td>
-              <button class="btn btn-sm btn-outline-success btn-inbound"
-                      data-item='${safeItem}'>
-                입고처리
-              </button>
-            </td>
+            <td colspan="7" class="text-center">입고 항목이 없습니다.</td>
           </tr>
-        `;
-        tbody.append(row);
-      });
+        `);
+      }
+
 
       $('#inboundDetailModal').modal('show');
     },
-    error: function(xhr) {
+    error: function(xhr, status, error) {
       console.error('상세 정보 로드 실패:', xhr.responseText);
-      alert('상세 정보를 불러오는 데 실패했습니다.');
+      alert('상세 정보를 불러오는 데 실패했습니다.\n' + (xhr.responseText || error));
     }
   });
 }
 
-/* [2] 입고 모달 열기 */
-function openInboundModal(item) {
-  console.log('[모달 열기] item:', item);
+/* [2] 입고 모달 열기 - 수정된 버전 */
+function openInboundModal(itemOrId) {
+  console.log('[모달 열기] 전달된 값:', itemOrId);
+
+  // 1. 문자열인데 JSON이 아니면 → 그냥 inboundId로 간주해서 전체 상세 불러오기
+  if (typeof itemOrId === 'string' && !itemOrId.trim().startsWith('{')) {
+    loadInboundDetail(itemOrId); // ✅ 모달 자동으로 뜨는 구조
+    return;
+  }
+
+  // 2. 문자열인데 JSON 형태라면 → parse
+  let item = itemOrId;
+  if (typeof itemOrId === 'string') {
+    try {
+      item = JSON.parse(decodeURIComponent(itemOrId));
+    } catch (e) {
+      console.error('item 파싱 실패:', e);
+      alert('항목 정보를 읽을 수 없습니다.');
+      return;
+    }
+  }
+
+  // 3. 자재 항목 기반 모달 오픈
+  const materialId = item.materialId;
+  if (!materialId) {
+    console.error('materialId가 없습니다:', item);
+    alert('자재 ID 정보가 없습니다.');
+    return;
+  }
 
   $.ajax({
     url: '/material/inbound/generate-lot',
     method: 'GET',
-    data: { materialId: item.materialId },
+    data: { materialId: materialId },
     success: function(lotNo) {
       console.log('LOT No:', lotNo);
 
+      // 모달 필드 설정
       $('#materialId').val(item.materialId);
       $('#materialName').val(item.materialName);
       $('#lotNo').val(lotNo);
       $('#expirationDate').val(item.expirationDate || '');
-      $('#quantity').val(item.orderQuantity || item.orderQty || 0);
+      
+      // ✅ 수정된 부분: 남은 수량 계산 로직 개선
+      const orderedQty = item.orderQuantity || 0;
+      const currentReceivedQty = item.quantity || 0; // 현재까지 입고된 수량
+      
+      // 남은 수량 = 발주수량 - 현재까지 입고된 수량
+      const remainingQty = Math.max(orderedQty - currentReceivedQty, 0);
+      
+      console.log(`발주수량: ${orderedQty}, 기입고수량: ${currentReceivedQty}, 남은수량: ${remainingQty}`);
+      
+      // ✅ 남은 수량이 0이면 1로 기본 설정 (추가 입고 허용)
+      $('#quantity').val(remainingQty > 0 ? remainingQty : 1);
+
       $('#warehouseCode').val('WH001');
       $('#inboundId').val(item.inboundId);
-
+      $('#orderItemId').val(item.orderItemId);
+      
+      // ✅ 추가: 입고 항목 ID도 전달 (업데이트용)
+      $('#inboundItemId').val(item.inboundItemId);
+      
       $('#inboundModal').modal('show');
     },
-    error: function(xhr) {
+    error: function(xhr, status, error) {
       console.error('LOT 번호 생성 실패:', xhr.responseText);
-      alert('LOT 번호를 생성하지 못했습니다.');
+      alert('LOT 번호를 생성하지 못했습니다.\n' + (xhr.responseText || error));
     }
   });
 }
 
-/* [3] 입고 처리 (단일 항목) - 수정된 버전 */
+
+/* [3] 미입고 발주 목록 불러오기 */
+function loadUnreceivedOrders(page = 1) {
+  console.log('미입고 발주 목록 요청, 페이지:', page);
+  
+  $.ajax({
+    url: '/material/inbound/unreceived-orders',
+    method: 'GET',
+    data: { 
+      page: page,
+      perPageNum: 10
+    },
+    success: function(response) {
+      console.log('미입고 발주 응답:', response);
+      
+      if (response && response.list) {
+        renderUnreceivedOrders(response.list);
+        if (response.pageMaker) {
+          renderPagination(response.pageMaker);
+        }
+        $('#unreceivedOrdersSection').show();
+      } else {
+        console.error('응답 데이터 형식이 올바르지 않습니다:', response);
+        alert('미입고 발주 목록을 불러오는데 실패했습니다.');
+      }
+    },
+    error: function(xhr, status, error) {
+      console.error('미입고 발주 목록 로드 실패:', xhr.responseText);
+      alert('미입고 발주 목록을 불러오는데 실패했습니다.\n' + (xhr.responseText || error));
+    }
+  });
+}
+
+/* [4] 입고 처리 (단일 항목) - 수정된 버전 */
 function processInboundItem() {
   const lotNo = $('#lotNo').val().trim();
   const expirationDate = $('#expirationDate').val().trim();
   const quantity = parseInt($('#quantity').val(), 10);
   const warehouseCode = $('#warehouseCode').val();
   const materialId = $('#materialId').val();
-  const inboundId = $('#inboundId').val(); // .text()가 아닌 .val() 사용
+  const inboundId = $('#inboundId').val();
+  const orderItemId = $('#orderItemId').val();
+  const inboundItemId = $('#inboundItemId').val(); // 추가
 
   // 유효성 검사
   if (!lotNo) return alert('LOT 번호를 입력하거나 자동 생성해야 합니다.');
@@ -98,14 +200,19 @@ function processInboundItem() {
   if (!materialId) return alert('자재 ID가 없습니다.');
   if (!inboundId) return alert('입고 ID가 없습니다.');
 
+  // ✅ 중요: quantity는 이번에 입고할 수량만 전송
   const inboundItemData = {
     inboundId,
     materialId,
     lotNo,
     expirationDate,
-    quantity,
-    warehouseCode
+    quantity, // 이번에 입고할 수량 (누적 아님)
+    warehouseCode,
+    orderItemId,
+    inboundItemId // 추가
   };
+
+  console.log('입고 처리 요청 데이터:', inboundItemData);
 
   $.ajax({
     url: '/material/inbound/item/process',
@@ -125,11 +232,16 @@ function processInboundItem() {
   });
 }
 
-/* [4] 미입고 발주 테이블 렌더링 */
+/* [5] 미입고 발주 테이블 렌더링 */
 function renderUnreceivedOrders(orderList) {
   console.log('렌더링할 주문 목록:', orderList);
   
   const tbody = document.querySelector('#unreceivedOrderTable tbody');
+  if (!tbody) {
+    console.error('테이블 tbody를 찾을 수 없습니다.');
+    return;
+  }
+  
   tbody.innerHTML = '';
 
   if (!orderList || orderList.length === 0) {
@@ -195,9 +307,12 @@ function renderUnreceivedOrders(orderList) {
   console.log(`${orderList.length}개의 미입고 발주건을 렌더링했습니다.`);
 }
 
-/* [5] 페이징 버튼 렌더링 */
+
+/* [6] 페이징 버튼 렌더링 */
 function renderPagination(pageMaker) {
   const container = document.getElementById("unreceivedPagination");
+  if (!container) return;
+  
   container.innerHTML = "";
 
   const ul = document.createElement("ul");
@@ -230,12 +345,12 @@ function renderPagination(pageMaker) {
   container.appendChild(ul);
 }
 
-/* [6] 발주 상세 보기 */
+/* [7] 발주 상세 보기 */
 function viewOrderDetail(orderId) {
   alert(`발주 상세보기 기능 구현 필요: ${orderId}`);
 }
 
-/* [7] 전체 선택/해제 */
+/* [8] 전체 선택/해제 */
 function toggleAllCheckboxes(checkAllBox) {
   const checkboxes = document.querySelectorAll('input[name="selectedOrders"]');
   checkboxes.forEach(checkbox => {
@@ -243,7 +358,7 @@ function toggleAllCheckboxes(checkAllBox) {
   });
 }
 
-/* [8] 선택된 발주 입고등록 */
+/* [9] 선택된 발주 입고등록 */
 function registerSelectedOrders() {
   const selectedOrders = [];
   const addedIds = {};
@@ -288,8 +403,10 @@ function registerSelectedOrders() {
   });
 }
 
-/* [9] 문서 로딩 시 이벤트 바인딩 */
+/* [10] 문서 로딩 시 이벤트 바인딩 */
 $(document).ready(function () {
+  console.log('materialInbound.js 로드 시작');
+
   // 미입고 발주 입고등록 버튼
   $('#btn-insert-unreceived').on('click', function () {
     registerSelectedOrders();
@@ -298,9 +415,11 @@ $(document).ready(function () {
   // 개별 자재 입고처리 버튼 (테이블 내의 버튼)
   $(document).on('click', '.btn-inbound', function () {
     const encoded = $(this).attr('data-item');
-    const decoded = decodeURIComponent(encoded);
-    const item = JSON.parse(decoded);
-    openInboundModal(item);
+    if (encoded) {
+      const decoded = decodeURIComponent(encoded);
+      const item = JSON.parse(decoded);
+      openInboundModal(item);
+    }
   });
 
   // 입고처리 모달의 저장 버튼
@@ -311,14 +430,8 @@ $(document).ready(function () {
   console.log('materialInbound.js 로드 완료');
 });
 
-// ============================================================================
-// 추가: 테이블 상세 보기를 위한 함수 (입고처리 버튼과 구분)
-// ============================================================================
-
 /**
  * 메인 테이블의 "입고처리" 버튼 클릭 시 호출되는 함수
- * 입고 ID를 받아서 상세 모달을 엽니다.
- * @param {string} inboundId - 입고 ID
  */
 function showInboundDetail(inboundId) {
   console.log('입고 상세보기 호출:', inboundId);

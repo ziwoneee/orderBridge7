@@ -231,4 +231,31 @@
     margin-left: 2px;
   }
 	
+
+/* 모달 내부 테이블 반응형 적용 */	
+	/* [1] 모달이 너무 작아지지 않게 설정 */
+	.modal-dialog {
+	  max-width: 95vw !important;
+	  margin: 1.75rem auto;
+	}
 	
+	/* [2] 모달 안에서 가로 스크롤 가능하게 */
+	.modal-content {
+	  overflow-x: auto !important;
+	}
+	
+	/* [3] 테이블 셀 자동 줄바꿈 */
+	#inboundDetailModal table td,
+	#inboundDetailModal table th {
+	  white-space: normal !important;
+	  word-break: keep-all !important;
+	}
+	
+	/* [4] 모바일 화면일 때 테이블 글자 너무 커지지 않게 */
+	@media (max-width: 768px) {
+	  #inboundDetailModal table td,
+	  #inboundDetailModal table th {
+	    font-size: 13px !important;
+	    padding: 8px !important;
+	  }
+	}

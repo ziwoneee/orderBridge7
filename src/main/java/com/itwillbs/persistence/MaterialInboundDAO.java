@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.itwillbs.domain.MaterialInboundItemVO;
 import com.itwillbs.domain.MaterialInboundVO;
+import com.itwillbs.domain.MaterialInventoryVO;
 import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
@@ -31,9 +32,7 @@ public interface MaterialInboundDAO {
 	// 미입고 발주건 DB 등록
 	List<MaterialOrderItemVO> getUnreceivedOrderItems() throws Exception;
 	String generateInboundId() throws Exception;
-	void insertMaterialInbound(MaterialInboundVO vo) throws Exception;
-	void insertMaterialInboundItem(MaterialInboundItemVO vo) throws Exception;
-
+	
 	// 특정 발주 ID의 미입고 항목들만 조회
 	List<MaterialOrderItemVO> getUnreceivedOrderItemsByOrderId(String orderId) throws Exception;
 	
@@ -63,6 +62,34 @@ public interface MaterialInboundDAO {
 
 	// 개별 항목 입고 상태 '입고완료' + LOT 생성일자 갱신
 	void markItemAsReceived(String inboundItemId) throws Exception;
+	
+	// 입고 마스터 조회
+	MaterialInboundVO getInboundMaster(String inboundId) throws Exception;
+
+	// 발주 정보 조회
+	MaterialOrderVO getOrderInfoByOrderId(String orderId) throws Exception;
+	
+	// 재고 ID 자동 생성 (형식: INV-RM-YYYYMMDD-001)
+	void insertInventory(MaterialInventoryVO vo) throws Exception;
+	int getTodayInventorySequence(String date) throws Exception;
+	
+
+	// 입고 마스터 등록
+	void insertMaterialInbound(MaterialInboundVO inbound) throws Exception;
+
+	// 입고 상세 항목 등록
+	void insertMaterialInboundItem(MaterialInboundItemVO item) throws Exception;
+	
+	// 발주 항목 단건 조회 (추가입고용)
+	MaterialOrderItemVO getOrderItemById(String orderItemId) throws Exception;
+	
+	// 누적 입고 수량 조회
+	int getTotalReceivedQtyByOrderItemId(String orderItemId) throws Exception;
+
+	// 특정 order_item_id의 누적 입고 수량 조회 (부분입고/입고완료 여부 판단용)
+	public int getTotalInboundQuantity(String orderItemId) throws Exception;
+	
+	int getReceivedQtyByInboundItemId(String inboundItemId) throws Exception;
 
 
 

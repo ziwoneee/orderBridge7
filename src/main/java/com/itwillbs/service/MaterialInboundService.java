@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.MaterialInboundDTO;
 import com.itwillbs.dto.MaterialInboundItemDTO;
 import com.itwillbs.dto.MaterialInboundSummaryDTO;
 import com.itwillbs.dto.UnreceivedOrderDTO;
@@ -40,6 +41,17 @@ public interface MaterialInboundService {
 	 * - LOT/유통기한/입고수량/창고정보 기반 입고처리
 	 */
 	void processInboundItem(MaterialInboundItemDTO dto) throws Exception;
+	
+	
+	// 입고 상세 조회 (입고ID 기준)
+	MaterialInboundDTO getInboundDetail(String inboundId) throws Exception;;
+	
+	// 추가입고 생성
+	void createAdditionalInbound(String orderItemId) throws Exception;
+	
+	// 특정 발주 항목의 누적 입고 수량 조회
+	int getTotalInboundQuantity(String orderItemId) throws Exception;
+
 
 
 
