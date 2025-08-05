@@ -364,43 +364,13 @@
       </td>
 
  <td>
-  <c:set var="deliveryDate" value="${group.productList[0].deliveryDate}" />
-<c:set var="createdAt" value="${group.productList[0].createdAt}" />
-
-<c:set var="createdDate" value="${fn:substring(createdAt, 0, 10)}" />
-<c:set var="createdHour" value="${fn:substring(createdAt, 11, 2)}" />
-
-<!-- 1. 출하일이 오늘이고 현재 시각이 14시 전이면 취소 가능 -->
-<c:choose>  
-  <c:when test="${fn:substring(deliveryDate, 0, 10) eq todayStr
-                 and currentHour lt '18'}">
-    <form method="post" action="/shipment/cancel" style="display:inline;"
-          onsubmit="return confirm('출하를 취소하시겠습니까?');">
-      <input type="hidden" name="deliveryId" value="${group.productList[0].deliveryId}" />
-      <button type="submit" class="btn btn-sm btn-outline-danger">출하 취소</button>
-    </form>
-  </c:when>
-
-  <c:when test="${fn:substring(deliveryDate, 0, 10) eq tomorrowStr
-                 and createdDate eq todayStr
-                 and createdHour ge '14'
-                 and currentHour lt '14'}">
-    <form method="post" action="/shipment/cancel" style="display:inline;"
-          onsubmit="return confirm('출하를 취소하시겠습니까?');">
-      <input type="hidden" name="deliveryId" value="${group.productList[0].deliveryId}" />
-      <button type="submit" class="btn btn-sm btn-outline-danger">출하 취소</button>
-    </form>
-  </c:when>
-
-  
-  <c:otherwise>
-  <!-- 3. 그 외에는 취소 불가 -->
-    <span class="badge bg-light text-muted">출하 완료</span>
-  </c:otherwise>
-
-</c:choose>
-
+  <form method="post" action="/shipment/cancel" style="display:inline;"
+        onsubmit="return confirm('출하를 취소하시겠습니까?');">
+    <input type="hidden" name="deliveryId" value="${group.productList[0].deliveryId}" />
+    <button type="submit" class="btn btn-sm btn-outline-danger">출하 취소</button>
+  </form>
 </td>
+
 
 
 
