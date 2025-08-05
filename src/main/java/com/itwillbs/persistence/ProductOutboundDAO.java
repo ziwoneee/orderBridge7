@@ -17,4 +17,9 @@ public interface ProductOutboundDAO {
     //상세보기
     ProductOutboundVO getOutboundDetail(String outboundId);
     
+    //출하 취소시 삭제
+    void deleteOutboundByOrderId(String clOrderId);
+
+    
+    
 }

@@ -45,6 +45,8 @@ public interface ProductStockDAO {
      void insertOrUpdateStock(Map<String, Object> param);
      
 	void decreaseStockQty(Map<String, Object> stockParam);
+	
+	void increaseLotStock(String productId, String lotNo, int deliveryQty);
 
 
 	

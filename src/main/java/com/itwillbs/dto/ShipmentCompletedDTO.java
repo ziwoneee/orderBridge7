@@ -16,5 +16,9 @@ public class ShipmentCompletedDTO {
     private String trackingNumber;
     private String deliveryStatus;
     private String clientId;
+    
+    private boolean cancelAvailable;
+    private Date createdAt;
+
 
 }

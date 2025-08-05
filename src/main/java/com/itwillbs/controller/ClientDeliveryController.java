@@ -149,9 +149,22 @@ public class ClientDeliveryController {
         rttr.addFlashAttribute("message", "예약 해제 완료");
         return "redirect:/shipment/list?tab=pending";
     }
-
-
     
+    //출하 취소
+
+    @PostMapping("/cancel")
+    public String cancelDelivery(@RequestParam("deliveryId") String deliveryId,
+                                 RedirectAttributes rttr) {
+        try {
+            System.out.println(">> 전달받은 deliveryId: " + deliveryId); // ✅ 추가
+            deliveryService.cancelDelivery(deliveryId);
+            rttr.addFlashAttribute("message", "출하가 성공적으로 취소되었습니다.");
+        } catch (Exception e) {
+            e.printStackTrace(); // ✅ 예외 로그 출력
+            rttr.addFlashAttribute("message", "출하 취소 중 오류가 발생했습니다.");
+        }
+        return "redirect:/shipment/list?tab=completed";
+    }
 
 
 

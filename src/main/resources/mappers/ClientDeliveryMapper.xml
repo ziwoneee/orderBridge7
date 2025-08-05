@@ -159,11 +159,14 @@
       cd.delivery_qty,
       cd.delivery_date,
       cd.tracking_number,
-      cd.delivery_status
+      cd.delivery_status,
+       cd.created_at
     FROM client_delivery cd
     JOIN product p ON cd.product_id = p.product_id
     JOIN client c ON cd.client_id = c.client_id
     <where>
+    <!-- ✅ 배송상태가 DELIVERED 인 것만 조회 -->
+    cd.delivery_status != 'CANCELLED'
       <if test="keyword != null and keyword != ''">
         (
           cd.cl_order_id LIKE CONCAT('%', #{keyword}, '%')
@@ -284,5 +287,45 @@
   WHERE cd.cl_order_id = #{clOrderId}
   ORDER BY cd.delivery_date ASC
 </select>
+
+<!-- ✅ 출하 취소 시 수주 상태를 'CONFIRMED'로 되돌림 -->
+<update id="revertClientOrderStatus" parameterType="String">
+  UPDATE client_order
+  SET cl_order_status = 'CONFIRMED'
+  WHERE cl_order_id = #{clOrderId}
+</update>
+
+<!-- ✅ delivery_id로 출하 상세 조회 -->
+<select id="getDeliveryById" parameterType="String" resultType="com.itwillbs.domain.ClientDeliveryVO">
+  SELECT
+    d.delivery_id,
+    d.cl_order_id,
+    d.delivery_qty,
+    d.lot_no,
+    d.delivery_status,   
+    d.tracking_number,
+    d.created_at,
+    d.updated_at,
+    d.product_id,
+    co.client_id,           
+    c.client_name           
+
+  FROM client_delivery d
+  JOIN client_order co ON d.cl_order_id = co.cl_order_id
+  JOIN client c ON co.client_id = c.client_id
+  WHERE d.delivery_id = #{deliveryId}
+</select>
+
+
+
+<!-- ✅ 출하 상태 변경 -->
+<update id="updateDeliveryStatus" parameterType="map">
+  UPDATE client_delivery
+  SET delivery_status = #{status}
+  WHERE delivery_id = #{deliveryId}
+</update>
+
+
+
 
 </mapper>

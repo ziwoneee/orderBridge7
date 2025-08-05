@@ -127,6 +127,15 @@ WHERE po.outbound_id = #{outboundId}
 
 </select>
 
+<delete id="deleteOutboundByOrderId" parameterType="String">
+  DELETE FROM product_outbound
+  WHERE tracking_number IN (
+    SELECT tracking_number
+    FROM client_delivery
+    WHERE cl_order_id = #{clOrderId}
+  )
+</delete>
+
 
   
   

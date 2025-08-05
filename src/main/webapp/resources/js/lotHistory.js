@@ -82,6 +82,8 @@ function openLotHistoryModal(lotNo, productId) {
                 ? '<span class="badge badge-success">입고</span>'
                 : entry.type === '예약'
                 ? '<span class="badge badge-warning">예약</span>'
+                : entry.type === '취소'
+                ? '<span class="badge badge-warning">취소</span>'
                 : entry.type}
             </td>        
             
