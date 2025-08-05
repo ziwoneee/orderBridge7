@@ -287,7 +287,8 @@
 	      lot_created_date = NOW(),
 	      unit_price = #{unitPrice},
 		  total_price = #{totalPrice}
-	  WHERE inbound_id = #{inboundId}
+	  WHERE inbound_item_id = #{inboundItemId}
+	    AND inbound_id = #{inboundId}
 	    AND material_id = #{materialId}
 	</update>
 	

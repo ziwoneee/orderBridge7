@@ -77,7 +77,7 @@ function loadInboundDetail(inboundId) {
   });
 }
 
-/* [2] 입고 모달 열기 */
+/* [2] 입고 모달 열기 - 수정된 버전 */
 function openInboundModal(itemOrId) {
   console.log('[모달 열기] 전달된 값:', itemOrId);
 
@@ -120,16 +120,24 @@ function openInboundModal(itemOrId) {
       $('#lotNo').val(lotNo);
       $('#expirationDate').val(item.expirationDate || '');
       
-      // 남은 수량 자동 계산: 발주수량 - 현재까지 입고된 수량
+      // ✅ 수정된 부분: 남은 수량 계산 로직 개선
       const orderedQty = item.orderQuantity || 0;
-      const receivedQty = item.quantity || 0;
-      const remainQty = Math.max(orderedQty - receivedQty, 0); // 음수 방지
-
-      $('#quantity').val(remainQty);  // 남은 수량 자동 입력
+      const currentReceivedQty = item.quantity || 0; // 현재까지 입고된 수량
+      
+      // 남은 수량 = 발주수량 - 현재까지 입고된 수량
+      const remainingQty = Math.max(orderedQty - currentReceivedQty, 0);
+      
+      console.log(`발주수량: ${orderedQty}, 기입고수량: ${currentReceivedQty}, 남은수량: ${remainingQty}`);
+      
+      // ✅ 남은 수량이 0이면 1로 기본 설정 (추가 입고 허용)
+      $('#quantity').val(remainingQty > 0 ? remainingQty : 1);
 
       $('#warehouseCode').val('WH001');
       $('#inboundId').val(item.inboundId);
       $('#orderItemId').val(item.orderItemId);
+      
+      // ✅ 추가: 입고 항목 ID도 전달 (업데이트용)
+      $('#inboundItemId').val(item.inboundItemId);
       
       $('#inboundModal').modal('show');
     },
@@ -173,7 +181,7 @@ function loadUnreceivedOrders(page = 1) {
   });
 }
 
-/* [4] 입고 처리 (단일 항목) */
+/* [4] 입고 처리 (단일 항목) - 수정된 버전 */
 function processInboundItem() {
   const lotNo = $('#lotNo').val().trim();
   const expirationDate = $('#expirationDate').val().trim();
@@ -182,6 +190,7 @@ function processInboundItem() {
   const materialId = $('#materialId').val();
   const inboundId = $('#inboundId').val();
   const orderItemId = $('#orderItemId').val();
+  const inboundItemId = $('#inboundItemId').val(); // 추가
 
   // 유효성 검사
   if (!lotNo) return alert('LOT 번호를 입력하거나 자동 생성해야 합니다.');
@@ -191,15 +200,19 @@ function processInboundItem() {
   if (!materialId) return alert('자재 ID가 없습니다.');
   if (!inboundId) return alert('입고 ID가 없습니다.');
 
+  // ✅ 중요: quantity는 이번에 입고할 수량만 전송
   const inboundItemData = {
     inboundId,
     materialId,
     lotNo,
     expirationDate,
-    quantity,
+    quantity, // 이번에 입고할 수량 (누적 아님)
     warehouseCode,
-    orderItemId
+    orderItemId,
+    inboundItemId // 추가
   };
+
+  console.log('입고 처리 요청 데이터:', inboundItemData);
 
   $.ajax({
     url: '/material/inbound/item/process',
