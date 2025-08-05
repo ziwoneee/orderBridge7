@@ -7,11 +7,20 @@
 <head>
   <title>확정 수주 선택</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.1">
-  <!-- CSS & JS 링크 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/css/popup-style.css">
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  
+<!-- 다른 CSS들 먼저 로드 -->
+<link rel="stylesheet" href="${pageContext.request.contextPath}/resources/vendors/css/vendor.bundle.base.css">
+<link rel="stylesheet" href="${pageContext.request.contextPath}/resources/css/vertical-layout-light/style.css">
+
+<!-- 아이콘 CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@6.5.95/css/materialdesignicons.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<!-- 우리 CSS를 가장 마지막에 로드 (최고 우선순위) -->
+<link rel="stylesheet" href="${pageContext.request.contextPath}/resources/css/popup-style.css">
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 
 <body>
