@@ -401,7 +401,7 @@
 			
 			        <!-- 자재 입고 정보 -->
 			        <h6 class="mt-4">자재 입고 정보</h6>
-			        <table class="table table-bordered text-center">
+			         <table class="table table-bordered text-center">
 			          <thead style="background-color: #1C355E; color: white;">
 			            <tr>
 			              <th>품목코드</th>
@@ -410,6 +410,7 @@
 			              <th>입고수량</th>
 			              <th>단가</th>
 			              <th>총금액</th>
+			              <th>처리</th>
 			            </tr>
 			          </thead>
 			          <tbody id="inboundInfo">

@@ -14,30 +14,29 @@ function loadInboundDetail(inboundId) {
       console.log('상세 정보 응답:', data);
       
       // 기본 정보 설정
-      $('#inboundId').text(data.inboundId);
-      $('#orderId').text(data.orderId);
-      $('#expectedArrivedDate').text(data.expectedArrivedDate || '-');
-      $('#orderDate').text(data.orderDate || '-');
-      $('#supplierId').text(data.supplierId || '-');
-      $('#inboundDate').text(data.inboundDate || '-');
-      $('#handledBy').text(data.handledBy || '-');
-      $('#modalStatus').text(data.status);
-
-      const tbody = $("#inboundInfo").empty();
+      $('#inboundId').text(data.inbound.inboundId || '-');
+      $('#orderId').text(data.inbound.orderId || '-');
+      $('#expectedArrivedDate').text(data.inbound.expectedArrivedDate || '-');
+      $('#orderDate').text(data.inbound.orderDate || '-');
+      $('#supplierId').text(data.inbound.supplierId || '-');
+      $('#inboundDate').text(data.inbound.inboundDate || '-');
+      $('#handledBy').text(data.inbound.handledBy || '-');
+      $('#modalStatus').text(data.inbound.inboundStatus || '-');
 
       // 항목 정보 렌더링
-      if (data.items && data.items.length > 0) {
-        data.items.forEach(item => {
-          console.log('item 내용:', item);
+      const tbody = $("#inboundInfo").empty();
+      const items = data.inboundItems; // ✅ 올바른 필드명 사용
 
+      if (items && items.length > 0) {
+        items.forEach(item => {
           const safeItem = encodeURIComponent(JSON.stringify(item));
 
           const row = `
             <tr>
               <td>${item.materialId}</td>
               <td>${item.materialName}</td>
-              <td class="text-end">${(item.orderQty || 0).toLocaleString()}</td>
-              <td class="text-end">${(item.inboundQty || 0).toLocaleString()}</td>
+              <td class="text-end">${(item.orderQuantity || 0).toLocaleString()}</td>
+              <td class="text-end">${(item.quantity || 0).toLocaleString()}</td>
               <td class="text-end">${(item.unitPrice || 0).toLocaleString()}</td>
               <td class="text-end">${(item.totalPrice || 0).toLocaleString()}</td>
               <td class="text-center">
@@ -60,6 +59,7 @@ function loadInboundDetail(inboundId) {
           </tr>
         `);
       }
+
 
       $('#inboundDetailModal').modal('show');
     },
