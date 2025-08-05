@@ -1,7 +1,9 @@
 package com.itwillbs.service;
 
 import java.util.List;
+
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.BomItemDTO;
 import com.itwillbs.dto.WorkOrderDTO;
 
 /**
@@ -74,4 +76,14 @@ public interface WorkOrderService {
 
     // 수주 상세 정보 조회 (작업지시 등록용)
     WorkOrderDTO getOrderDetail(String clOrderId, String productId);
+    
+    /**
+     * 작업지시 등록 시, BOM 기준 자재 소요량 계산
+     * @param productId 제품 ID
+     * @param orderQty 지시 수량
+     * @return 자재 소요량 목록 (자재명, 단위, 수량 포함)
+     */
+    List<BomItemDTO> calculateMaterialUsage(String productId, int orderQty);
+
+
 }

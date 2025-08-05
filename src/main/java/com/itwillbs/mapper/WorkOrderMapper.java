@@ -4,107 +4,179 @@ import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.BomItemDTO;
 import com.itwillbs.dto.WorkOrderDTO;
 
 /**
  * 작업지시 관련 매퍼 인터페이스
+ * 
+ * @author 개발팀
+ * @version 1.0
+ * @since 2024
  */
 @Mapper
 public interface WorkOrderMapper {
     
+    // ========================================================================
+    // 작업지시 목록 조회
+    // ========================================================================
+    
     /**
      * 작업지시 목록 조회 (페이징, 검색, 정렬 포함)
-     * @param cri 검색 조건
+     * 
+     * @param cri 검색 조건 (키워드, 상태, 날짜범위, 페이징 정보)
      * @return 작업지시 목록
      */
     List<WorkOrderDTO> selectWorkOrderList(SearchCriteria cri);
     
     /**
      * 작업지시 전체 개수 조회 (검색 조건 포함)
+     * 
      * @param cri 검색 조건
-     * @return 전체 개수
+     * @return 검색 조건에 맞는 전체 개수
      */
     int selectWorkOrderTotalCount(SearchCriteria cri);
     
     /**
-     * 전체 작업지시 개수 조회 (검색 조건 없음)
-     * @return 전체 개수
+     * 작업지시 상세 조회
+     * 
+     * @param orderId 작업지시번호 (예: WO-20241201-001)
+     * @return 작업지시 상세 정보 (재고, 우선순위 등 포함)
+     */
+    WorkOrderDTO selectWorkOrderDetail(@Param("orderId") String orderId);
+    
+    /**
+     * 생산라인별 작업지시 목록 조회
+     * 
+     * @param lineId 생산라인 ID (예: L-01, L-02)
+     * @return 해당 라인의 대기/진행중인 작업지시 목록
+     */
+    List<WorkOrderDTO> selectWorkOrdersByLine(@Param("lineId") String lineId);
+    
+    // ========================================================================
+    // 통계 및 카운트 조회
+    // ========================================================================
+    
+    /**
+     * 전체 작업지시 개수 조회
+     * 
+     * @return 전체 작업지시 개수
      */
     int selectAllCount();
     
     /**
      * 상태별 작업지시 개수 조회
-     * @param status 상태 (WAITING, IN_PROGRESS, COMPLETED)
-     * @return 해당 상태의 개수
+     * 
+     * @param status 상태 (WAITING, READY, IN_PROGRESS, COMPLETED, CANCELLED)
+     * @return 해당 상태의 작업지시 개수
      */
     int selectCountByStatus(@Param("status") String status);
     
     /**
-     * 작업지시 상세 조회
-     * @param orderId 작업지시번호
-     * @return 작업지시 상세 정보
+     * 라인별 진행중인 작업지시 개수 조회
+     * 
+     * @param lineId 생산라인 ID
+     * @return 해당 라인의 진행중인 작업지시 개수
      */
-    WorkOrderDTO selectWorkOrderDetail(@Param("orderId") String orderId);
+    int selectInProgressCountByLine(@Param("lineId") String lineId);
+    
+    // ========================================================================
+    // 수주 관련 조회 (작업지시 등록용)
+    // ========================================================================
     
     /**
      * 확정 수주 목록 조회 (작업지시 등록용)
-     * - 재고 계산 포함 (수주수량 - 재고수량 = 생산필요수량)
-     * @param cri 검색 조건
+     * - 작업지시가 아직 등록되지 않은 확정 수주만 조회
+     * - 재고 정보 포함 (수주수량 - 재고수량 = 생산필요수량)
+     * 
+     * @param cri 검색 조건 (키워드, 페이징 정보)
      * @return 확정 수주 목록
      */
     List<WorkOrderDTO> selectConfirmedOrders(SearchCriteria cri);
     
     /**
-     * 확정 수주 개수 조회
+     * 확정 수주 개수 조회 (페이징용)
+     * 
      * @param cri 검색 조건
      * @return 확정 수주 개수
      */
     int selectConfirmedOrdersCount(SearchCriteria cri);
     
     /**
+     * 수주번호 + 제품ID로 상세 조회
+     * 
+     * @param clOrderId 수주번호 (예: CL-20241201-001)
+     * @param productId 제품ID (예: P-001)
+     * @return 수주 상세 정보 (재고, 생산필요수량 등 포함)
+     */
+    WorkOrderDTO getOrderDetail(@Param("clOrderId") String clOrderId,
+                               @Param("productId") String productId);
+    
+    // ========================================================================
+    // BOM 조회
+    // ========================================================================
+    
+    /**
+     * 제품ID로 활성화된 BOM ID 조회
+     * 
+     * @param productId 제품ID
+     * @return 활성화된 BOM ID (가장 최신 버전)
+     */
+    String getActiveBomIdByProductId(@Param("productId") String productId);
+    
+    /**
+     * BOM ID로 자재 목록 조회
+     * 
+     * @param bomId BOM ID
+     * @param orderQty 생산 지시 수량 (총 소요량 계산용)
+     * @return BOM 자재 목록 (단위 소요량, 총 소요량 포함)
+     */
+    List<BomItemDTO> getBomDetailByBomId(@Param("bomId") String bomId,
+                                        @Param("orderQty") int orderQty);
+    
+    // ========================================================================
+    // 작업지시 CUD 작업
+    // ========================================================================
+    
+    /**
      * 오늘 날짜의 작업지시 최대 순번 조회 (자동번호 생성용)
+     * 
      * @param today 오늘 날짜 (yyyyMMdd 형식)
-     * @return 최대 순번
+     * @return 오늘의 최대 순번 (예: 5 → 다음 번호는 WO-20241201-006)
      */
     int selectTodayMaxSequence(@Param("today") String today);
     
     /**
      * 작업지시 등록
-     * @param workOrderDTO 작업지시 정보
+     * 
+     * @param workOrderDTO 작업지시 정보 (수주번호, 제품ID, 라인ID, 수량, 우선순위 등)
      * @return 등록 성공 여부 (1: 성공, 0: 실패)
      */
     int insertWorkOrder(WorkOrderDTO workOrderDTO);
     
     /**
-     * 작업지시 상태 변경
-     * @param orderId 작업지시번호
-     * @param status 변경할 상태
-     * @return 변경 성공 여부 (1: 성공, 0: 실패)
-     */
-    int updateWorkOrderStatus(@Param("orderId") String orderId, @Param("status") String status);
-    
-    /**
-     * 작업지시 정보 수정 (필요시 추가)
-     * @param workOrderDTO 작업지시 정보
-     * @return 수정 성공 여부
+     * 작업지시 정보 수정
+     * 
+     * @param workOrderDTO 수정할 작업지시 정보 (라인ID, 수량, 우선순위)
+     * @return 수정 성공 여부 (1: 성공, 0: 실패)
      */
     int updateWorkOrder(WorkOrderDTO workOrderDTO);
     
     /**
-     * 작업지시 삭제 (필요시 추가)
+     * 작업지시 상태 변경
+     * 
      * @param orderId 작업지시번호
-     * @return 삭제 성공 여부
+     * @param status 변경할 상태 (WAITING → READY → IN_PROGRESS → COMPLETED)
+     * @return 변경 성공 여부 (1: 성공, 0: 실패)
      */
-    int deleteWorkOrder(@Param("orderId") String orderId);
+    int updateWorkOrderStatus(@Param("orderId") String orderId, 
+                             @Param("status") String status);
     
     /**
-     * 라인별 진행중인 작업지시 개수 조회 (부하 확인용, 필요시 추가)
-     * @param lineId 라인ID
-     * @return 진행중인 작업지시 개수
+     * 작업지시 삭제
+     * 
+     * @param orderId 작업지시번호
+     * @return 삭제 성공 여부 (1: 성공, 0: 실패)
      */
-    int selectInProgressCountByLine(@Param("lineId") String lineId);
-    
-    // 수주번호 + 제품ID로 상세 조회
-    WorkOrderDTO getOrderDetail(@Param("clOrderId") String clOrderId,
-                                @Param("productId") String productId);
+    int deleteWorkOrder(@Param("orderId") String orderId);
 }
