@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import com.itwillbs.domain.MaterialInboundItemVO;
 import com.itwillbs.domain.MaterialInboundVO;
+import com.itwillbs.domain.MaterialInventoryVO;
 import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
@@ -179,6 +180,19 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
 	public MaterialOrderVO getOrderInfoByOrderId(String orderId) {
 	    return sqlSession.selectOne(NAMESPACE + "getOrderInfoByOrderId", orderId);
 	}
+	
+	
+	// 재고 ID 자동 생성 (형식: INV-RM-YYYYMMDD-001)
+	@Override
+	public void insertInventory(MaterialInventoryVO vo) {
+	    sqlSession.insert(NAMESPACE + "insertInventory", vo);
+	}
+
+	@Override
+	public int getTodayInventorySequence(String date) {
+	    return sqlSession.selectOne(NAMESPACE + "getTodayInventorySequence", date);
+	}
+
 
 	
 	

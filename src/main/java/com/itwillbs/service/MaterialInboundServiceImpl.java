@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import com.itwillbs.domain.MaterialInboundItemVO;
 import com.itwillbs.domain.MaterialInboundVO;
+import com.itwillbs.domain.MaterialInventoryVO;
 import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
@@ -234,7 +235,7 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
 	    if (dto.getLotNo() == null || dto.getLotNo().isEmpty()) {
 	        throw new Exception("LOT 번호가 누락되었습니다.");
 	    }
-	    if (dto.getExpirationDate() == null || dto.getExpirationDate().isEmpty()) {
+	    if (dto.getExpirationDate() == null) {
 	        throw new Exception("유통기한이 누락되었습니다.");
 	    }
 
@@ -245,7 +246,7 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
 	    int totalPrice = dto.getUnitPrice() * dto.getQuantity();
 	    dto.setTotalPrice(totalPrice);
 
-	    // ✅ 단가, 총금액 포함하여 업데이트 (Mapper에 해당 필드 포함해야 함)
+	    // 단가, 총금액 포함하여 업데이트 (Mapper에 해당 필드 포함해야 함)
 	    miDAO.updateInboundItem(dto);
 
 	    // 3. 재고(material_inventory) 반영
@@ -253,9 +254,27 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
 	    boolean exists = miDAO.checkInventoryExists(dto.getMaterialId(), dto.getWarehouseCode());
 
 	    if (exists) {
+	    	
+	    	// 기존 재고 업데이트
 	        miDAO.updateInventoryQuantity(dto.getMaterialId(), dto.getWarehouseCode(), dto.getQuantity());
+	        
 	    } else {
-	        miDAO.insertInventory(dto.getMaterialId(), dto.getWarehouseCode(), dto.getQuantity());
+	    	
+	    	// 신규 재고 등록 시 inventory_id 생성
+	        MaterialInventoryVO vo = new MaterialInventoryVO();
+
+	        String inventoryId = generateInventoryId(); // 아래 메서드 추가 필요
+	        vo.setInventoryId(inventoryId);
+	        vo.setMaterialId(dto.getMaterialId());
+	        vo.setQuantity(dto.getQuantity());
+	        vo.setLotNo(dto.getLotNo());
+	        vo.setExpirationDate(dto.getExpirationDate());
+	        vo.setReceivedDate(new Date());
+	        vo.setWarehouseCode(dto.getWarehouseCode());
+	        vo.setStatus("정상");
+	        vo.setInventoryStatus("보관중");
+
+	        miDAO.insertInventory(vo);
 	    }
 
 	    // 4. 입고일자(now) 입력 + 입고상태 갱신 (입고완료 or 부분입고)
@@ -264,6 +283,15 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
 	    // 참고: 필요 시 로그 또는 LOT 이력 저장 등 추가 가능
 	}
 	
+	
+	/**
+	 * 재고 ID 자동 생성 (형식: INV-RM-YYYYMMDD-001)
+	 */
+	private String generateInventoryId() throws Exception {
+	    String date = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE); // "yyyyMMdd"
+	    int seq = miDAO.getTodayInventorySequence(date); // 오늘 날짜 기준 마지막 일련번호
+	    return String.format("INV-RM-%s-%03d", date, seq + 1);
+	}
 	
 	
 	// 입고 상세 조회 (입고ID 기준)

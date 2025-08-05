@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.itwillbs.domain.MaterialInboundItemVO;
 import com.itwillbs.domain.MaterialInboundVO;
+import com.itwillbs.domain.MaterialInventoryVO;
 import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
@@ -69,6 +70,11 @@ public interface MaterialInboundDAO {
 
 	// 발주 정보 조회
 	MaterialOrderVO getOrderInfoByOrderId(String orderId) throws Exception;
+	
+	// 재고 ID 자동 생성 (형식: INV-RM-YYYYMMDD-001)
+	void insertInventory(MaterialInventoryVO vo) throws Exception;
+	int getTodayInventorySequence(String date) throws Exception;
+
 
 
 

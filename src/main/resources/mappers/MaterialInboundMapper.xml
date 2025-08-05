@@ -283,9 +283,9 @@
 	      quantity = #{quantity},
 	      warehouse_code = #{warehouseCode},
 	      inbound_status = '입고완료',
-	      lot_created_date = NOW()
+	      lot_created_date = NOW(),
 	      unit_price = #{unitPrice},
-		  total_price = #{totalPrice},
+		  total_price = #{totalPrice}
 	  WHERE inbound_id = #{inboundId}
 	    AND material_id = #{materialId}
 	</update>
@@ -305,12 +305,6 @@
 	    AND warehouse_code = #{warehouseCode}
 	</update>
 	
-	<!-- [4] 재고 신규 삽입 -->
-	<insert id="insertInventory">
-	  INSERT INTO material_inventory (material_id, warehouse_code, quantity)
-	  VALUES (#{materialId}, #{warehouseCode}, #{quantity})
-	</insert>
-	
 	<!-- [5] 입고 마스터 상태 및 입고일 갱신 -->
 	<update id="updateInboundMasterStatus">
 	  UPDATE material_inbound
@@ -318,7 +312,7 @@
 	      inbound_status = (
 	        SELECT
 	          CASE
-	            WHEN SUM(i.order_qty) = SUM(i.quantity) THEN '입고완료'
+	            WHEN SUM(i.order_quantity) = SUM(i.quantity) THEN '입고완료'
 	            WHEN SUM(i.quantity) = 0 THEN '미입고'
 	            ELSE '부분입고'
 	          END
@@ -360,6 +354,25 @@
 	  WHERE order_id = #{orderId}
 	</select>
 	
+	
+	<!-- 재고 ID 자동 생성 (형식: INV-RM-YYYYMMDD-001) -->
+	<insert id="insertInventory" parameterType="com.itwillbs.domain.MaterialInventoryVO">
+	  INSERT INTO material_inventory (
+	    inventory_id, material_id, quantity, lot_no,
+	    expiration_date, received_date, warehouse_code,
+	    status, inventory_status
+	  ) VALUES (
+	    #{inventoryId}, #{materialId}, #{quantity}, #{lotNo},
+	    #{expirationDate}, #{receivedDate}, #{warehouseCode},
+	    #{status}, #{inventoryStatus}
+	  )
+	</insert>
+	
+	<select id="getTodayInventorySequence" resultType="int">
+	  SELECT IFNULL(MAX(CAST(SUBSTRING(inventory_id, -3) AS UNSIGNED)), 0)
+	  FROM material_inventory
+	  WHERE inventory_id LIKE CONCAT('INV-RM-', #{date}, '%')
+	</select>
 	
 	
 

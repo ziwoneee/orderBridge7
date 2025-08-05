@@ -2,6 +2,13 @@
  * materialInbound.js - 자재 입고 관리 관련 JavaScript 기능 모음 (수정본)
  ************************************************************/
 
+// 날짜 포맷 함수
+function formatDateString(timestamp) {
+  if (!timestamp) return '-';
+  const date = new Date(timestamp);
+  return date.toISOString().substring(0, 10); // 'yyyy-MM-dd'
+}
+
 /* [1] 입고 상세 모달 불러오기 */
 function loadInboundDetail(inboundId) {
   console.log('입고 상세 조회 요청:', inboundId);
@@ -16,10 +23,10 @@ function loadInboundDetail(inboundId) {
       // 기본 정보 설정
       $('#inboundId').text(data.inbound.inboundId || '-');
       $('#orderId').text(data.inbound.orderId || '-');
-      $('#expectedArrivedDate').text(data.inbound.expectedArrivedDate || '-');
-      $('#orderDate').text(data.inbound.orderDate || '-');
+      $('#expectedArrivedDate').text(formatDateString(data.inbound.expectedArrivedDate));
+      $('#orderDate').text(formatDateString(data.inbound.orderDate));
       $('#supplierId').text(data.inbound.supplierId || '-');
-      $('#inboundDate').text(data.inbound.inboundDate || '-');
+      $('#inboundDate').text(formatDateString(data.inbound.inboundDate));
       $('#handledBy').text(data.inbound.handledBy || '-');
       $('#modalStatus').text(data.inbound.inboundStatus || '-');
 
