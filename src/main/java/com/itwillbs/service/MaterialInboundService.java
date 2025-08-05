@@ -45,6 +45,12 @@ public interface MaterialInboundService {
 	
 	// 입고 상세 조회 (입고ID 기준)
 	MaterialInboundDTO getInboundDetail(String inboundId) throws Exception;;
+	
+	// 추가입고 생성
+	void createAdditionalInbound(String orderItemId) throws Exception;
+	
+	// 특정 발주 항목의 누적 입고 수량 조회
+	int getTotalInboundQuantity(String orderItemId) throws Exception;
 
 
 

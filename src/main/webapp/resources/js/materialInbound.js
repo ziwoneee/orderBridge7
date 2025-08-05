@@ -122,7 +122,9 @@ function openInboundModal(itemOrId) {
       $('#quantity').val(item.orderQuantity || item.orderQty || 0);
       $('#warehouseCode').val('WH001');
       $('#inboundId').val(item.inboundId);
-
+      $('#orderItemId').val(item.orderItemId);
+      console.log('입고 처리용 item 객체:', item);
+      
       $('#inboundModal').modal('show');
     },
     error: function(xhr, status, error) {
@@ -173,6 +175,7 @@ function processInboundItem() {
   const warehouseCode = $('#warehouseCode').val();
   const materialId = $('#materialId').val();
   const inboundId = $('#inboundId').val();
+  const orderItemId = $('#orderItemId').val();
 
   // 유효성 검사
   if (!lotNo) return alert('LOT 번호를 입력하거나 자동 생성해야 합니다.');
@@ -188,7 +191,8 @@ function processInboundItem() {
     lotNo,
     expirationDate,
     quantity,
-    warehouseCode
+    warehouseCode,
+    orderItemId
   };
 
   $.ajax({

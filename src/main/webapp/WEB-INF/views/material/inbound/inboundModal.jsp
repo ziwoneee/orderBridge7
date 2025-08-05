@@ -14,6 +14,7 @@
           <!-- 숨은 필드 -->
           <input type="hidden" id="materialId">
           <input type="hidden" id="inboundId">
+          <input type="hidden" id="orderItemId" />
         
           <!-- 자재명 -->
           <div class="form-group">

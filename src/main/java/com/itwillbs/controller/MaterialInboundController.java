@@ -231,6 +231,24 @@ public class MaterialInboundController {
 	                             .body("입고 상세 조회 실패: " + e.getMessage());
 	    }
 	}
+	
+	
+
+	/**
+	 * 추가입고 처리 요청 → 새로운 입고건 및 항목 등록
+	 */
+	@PostMapping("/additional")
+	@ResponseBody
+	public ResponseEntity<String> createAdditionalInbound(@RequestParam("orderItemId") String orderItemId) {
+	    try {
+	        miService.createAdditionalInbound(orderItemId);
+	        return ResponseEntity.ok("success");
+	    } catch (Exception e) {
+	        logger.error("[추가입고] 처리 중 오류 발생", e);
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("fail");
+	    }
+	}
+
 
 	
 	

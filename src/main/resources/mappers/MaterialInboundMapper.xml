@@ -258,7 +258,8 @@
 		    ii.warehouse_code,
 		    ii.lot_no,
 		    ii.expiration_date,
-		    ii.inbound_status
+		    ii.inbound_status,
+		    ii.order_item_id
 		  FROM material_inbound_item ii
 		  JOIN material m ON ii.material_id = m.material_id
 		  WHERE ii.inbound_id = #{inboundId}
@@ -282,7 +283,7 @@
 	      expiration_date = #{expirationDate},
 	      quantity = #{quantity},
 	      warehouse_code = #{warehouseCode},
-	      inbound_status = '입고완료',
+	      inbound_status = #{inboundStatus},
 	      lot_created_date = NOW(),
 	      unit_price = #{unitPrice},
 		  total_price = #{totalPrice}
@@ -347,6 +348,29 @@
 	  WHERE i.inbound_id = #{inboundId}
 	</select>
 	
+	
+	<!-- order_item_id로 단일 발주항목 조회 -->
+	<select id="getOrderItemById" parameterType="string" resultType="com.itwillbs.domain.MaterialOrderItemVO">
+	  SELECT 
+	    moi.order_item_id,
+	    moi.order_id,
+	    moi.material_id,
+	    moi.order_quantity AS quantity,
+	    moi.unit_price,
+	    moi.warehouse_code
+	  FROM material_order_item moi
+	  WHERE moi.order_item_id = #{orderItemId}
+	</select>
+	
+	
+	<!-- 해당 order_item_id에 대한 누적 입고 수량 계산 -->
+	<select id="getTotalReceivedQtyByOrderItemId" parameterType="string" resultType="int">
+	  SELECT IFNULL(SUM(quantity), 0)
+	  FROM material_inbound_item
+	  WHERE order_item_id = #{orderItemId}
+	</select>
+	
+	
 	<!-- 발주 정보 조회 -->
 	<select id="getOrderInfoByOrderId" parameterType="string" resultType="com.itwillbs.domain.MaterialOrderVO">
 	  SELECT *
@@ -372,6 +396,16 @@
 	  SELECT IFNULL(MAX(CAST(SUBSTRING(inventory_id, -3) AS UNSIGNED)), 0)
 	  FROM material_inventory
 	  WHERE inventory_id LIKE CONCAT('INV-RM-', #{date}, '%')
+	</select>
+	
+	
+	<!-- [개별 자재 항목의 누적 입고 수량 조회] -->
+	<!-- - order_item_id 기준으로 지금까지 입고된 수량의 총합을 반환 -->
+	<!-- - 상태 판단: 부분입고 / 입고완료 구분에 사용됨 -->
+	<select id="getTotalInboundQuantity" parameterType="string" resultType="int">
+	  SELECT IFNULL(SUM(quantity), 0)
+	  FROM material_inbound_item
+	  WHERE order_item_id = #{orderItemId}
 	</select>
 	
 	
