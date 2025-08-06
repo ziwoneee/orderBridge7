@@ -260,36 +260,29 @@ function openOrderSelectionPopup() {
  * 팝업에서 선택한 수주 데이터 처리
  */
 function receiveOrderData(orderData) {
-    if (!orderData) {
-        alert('선택된 수주 데이터가 없습니다.');
-        return;
-    }
+	  if (!orderData || !orderData.clOrderIds || orderData.clOrderIds.length === 0) {
+	    alert("유효하지 않은 수주 정보입니다.");
+	    return;
+	  }
 
-    $.ajax({
-        url: '/workorder/create',
-        method: 'POST',
-        data: {
-            clOrderId: orderData.clOrderId,
-            productId: orderData.productId,
-            lineId: orderData.lineId,
-            orderQty: orderData.orderQty,
-            priority: orderData.priority || 'NORMAL',
-            dueDate: orderData.dueDate
-        },
-        success: function(response) {
-            alert('작업지시가 등록되었습니다.');
-            location.reload();
-        },
-        error: function(xhr, status, error) {
-            console.error('작업지시 등록 실패:', error);
-            let errorMsg = '작업지시 등록에 실패했습니다.';
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-                errorMsg += '\n오류: ' + xhr.responseJSON.message;
-            }
-            alert(errorMsg);
-        }
-    });
-}
+	  console.log("받은 병합 수주 정보:", orderData);
+
+	  // 수량, 납기일 입력
+	  $('#orderQty').val(orderData.orderQty);
+	  $('#dueDate').val(orderData.dueDate);
+
+	  // 숨겨진 수주번호들 추가
+	  $('#workOrderForm').find('input[name="clOrderIds"]').remove(); // 기존 제거
+	  orderData.clOrderIds.forEach(clOrderId => {
+	    $('#workOrderForm').append(`<input type="hidden" name="clOrderIds" value="${clOrderId}">`);
+	  });
+
+	  // BOM 불러오기
+	  fetchBomAndRender(orderData.productId, orderData.orderQty);
+	}
+
+
+
 
 // ========================================================================
 // 유틸리티 함수
@@ -353,3 +346,4 @@ function getStatusInfo(status) {
     
     return statusMap[status] || { text: status || '', class: 'badge-light' };
 }
+
