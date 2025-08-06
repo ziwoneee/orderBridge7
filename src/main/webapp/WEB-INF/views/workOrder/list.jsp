@@ -271,133 +271,26 @@
           </div>
           <!-- 페이징 처리 끝 -->
           
-           <!--  작업지시 상세 모달 -->
+	<!-- 작업지시 상세 모달 (비어있는 modal-content만 남김) -->
 <div class="modal fade" id="detailModal" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog modal-xl">
     <div class="modal-content">
-      
-      <!-- 모달 헤더 -->
-     <div class="modal-header text-white" style="background-color: #1C355E;">
-        <h5 class="modal-title">작업지시 상세</h5>
-        <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
-      </div>
-
-      <!-- 모달 바디 -->
-      <div class="modal-body">
-        <!-- 상단 기본 정보 테이블 -->
-        <table class="table table-bordered mb-4">
-          <tbody>
-            <tr>
-              <th>작업지시번호</th><td id="modalOrderId"></td>
-              <th>납기일</th><td id="modalDueDate"></td>
-            </tr>
-            <tr>
-              <th>제품명</th><td id="modalProductName"></td>
-              <th>생산라인</th><td id="modalLineName"></td>
-            </tr>
-            <tr>
-              <th>지시 수량</th><td id="modalOrderQty"></td>
-              <th>우선순위</th><td id="modalPriority"></td>
-            </tr>
-            <tr>
-              <th>작업지시일자</th><td id="modalCreatedAt"></td>
-              <th>상태</th><td id="modalStatusBadge"></td>
-            </tr>
-            <tr>
-              <th>거래처</th><td id="modalClientName" colspan="3"></td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!--  자재 소요량 테이블 -->
-        <h6 class="font-weight-bold mb-2 text-primary">자재 재고 정보</h6>
-        <div class="table-responsive">
-          <table class="table table-bordered text-center" id="bomTable">
-            <thead class="thead-dark">
-              <tr>
-                <th>자재코드</th>
-                <th>자재명</th>
-                <th>공정유형</th>
-                <th>단위</th>
-                <th>1팩당 소요량</th>
-                <th>총 필요 수량</th>
-                <th>재고 수량</th>
-                <th>재고 상태</th>
-              </tr>
-            </thead>
-            <tbody id="bomTableBody">
-              <!-- 동적 렌더링 -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- 모달 푸터: 버튼들 -->
-      <div class="modal-footer justify-content-between">
-        <div>
-          <span class="badge badge-info" id="modalStatus"></span>
-        </div>
-        <div>
-          <button id="btnEdit" class="btn btn-warning btn-sm" onclick="editWorkOrder()" disabled>수정</button>
-          <button id="btnDelete" class="btn btn-danger btn-sm" onclick="deleteWorkOrder()" disabled>삭제</button>
-          <button class="btn btn-secondary btn-sm" data-dismiss="modal">닫기</button>
-        </div>
-      </div>
-
+      <!-- Ajax로 /workorder/detail/{orderId}의 HTML이 여기에 삽입됨 -->
     </div>
   </div>
 </div>
 
-<!-- ======================= 수정 모달 ======================= -->
+<!-- 수정 모달 -->
 <div class="modal fade" id="editModal" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
-    
-      <div class="modal-header">
-        <h5 class="modal-title" id="editModalLabel">작업지시 수정</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="닫기">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-
-      <form id="editForm">
-        <div class="modal-body">
-
-          <input type="hidden" name="orderId" id="edit_orderId">
-
-          <div class="form-group">
-            <label>생산 라인</label>
-            <input type="text" class="form-control" name="lineId" id="edit_lineId" readonly>
-          </div>
-
-          <div class="form-group">
-            <label>지시 수량</label>
-            <input type="number" class="form-control" name="orderQty" id="edit_orderQty">
-          </div>
-
-          <div class="form-group">
-            <label>우선순위</label>
-            <select class="form-control" name="priority" id="edit_priority">
-              <option value="LOW">낮음</option>
-              <option value="NORMAL">보통</option>
-              <option value="HIGH">높음</option>
-              <option value="EMERGENCY">긴급</option>
-            </select>
-          </div>
-
-        </div>
-
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">저장</button>
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">취소</button>
-        </div>
-      </form>
-
+      <!-- 여기 안에 서버에서 AJAX로 HTML을 로드할 예정 -->
     </div>
   </div>
 </div>
 
-          
+
+   
         </div>
         <!-- content-wrapper 끝 -->
       
@@ -477,44 +370,4 @@
     border-color: #152a4a !important;
 }
 
-/* 기존 CSS 스타일 아래에 추가 */
-
-/* 모달 헤더 커스텀 스타일 */
-.modal-header-custom {
-    background-color: #1C355E !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* 모달 관련 추가 스타일 */
-.modal-body .table th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    width: 150px;
-}
-
-.modal-body .table td {
-    vertical-align: middle;
-}
-
-/* BOM 테이블 스타일 */
-#bomTable thead th {
-    background-color: #1C355E !important;
-    color: white !important;
-    font-size: 0.9rem;
-    padding: 0.75rem 0.5rem;
-}
-
-#bomTable tbody td {
-    font-size: 0.9rem;
-    padding: 0.6rem 0.5rem;
-}
-
-/* 모달 푸터 버튼 간격 */
-.modal-footer .btn {
-    margin-left: 0.5rem;
-}
-
-.modal-footer .btn:first-child {
-    margin-left: 0;
-}
 </style>

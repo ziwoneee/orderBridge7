@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.itwillbs.mapper.ProductionLineMapper">
+
+    <!-- 사용 가능한 생산 라인 전체 조회 -->
+    <select id="selectAvailableLines" resultType="com.itwillbs.domain.ProductionLineVO">
+		  SELECT
+		    line_id,
+		    line_name,
+		    available_product,
+		    status
+		  FROM production_line
+		  WHERE status = 'ACTIVE'
+		  ORDER BY line_name ASC
+	</select>
+
+</mapper>

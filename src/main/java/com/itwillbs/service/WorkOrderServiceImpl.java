@@ -175,23 +175,23 @@ public class WorkOrderServiceImpl implements WorkOrderService {
     }
     
     /**
-     * 작업지시 삭제
+     * 작업지시 소프트 삭제
      */
     @Override
     @Transactional
     public void deleteWorkOrder(String orderId) {
-        log.info("작업지시 삭제 요청 - ID: {}", orderId);
+        log.info("작업지시 소프트 삭제 요청 - ID: {}", orderId);
         try {
-            int result = workOrderMapper.deleteWorkOrder(orderId);
+            int result = workOrderMapper.deleteWorkOrder(orderId); // ← 이름 되돌림
             if (result > 0) {
-                log.info("작업지시 삭제 성공 - ID: {}", orderId);
+                log.info("작업지시 삭제 성공 (is_deleted = true) - ID: {}", orderId);
             } else {
                 log.warn("작업지시 삭제 실패 - ID 없음: {}", orderId);
-                throw new RuntimeException("해당 작업지시가 존재하지 않습니다.");
+                throw new RuntimeException("해당 작업지시가 존재하지 않거나 이미 삭제되었습니다.");
             }
         } catch (Exception e) {
             log.error("작업지시 삭제 중 오류", e);
-            throw new RuntimeException("작업지시 삭제 중 오류가 발생했습니다: " + e.getMessage());
+            throw new RuntimeException("작업지시 삭제 중 오류: " + e.getMessage());
         }
     }
 

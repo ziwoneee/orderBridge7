@@ -5,16 +5,18 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.PageMaker;
+import com.itwillbs.domain.ProductionLineVO;
 import com.itwillbs.dto.BomItemDTO;
 import com.itwillbs.dto.WorkOrderDTO;
+import com.itwillbs.service.ProductionLineService;
 import com.itwillbs.service.WorkOrderService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +35,9 @@ public class WorkOrderController {
     
     @Autowired
     private WorkOrderService workOrderService;
+    
+    @Autowired
+    private ProductionLineService productionLineService;
     
     // ========================================================================
     // 작업지시 목록 및 조회
@@ -70,20 +75,29 @@ public class WorkOrderController {
     }
     
     /**
-     * 작업지시 상세 정보 조회 (AJAX)
-     * 
-     * @param orderId 작업지시번호
-     * @return 작업지시 상세 정보
+     * 작업지시 상세 정보 조회 (인라인 편집 가능)
      */
-    @GetMapping("/detail/{orderId}")
-    public String getWorkOrderDetail(@PathVariable("orderId") String orderId, Model model) {
+    @GetMapping("/detail-modal")
+    public String getWorkOrderDetailModal(@RequestParam("orderId") String orderId, Model model) {
+        log.info("작업지시 상세 요청 - ID: {}", orderId);
+
+        // 작업지시 상세 조회
         WorkOrderDTO workOrder = workOrderService.getWorkOrderDetail(orderId);
-        List<BomItemDTO> bomList = workOrderService.calculateMaterialUsage(workOrder.getProductId(), workOrder.getOrderQty());
+        log.info("불러온 작업지시: {}", workOrder);
+
+        // BOM 자재 목록 조회
+        List<BomItemDTO> bomList = workOrderService.calculateMaterialUsage(
+            workOrder.getProductId(), workOrder.getOrderQty());
+        log.info("계산된 BOM 자재 수: {}", bomList.size());
+        
+        // 라인 목록 조회 (수정 모드에서 사용)
+        List<ProductionLineVO> lineList = productionLineService.getAvailableLines();
 
         model.addAttribute("workOrder", workOrder);
         model.addAttribute("bomList", bomList);
+        model.addAttribute("lineList", lineList);
 
-        return "/workOrder/detail-modal";  // 모달 JSP 경로
+        return "/workOrder/detail-modal";  
     }
     
     // ========================================================================
@@ -193,15 +207,88 @@ public class WorkOrderController {
     }
     
     // ========================================================================
-    // 작업지시 상태 관리
+    // 작업지시 수정 및 삭제
     // ========================================================================
     
     /**
+     * 작업지시 수정 처리 (인라인 편집)
+     */
+    @PostMapping("/edit")
+    @ResponseBody
+    public ResponseEntity<String> updateWorkOrder(@ModelAttribute WorkOrderDTO dto) {
+        log.info("작업지시 수정 처리 요청: {}", dto);
+        
+        try {
+            // 1. 기존 데이터 조회
+            WorkOrderDTO origin = workOrderService.getWorkOrderDetail(dto.getOrderId());
+            
+            // 2. 상태 확인
+            if (!"WAITING".equals(origin.getStatus())) {
+                return ResponseEntity.badRequest().body("대기 상태(WAITING)인 작업지시만 수정 가능합니다.");
+            }
+            
+            // 3. 수정할 필드만 설정 (나머지는 기존 값 유지)
+            origin.setLineId(dto.getLineId());
+            origin.setRemarks(dto.getRemarks());
+            
+            // 4. 수정 처리
+            workOrderService.updateWorkOrder(origin);
+            
+            return ResponseEntity.ok("success");
+            
+        } catch (Exception e) {
+            log.error("작업지시 수정 중 예외 발생", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                 .body("수정 중 오류 발생: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 작업지시 삭제 처리 (소프트 삭제)
+     * - 상태가 'WAITING'인 경우만 가능
+     * - 실제로는 DB에서 삭제하지 않고 is_deleted = true 처리
+     */
+    @DeleteMapping("/delete/{orderId}")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> deleteWorkOrder(@PathVariable("orderId") String orderId) {
+        log.info("작업지시 삭제 요청 - ID: {}", orderId);
+
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            // 1. 기존 작업지시 조회
+            WorkOrderDTO dto = workOrderService.getWorkOrderDetail(orderId);
+
+            // 2. 삭제 조건 체크
+            if (dto == null || (dto.getIsDeleted() != null && dto.getIsDeleted())) {
+                response.put("success", false);
+                response.put("message", "이미 삭제된 작업지시입니다.");
+                return ResponseEntity.ok(response);
+            }
+
+            if (!"WAITING".equals(dto.getStatus())) {
+                response.put("success", false);
+                response.put("message", "대기 상태인 작업지시만 삭제할 수 있습니다.");
+                return ResponseEntity.ok(response);
+            }
+
+            // 3. 소프트 삭제 처리 (void → return 없음)
+            workOrderService.deleteWorkOrder(orderId);
+
+            response.put("success", true);
+            response.put("message", "작업지시가 삭제(숨김처리)되었습니다.");
+
+        } catch (Exception e) {
+            log.error("작업지시 삭제 실패 - ID: {}", orderId, e);
+            response.put("success", false);
+            response.put("message", "시스템 오류가 발생했습니다.");
+        }
+
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
      * 작업지시 상태 변경 (AJAX)
-     * 
-     * @param orderId 작업지시번호
-     * @param status 변경할 상태
-     * @return 변경 결과
      */
     @PostMapping("/updateStatus")
     @ResponseBody
@@ -234,75 +321,6 @@ public class WorkOrderController {
         
         return ResponseEntity.ok(response);
     }
-    
-    /**
-     * 작업지시 삭제 처리 (AJAX)
-     * 
-     * @param orderId 작업지시번호
-     * @return 삭제 결과
-     */
-    @DeleteMapping("/delete/{orderId}")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> deleteWorkOrder(@PathVariable("orderId") String orderId) {
-        log.info("작업지시 삭제 요청 - ID: {}", orderId);
-        Map<String, Object> response = new HashMap<>();
-
-        try {
-            workOrderService.deleteWorkOrder(orderId);
-            response.put("success", true);
-            response.put("message", "삭제 완료");
-            log.info("작업지시 삭제 완료 - ID: {}", orderId);
-        } catch (Exception e) {
-            log.error("작업지시 삭제 실패 - ID: {}", orderId, e);
-            response.put("success", false);
-            response.put("message", "삭제 중 오류가 발생했습니다.");
-        }
-
-        return ResponseEntity.ok(response);
-    }
-    
-    /**
-     * 작업지시 수정 폼 페이지
-     * 
-     * @param orderId 작업지시번호
-     * @param model 뷰 모델
-     * @return 수정 폼 JSP
-     */
-    @GetMapping("/edit")
-    public String editWorkOrderForm(@RequestParam("orderId") String orderId, Model model) {
-        log.info("작업지시 수정 폼 요청 - ID: {}", orderId);
-
-        WorkOrderDTO dto = workOrderService.getWorkOrderDetail(orderId);
-
-        if (!"WAITING".equals(dto.getStatus())) {
-            throw new IllegalStateException("대기 상태(WAITING)인 작업지시만 수정 가능합니다.");
-        }
-
-        model.addAttribute("order", dto);
-        return "workOrder/edit"; // edit.jsp
-    }
-    
-    /**
-     * 작업지시 수정 처리
-     * 
-     * @param dto 수정된 작업지시 정보
-     * @return 목록 리다이렉트
-     */
-    @PostMapping("/edit")
-    public String updateWorkOrder(@ModelAttribute WorkOrderDTO dto, RedirectAttributes rttr) {
-        log.info("작업지시 수정 처리 요청 - {}", dto);
-
-        try {
-            workOrderService.updateWorkOrder(dto);
-            rttr.addFlashAttribute("message", "작업지시 수정 완료");
-        } catch (Exception e) {
-            log.error("작업지시 수정 실패", e);
-            rttr.addFlashAttribute("message", "수정 중 오류 발생: " + e.getMessage());
-        }
-
-        return "redirect:/workorder/list";
-    }
-    
     
     // ========================================================================
     // BOM 관련

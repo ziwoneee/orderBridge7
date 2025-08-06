@@ -26,15 +26,191 @@ $(document).ready(function () {
         openOrderSelectionPopup();
     });
 
-    // 수정 폼 submit 처리
-    $('#editForm').on('submit', function (e) {
-        e.preventDefault();
-        submitEditForm();
-    });
-
     // 팝업에서 데이터 받기 위한 전역 함수 등록
     window.receiveOrderData = receiveOrderData;
+    
+    // 모달이 닫힐 때 내용 초기화
+    $('#detailModal').on('hidden.bs.modal', function () {
+        $(this).find('.modal-content').empty();
+    });
+    
+    console.log('작업지시 관리 JavaScript 로드 완료');
 });
+
+// ========================================================================
+// 작업지시 상세 및 수정 관련
+// ========================================================================
+
+/**
+ * 작업지시 상세 모달 열기
+ */
+function openDetailModal(orderId) {
+    if (!orderId) {
+        alert('작업지시 번호가 없습니다.');
+        return;
+    }
+
+    $.ajax({
+        url: '/workorder/detail-modal',
+        type: 'GET',
+        data: { orderId: orderId },
+        success: function(data) {
+            // 모달 내용 채우기
+            $('#detailModal .modal-content').html(data);
+            // 모달 열기
+            $('#detailModal').modal('show');
+        },
+        error: function(xhr, status, error) {
+            console.error('작업지시 상세 정보 로드 실패:', error);
+            alert("작업지시 상세 정보를 불러오는 데 실패했습니다.");
+        }
+    });
+}
+
+/**
+ * 편집 모드 활성화
+ */
+function enableEditMode() {
+    // 모든 보기 모드 요소 숨기기
+    $('.view-mode').hide();
+    $('.view-mode-buttons').hide();
+    
+    // 모든 편집 모드 요소 보이기
+    $('.edit-mode').show();
+    $('.edit-mode-buttons').show();
+    
+    // 모달 타이틀 변경
+    $('.modal-title').text('작업지시 수정');
+}
+
+/**
+ * 편집 모드 취소
+ */
+function cancelEditMode() {
+    // 모든 편집 모드 요소 숨기기
+    $('.edit-mode').hide();
+    $('.edit-mode-buttons').hide();
+    
+    // 모든 보기 모드 요소 보이기
+    $('.view-mode').show();
+    $('.view-mode-buttons').show();
+    
+    // 모달 타이틀 원복
+    $('.modal-title').text('작업지시 상세');
+    
+    // 변경사항 되돌리기 (원래 값으로)
+    const workOrderData = $('#workOrderData');
+    $('#lineSelect').val(workOrderData.data('line-id'));
+    $('#remarksTextarea').val(workOrderData.data('remarks'));
+}
+
+/**
+ * 변경사항 저장
+ */
+function saveChanges() {
+    // data 속성에서 값 가져오기
+    const workOrderData = $('#workOrderData');
+    const orderId = workOrderData.data('order-id');
+    const priority = workOrderData.data('priority');
+    
+    // 현재 입력값
+    const lineId = $('#lineSelect').val();
+    const remarks = $('#remarksTextarea').val();
+    
+    // 유효성 검사
+    if (!lineId) {
+        alert('라인을 선택해주세요.');
+        return;
+    }
+    
+    // Ajax로 수정 요청
+    $.ajax({
+        url: '/workorder/edit',
+        method: 'POST',
+        data: {
+            orderId: orderId,
+            priority: priority,
+            lineId: lineId,
+            remarks: remarks
+        },
+        success: function(response) {
+            if (response === 'success') {
+                alert('작업지시가 성공적으로 수정되었습니다.');
+                
+                // 화면 업데이트 (페이지 새로고침 없이)
+                $('#lineDisplay').text(lineId);
+                $('#remarksDisplay').text(remarks || '-');
+                
+                // data 속성 업데이트
+                workOrderData.data('line-id', lineId);
+                workOrderData.data('remarks', remarks);
+                
+                // 편집 모드 종료
+                cancelEditMode();
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('수정 실패:', error);
+            let errorMsg = '작업지시 수정에 실패했습니다.';
+            if (xhr.responseText) {
+                errorMsg = xhr.responseText;
+            }
+            alert(errorMsg);
+        }
+    });
+}
+
+/**
+ * 작업지시 삭제 확인
+ */
+function confirmDelete(orderId) {
+    if (!orderId) {
+        alert('작업지시 번호가 없습니다.');
+        return;
+    }
+    
+    if (confirm('정말로 이 작업지시를 삭제하시겠습니까?\n작업지시번호: ' + orderId + '\n삭제된 데이터는 복구할 수 없습니다.')) {
+        deleteWorkOrder(orderId);
+    }
+}
+
+/**
+ * 작업지시 삭제 처리
+ */
+function deleteWorkOrder(orderId) {
+    console.log('삭제 요청 - orderId:', orderId);
+    
+    if (!orderId) {
+        alert('작업지시 번호가 없습니다.');
+        return;
+    }
+    
+    $.ajax({
+        url: '/workorder/delete/' + orderId,
+        type: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                alert(response.message || '작업지시가 삭제되었습니다.');
+                $('#detailModal').modal('hide');
+                location.reload();
+            } else {
+                alert(response.message || '삭제에 실패했습니다.');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('삭제 실패:', error);
+            let errorMsg = '작업지시 삭제에 실패했습니다.';
+            if (xhr.responseText) {
+                errorMsg += '\n' + xhr.responseText;
+            }
+            alert(errorMsg);
+        }
+    });
+}
+
+// ========================================================================
+// 작업지시 등록 관련
+// ========================================================================
 
 /**
  * 수주 선택 팝업 열기
@@ -81,208 +257,6 @@ function openOrderSelectionPopup() {
 }
 
 /**
- * 작업지시 상세 모달 열기
- */
-function openDetailModal(orderId) {
-    if (!orderId) {
-        alert('작업지시 번호가 없습니다.');
-        return;
-    }
-
-    $.ajax({
-        url: '/workorder/detail/' + orderId,
-        type: 'GET',
-        success: function(data) {
-            populateDetailModal(data);
-            loadBomData(data.productId, data.orderQty);
-        },
-        error: function(xhr, status, error) {
-            console.error('작업지시 상세 정보 로드 실패:', error);
-            alert("작업지시 상세 정보를 불러오는 데 실패했습니다.");
-        }
-    });
-}
-
-/**
- * 상세 모달에 데이터 채우기
- */
-function populateDetailModal(data) {
-    $('#modalOrderId').text(data.orderId || '');
-    $('#modalProductName').text(data.productName || '');
-    $('#modalOrderQty').text(data.orderQty ? Number(data.orderQty).toLocaleString() : '0');
-    $('#modalLineName').text(data.lineName || '');
-    $('#modalClientName').text(data.clientName || '');
-    
-    // 날짜 포맷팅
-    $('#modalDueDate').text(formatDate(data.dueDate));
-    $('#modalCreatedAt').text(formatDate(data.createdAt));
-    
-    // 우선순위 표시
-    const priorityInfo = getPriorityInfo(data.priority);
-    $('#modalPriority').html(`<span class="badge ${priorityInfo.class}">${priorityInfo.text}</span>`);
-    
-    // 상태 표시
-    const statusInfo = getStatusInfo(data.status);
-    $('#modalStatusBadge').html(`<span class="badge ${statusInfo.class}">${statusInfo.text}</span>`);
-    $('#modalStatus').html(`<span class="badge ${statusInfo.class}">${statusInfo.text}</span>`);
-
-    // 버튼 제어
-    controlModalButtons(data.status);
-}
-
-/**
- * BOM 데이터 로드
- */
-function loadBomData(productId, orderQty) {
-    if (!productId || !orderQty) {
-        renderBomTable([]);
-        $('#detailModal').modal('show');
-        return;
-    }
-
-    $.ajax({
-        url: '/workorder/getBomByProduct',
-        type: 'GET',
-        data: {
-            productId: productId,
-            orderQty: orderQty
-        },
-        success: function(bomList) {
-            renderBomTable(bomList);
-            $('#detailModal').modal('show');
-        },
-        error: function(xhr, status, error) {
-            console.error('BOM 데이터 로드 실패:', error);
-            renderBomTable([]);
-            $('#detailModal').modal('show');
-        }
-    });
-}
-
-/**
- * BOM 테이블 렌더링
- */
-function renderBomTable(bomList) {
-    const tbody = document.getElementById("bomTableBody");
-    if (!tbody) return;
-    
-    tbody.innerHTML = "";
-
-    if (!bomList || bomList.length === 0) {
-        tbody.innerHTML = "<tr><td colspan='8' class='text-center text-muted py-3'>자재 정보가 없습니다.</td></tr>";
-        return;
-    }
-
-    bomList.forEach(item => {
-        const row = document.createElement("tr");
-        
-        // 재고 상태 결정
-        const stockInfo = getStockInfo(item.stockQty || 0, item.totalQty || 0);
-        
-        row.innerHTML = `
-            <td>${item.materialId || ''}</td>
-            <td>${item.materialName || ''}</td>
-            <td>${item.materialType || ''}</td>
-            <td>${item.unit || ''}</td>
-            <td class="text-end">${Number(item.qty || 0).toLocaleString()}</td>
-            <td class="text-end">${Number(item.totalQty || 0).toLocaleString()}</td>
-            <td class="text-end">${Number(item.stockQty || 0).toLocaleString()}</td>
-            <td><span class="badge ${stockInfo.class}">${stockInfo.text}</span></td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-/**
- * 작업지시 수정
- */
-function editWorkOrder() {
-    const orderId = $('#modalOrderId').text();
-    const lineName = $('#modalLineName').text();
-    const orderQty = $('#modalOrderQty').text().replace(/,/g, '');
-    const priorityText = $('#modalPriority').find('.badge').text();
-    
-    // 우선순위 텍스트를 값으로 변환
-    const priorityValue = getPriorityValue(priorityText);
-
-    // 수정 모달에 값 설정
-    $('#edit_orderId').val(orderId);
-    $('#edit_lineId').val(lineName);
-    $('#edit_orderQty').val(orderQty);
-    $('#edit_priority').val(priorityValue);
-
-    // 모달 전환
-    $('#detailModal').modal('hide');
-    setTimeout(() => {
-        $('#editModal').modal('show');
-    }, 300);
-}
-
-/**
- * 작업지시 삭제
- */
-function deleteWorkOrder() {
-    const orderId = $('#modalOrderId').text();
-    
-    if (!orderId) {
-        alert('작업지시 번호가 없습니다.');
-        return;
-    }
-    
-    if (!confirm('정말로 이 작업지시를 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.')) {
-        return;
-    }
-    
-    $.ajax({
-        url: '/workorder/delete/' + orderId,
-        type: 'DELETE',
-        success: function(response) {
-            alert('작업지시가 삭제되었습니다.');
-            $('#detailModal').modal('hide');
-            location.reload();
-        },
-        error: function(xhr, status, error) {
-            console.error('삭제 실패:', error);
-            alert('작업지시 삭제에 실패했습니다.');
-        }
-    });
-}
-
-/**
- * 수정 폼 제출
- */
-function submitEditForm() {
-    const formData = $('#editForm').serialize();
-    const orderQty = $('#edit_orderQty').val();
-    
-    // 유효성 검사
-    if (!orderQty || orderQty <= 0) {
-        alert('지시 수량은 1 이상이어야 합니다.');
-        $('#edit_orderQty').focus();
-        return;
-    }
-
-    $.ajax({
-        url: '/workorder/update',
-        method: 'POST',
-        data: formData,
-        success: function (response) {
-            alert('작업지시가 수정되었습니다.');
-            $('#editModal').modal('hide');
-            location.reload();
-        },
-        error: function (xhr, status, error) {
-            console.error('수정 실패:', error);
-            let errorMsg = '작업지시 수정에 실패했습니다.';
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-                errorMsg += '\n오류: ' + xhr.responseJSON.message;
-            }
-            alert(errorMsg);
-        }
-    });
-}
-
-/**
  * 팝업에서 선택한 수주 데이터 처리
  */
 function receiveOrderData(orderData) {
@@ -317,14 +291,9 @@ function receiveOrderData(orderData) {
     });
 }
 
-/**
- * 모달 버튼 제어
- */
-function controlModalButtons(status) {
-    const isWaiting = (status === 'WAITING');
-    $('#btnEdit').prop('disabled', !isWaiting);
-    $('#btnDelete').prop('disabled', !isWaiting);
-}
+// ========================================================================
+// 유틸리티 함수
+// ========================================================================
 
 /**
  * 날짜 포맷팅 함수
@@ -333,25 +302,20 @@ function formatDate(dateString) {
     if (!dateString) return '';
     
     try {
-        // 다양한 날짜 형식 처리
         let date;
         
         if (dateString.includes('T')) {
-            // ISO 형식: 2024-01-15T09:30:00
             date = new Date(dateString);
         } else if (dateString.includes('-')) {
-            // 날짜만: 2024-01-15
             date = new Date(dateString + 'T00:00:00');
         } else {
-            // 기타 형식
             date = new Date(dateString);
         }
         
         if (isNaN(date.getTime())) {
-            return dateString; // 파싱 실패시 원본 반환
+            return dateString;
         }
         
-        // YYYY-MM-DD 형식으로 반환
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
@@ -388,31 +352,4 @@ function getStatusInfo(status) {
     };
     
     return statusMap[status] || { text: status || '', class: 'badge-light' };
-}
-
-/**
- * 재고 상태 정보 반환
- */
-function getStockInfo(stockQty, totalQty) {
-    if (stockQty >= totalQty) {
-        return { text: '충분', class: 'badge-success' };
-    } else if (stockQty > 0) {
-        return { text: '부족', class: 'badge-warning' };
-    } else {
-        return { text: '없음', class: 'badge-danger' };
-    }
-}
-
-/**
- * 우선순위 텍스트를 값으로 변환
- */
-function getPriorityValue(priorityText) {
-    const textToValue = {
-        '긴급': 'EMERGENCY',
-        '높음': 'HIGH',
-        '보통': 'NORMAL',
-        '낮음': 'LOW'
-    };
-    
-    return textToValue[priorityText] || 'NORMAL';
 }
