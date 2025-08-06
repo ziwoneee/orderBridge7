@@ -3,6 +3,8 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <c:set var="reservedOrderId" value="${reservedOrderId}" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
 
 <%
     java.util.Date now = new java.util.Date();
@@ -357,7 +359,15 @@
     <tr>
       <td>${group.clOrderId}</td>
       <td>${group.clientName}</td>
-      <td><fmt:formatDate value="${group.deliveryDate}" pattern="yyyy-MM-dd"/></td>
+     <td> 
+  <fmt:formatDate value="${group.deliveryDate}" pattern="yyyy-MM-dd" /><br />
+  <small class="text-muted">
+    <i class="bi bi-clock me-1"></i>
+    <fmt:formatDate value="${group.deliveryDate}" pattern="HH:mm:ss" />
+  </small>
+</td>
+
+
 
       <td>
         <button type="button" class="btn btn-sm btn-outline-primary"

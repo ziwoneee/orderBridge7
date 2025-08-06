@@ -1,5 +1,6 @@
 package com.itwillbs.service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -22,10 +23,13 @@ public interface ProductStockService {
        //입출고 모달
        List<ProductStockTransactionVO> getStockDetailByLot(String lotNo);
 
-       //재고저장
-       void insertTransaction(String type, String lotNo, int qty, String productId, String clientId, String manager);
-
+      
        //
        ProductStockVO getLotSummary(String lotNo);
-
+	
+       //재고저장
+       void insertTransaction(String type, String lotNo, int qty, String productId, String clientId, String manager,
+			String inboundId, String outboundId, String clOrderId);
+	
+     
 }

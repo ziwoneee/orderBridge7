@@ -1,14 +1,26 @@
+// 날짜만 포맷 (YYYY-MM-DD)
 function formatDate(dateString) {
   if (!dateString) return '-';
   const date = new Date(dateString);
-  if (isNaN(date)) return dateString; // 파싱 실패 시 원본 반환
+  if (isNaN(date)) return dateString;
 
   const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
-
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+// 시간만 포맷 (HH:MM:SS)
+function formatTime(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date)) return '';
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
+}
+
 
 
 $(document).on('click', '.open-lot-modal', function () {
@@ -72,7 +84,11 @@ function openLotHistoryModal(lotNo, productId) {
       history.forEach(entry => {
         const row = `
           <tr>
-            <td>${formatDate(entry.regDate)}</td>
+           <td>
+	      ${formatDate(entry.regDate)}
+	      <i class="bi bi-clock text-muted mx-1"></i>
+	      <span class="text-muted" style="font-size: 0.9em;">${formatTime(entry.regDate)}</span>
+	    </td>
             <td>${entry.clientName || '-'}</td>
             <td>${entry.qty}</td>
             <td>

@@ -2,6 +2,9 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
+<!-- Bootstrap Icons CDN -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
 
 <div class="container-scroller">
   <%@ include file="/WEB-INF/views/main/top.jsp" %>      
@@ -179,11 +182,11 @@
         <table class="table table-bordered text-center">
           <thead class="thead-dark">
             <tr>
-              <th>처리일자</th>
-              <th>거래처</th>
-              <th>수량</th>
-              <th>구분</th>
-            </tr>
+      <th style="width: 100px;">처리일자</th>      
+      <th style="width: 100px;">거래처</th>
+      <th style="width: 100px;">수량</th>
+      <th style="width: 100px;">구분</th>
+    </tr>
           </thead>
           <tbody id="lotHistoryTableBody"></tbody>
         </table>

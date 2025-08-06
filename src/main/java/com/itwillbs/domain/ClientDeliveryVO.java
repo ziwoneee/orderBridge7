@@ -21,8 +21,8 @@ public class ClientDeliveryVO {
     private Date updatedAt;           // 수정일시
     private String pdfFile;           // PDF파일명
     private boolean isPdfGenerated;    // PDF 생성 여부 ('Y', 'N')
-    
     private String productId;
+	public String manager;
 
 	
 

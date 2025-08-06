@@ -65,17 +65,45 @@ public class ProductStockServiceImpl implements ProductStockService {
     
     //재고저장
     @Override
-    public void insertTransaction(String type, String lotNo, int qty, String productId, String clientId, String manager) {
-        ProductStockTransactionVO tx = new ProductStockTransactionVO();
-        tx.setType(type);
-        tx.setLotNo(lotNo);
-        tx.setQty(qty);
-        tx.setProductId(productId);
-        tx.setClientId(clientId);
-        tx.setManager(manager);
-        tx.setRegDate(new Date());
-        productStockDAO.insertTransaction(tx);
+    public void insertTransaction(String type, String lotNo, int qty, String productId,
+            String clientId, String manager,
+            String inboundId, String outboundId, String clOrderId) {
+
+        // ✅ 중복 방지: Map에 파라미터 세팅
+    	Map<String, Object> param = new HashMap<>();
+    	param.put("type", type);
+    	param.put("lotNo", lotNo);
+    	param.put("qty", qty);
+    	param.put("productId", productId);
+    	param.put("clientId", clientId);
+    	param.put("inboundId", inboundId);
+    	param.put("outboundId", outboundId);
+    	param.put("clOrderId", clOrderId);
+
+    	boolean exists = productStockDAO.existsTransaction(param);
+    	if (exists) {
+    	    System.out.println("⚠️ 이미 같은 재고 이력이 존재합니다. 중복 저장 방지됨.");
+    	    return;
+    	}
+
+
+        // ✅ 새로운 이력 저장
+    	ProductStockTransactionVO tx = new ProductStockTransactionVO();
+    	tx.setType(type);
+    	tx.setLotNo(lotNo);
+    	tx.setQty(qty);
+    	tx.setProductId(productId);
+    	tx.setClientId(clientId);
+    	tx.setManager(manager);
+    	tx.setRegDate(new Date());
+    	tx.setInboundId(inboundId);      
+    	tx.setOutboundId(outboundId);   
+    	tx.setClOrderId(clOrderId);      
+
+    	productStockDAO.insertTransaction(tx);
+
     }
+
 
 
     //

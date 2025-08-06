@@ -19,16 +19,10 @@ public class ProductStockDAOImpl implements ProductStockDAO {
 
     @Autowired
     private SqlSession sqlSession;
-    
-    @Autowired
-    private ProductStockDAO productStockDAO;
 
-    
-       
     private static final String NAMESPACE = "com.itwillbs.mapper.ProductStockMapper";
 
-    
-    //재고리스트
+    // ✅ 재고현황
     @Override
     public List<ProductStockVO> getStockList(SearchCriteria cri) {
         return sqlSession.selectList(NAMESPACE + ".getStockList", cri);
@@ -38,85 +32,37 @@ public class ProductStockDAOImpl implements ProductStockDAO {
     public int getStockCount(SearchCriteria cri) {
         return sqlSession.selectOne(NAMESPACE + ".getStockCount", cri);
     }
-    
-    //입출고 업데이트
+
+    // ✅ 입출고 수량 업데이트
     @Override
     public void upsertStockQty(String productId, String lotNo, int qty) {
-        Map<String, Object> paramMap = new HashMap<>();
-        paramMap.put("productId", productId);
-        paramMap.put("lotNo", lotNo);
-        paramMap.put("qty", qty);
-        sqlSession.insert(NAMESPACE + ".upsertStockQty", paramMap);
+        Map<String, Object> param = new HashMap<>();
+        param.put("productId", productId);
+        param.put("lotNo", lotNo);
+        param.put("qty", qty);
+        sqlSession.insert(NAMESPACE + ".upsertStockQty", param);
     }
 
     @Override
     public void decreaseStockQty(String productId, String lotNo, int qty) {
-        Map<String, Object> paramMap = new HashMap<>();
-        paramMap.put("productId", productId);
-        paramMap.put("lotNo", lotNo);
-        paramMap.put("qty", qty);
-        sqlSession.update(NAMESPACE + ".decreaseStockQty", paramMap);
-    }
-    
-    
-    //입출고 모달창
-    @Override
-    public List<ProductStockTransactionVO> getStockDetail(String productId, String lotNo) {
-        return sqlSession.selectList("ProductStockMapper.getStockDetail", Map.of(
-            "productId", productId,
-            "lotNo", lotNo
-        ));
+        Map<String, Object> param = new HashMap<>();
+        param.put("productId", productId);
+        param.put("lotNo", lotNo);
+        param.put("qty", qty);
+        sqlSession.update(NAMESPACE + ".decreaseStockQty", param);
     }
 
-    /**
-     * ✅ 유통기한 빠른 순으로 LOT별 가용 재고 목록 조회
-     */
     @Override
-    public List<LotStockDTO> getAvailableLotsOrdered(String productId) {
-        return sqlSession.selectList(NAMESPACE + ".getAvailableLotsOrdered", productId);
-    }
-    
-    // ✅ LOT 번호로 입출고 이력 조회
-    @Override
-    public List<ProductStockTransactionVO> getLotHistoryByLot(String lotNo) {
-        return sqlSession.selectList(NAMESPACE + ".getLotHistoryByLot", lotNo);
-    }
-    
-    @Override
-    public ProductStockVO getLotSummary(String lotNo) {
-        return sqlSession.selectOne(NAMESPACE + ".getLotSummary", lotNo);
-    }
-    
-    //재고 저장
-    @Override
-    public void insertTransaction(String type, String lotNo, int qty, String productId, String clientId, String manager) {
-        ProductStockTransactionVO tx = new ProductStockTransactionVO();
-        tx.setType(type);
-        tx.setLotNo(lotNo);
-        tx.setQty(qty);
-        tx.setProductId(productId);
-        tx.setClientId(clientId);
-        tx.setManager(manager);
-        tx.setRegDate(new Date());
-        
-        productStockDAO.insertTransaction(tx);
-
-        // ✅ product_stock 테이블 업데이트
-        Map<String, Object> stockParam = new HashMap<>();
-        stockParam.put("productId", productId);
-        stockParam.put("lotNo", lotNo);
-        stockParam.put("qty", qty);
-
-        if ("입고".equals(type)) {
-            productStockDAO.insertOrUpdateStock(stockParam); // 아래에 Mapper 예시 나옵니다
-        } else if ("출고".equals(type)) {
-            productStockDAO.decreaseStockQty(stockParam);
-        }
+    public void decreaseStockQty(Map<String, Object> stockParam) {
+        sqlSession.update(NAMESPACE + ".decreaseStockQty", stockParam);
     }
 
+    @Override
+    public void insertOrUpdateStock(Map<String, Object> param) {
+        sqlSession.insert(NAMESPACE + ".insertOrUpdateStock", param);
+    }
 
-    
-    //예약시 수량 증감
+    // ✅ 재고 예약 증감
     @Override
     public void increaseReservedQty(String productId, String lotNo, int qty) {
         Map<String, Object> param = new HashMap<>();
@@ -134,46 +80,71 @@ public class ProductStockDAOImpl implements ProductStockDAO {
         param.put("qty", qty);
         sqlSession.update(NAMESPACE + ".decreaseReservedQty", param);
     }
-    
+
+    // ✅ 입출고 이력 조회
     @Override
-    public void insertOrUpdateStock(Map<String, Object> param) {
-        sqlSession.insert(NAMESPACE + ".insertOrUpdateStock", param);
+    public List<ProductStockTransactionVO> getStockDetail(String productId, String lotNo) {
+        return sqlSession.selectList(NAMESPACE + ".getStockDetail", Map.of(
+            "productId", productId,
+            "lotNo", lotNo
+        ));
     }
 
     @Override
+    public List<ProductStockTransactionVO> getLotHistoryByLot(String lotNo) {
+        return sqlSession.selectList(NAMESPACE + ".getLotHistoryByLot", lotNo);
+    }
+
+    @Override
+    public ProductStockVO getLotSummary(String lotNo) {
+        return sqlSession.selectOne(NAMESPACE + ".getLotSummary", lotNo);
+    }
+
+    @Override
+    public List<LotStockDTO> getAvailableLotsOrdered(String productId) {
+        return sqlSession.selectList(NAMESPACE + ".getAvailableLotsOrdered", productId);
+    }
+
+    // ✅ 입출고 이력 저장
+    @Override
     public void insertTransaction(ProductStockTransactionVO tx) {
+        // 중복 확인
+        Map<String, Object> param = new HashMap<>();
+        param.put("type", tx.getType());
+        param.put("lotNo", tx.getLotNo());
+        param.put("qty", tx.getQty());
+        param.put("productId", tx.getProductId());
+        param.put("clientId", tx.getClientId());
+        param.put("inboundId", tx.getInboundId());
+        param.put("outboundId", tx.getOutboundId());
+        param.put("clOrderId", tx.getClOrderId());
+
+        boolean exists = sqlSession.selectOne(NAMESPACE + ".existsTransaction", param);
+        if (exists) {
+            System.out.println("⚠️ 이미 같은 재고 이력이 존재합니다. 중복 저장 방지됨.");
+            return;
+        }
+
+        // 등록
+        if (tx.getRegDate() == null) {
+            tx.setRegDate(new Date());
+        }
+
         sqlSession.insert(NAMESPACE + ".insertTransaction", tx);
     }
 
-
     @Override
-    public void decreaseStockQty(Map<String, Object> stockParam) {
-        sqlSession.update(NAMESPACE + ".decreaseStockQty", stockParam);
+    public boolean existsTransaction(Map<String, Object> param) {
+        return sqlSession.selectOne(NAMESPACE + ".existsTransaction", param);
     }
 
-    //출하 취소
+    // ✅ 출하 취소시 LOT 재고 복원
     @Override
-    public void increaseLotStock(String productId, String lotNo, int deliveryQty) {
-        // 1. 재고 복원
+    public void increaseLotStock(String productId, String lotNo, int qty) {
         Map<String, Object> param = new HashMap<>();
         param.put("productId", productId);
         param.put("lotNo", lotNo);
-        param.put("qty", deliveryQty);
+        param.put("qty", qty);
         sqlSession.update(NAMESPACE + ".increaseLotStock", param);
-
-        // 2. 이력 기록
-        ProductStockTransactionVO tx = new ProductStockTransactionVO();
-        tx.setType("취소"); // 출하 취소
-        tx.setLotNo(lotNo);
-        tx.setQty(deliveryQty);
-        tx.setProductId(productId);
-        tx.setRegDate(new Date());
-        tx.setManager("system"); // 또는 현재 로그인 사용자 ID
-
-        sqlSession.insert(NAMESPACE + ".insertTransaction", tx);
     }
-
-
-
-    
 }

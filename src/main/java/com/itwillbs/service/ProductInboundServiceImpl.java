@@ -41,7 +41,7 @@ public class ProductInboundServiceImpl implements ProductInboundService {
         stockDAO.upsertStockQty(vo.getProductId(), vo.getLotNo(), vo.getInboundQty());
     
         // ✅ 입고 이력 기록
-        productStockService.insertTransaction("입고", vo.getLotNo(), vo.getInboundQty(), vo.getProductId(), null, "시스템");
+        productStockService.insertTransaction("입고", vo.getLotNo(), vo.getInboundQty(), vo.getProductId(), null, "시스템",vo.getInboundId(),null,null);
     }
 
     // ✅ 생산 결과 기반 임시 조회용 리스트
