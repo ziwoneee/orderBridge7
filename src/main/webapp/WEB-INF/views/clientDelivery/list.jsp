@@ -15,19 +15,16 @@
    
    <%
     java.time.LocalDate today = java.time.LocalDate.now();
-    java.time.LocalDate tomorrow = today.plusDays(1);
     java.text.SimpleDateFormat sdfDate = new java.text.SimpleDateFormat("yyyy-MM-dd");
     java.text.SimpleDateFormat sdfHour = new java.text.SimpleDateFormat("HH");
 
-    String todayStr = sdfDate.format(new java.util.Date());
-    String tomorrowStr = tomorrow.toString();
-    int currentHour = Integer.parseInt(sdfHour.format(new java.util.Date()));
+    String todayStr = sdfDate.format(new java.util.Date());           // "2025-08-06"
+    int currentHour = Integer.parseInt(sdfHour.format(new java.util.Date())); // 0~23
 
     request.setAttribute("todayStr", todayStr);
-    request.setAttribute("tomorrowStr", tomorrowStr);
     request.setAttribute("currentHour", String.valueOf(currentHour));
-
 %>
+
    
 
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
@@ -292,10 +289,17 @@
 
             <!-- 출하 완료 탭 내용 -->
     <!-- 출하 완료 탭 내용 -->
+    
 <div class="tab-content" id="completedContent" style="display: ${param.tab == 'completed' ? 'block' : 'none'};">
 
   <!-- ✅ 출하 완료 테이블 -->
- 
+<div style="text-align: right;">
+  <h5 class="fw-bold text-danger" style="display: inline-block; background-color: #fff3cd; padding: 6px 12px; border: 1px solid #ffeeba; border-radius: 8px;">
+    <i class="fas fa-exclamation-triangle me-1"></i>
+    출하취소는 당일 오후 2시 이전까지만 가능
+  </h5>
+</div>
+
 <div class="table-responsive">
   <table class="table table-hover">
     <thead style="background-color: #1C355E; color: white;">
@@ -362,15 +366,25 @@
           상세보기
         </button>
       </td>
+<td>
+  <fmt:formatDate value="${group.productList[0].createdAt}" pattern="yyyy-MM-dd" var="createdDate" />
+  <c:set var="createdHour" value="${fn:substring(group.productList[0].createdAt, 11, 2)}" />
 
- <td>
-  <form method="post" action="/shipment/cancel" style="display:inline;"
-        onsubmit="return confirm('출하를 취소하시겠습니까?');">
-    <input type="hidden" name="deliveryId" value="${group.productList[0].deliveryId}" />
-    <button type="submit" class="btn btn-sm btn-outline-danger">출하 취소</button>
-  </form>
+    
+<!-- 출하일이 오늘이고 현재 시간이 14시 이전이면 취소 가능 -->
+  <c:choose>
+    
+    <c:when test="${createdDate == todayStr and currentHour lt 14}">
+      <form method="post" action="/shipment/cancel" onsubmit="return confirm('정말로 출하를 취소하시겠습니까?');">
+        <input type="hidden" name="deliveryId" value="${group.productList[0].deliveryId}" />
+        <button type="submit" class="btn btn-sm btn-outline-danger">출하 취소</button>
+      </form>
+    </c:when>
+    <c:otherwise>
+      <span class="badge bg-light text-muted">출하 완료</span>
+    </c:otherwise>
+  </c:choose>
 </td>
-
 
 
 
