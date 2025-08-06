@@ -10,6 +10,12 @@
   <div class="container-fluid page-body-wrapper">
 
     <%@ include file="/WEB-INF/views/main/sidebar.jsp" %>
+    
+	<c:if test="${not empty message}">
+	  <script>
+	    alert("${message}");
+	  </script>
+	</c:if>
 
       <!-- 본문 시작 -->
       <div class="main-panel">

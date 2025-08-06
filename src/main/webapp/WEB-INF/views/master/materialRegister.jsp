@@ -33,21 +33,21 @@
                 <!-- 자재명 -->
                 <div class="col-md-6 mb-3">
                   <label>자재명 <span class="text-danger">*</span></label>
-                  <input type="text" name="materialName" class="form-control" required>
+                  <input type="text" name="materialName" class="form-control" value="${material.materialName}" required>
                 </div>
 
                 <!-- 유형 -->
                 <div class="col-md-6 mb-3">
                   <label>유형</label>
                   <select name="materialType" class="form-control">
-                    <option value="생육">생육</option>
-                    <option value="외주가공">외주가공</option>
-                    <option value="조미료">조미료</option>
-                    <option value="액상조미료">액상조미료</option>
-                    <option value="채소류">채소류</option>
-                    <option value="향신료">향신료</option>
-                    <option value="포장재">포장재</option>
-                    <option value="기타">기타</option>
+                    <option value="생육" ${material.materialType == '생육' ? 'selected' : ''}>생육</option>
+                    <option value="외주가공" ${material.materialType == '외주가공' ? 'selected' : ''}>외주가공</option>
+                    <option value="조미료" ${material.materialType == '조미료' ? 'selected' : ''}>조미료</option>
+                    <option value="액상조미료" ${material.materialType == '액상조미료' ? 'selected' : ''}>액상조미료</option>
+                    <option value="채소류" ${material.materialType == '채소류' ? 'selected' : ''}>채소류</option>
+                    <option value="향신료" ${material.materialType == '향신료' ? 'selected' : ''}>향신료</option>
+                    <option value="포장재" ${material.materialType == '포장재' ? 'selected' : ''}>포장재</option>
+                    <option value="기타" ${material.materialType == '기타' ? 'selected' : ''}>기타</option>
                   </select>
                 </div>
 
@@ -55,18 +55,19 @@
                 <div class="col-md-6 mb-3">
                   <label>단위</label>
                   <select name="unit" class="form-control">
-                  	<option value="g">g</option>
-                  	<option value="kg">kg</option>
-                  	<option value="ml">ml</option>
-                  	<option value="L">L</option>
-                  	<option value="개">개</option>
+                  	<option value="g" ${material.unit == 'g' ? 'selected' : ''}>g</option>
+                  	<option value="kg" ${material.unit == 'kg' ? 'selected' : ''}>kg</option>
+                  	<option value="ml" ${material.unit == 'ml' ? 'selected' : ''}>ml</option>
+                  	<option value="L" ${material.unit == 'L' ? 'selected' : ''}>L</option>
+                  	<option value="개" ${material.unit == '개' ? 'selected' : ''}>개</option>
                   </select>
                 </div>
 
                 <!-- 단가 -->
                 <div class="col-md-6 mb-3">
-                  <label>단가</label>
-                  <input type="number" name="unitPrice" class="form-control">
+                  <label>단가 <span class="text-danger">*</span></label>
+                  <input type="number" name="unitPrice" class="form-control"
+       					  value="${material.unitPrice}" required min="0">
                 </div>
 
                 <!-- 보관법 -->
@@ -83,9 +84,9 @@
                 <div class="col-md-6 mb-3">
                   <label>보관창고</label>
                   <select name="warehouseCode" id="warehouseCode" class="form-control">
-                    <option value="WH001">WH001</option>
-                    <option value="WH002">WH002</option>
-                    <option value="WH003">WH003</option>
+                    <option value="WH001" ${material.warehouseCode eq 'WH001' ? 'selected' : ''}>WH001</option>
+                    <option value="WH002" ${material.warehouseCode eq 'WH002' ? 'selected' : ''}>WH002</option>
+                    <option value="WH003" ${material.warehouseCode eq 'WH003' ? 'selected' : ''}>WH003</option>
                   </select>
                 </div>
 
@@ -93,15 +94,15 @@
                 <div class="col-md-6 mb-3">
                   <label>LOT관리 여부</label>
                   <select name="lotFlag" class="form-control">
-                    <option value="Y">Y</option>
-                    <option value="N">N</option>
+                    <option value="Y" ${material.lotFlag eq 'Y' ? 'selected' : ''}>Y</option>
+                    <option value="N" ${material.lotFlag eq 'N' ? 'selected' : ''}>N</option>
                   </select>
                 </div>
 
                 <!-- 입고단위 -->
                 <div class="col-md-12 mb-3">
                   <label>입고단위</label>
-                  <input type="text" name="supplyUnit" class="form-control" placeholder="예: 20kg 박스">
+                  <input type="text" name="supplyUnit" value="${material.supplyUnit}" class="form-control" placeholder="예: 20kg 박스">
                 </div>
 
               </div>

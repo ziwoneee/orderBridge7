@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.itwillbs.domain.MaterialVO;
 import com.itwillbs.domain.PageMaker;
@@ -80,7 +81,7 @@ public class MaterialController {
 	    vo.setMaterialId(nextId); // 생성된 ID를 미리 세팅 (선택)
 
 	    model.addAttribute("material", vo);         // VO 전달
-	    model.addAttribute("menu", "material");     // 상단 메뉴 활성화용
+	    model.addAttribute("menu", "basic");     // 상단 메뉴 활성화용
 	    return "master/materialRegister";           // JSP 위치
 	}
 
@@ -92,16 +93,18 @@ public class MaterialController {
 	 * 신규등록과 수정 통합 처리 (id 여부로 구분)
 	 */
 	@RequestMapping(value="/save", method = RequestMethod.POST)
-	public String saveMaterial(@ModelAttribute MaterialVO vo) throws Exception {
+	public String saveMaterial(@ModelAttribute MaterialVO vo, RedirectAttributes rttr) throws Exception {
 		logger.info(" saveMaterial() 실행 ");
 		
 		// 자재ID가 기존에 존재하면 -> 수정
 		if(mService.checkMaterial(vo.getMaterialId())) {
 			logger.info("기존 자재 -> 수정 처리");
 			mService.updateMaterial(vo);
+			rttr.addFlashAttribute("message", "자재 정보가 수정되었습니다.");
 		} else {
 			logger.info("신규 자재 -> 등록 처리");
 			mService.insertMaterial(vo);
+			rttr.addFlashAttribute("message", "자재가 성공적으로 등록되었습니다.");
 		}
 		
 		// 목록 페이지로 리다이렉트
