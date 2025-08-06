@@ -19,5 +19,5 @@ public class WorkOrderVO {
     private Date createdAt;         // 등록일
     private Date updatedAt;         // 수정일
     private String status;          // 상태 (대기 / 진행중 / 완료)
-
+    private String remarks;			// 특이사항
 }

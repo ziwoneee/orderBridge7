@@ -45,6 +45,7 @@ public class WorkOrderDTO {
     private int availableQty;  	   // 가용 재고
     
     private String remarks; // 특이사항
+    private Boolean isDeleted; // 소프트 삭제 
 
 
 }

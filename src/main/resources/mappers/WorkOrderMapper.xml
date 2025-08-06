@@ -46,6 +46,7 @@
         ) sr ON w.cl_order_id = sr.cl_order_id AND w.product_id = sr.product_id
         
         <where>
+      	  w.is_deleted = FALSE
             <if test="keyword != null and keyword != ''">
                 AND (
                     w.order_id LIKE CONCAT('%', #{keyword}, '%')
@@ -153,6 +154,7 @@
             w.status,
             w.created_at AS createdAt,
             w.updated_at AS updatedAt,
+            w.remarks AS remarks,
             p.product_name AS productName,
             p.unit,
             l.line_name AS lineName,
@@ -376,10 +378,12 @@
     </update>
 
     <!-- 작업지시 삭제 -->
-    <delete id="deleteWorkOrder" parameterType="string">
-        DELETE FROM work_order 
-        WHERE order_id = #{orderId}
-    </delete>
+    <update id="deleteWorkOrder" parameterType="string">
+	    UPDATE work_order
+	    SET is_deleted = TRUE,
+	        updated_at = NOW()
+	    WHERE order_id = #{orderId}
+</update>
     
     <!-- 작업지시 상세 조회 (작업지시번호 기준) -->
 	<select id="getWorkOrderDetail" resultType="com.itwillbs.dto.WorkOrderDTO">
@@ -395,6 +399,7 @@
 		    wo.priority,
 		    wo.status,
 		    wo.created_at,
+		    wo.remarks,
 		    co.client_id,
 		    c.client_name,
 		    co.cl_order_date,
@@ -427,6 +432,7 @@
         
         WHERE w.line_id = #{lineId}
         AND w.status IN ('WAITING', 'READY', 'IN_PROGRESS')
+        AND w.is_deleted = FALSE
         
         ORDER BY 
             CASE w.priority 
