@@ -55,7 +55,7 @@ public class ProductOutboundServiceImpl implements ProductOutboundService {
         stockDAO.decreaseStockQty(vo.getProductId(), vo.getLotNo(), vo.getOutboundQty());
    
      // ✅ 출고 이력 기록
-        productStockService.insertTransaction("출고", vo.getLotNo(), vo.getOutboundQty(), vo.getProductId(), vo.getClientId(), "시스템");
+        productStockService.insertTransaction("출고", vo.getLotNo(), vo.getOutboundQty(), vo.getProductId(), vo.getClientId(), "시스템",null,vo.getOutboundId(),null);
 
     
     }

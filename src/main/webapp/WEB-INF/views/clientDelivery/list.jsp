@@ -3,6 +3,8 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <c:set var="reservedOrderId" value="${reservedOrderId}" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
 
 <%
     java.util.Date now = new java.util.Date();
@@ -15,19 +17,16 @@
    
    <%
     java.time.LocalDate today = java.time.LocalDate.now();
-    java.time.LocalDate tomorrow = today.plusDays(1);
     java.text.SimpleDateFormat sdfDate = new java.text.SimpleDateFormat("yyyy-MM-dd");
     java.text.SimpleDateFormat sdfHour = new java.text.SimpleDateFormat("HH");
 
-    String todayStr = sdfDate.format(new java.util.Date());
-    String tomorrowStr = tomorrow.toString();
-    int currentHour = Integer.parseInt(sdfHour.format(new java.util.Date()));
+    String todayStr = sdfDate.format(new java.util.Date());           // "2025-08-06"
+    int currentHour = Integer.parseInt(sdfHour.format(new java.util.Date())); // 0~23
 
     request.setAttribute("todayStr", todayStr);
-    request.setAttribute("tomorrowStr", tomorrowStr);
     request.setAttribute("currentHour", String.valueOf(currentHour));
-
 %>
+
    
 
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
@@ -127,8 +126,15 @@
                 
             <!-- 출하 대기 탭 내용 -->
             <div class="tab-content" id="pendingContent" style="display: ${empty param.tab || param.tab == 'pending' ? 'block' : 'none'};">
-              <form action="${pageContext.request.contextPath}/shipment/process" method="post">
+             <form action="${pageContext.request.contextPath}/shipment/process" method="post" onsubmit="return confirmShipment();">
                 <div class="table-responsive">
+              <c:if test="${not empty message}">
+				  <div class="alert alert-${messageType} text-center fw-bold mx-auto" font-size: 16px;">
+				    ${message}
+				  </div>
+				</c:if>
+
+
                   <table class="table table-hover">
                     <thead style="background-color: #1C355E; color: white; border-top: none;">
                       <tr>
@@ -197,29 +203,37 @@
         </c:if>
       </td>
      <td>
+     
+     <!-- ✅ 예약 실패 시 해당 ID를 예약 목록에서 제외 -->
+<c:set var="isReserved" value="${fn:contains(reservedOrderIds, group.clOrderId)}"/>
+<c:if test="${not empty reserveFailedId and reserveFailedId eq group.clOrderId}">
+  <c:set var="isReserved" value="false"/>
+</c:if>
+     
   <c:choose>
-    <c:when test="${item.stockQty ge item.orderQty}">
-      <c:choose>
-        <c:when test="${fn:contains(reservedOrderIds, group.clOrderId)}">
-          <!-- 예약중 상태일 때 버튼 -->
-          <button type="button" class="btn btn-sm btn-outline-secondary mt-1"
-                  onclick="toggleReservation('${group.clOrderId}', true)">
-            <i class="fas fa-times-circle"></i> 예약중
-          </button>
-        </c:when>
-        <c:otherwise>
-          <!-- 예약 전 상태일 때 버튼 -->
-          <button type="button" class="btn btn-sm btn-outline-primary mt-1"
-                  onclick="toggleReservation('${group.clOrderId}', false)">
-            <i class="fas fa-boxes"></i> 예약
-          </button>
-        </c:otherwise>
-      </c:choose>
-    </c:when>
-    <c:otherwise>
-      <span class="badge badge-danger">부족</span>
-    </c:otherwise>
-  </c:choose>
+  <c:when test="${item.stockQty ge item.orderQty}">
+    <c:choose>
+      <c:when test="${isReserved}">
+        <!-- 예약중 상태일 때 버튼 -->
+        <button type="button" class="btn btn-sm btn-outline-secondary mt-1"
+                onclick="toggleReservation('${group.clOrderId}', true)">
+          <i class="fas fa-times-circle"></i> 예약중
+        </button>
+      </c:when>
+      <c:otherwise>
+        <!-- 예약 전 상태일 때 버튼 -->
+        <button type="button" class="btn btn-sm btn-primary mt-1"
+                onclick="toggleReservation('${group.clOrderId}', false)">
+          예 약
+        </button>
+      </c:otherwise>
+    </c:choose>
+  </c:when>
+  <c:otherwise>
+    <span class="btn btn-sm btn-danger mt-1">부족</span>
+  </c:otherwise>
+</c:choose>
+
 </td>
 
     </tr>
@@ -241,9 +255,7 @@
                   </table>
                 </div>
 
-                <c:if test="${not empty message}">
-                  <div class="alert alert-success mt-2">${message}</div>
-                </c:if>
+                
 
                 <div class="mt-3">
                   <button type="submit" class="btn btn-primary" style="background-color: #1C355E; border-color: #1C355E;">
@@ -292,10 +304,17 @@
 
             <!-- 출하 완료 탭 내용 -->
     <!-- 출하 완료 탭 내용 -->
+    
 <div class="tab-content" id="completedContent" style="display: ${param.tab == 'completed' ? 'block' : 'none'};">
 
   <!-- ✅ 출하 완료 테이블 -->
- 
+<div style="text-align: right;">
+  <h5 class="fw-bold text-danger" style="display: inline-block; background-color: #fff3cd; padding: 6px 12px; border: 1px solid #ffeeba; border-radius: 8px;">
+    <i class="fas fa-exclamation-triangle me-1"></i>
+    출하취소는 당일 오후 2시 이전까지만 가능
+  </h5>
+</div>
+
 <div class="table-responsive">
   <table class="table table-hover">
     <thead style="background-color: #1C355E; color: white;">
@@ -344,7 +363,7 @@
       </a>
     </th>
 
-        <th>상세보기</th>
+        <th>상세내역</th>
         <th>관 리</th>
       </tr>
     </thead>
@@ -353,24 +372,42 @@
     <tr>
       <td>${group.clOrderId}</td>
       <td>${group.clientName}</td>
-      <td><fmt:formatDate value="${group.deliveryDate}" pattern="yyyy-MM-dd"/></td>
+     <td> 
+  <fmt:formatDate value="${group.deliveryDate}" pattern="yyyy-MM-dd" /><br />
+  <small class="text-muted">
+    <i class="bi bi-clock me-1"></i>
+    <fmt:formatDate value="${group.deliveryDate}" pattern="HH:mm:ss" />
+  </small>
+</td>
+
+
 
       <td>
         <button type="button" class="btn btn-sm btn-outline-primary"
                 data-bs-toggle="modal"
                 data-bs-target="#modal-${status.index}">
-          상세보기
+          확인
         </button>
       </td>
+<td>
+  <fmt:formatDate value="${group.productList[0].createdAt}" pattern="yyyy-MM-dd" var="createdDate" />
+  <c:set var="createdHour" value="${fn:substring(group.productList[0].createdAt, 11, 2)}" />
 
- <td>
-  <form method="post" action="/shipment/cancel" style="display:inline;"
-        onsubmit="return confirm('출하를 취소하시겠습니까?');">
-    <input type="hidden" name="deliveryId" value="${group.productList[0].deliveryId}" />
-    <button type="submit" class="btn btn-sm btn-outline-danger">출하 취소</button>
-  </form>
+    
+<!-- 출하일이 오늘이고 현재 시간이 14시 이전이면 취소 가능 -->
+  <c:choose>
+    
+    <c:when test="${createdDate == todayStr and currentHour lt 14}">
+      <form method="post" action="/shipment/cancel" onsubmit="return confirm('정말로 출하를 취소하시겠습니까?');">
+        <input type="hidden" name="deliveryId" value="${group.productList[0].deliveryId}" />
+        <button type="submit" class="btn btn-sm btn-outline-danger">출하 취소</button>
+      </form>
+    </c:when>
+    <c:otherwise>
+      <span class="btn btn-sm btn-success">출하 완료</span>
+    </c:otherwise>
+  </c:choose>
 </td>
-
 
 
 
@@ -411,7 +448,7 @@
                   <td>${item.lotNo}</td>
                   <td class="text-end"><fmt:formatNumber value="${item.deliveryQty}" pattern="#,###"/></td>
                   <td>${item.trackingNumber}</td>
-                  <td><span class="badge bg-success">${item.deliveryStatus}</span></td>
+                  <td><span class="badge bg-success text-white">${item.deliveryStatus}</span></td>
                 </tr>
               </c:forEach>
             </tbody>
@@ -618,5 +655,18 @@
     margin-left: 4px;
   }
 </style>
+
+<script>
+  function confirmShipment() {
+    const checked = document.querySelectorAll("input[name='clOrderIds']:checked");
+    if (checked.length === 0) {
+      alert("출하할 수주건을 선택해주세요.");
+      return false;
+    }
+
+    return confirm("선택한 수주건을 출하 처리하시겠습니까?");
+  }
+</script>
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

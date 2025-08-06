@@ -140,7 +140,7 @@
       </a>
     </th>
           <th>비고</th>
-	            <th>상세보기</th>
+	            <th>상세내역</th>
 	        </tr>
 	        </thead>
 	        <tbody>
@@ -163,7 +163,7 @@
         data-toggle="modal"
         data-target="#outboundDetailModal"
         data-id="${vo.outboundId}">
-  상세보기
+  확인
 </button>
 
 	  </td>

@@ -39,8 +39,7 @@
 	            </a>
 	            <div class="collapse ${menu eq 'sales' ? 'show' : ''}" id="menu-sales">
 	              <ul class="nav flex-column sub-menu">
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/clientorder/list">수주 관리</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/">생산 재고 관리</a></li>
+	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/clientorder/list">수주 관리</a></li>	             
 	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/shipment/list">출하 관리</a></li>
 	              </ul>
 	            </div>

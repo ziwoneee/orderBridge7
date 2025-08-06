@@ -9,6 +9,7 @@ import com.itwillbs.persistence.ProductStockDAO;
 import com.itwillbs.persistence.StockReservationDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -83,12 +84,17 @@ public class StockReservationServiceImpl implements StockReservationService {
     /**
      * 수주 전체 예약 등록 및 재고 반영
      */
+    @Transactional
     @Override
     public boolean reserveStockByOrderId(String clOrderId) {
+        // 기존 예약 삭제
         reservationDAO.deleteByOrderId(clOrderId);
 
         List<ClientOrderDetailVO> orderDetails = orderDAO.getOrderDetailsByOrderId(clOrderId);
         boolean success = true;
+
+        // ✅ 임시 저장 리스트 (rollback 시 사용)
+        List<StockReservationVO> tempReservations = new java.util.ArrayList<>();
 
         for (ClientOrderDetailVO detail : orderDetails) {
             String productId = detail.getProductId();
@@ -116,6 +122,8 @@ public class StockReservationServiceImpl implements StockReservationService {
                 reservationDAO.insertReservation(reservation);
                 stockDAO.increaseReservedQty(productId, lot.getLotNo(), allocQty);
 
+                tempReservations.add(reservation); // ✅ rollback 대상 저장
+
                 requiredQty -= allocQty;
                 reserved = true;
             }
@@ -123,11 +131,21 @@ public class StockReservationServiceImpl implements StockReservationService {
             if (!reserved || requiredQty > 0) {
                 System.out.println("⚠ 예약 실패: 제품 " + productId + " - 부족 수량: " + requiredQty);
                 success = false;
+                break; // 더 이상 반복할 필요 없음
             }
         }
 
-        return success; // ✅ boolean 반환 추가
+        // ✅ 실패 시 롤백 수행
+        if (!success) {
+            for (StockReservationVO r : tempReservations) {
+                reservationDAO.deleteReservation(r.getClOrderId(), r.getProductId());
+                stockDAO.decreaseReservedQty(r.getProductId(), r.getLotNo(), r.getReservedQty());
+            }
+        }
+
+        return success;
     }
+
 
 
     /**

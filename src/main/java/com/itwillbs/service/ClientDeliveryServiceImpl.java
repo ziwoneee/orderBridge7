@@ -2,6 +2,7 @@ package com.itwillbs.service;
 
 import com.itwillbs.domain.ClientDeliveryVO;
 import com.itwillbs.domain.ProductOutboundVO;
+import com.itwillbs.domain.ProductStockTransactionVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.StockReservationVO;
 import com.itwillbs.dto.DeliveryHistoryDTO;
@@ -125,35 +126,9 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
    //출하 완료 항목
     @Override
     public List<ShipmentCompletedDTO> searchCompletedShipmentList(SearchCriteria cri) {
-        List<ShipmentCompletedDTO> list = deliveryDAO.searchCompletedShipmentList(cri);
-
-        for (ShipmentCompletedDTO dto : list) {
-            boolean canCancel = canCancelShipment(dto.getDeliveryDate(), dto.getCreatedAt());
-            dto.setCancelAvailable(canCancel);
-        }
-
-        return list;
+         return deliveryDAO.searchCompletedShipmentList(cri);
     }
-
-    private boolean canCancelShipment(LocalDateTime deliveryDate, LocalDateTime createdAt) {
-        LocalDateTime now = LocalDateTime.now();
-
-        // 출하일이 오늘이고, 현재 시간이 14시 이전
-        if (deliveryDate.toLocalDate().isEqual(now.toLocalDate()) && now.getHour() < 14) {
-            return true;
-        }
-
-        // 출하일이 내일이고, 출하처리 시각이 오늘 14시 이후, 그리고 지금이 내일 14시 전
-        if (deliveryDate.toLocalDate().isEqual(now.toLocalDate().plusDays(1))) {
-            if (createdAt.toLocalDate().isEqual(now.toLocalDate())
-                && createdAt.getHour() >= 14
-                && now.getHour() < 14) {
-                return true;
-            }
-        }
-
-        return false;
-    }
+   
 
     @Override
     public int countCompletedShipmentList(SearchCriteria cri) {
@@ -217,22 +192,41 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
         ClientDeliveryVO vo = deliveryDAO.getDeliveryById(deliveryId);
         System.out.println(">> 출하 상세 정보: " + vo);
 
+        // ✅ 이미 취소된 출하건이면 중단
+        if ("CANCELLED".equalsIgnoreCase(vo.getDeliveryStatus())) {
+            System.out.println("⚠️ 이미 취소된 출하건입니다: " + deliveryId);
+            return; // 또는 throw new IllegalStateException("이미 취소된 건입니다.");
+        }
+
         // 2. 재고 복원
         productStockDAO.increaseLotStock(vo.getProductId(), vo.getLotNo(), vo.getDeliveryQty());
+
+        // ✅ 2-1. 취소 이력 기록
+        ProductStockTransactionVO tx = new ProductStockTransactionVO();
+        tx.setProductId(vo.getProductId());
+        tx.setLotNo(vo.getLotNo());
+        tx.setQty(vo.getDeliveryQty());
+        tx.setType("취소");
+        tx.setManager(vo.getManager());
+        tx.setRemark("출하 취소");
+        tx.setClientId(vo.getClientId());
+        tx.setClOrderId(vo.getClOrderId()); // 👈 추가
+        tx.setRegDate(new Date());
+
+        productStockDAO.insertTransaction(tx);
 
         // 3. 수주 상태 복원
         deliveryDAO.revertClientOrderStatus(vo.getClOrderId());
 
         // 4. 출하 상태 변경
         System.out.println(">> delivery_status → CANCELLED 처리: " + deliveryId);
-        deliveryDAO.updateDeliveryStatus(deliveryId, "CANCELLED"); // ✅ 확인!
-   
-     // 5. 출고 이력 삭제
+        deliveryDAO.updateDeliveryStatus(deliveryId, "CANCELLED");
+
+        // 5. 출고 이력 삭제
         outboundService.deleteOutboundByOrderId(vo.getClOrderId());
-     
-       
-    
     }
+
+
 
     
     //출하상태 변경
@@ -243,42 +237,6 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
 
     
     
-    //출하취소 가능 시간 
-    
-    public boolean canCancelShipment(Date deliveryDate, Date createdAt) {
-        Date now = new Date();
-        long nowMillis = now.getTime();
-
-        // 오늘 날짜 문자열
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        String todayStr = sdf.format(now);
-        String deliveryDayStr = sdf.format(deliveryDate);
-
-        // 오후 2시 기준 시간 설정
-        String limitStr = deliveryDayStr + " 14:00:00";
-        Date limitTime;
-        try {
-            limitTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(limitStr);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-
-        // [1] 오늘 출하이고, 현재 시간이 오후 2시 전이면 취소 가능
-        if (todayStr.equals(deliveryDayStr) && now.before(limitTime)) {
-            return true;
-        }
-
-        // [2] 출하가 어제 오후 2시 이후에 처리되었고, 지금이 오늘 오후 2시 전이면 취소 가능
-        long diff = nowMillis - createdAt.getTime(); // 차이 밀리초
-        long oneDayMillis = 24 * 60 * 60 * 1000;
-
-        if (!todayStr.equals(deliveryDayStr) && createdAt.after(limitTime) && diff < oneDayMillis) {
-            return true;
-        }
-
-        return false;
-    }
-
+  
 
 }

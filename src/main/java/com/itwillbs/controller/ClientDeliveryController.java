@@ -134,19 +134,26 @@ public class ClientDeliveryController {
     @GetMapping("/reserve")
     public String reserveStock(@RequestParam("clOrderId") String clOrderId, RedirectAttributes rttr) {
         boolean success = reservationService.reserveStockByOrderId(clOrderId);
+
         if (success) {
-            rttr.addFlashAttribute("message", "예약 완료");
+            rttr.addFlashAttribute("message", "수주번호 [" + clOrderId + "] 예약이 완료되었습니다.");
+            rttr.addFlashAttribute("messageType", "success"); // ✅ 성공
         } else {
-            rttr.addFlashAttribute("message", "예약 실패: 재고 부족 또는 이미 예약됨");
+            rttr.addFlashAttribute("message", "수주번호 [" + clOrderId + "] 예약이 실패되었습니다: 재고 부족 또는 이미 예약됨");
+            rttr.addFlashAttribute("messageType", "danger"); // ✅ 실패
+            rttr.addFlashAttribute("reserveFailedId", clOrderId);  // ✅ 실패한 ID 전달
         }
+
         return "redirect:/shipment/list?tab=pending";
     }
+
 
     // ✅ 예약 해지 
     @GetMapping("/unreserve")
     public String releaseStock(@RequestParam("clOrderId") String clOrderId, RedirectAttributes rttr) {
         reservationService.deleteReservation(clOrderId);
-        rttr.addFlashAttribute("message", "예약 해제 완료");
+        rttr.addFlashAttribute("message",  "수주번호 [" + clOrderId + "] 예약이 해제되었습니다.");
+        rttr.addFlashAttribute("messageType", "info"); // ✅ 정보
         return "redirect:/shipment/list?tab=pending";
     }
     
@@ -159,9 +166,11 @@ public class ClientDeliveryController {
             System.out.println(">> 전달받은 deliveryId: " + deliveryId); // ✅ 추가
             deliveryService.cancelDelivery(deliveryId);
             rttr.addFlashAttribute("message", "출하가 성공적으로 취소되었습니다.");
+            rttr.addFlashAttribute("messageType", "success"); // ✅ 성공
         } catch (Exception e) {
             e.printStackTrace(); // ✅ 예외 로그 출력
             rttr.addFlashAttribute("message", "출하 취소 중 오류가 발생했습니다.");
+            rttr.addFlashAttribute("messageType", "danger"); // ✅ 실패
         }
         return "redirect:/shipment/list?tab=completed";
     }

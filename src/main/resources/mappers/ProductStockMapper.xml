@@ -255,13 +255,16 @@
 
   
   <!-- 재고 저장 -->
-  <insert id="insertTransaction" parameterType="com.itwillbs.domain.ProductStockTransactionVO">
+ <insert id="insertTransaction" parameterType="com.itwillbs.domain.ProductStockTransactionVO">
   INSERT INTO product_transaction (
-    lot_no, type, qty, client_id, product_id, reg_date, manager, remark
+    lot_no, type, qty, client_id, product_id, reg_date, manager, remark,
+    inbound_id, outbound_id, cl_order_id
   ) VALUES (
-    #{lotNo}, #{type}, #{qty}, #{clientId}, #{productId}, NOW(), #{manager}, #{remark}
+    #{lotNo}, #{type}, #{qty}, #{clientId}, #{productId}, NOW(), #{manager}, #{remark},
+    #{inboundId}, #{outboundId}, #{clOrderId}
   )
 </insert>
+
   
   
  <!-- 예약 수량 증가 -->
@@ -347,6 +350,7 @@
     <result property="qty" column="qty"/>
     <result property="regDate" column="transaction_date"/>
     <result property="memo" column="remark"/>
+    <result property="clientName" column="client_name"/>
   </collection>
 </resultMap>
 
@@ -356,6 +360,30 @@
   SET stock_qty = stock_qty + #{qty}
   WHERE product_id = #{productId} AND lot_no = #{lotNo}
 </update>
+
+<!-- 취소 중복방지-->
+<select id="existsTransaction" resultType="boolean" parameterType="map">
+  SELECT COUNT(*) > 0
+  FROM product_transaction
+  WHERE type = #{type}
+    AND lot_no = #{lotNo}
+    AND qty = #{qty}
+    AND product_id = #{productId}
+    AND client_id = #{clientId}
+    <if test="inboundId != null and inboundId != ''">
+      AND inbound_id = #{inboundId}
+    </if>
+    <if test="outboundId != null and outboundId != ''">
+      AND outbound_id = #{outboundId}
+    </if>
+    <if test="clOrderId != null and clOrderId != ''">
+      AND cl_order_id = #{clOrderId}
+    </if>
+</select>
+
+
+
+
 
  
 

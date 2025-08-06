@@ -20,7 +20,7 @@ public class ClientVO {
     private String managerTel;
     private String managerEmail;
     private String faxNumber;
-    private Integer postCode;
+    private String postCode;
     private String address;
     private String addressDetail;	    
     private Integer statusCode;
