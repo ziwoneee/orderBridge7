@@ -116,15 +116,19 @@ public class WorkOrderController {
     public String showSelectOrderPopup(SearchCriteria cri, Model model) {
         log.info("확정 수주 선택 팝업 요청 - 조건: {}", cri);
         
-        // 확정 수주 목록 조회
+        // 확정 수주 목록 + 총 개수
         List<WorkOrderDTO> confirmedOrders = workOrderService.getConfirmedOrders(cri);
         int totalCount = workOrderService.getConfirmedOrdersCount(cri);
-        
+
+        // PageMaker 생성
+        PageMaker pageMaker = new PageMaker(cri, totalCount);
+
         // 모델 바인딩
         model.addAttribute("orderList", confirmedOrders);
         model.addAttribute("cri", cri);
         model.addAttribute("totalCount", totalCount);
-        
+        model.addAttribute("pageMaker", pageMaker);  
+
         log.info("확정 수주 목록 조회 완료 - 총 {}건", confirmedOrders.size());
         return "workOrder/select-order-popup";
     }
