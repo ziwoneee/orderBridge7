@@ -4,7 +4,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
-import javax.inject.Inject;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.BomItemDTO;
 import com.itwillbs.dto.WorkOrderDTO;
+import com.itwillbs.dto.WorkOrderMergedDTO;
 import com.itwillbs.mapper.WorkOrderMapper;
 
 import lombok.extern.slf4j.Slf4j;
@@ -65,15 +65,6 @@ public class WorkOrderServiceImpl implements WorkOrderService {
     }
 
     /**
-     * 작업지시 상세 조회
-     */
-    @Override
-    public WorkOrderDTO getWorkOrderDetail(String orderId) {
-        log.debug(" 작업지시 상세 조회 - ID: {}", orderId);
-        return workOrderMapper.selectWorkOrderDetail(orderId);
-    }
-
-    /**
      * 확정 수주 목록 조회 (작업지시 등록용)
      */
     @Override
@@ -90,40 +81,63 @@ public class WorkOrderServiceImpl implements WorkOrderService {
         log.debug(" 확정 수주 개수 조회 - 조건: {}", cri);
         return workOrderMapper.selectConfirmedOrdersCount(cri);
     }
+    
+    /**
+     * 작업지시 상세 조회
+     */
+    @Override
+    public WorkOrderDTO getWorkOrderDetail(String orderId) {
+        log.debug(" 작업지시 상세 조회 - ID: {}", orderId);
+        return workOrderMapper.selectWorkOrderDetail(orderId); // ✅ 변경 완료
+    }
 
     /**
      * 작업지시 등록
      */
     @Override
-    @Transactional
+    @Transactional  // 트랜잭션 관리 - 작업지시 등록 전체가 하나의 트랜잭션으로 처리됨
     public int registerWorkOrder(WorkOrderDTO workOrderDTO) {
-        log.info(" 작업지시 등록 - 수주번호: {}", workOrderDTO.getClOrderId());
-        
         try {
-            // 작업지시번호 자동 생성
+            // 1. 작업지시번호 자동 생성 (예: WO-20250807-001)
             String orderId = generateOrderId();
             workOrderDTO.setOrderId(orderId);
-            
-            // 기본값 설정
-            workOrderDTO.setStatus("WAITING");
-            workOrderDTO.setCreatedAt(new Date());
-            
-            log.info("▶ 생성된 작업지시번호: {}", orderId);
-            
-            // 작업지시 등록
+
+            // 2. 작업지시 상태 초기화 및 등록일 세팅
+            workOrderDTO.setStatus("WAITING");           // 기본 상태: 대기
+            workOrderDTO.setCreatedAt(new Date());       // 현재 시각으로 등록일 설정
+
+            // 3. work_order 테이블에 기본 작업지시 정보 저장
             int result = workOrderMapper.insertWorkOrder(workOrderDTO);
-            
-            if (result > 0) {
-                log.info(" 작업지시 등록 완료 - ID: {}", orderId);
-            } else {
-                log.error(" 작업지시 등록 실패 - 데이터베이스 오류");
+            if (result <= 0) {
+                // 저장 실패 시 예외 발생
+                throw new RuntimeException("작업지시 등록 실패");
             }
-            
+
+            // 4. 병합된 수주 정보(work_order_client_order 테이블)에 저장
+            List<WorkOrderMergedDTO> mergedOrders = workOrderDTO.getMergedOrders();
+            if (mergedOrders != null) {
+                for (WorkOrderMergedDTO merged : mergedOrders) {
+                    merged.setWorkOrderId(orderId);          // 방금 생성한 작업지시번호 주입
+                    workOrderMapper.insertMergedOrder(merged); // 병합 수주 데이터 삽입
+                }
+            }
+
+            // 5. BOM 기준 자재 소요량 계산 (제품ID와 작업지시 수량 기반)
+            List<BomItemDTO> bomList = calculateMaterialUsage(workOrderDTO.getProductId(), workOrderDTO.getOrderQty());
+
+            // 6. 자재 소요량을 workorder_material 테이블에 저장
+            for (BomItemDTO item : bomList) {
+                item.setWorkOrderId(orderId);                 // 작업지시 번호 FK 세팅
+                workOrderMapper.insertWorkOrderMaterial(item); // 자재 소요량 저장
+            }
+
+            // 7. 성공적으로 등록됐으면 결과 반환 (1 이상)
             return result;
-            
+
         } catch (Exception e) {
-            log.error(" 작업지시 등록 중 오류 발생", e);
-            throw new RuntimeException("작업지시 등록 중 오류가 발생했습니다: " + e.getMessage());
+            // 에러 발생 시 로그 기록 및 RuntimeException으로 재발생
+            log.error("작업지시 등록 중 오류", e);
+            throw new RuntimeException("작업지시 등록 중 오류: " + e.getMessage());
         }
     }
 
