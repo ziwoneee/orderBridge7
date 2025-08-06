@@ -90,11 +90,15 @@ function openDetailModal(orderId) {
     }
 
     $.ajax({
-        url: '/workorder/detail/' + orderId,
+        url: '/workorder/detail-modal',  // HTML을 반환하는 URL
         type: 'GET',
+        data: { orderId: orderId },
         success: function(data) {
-            populateDetailModal(data);
-            loadBomData(data.productId, data.orderQty);
+            // 모달 내용 채우기
+            $('#detailModal .modal-content').html(data);
+
+            // 모달 열기
+            $('#detailModal').modal('show');
         },
         error: function(xhr, status, error) {
             console.error('작업지시 상세 정보 로드 실패:', error);
@@ -194,56 +198,22 @@ function renderBomTable(bomList) {
 }
 
 /**
- * 작업지시 수정
+ * 작업지시 수정 모달 열기 (Ajax 방식)
  */
-function editWorkOrder() {
-    const orderId = $('#modalOrderId').text();
-    const lineName = $('#modalLineName').text();
-    const orderQty = $('#modalOrderQty').text().replace(/,/g, '');
-    const priorityText = $('#modalPriority').find('.badge').text();
-    
-    // 우선순위 텍스트를 값으로 변환
-    const priorityValue = getPriorityValue(priorityText);
-
-    // 수정 모달에 값 설정
-    $('#edit_orderId').val(orderId);
-    $('#edit_lineId').val(lineName);
-    $('#edit_orderQty').val(orderQty);
-    $('#edit_priority').val(priorityValue);
-
-    // 모달 전환
-    $('#detailModal').modal('hide');
-    setTimeout(() => {
-        $('#editModal').modal('show');
-    }, 300);
-}
-
-/**
- * 작업지시 삭제
- */
-function deleteWorkOrder() {
-    const orderId = $('#modalOrderId').text();
-    
-    if (!orderId) {
-        alert('작업지시 번호가 없습니다.');
-        return;
-    }
-    
-    if (!confirm('정말로 이 작업지시를 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.')) {
-        return;
-    }
-    
+function editWorkOrder(orderId) {
     $.ajax({
-        url: '/workorder/delete/' + orderId,
-        type: 'DELETE',
-        success: function(response) {
-            alert('작업지시가 삭제되었습니다.');
-            $('#detailModal').modal('hide');
-            location.reload();
+        url: '/workorder/edit-modal',  // ✅ 컨트롤러랑 일치
+        type: 'GET',
+        data: { orderId: orderId },
+        success: function(html) {
+            $('#editModal .modal-content').html(html); // 모달 내부에 내용 삽입
+            $('#detailModal').modal('hide');           // 상세 모달 닫기
+            setTimeout(() => {
+                $('#editModal').modal('show');         // 수정 모달 열기
+            }, 300);
         },
-        error: function(xhr, status, error) {
-            console.error('삭제 실패:', error);
-            alert('작업지시 삭제에 실패했습니다.');
+        error: function() {
+            alert('수정 모달을 불러오는 데 실패했습니다.');
         }
     });
 }
@@ -281,6 +251,37 @@ function submitEditForm() {
         }
     });
 }
+
+/**
+ * 작업지시 삭제
+ */
+function deleteWorkOrder() {
+    const orderId = $('#modalOrderId').text();
+    
+    if (!orderId) {
+        alert('작업지시 번호가 없습니다.');
+        return;
+    }
+    
+    if (!confirm('정말로 이 작업지시를 삭제하시겠습니까?\n삭제된 데이터는 복구할 수 없습니다.')) {
+        return;
+    }
+    
+    $.ajax({
+        url: '/workorder/delete/' + orderId,
+        type: 'DELETE',
+        success: function(response) {
+            alert('작업지시가 삭제되었습니다.');
+            $('#detailModal').modal('hide');
+            location.reload();
+        },
+        error: function(xhr, status, error) {
+            console.error('삭제 실패:', error);
+            alert('작업지시 삭제에 실패했습니다.');
+        }
+    });
+}
+
 
 /**
  * 팝업에서 선택한 수주 데이터 처리
