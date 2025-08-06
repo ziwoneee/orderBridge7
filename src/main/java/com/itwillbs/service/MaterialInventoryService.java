@@ -10,10 +10,11 @@ import com.itwillbs.domain.SearchCriteria;
  */
 public interface MaterialInventoryService {
 	
-	// 자재 재고 리스트 조회 (페이징 지원)
-	List<MaterialInventoryVO> getInventoryList(SearchCriteria cri) throws Exception;
+	// 자재 재고 요약 목록 조회 (자재 1건당 1줄)
+	List<MaterialInventoryVO> getInventorySummaryList(SearchCriteria cri) throws Exception;
 	
 	// 자재 재고 전체 건수 조회 (페이징용)
 	int getInventoryCount(SearchCriteria cri) throws Exception;
+	
 
 }

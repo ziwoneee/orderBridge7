@@ -20,17 +20,20 @@ public class MaterialInventoryDAOImpl implements MaterialInventoryDAO {
 	
 	private static final String NAMESPACE = "com.itwillbs.mapper.MaterialInventoryMapper.";
 
-	// 자재 목록 조회 (페이징 지원)
+	// 자재 재고 요약 목록 조회 (자재 ID별 1행)
 	@Override
-	public List<MaterialInventoryVO> selectInventoryList(SearchCriteria cri) throws Exception {
-		return sqlSession.selectList(NAMESPACE + "selectInventoryList", cri);
+	public List<MaterialInventoryVO> selectInventorySummaryList(SearchCriteria cri) throws Exception {
+		// MyBatis 매퍼 호출: selectInventorySummaryList
+		return sqlSession.selectList(NAMESPACE + "selectInventorySummaryList", cri);
 	}
-	
+
 	// 자재 재고 전체 건수 조회 (페이징용)
 	@Override
 	public int selectInventoryCount(SearchCriteria cri) throws Exception {
 		return sqlSession.selectOne(NAMESPACE + "selectInventoryCount", cri);
 	}
+	
+
 	
 	
 

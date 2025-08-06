@@ -22,12 +22,13 @@ public class MaterialInventoryServiceImpl implements MaterialInventoryService {
 	private MaterialInventoryDAO miDAO;
 	
 	
-
-	// 자재 재고 목록 조회 (페이징 지원)
+	// 자재 재고 요약 목록 조회 (자재 1건당 1줄)
 	@Override
-	public List<MaterialInventoryVO> getInventoryList(SearchCriteria cri) throws Exception {
-		return miDAO.selectInventoryList(cri);
+	public List<MaterialInventoryVO> getInventorySummaryList(SearchCriteria cri) throws Exception {
+	    // DAO를 통해 자재 요약 재고 목록 조회
+	    return miDAO.selectInventorySummaryList(cri);
 	}
+	
 
 	// 자재 재고 전체 건수 조회 (페이징용)
 	@Override
@@ -35,6 +36,7 @@ public class MaterialInventoryServiceImpl implements MaterialInventoryService {
 		return miDAO.selectInventoryCount(cri);
 	}
 	
+
 
 	
 	

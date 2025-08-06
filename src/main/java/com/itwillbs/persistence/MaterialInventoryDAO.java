@@ -10,10 +10,12 @@ import com.itwillbs.domain.SearchCriteria;
  */
 public interface MaterialInventoryDAO {
 
-	// 자재 재고 목록 조회 (페이징 지원)
-	List<MaterialInventoryVO> selectInventoryList(SearchCriteria cri) throws Exception;
+	// 자재 재고 요약 목록 조회 (자재 ID별 1행)
+	public List<MaterialInventoryVO> selectInventorySummaryList(SearchCriteria cri) throws Exception;
 	
 	// 자재 재고 전체 건수 조회 (페이징용)
 	int selectInventoryCount(SearchCriteria cri) throws Exception;
+	
+
 	
 }
