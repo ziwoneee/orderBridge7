@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.itwillbs.domain.MaterialInventoryVO;
+import com.itwillbs.domain.PageMaker;
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.service.MaterialInventoryService;
 
 @Controller
@@ -30,10 +32,8 @@ public class MaterialInventoryController {
 	
 	
 	/**
-     * 자재 재고현황 리스트 조회
-     * @param materialId 자재 ID (선택 필터)
-     * @param materialName 자재명 (선택 필터)
-     * @param warehouseCode 보관창고 (선택 필터)
+     * 자재 재고현황 리스트 조회 (페이징 + 정렬 지원)
+     * @param cri 검색 조건 및 페이징 정보
      * @param model View에 전달할 데이터 모델
      * @return JSP 페이지 경로
      */
@@ -41,24 +41,27 @@ public class MaterialInventoryController {
 	// http://localhost:8088/material/inventory/list
 	// 자재 재고현황 리스트 조회
 	@RequestMapping(value = "/list", method = RequestMethod.GET)
-	public String getInventoryList(@RequestParam(required = false) String materialId,
-            					   @RequestParam(required = false) String materialName,
-            					   @RequestParam(required = false) String materialType,
-            					   @RequestParam(required = false) String sortColumn,    // 정렬 컬럼
-                                   @RequestParam(required = false) String sortDirection, // 정렬 방향 (asc/desc)
-            					   Model model) throws Exception {
+	public String getInventoryList(SearchCriteria cri, Model model) throws Exception {
 		
 		logger.info(" getInventoryList() 호출 ");
-		logger.info("정렬 파라미터: {}, {}", sortColumn, sortDirection);
+		logger.info("검색 조건: {}", cri);
 		
-		// 서비스 호출 → 자재 재고 목록 조회 (정렬 조건 포함)
-		List<MaterialInventoryVO> inventoryList 
-					= miService.getInventoryList(materialId, materialName, materialType, sortColumn, sortDirection);
+		// 전체 건수 조회
+		int totalCount = miService.getInventoryCount(cri);
+		
+		// totalCount 세팅
+		cri.setTotalCount(totalCount);
+		
+		// PageMaker 생성
+		PageMaker pageMaker = new PageMaker(cri, totalCount);
+		
+		// 서비스 호출 → 자재 재고 목록 조회 (페이징 + 정렬 조건 포함)
+		List<MaterialInventoryVO> inventoryList = miService.getInventoryList(cri);
         
 		// 모델에 담기
 		model.addAttribute("inventoryList", inventoryList);
-		model.addAttribute("sortColumn", sortColumn);         // 현재 정렬 컬럼
-	    model.addAttribute("sortDirection", sortDirection);   // 현재 정렬 방향
+		model.addAttribute("pageMaker", pageMaker);
+		model.addAttribute("cri", cri); // 검색 조건 유지용
 	    model.addAttribute("menu", "material");   
 	    
 		
@@ -79,24 +82,5 @@ public class MaterialInventoryController {
 	
 	
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 } // MaterialInventoryController 끝
-
-
-
-
-
-
 

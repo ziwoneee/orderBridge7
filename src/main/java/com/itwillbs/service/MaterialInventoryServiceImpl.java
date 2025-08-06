@@ -7,6 +7,7 @@ import javax.inject.Inject;
 import org.springframework.stereotype.Service;
 
 import com.itwillbs.domain.MaterialInventoryVO;
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.persistence.MaterialInventoryDAO;
 
 /**
@@ -22,17 +23,17 @@ public class MaterialInventoryServiceImpl implements MaterialInventoryService {
 	
 	
 
-	// 자재 재고 목록 조회
+	// 자재 재고 목록 조회 (페이징 지원)
 	@Override
-	public List<MaterialInventoryVO> getInventoryList(String materialId,
-													  String materialName,
-													  String materialType,
-													  String sortColumn,
-													  String sortDirection) throws Exception {
-		
-		return miDAO.selectInventoryList(materialId, materialName, materialType, sortColumn, sortDirection);
+	public List<MaterialInventoryVO> getInventoryList(SearchCriteria cri) throws Exception {
+		return miDAO.selectInventoryList(cri);
 	}
-	
+
+	// 자재 재고 전체 건수 조회 (페이징용)
+	@Override
+	public int getInventoryCount(SearchCriteria cri) throws Exception {
+		return miDAO.selectInventoryCount(cri);
+	}
 	
 
 	

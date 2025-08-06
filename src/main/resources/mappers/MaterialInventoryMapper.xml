@@ -6,8 +6,8 @@
   
 <mapper namespace="com.itwillbs.mapper.MaterialInventoryMapper">
 
-	<!-- 자재 재고 현황 목록 조회 -->
-	<select id="selectInventoryList" resultType="com.itwillbs.domain.MaterialInventoryVO" parameterType="map">
+	<!-- 자재 재고 현황 목록 조회 (페이징 + 정렬 지원) -->
+	<select id="selectInventoryList" resultType="com.itwillbs.domain.MaterialInventoryVO" parameterType="com.itwillbs.domain.SearchCriteria">
 	  SELECT 
 	    mi.inventory_id,               
 	    mi.material_id,                
@@ -27,34 +27,59 @@
 	    material m 
 	    ON mi.material_id = m.material_id
 	   WHERE 1=1
-            <!-- 자재 ID 검색 -->
-            <if test="materialId != null and materialId != ''">
-                AND mi.material_id LIKE CONCAT('%', #{materialId}, '%')
-            </if>
-            <!-- 자재명 검색 -->
-            <if test="materialName != null and materialName != ''">
-                AND m.material_name LIKE CONCAT('%', #{materialName}, '%')
-            </if>
-            <!-- 상품유형 검색 -->
-            <if test="materialType != null and materialType != ''">
-		     	AND m.material_type LIKE CONCAT('%', #{materialType}, '%')
-		    </if>
+       <if test="keyword != null and keyword != ''">
+		  AND (
+		    mi.material_id LIKE CONCAT('%', #{keyword}, '%')
+		    OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
+		    OR m.material_type LIKE CONCAT('%', #{keyword}, '%')
+		  )
+		</if>
+
 		    
 	  <!-- 동적 정렬 조건 -->
 	  <choose>
-	    <when test="sortColumn != null and sortColumn != '' and sortDirection != null and sortDirection != ''">
-	      ORDER BY ${sortColumn} ${sortDirection}
+	    <when test="sortColumn != null and sortColumn != '' and sortOrder != null and sortOrder != ''">
+	      ORDER BY 
+	      <choose>
+	        <when test="sortColumn == 'material_id'">mi.material_id</when>
+	        <when test="sortColumn == 'material_name'">m.material_name</when>
+	        <when test="sortColumn == 'material_type'">m.material_type</when>
+	        <when test="sortColumn == 'quantity'">mi.quantity</when>
+	        <when test="sortColumn == 'safety_stock'">m.safety_stock</when>
+	        <when test="sortColumn == 'inventory_status'">mi.inventory_status</when>
+	        <when test="sortColumn == 'expiration_date'">mi.expiration_date</when>
+	        <when test="sortColumn == 'last_movement_date'">mi.last_movement_date</when>
+	        <when test="sortColumn == 'warehouse_code'">mi.warehouse_code</when>
+	        <otherwise>mi.last_movement_date</otherwise>
+	      </choose>
+	      ${sortOrder}
 	    </when>
 	    <otherwise>
-	      ORDER BY mi.received_date DESC
+	      ORDER BY mi.last_movement_date DESC
 	    </otherwise>
 	  </choose>
+	  
+	  <!-- 페이징 처리 -->
+	  LIMIT #{pageStart}, #{perPageNum}
 	</select>
 
-
-
-
-
+	<!-- 자재 재고 전체 건수 조회 (페이징용) -->
+	<select id="selectInventoryCount" resultType="int" parameterType="com.itwillbs.domain.SearchCriteria">
+	  SELECT COUNT(*) 
+	  FROM 
+	    material_inventory mi
+	  JOIN 
+	    material m 
+	    ON mi.material_id = m.material_id
+	   WHERE 1=1
+       	<if test="keyword != null and keyword != ''">
+		  AND (
+		    mi.material_id LIKE CONCAT('%', #{keyword}, '%')
+		    OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
+		    OR m.material_type LIKE CONCAT('%', #{keyword}, '%')
+		  )
+		</if>
+	</select>
 
 
 
