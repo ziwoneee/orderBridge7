@@ -202,6 +202,80 @@
 		
 
 
+	<!-- status가 WAITING인 작업지시서 목록 조회 -->
+	<select id="getWaitingOrders" resultType="com.itwillbs.domain.WorkOrderVO">
+	  SELECT 
+	    order_id,
+	    cl_order_id,
+	    product_id,
+	    line_id,
+	    order_qty,
+	    priority,
+	    is_followup,
+	    created_at,
+	    updated_at,
+	    status,
+	    remarks
+	  FROM work_order
+	  WHERE status = 'WAITING'
+	  ORDER BY created_at ASC
+	</select>
+	
+	
+	<!-- 작업지시 기본 정보 조회 -->
+	<select id="getWorkOrderInfo" resultType="com.itwillbs.dto.MaterialOutboundDetailDTO">
+	    SELECT 
+	        wo.order_id AS workOrderNo,
+	        wo.order_date AS workOrderDate,
+	        wo.due_date AS dueDate,
+	        wo.manager AS workOrderManager,
+	        l.line_name AS lineId,
+	        p.product_id AS productId
+	    FROM work_order wo
+	    JOIN line l ON wo.line_id = l.line_id
+	    JOIN product p ON wo.product_id = p.product_id
+	    WHERE wo.order_id = #{workOrderNo}
+	</select>
+	
+	<!-- 작업지시서 기반 필요 자재 목록 -->
+	<select id="getRequiredMaterialsByWorkOrder" resultType="com.itwillbs.dto.MaterialOutboundItemDTO">
+	    SELECT 
+	        mr.material_id,
+	        m.material_name,
+	        mr.required_qty AS requiredQty,
+	        COALESCE(i.quantity, 0) AS stockQty
+	    FROM material_requirement mr
+	    JOIN material m ON mr.material_id = m.material_id
+	    LEFT JOIN material_inventory i ON m.material_id = i.material_id
+	    WHERE mr.order_id = #{workOrderNo}
+	</select>
+	
+	<!-- 출고 마스터 저장 -->
+	<insert id="insertMaterialOutbound" parameterType="com.itwillbs.dto.MaterialOutboundDetailDTO">
+	  INSERT INTO material_outbound (
+	    outbound_id, work_order_no, outbound_date, status, handled_by
+	  ) VALUES (
+	    #{outboundId}, #{workOrderNo}, NOW(), '미출고', #{handledBy}
+	  )
+	</insert>
+	
+	<!-- 출고 자재 항목 저장 -->
+	<insert id="insertMaterialOutboundItem" parameterType="com.itwillbs.dto.MaterialOutboundItemDTO">
+	  INSERT INTO material_outbound_item (
+	    outbound_id, material_id, required_qty, stock_qty
+	  ) VALUES (
+	    #{outboundId}, #{materialId}, #{requiredQty}, #{stockQty}
+	  )
+	</insert>
+	
+	<!-- 가장 마지막 출고ID 조회 -->
+	<select id="getLastOutboundId" parameterType="String" resultType="String">
+	  SELECT MAX(outbound_id)
+	  FROM material_outbound
+	  WHERE outbound_id LIKE CONCAT(#{prefix}, '%')
+	</select>
+	
+	
 
 
 

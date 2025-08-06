@@ -98,6 +98,13 @@ public interface WorkOrderService {
     List<BomItemDTO> calculateMaterialUsage(String productId, int orderQty);
     
     
+    // 자재 출고관리에 필요
+    /**
+     * 대기 상태의 작업지시 목록 조회
+	 * - 출고 등록 시 작업지시 선택용
+	 * @return 작업지시 목록
+     */
+    List<WorkOrderDTO> getWaitingWorkOrders();
 
 
 }

@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.itwillbs.domain.MaterialOutboundVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.domain.WorkOrderVO;
 import com.itwillbs.dto.MaterialOutboundDetailDTO;
 import com.itwillbs.dto.MaterialOutboundSummaryDTO;
 
@@ -24,6 +25,17 @@ public interface MaterialOutboundService {
 
 	// 자재 재고 차감
 	void updateOutboundItemStock(String outboundId, String materialId, int qty) throws Exception;
+	
+	// 작업지시서 목록 조회 서비스
+	List<WorkOrderVO> getWaitingOrders() throws Exception;
+	
+	// 작업지시서 기반 출고 상세정보(자재 목록 포함) 조회
+	MaterialOutboundDetailDTO getOutboundDetailByWorkOrder(String workOrderNo) throws Exception;
+
+	// 출고 등록 서비스 메서드
+	void registerOutbound(MaterialOutboundDetailDTO dto) throws Exception;
+
+
 
     
 }
