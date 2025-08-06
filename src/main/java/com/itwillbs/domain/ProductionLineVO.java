@@ -8,6 +8,5 @@ public class ProductionLineVO {
     private String lineId;              // 생산라인번호 (라인 고유 ID)
     private String lineName;            // 생산라인명 (예: 라인1)
     private String availableProduct;    // 생산 가능 품목명
-    private int capacityPerHour;        // 생산 능력 (시간당 생산 가능 수량)
 
 }
