@@ -16,5 +16,6 @@ public class MaterialVO {
     private int safetyStock;			 // 안전재고 / 부족 여부 판단 기준
     private String lotFlag;              // LOT 관리 여부 (Y/N 관리 여부)
     private String supplyUnit;           // 입고 단위 (예: 10kg 망, 20kg 박스 등)
-
+    private String useYn;				 // 자재 논리 삭제
+    
 }

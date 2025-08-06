@@ -22,7 +22,7 @@
 		    <c:otherwise>자재 신규 등록</c:otherwise>
 		  </c:choose>
 		</h3>
-
+		
         <!-- 등록 폼 시작 -->
         <form action="/material/save" method="post">
           <div class="card">
@@ -105,10 +105,19 @@
                 </div>
 
                 <!-- 입고단위 -->
-                <div class="col-md-12 mb-3">
+                <div class="col-md-6 mb-3">
                   <label>입고단위</label>
                   <input type="text" name="supplyUnit" value="${material.supplyUnit}" class="form-control" placeholder="예: 20kg 박스">
                 </div>
+                
+                <!-- 논리 삭제 -->
+                <div class="col-md-6 mb-3">
+				  <label>상태</label>
+				  <select class="form-control" name="useYn">
+				    <option value="Y" ${material.useYn eq 'Y' ? 'selected' : ''}>활성</option>
+				    <option value="N" ${material.useYn eq 'N' ? 'selected' : ''}>비활성</option>
+				  </select>
+				</div>
 
               </div>
 

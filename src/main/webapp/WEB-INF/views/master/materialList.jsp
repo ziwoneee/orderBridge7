@@ -130,12 +130,13 @@
 		            <th>보관창고</th>
 		            <th>LOT관리</th>
 		            <th>입고단위</th>
+		            <th>상태</th>
 		            <th>수정</th>
 		          </tr>
 		        </thead>
 		        <tbody>
 		          <c:forEach var="material" items="${materialList}">
-		            <tr>
+		            <tr class="${material.useYn eq 'N' ? 'text-muted' : ''}">
 		              <td>${material.materialId}</td>
 		              <td>${material.materialName}</td>
 		              <td>${material.materialType}</td>
@@ -145,6 +146,16 @@
 		              <td>${material.warehouseCode}</td>
 		              <td><c:if test="${material.lotFlag eq 'Y'}">Y</c:if><c:if test="${material.lotFlag ne 'Y'}">N</c:if></td>
 		              <td>${material.supplyUnit}</td>
+		              <td>
+						<c:choose>
+						  <c:when test="${material.useYn eq 'Y'}">
+						    <span style="color:green;">활성</span>
+						  </c:when>
+						  <c:otherwise>
+						    <span style="color:gray;">비활성</span>
+						  </c:otherwise>
+						</c:choose>
+				      </td>
 		              <td>
 		                <button type="button" class="btn btn-sm btn-outline-secondary"
 		                       onclick="location.href='/material/edit?materialId=${material.materialId}'">

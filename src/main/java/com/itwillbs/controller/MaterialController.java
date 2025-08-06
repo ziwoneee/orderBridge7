@@ -10,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -104,6 +105,7 @@ public class MaterialController {
 			rttr.addFlashAttribute("message", "자재 정보가 수정되었습니다.");
 		} else {
 			logger.info("신규 자재 -> 등록 처리");
+			vo.setUseYn("Y");
 			mService.insertMaterial(vo);
 			rttr.addFlashAttribute("message", "자재가 성공적으로 등록되었습니다.");
 		}
@@ -140,6 +142,16 @@ public class MaterialController {
 	    model.addAttribute("menu", "material");      // 메뉴 활성화용
 	    
 	    return "master/materialRegister"; 
+	}
+
+	
+	// 자재 논리삭제 처리
+	@PostMapping("/delete")
+	public String deleteMaterial(@RequestParam("materialId") String materialId,
+	                             RedirectAttributes rttr) throws Exception {
+	    mService.deleteMaterial(materialId);
+	    rttr.addFlashAttribute("message", "자재가 삭제 처리되었습니다.");
+	    return "redirect:/material/list";
 	}
 
 	

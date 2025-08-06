@@ -15,7 +15,8 @@
 	    storage_method,
 	    warehouse_code,
 	    lot_flag,
-	    supply_unit
+	    supply_unit,
+	    use_yn
 	  FROM material
 	<where>
 	  <!-- 자재명 -->
@@ -89,7 +90,8 @@
 			 storage_method, 
 			 warehouse_code, 
 			 lot_flag, 
-			 supply_unit)
+			 supply_unit,
+			 use_yn)
 		VALUES
 			(#{materialId}, 
 			 #{materialName}, 
@@ -99,7 +101,8 @@
 			 #{storageMethod}, 
 			 #{warehouseCode}, 
 			 #{lotFlag}, 
-			 #{supplyUnit})
+			 #{supplyUnit},
+			 #{useYn})
 	</insert>
 
 	<!-- 자재 단건 조회 -->
@@ -119,7 +122,8 @@
 	        warehouse_code = #{warehouseCode},
 	        lot_flag = #{lotFlag},
 	        supply_unit = #{supplyUnit},
-	        unit_usage_per_pack = #{unitUsagePerPack}
+	        unit_usage_per_pack = #{unitUsagePerPack},
+	        use_yn = #{useYn}
 	    WHERE material_id = #{materialId}
 	</update>
 
@@ -136,6 +140,14 @@
 	<select id="selectAllMaterials" resultType="com.itwillbs.domain.MaterialVO">
   		SELECT * FROM material ORDER BY material_name
 	</select>
+	
+	
+	<!-- 자재 논리 삭제 처리 -->
+	<update id="deleteMaterial" parameterType="string">
+	  UPDATE material
+	  SET use_yn = 'N'
+	  WHERE material_id = #{materialId}
+	</update>
 
 
 </mapper>

@@ -24,6 +24,8 @@ public interface MaterialService {
 	
 	// 목록 조회 (자재 발주관리 등록 폼에서 필요)
 	List<MaterialVO> getAllMaterials() throws Exception;
-
+	
+	// 자재 논리 삭제 처리
+	void deleteMaterial(String materialId) throws Exception;
 
 }
