@@ -36,7 +36,13 @@
 			    <select name="materialType" class="form-control mr-2 mb-2">
 			      <option value="">전체 유형</option>
 			      <option value="생육" ${cri.materialType == '생육' ? 'selected' : ''}>생육</option>
-			      <option value="채소류" ${cri.materialType == '채소류' ? 'selected' : ''}>채소류</option>
+			      <option value="외주가공" ${cri.materialType == '외주가공' ? 'selected' : ''}>외주가공</option>
+                  <option value="조미료" ${cri.materialType == '조미료' ? 'selected' : ''}>조미료</option>
+                  <option value="액상조미료" ${cri.materialType == '액상조미료' ? 'selected' : ''}>액상조미료</option>
+                  <option value="채소류" ${cri.materialType == '채소류' ? 'selected' : ''}>채소류</option>
+                  <option value="향신료" ${cri.materialType == '향신료' ? 'selected' : ''}>향신료</option>
+                  <option value="포장재" ${cri.materialType == '포장재' ? 'selected' : ''}>포장재</option>
+                  <option value="기타" ${cri.materialType == '기타' ? 'selected' : ''}>기타</option>
 			    </select>
 			
 			    <select name="storageMethod" class="form-control mr-2 mb-2">

@@ -80,9 +80,10 @@ public class MaterialController {
 	    MaterialVO vo = new MaterialVO();
 	    vo.setMaterialId(nextId); // 생성된 ID를 미리 세팅 (선택)
 
-	    model.addAttribute("material", vo);         // VO 전달
-	    model.addAttribute("menu", "basic");     // 상단 메뉴 활성화용
-	    return "master/materialRegister";           // JSP 위치
+	    model.addAttribute("material", vo);          // VO 전달
+	    model.addAttribute("formType", "register");  // 등록폼 표시용
+	    model.addAttribute("menu", "basic");         // 상단 메뉴 활성화용
+	    return "master/materialRegister";           
 	}
 
 	
@@ -133,9 +134,12 @@ public class MaterialController {
 	@GetMapping("/edit")
 	public String editForm(@RequestParam("materialId") String materialId, Model model) throws Exception {
 	    MaterialVO vo = mService.getMaterial(materialId); // 기존 정보 조회
-	    model.addAttribute("material", vo); // VO 전달
-	    model.addAttribute("menu", "material"); // 메뉴 활성화용
-	    return "master/materialRegister"; // 같은 등록 JSP 재사용
+	    
+	    model.addAttribute("material", vo); 		 // VO 전달
+	    model.addAttribute("formType", "edit");      // 수정폼 표시용
+	    model.addAttribute("menu", "material");      // 메뉴 활성화용
+	    
+	    return "master/materialRegister"; 
 	}
 
 	

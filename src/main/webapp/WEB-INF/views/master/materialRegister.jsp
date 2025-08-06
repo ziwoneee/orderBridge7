@@ -16,7 +16,12 @@
       <div class="content-wrapper">
 
         <!-- 페이지 제목 -->
-        <h3 class="font-weight-bold mb-4">자재 신규 등록</h3>
+        <h3 class="font-weight-bold mb-4">
+		  <c:choose>
+		    <c:when test="${formType == 'edit'}">자재 정보 수정</c:when>
+		    <c:otherwise>자재 신규 등록</c:otherwise>
+		  </c:choose>
+		</h3>
 
         <!-- 등록 폼 시작 -->
         <form action="/material/save" method="post">
