@@ -12,5 +12,6 @@ public class MaterialOutboundItemDTO {
     private String materialName;
     private int requiredQty;
     private int stockQty;
+    private String outboundId; 
 
 }

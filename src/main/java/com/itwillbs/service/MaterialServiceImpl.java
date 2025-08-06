@@ -93,5 +93,11 @@ public class MaterialServiceImpl implements MaterialService {
         return mDAO.selectAllMaterials(); // DAO 메서드 필요
     }
 	
+    
+    // 자재 논리삭제
+    @Override
+    public void deleteMaterial(String materialId) throws Exception {
+        mDAO.deleteMaterial(materialId);
+    }
 
 }

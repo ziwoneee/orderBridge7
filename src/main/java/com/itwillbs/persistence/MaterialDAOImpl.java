@@ -78,6 +78,13 @@ public class MaterialDAOImpl implements MaterialDAO {
 		
 		return sqlSession.selectList(NAMESPACE + "selectAllMaterials");
 	}
+	
+	
+	// 자재 논리 삭제 처리
+	@Override
+    public void deleteMaterial(String materialId) throws Exception {
+        sqlSession.update(NAMESPACE + "deleteMaterial", materialId);
+    }
     
     
 	

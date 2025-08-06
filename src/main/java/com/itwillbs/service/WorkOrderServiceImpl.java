@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
+import javax.inject.Inject;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 public class WorkOrderServiceImpl implements WorkOrderService {
-
+	
     @Autowired
     private WorkOrderMapper workOrderMapper;
 
@@ -257,5 +258,17 @@ public class WorkOrderServiceImpl implements WorkOrderService {
 
         return bomList;
     }
+    
+    
+    // 자재 출고관리에 필요
+    /**
+     * 대기(WAITING) 상태의 작업지시 목록 조회
+     */
+    @Override
+    public List<WorkOrderDTO> getWaitingWorkOrders() {
+        return workOrderMapper.selectWaitingWorkOrders();
+    }
+
+
     
 }

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import com.itwillbs.domain.MaterialOutboundItemVO;
 import com.itwillbs.domain.MaterialOutboundVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.domain.WorkOrderVO;
 import com.itwillbs.dto.MaterialOutboundDetailDTO;
 import com.itwillbs.dto.MaterialOutboundItemDTO;
 import com.itwillbs.dto.MaterialOutboundSummaryDTO;
@@ -86,12 +87,43 @@ public class MaterialOutboundDAOImpl implements MaterialOutboundDAO {
 
 	
 	
-	
-	
-	
-	
-	
-	
+    // 작업지시서 목록 DAO 인터페이스
+    @Override
+    public List<WorkOrderVO> getWaitingOrders() throws Exception {
+    	
+        return sqlSession.selectList(NAMESPACE + "getWaitingOrders");
+    }
+
+    // 작업지시 기본 정보 조회
+    @Override
+    public MaterialOutboundDetailDTO getWorkOrderInfo(String workOrderNo) {
+        return sqlSession.selectOne(NAMESPACE + "getWorkOrderInfo", workOrderNo);
+    }
+
+    // 작업지시 기반 필요 자재 목록 조회
+    @Override
+    public List<MaterialOutboundItemDTO> getRequiredMaterialsByWorkOrder(String workOrderNo) {
+        return sqlSession.selectList(NAMESPACE + "getRequiredMaterialsByWorkOrder", workOrderNo);
+    }
+
+    // 출고 마스터 저장
+    @Override
+    public void insertMaterialOutbound(MaterialOutboundDetailDTO dto) {
+        sqlSession.insert(NAMESPACE + "insertMaterialOutbound", dto);
+    }
+
+    // 출고 자재 항목 저장
+    @Override
+    public void insertMaterialOutboundItem(MaterialOutboundItemDTO item) {
+        sqlSession.insert(NAMESPACE + "insertMaterialOutboundItem", item);
+    }
+
+    // 출고 ID 중 가장 마지막 값 조회
+    @Override
+    public String getLastOutboundId(String prefix) {
+        return sqlSession.selectOne(NAMESPACE + "getLastOutboundId", prefix);
+    }
+
 	
 	
 	

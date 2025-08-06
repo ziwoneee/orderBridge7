@@ -10,6 +10,12 @@
   <div class="container-fluid page-body-wrapper">
 
     <%@ include file="/WEB-INF/views/main/sidebar.jsp" %>
+    
+	<c:if test="${not empty message}">
+	  <script>
+	    alert("${message}");
+	  </script>
+	</c:if>
 
       <!-- 본문 시작 -->
       <div class="main-panel">
@@ -30,7 +36,13 @@
 			    <select name="materialType" class="form-control mr-2 mb-2">
 			      <option value="">전체 유형</option>
 			      <option value="생육" ${cri.materialType == '생육' ? 'selected' : ''}>생육</option>
-			      <option value="채소류" ${cri.materialType == '채소류' ? 'selected' : ''}>채소류</option>
+			      <option value="외주가공" ${cri.materialType == '외주가공' ? 'selected' : ''}>외주가공</option>
+                  <option value="조미료" ${cri.materialType == '조미료' ? 'selected' : ''}>조미료</option>
+                  <option value="액상조미료" ${cri.materialType == '액상조미료' ? 'selected' : ''}>액상조미료</option>
+                  <option value="채소류" ${cri.materialType == '채소류' ? 'selected' : ''}>채소류</option>
+                  <option value="향신료" ${cri.materialType == '향신료' ? 'selected' : ''}>향신료</option>
+                  <option value="포장재" ${cri.materialType == '포장재' ? 'selected' : ''}>포장재</option>
+                  <option value="기타" ${cri.materialType == '기타' ? 'selected' : ''}>기타</option>
 			    </select>
 			
 			    <select name="storageMethod" class="form-control mr-2 mb-2">
@@ -118,12 +130,18 @@
 		            <th>보관창고</th>
 		            <th>LOT관리</th>
 		            <th>입고단위</th>
+		            <th>상태</th>
 		            <th>수정</th>
 		          </tr>
 		        </thead>
 		        <tbody>
 		          <c:forEach var="material" items="${materialList}">
-		            <tr>
+		            <tr
+					    class="display-row"
+					    <c:if test="${material.useYn eq 'N'}">
+					      style="color: #bbb; background: #f9f9f9; text-decoration:line-through;"
+					    </c:if>
+					    id="display-${material.materialId}">
 		              <td>${material.materialId}</td>
 		              <td>${material.materialName}</td>
 		              <td>${material.materialType}</td>
@@ -133,6 +151,11 @@
 		              <td>${material.warehouseCode}</td>
 		              <td><c:if test="${material.lotFlag eq 'Y'}">Y</c:if><c:if test="${material.lotFlag ne 'Y'}">N</c:if></td>
 		              <td>${material.supplyUnit}</td>
+		              <td>
+				        <span style="font-weight:bold; color:${material.useYn eq 'Y' ? '#28a745' : '#aaa'};">
+				          ${material.useYn eq 'Y' ? '활성' : '비활성'}
+				        </span>
+				      </td>
 		              <td>
 		                <button type="button" class="btn btn-sm btn-outline-secondary"
 		                       onclick="location.href='/material/edit?materialId=${material.materialId}'">

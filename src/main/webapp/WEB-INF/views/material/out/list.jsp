@@ -48,6 +48,12 @@
                     <button type="submit" class="btn btn-primary me-2" style="background-color: #1C355E; border-color: #1C355E;">
                       <i class="ti-search"></i> 검색
                     </button>
+                    
+                    <!-- 출고등록 버튼 -->
+				  <a href="/material/outbound/register" class="btn btn-primary ml-2">
+				    + 출고 등록
+				  </a>
+                    
                     <a href="/material/outbound/list" class="btn btn-light">
                       <i class="ti-reload"></i> 초기화
                     </a>
@@ -331,10 +337,6 @@
 			              <td id="outboundDate"></td>
 			              <th>출고담당자</th>
 			              <td id="handledBy"></td>
-			            </tr>
-			            <tr>
-			              <th>품명</th>
-			              <td colspan="3" id="materialName"></td>
 			            </tr>
 			          </tbody>
 			        </table>

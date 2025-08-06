@@ -99,10 +99,20 @@
                 </div>
 
                 <!-- 입고단위 -->
-                <div class="col-md-12 mb-3">
+                <div class="col-md-6 mb-3">
                   <label>입고단위</label>
                   <input type="text" name="supplyUnit" value="${material.supplyUnit}" class="form-control" placeholder="예: 20kg 박스">
                 </div>
+                
+                <!-- 논리 삭제 -->
+                <div class="col-md-6 mb-3">
+				  <label>상태</label>
+				  <select class="form-control" name="useYn">
+				    <option value="Y" ${material.useYn eq 'Y' ? 'selected' : ''}>활성</option>
+				    <option value="N" ${material.useYn eq 'N' ? 'selected' : ''}>비활성</option>
+				  </select>
+				</div>
+
 
               </div>
 
@@ -125,23 +135,6 @@
   <!-- container-fluid page-body-wrapper 끝 -->
 </div>
 <!-- container-scroller 끝-->   
-
-<script>
-function setWarehouseCode() {
-  const storageMethod = document.getElementById('storageMethod').value;
-  const warehouseCode = document.getElementById('warehouseCode');
-
-  if (storageMethod === '냉동') {
-    warehouseCode.value = 'WH001';
-  } else if (storageMethod === '냉장') {
-    warehouseCode.value = 'WH002';
-  } else if (storageMethod === '상온') {
-    warehouseCode.value = 'WH003';
-  } else {
-    warehouseCode.value = ''; // 선택 안 됨
-  }
-}
-</script>
 
 <script>
 function setWarehouseCode() {

@@ -38,7 +38,6 @@ function openOutboundModal(data) {
   $('#modalStatus').text(data.status);
   $('#outboundDate').text(formatDate(data.outboundDate));
   $('#handledBy').text(data.handledBy);
-  $('#materialName').text(data.materialName);
 
   $('#stockInfo').empty();
   data.materialList.forEach(function(item) {
@@ -104,3 +103,58 @@ function processOutbound(outboundId, requiredQty, stockQty, btn) {
 	    }
 	  });
 	}
+
+
+
+//[작업지시서 불러오기] 버튼 클릭 시 모달 열기
+function openOrderModal() {
+  $('#orderModal').modal('show');
+  loadOrderList(); // 목록 불러오기
+}
+
+// 작업지시서 목록 Ajax로 불러오기
+function loadOrderList() {
+  $.ajax({
+    url: "/material/outbound/order-list",
+    method: "GET",
+    success: function(data) {
+      const tbody = $("#orderTableBody").empty();
+
+      if (data.length === 0) {
+        tbody.append("<tr><td colspan='6' class='text-center'>대기 중인 작업지시서가 없습니다.</td></tr>");
+        return;
+      }
+
+      data.forEach(order => {
+        const row = `
+          <tr>
+            <td>${order.orderId}</td>
+            <td>${order.productId}</td>
+            <td>${order.lineId}</td>
+            <td>${order.orderQty}</td>
+            <td>${order.remarks || '-'}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary" onclick="selectOrder('${order.orderId}', '${order.productId}', '${order.lineId}', ${order.orderQty}, '${order.remarks || ''}')">
+                선택
+              </button>
+            </td>
+          </tr>
+        `;
+        tbody.append(row);
+      });
+    },
+    error: function() {
+      alert("작업지시서를 불러오지 못했습니다.");
+    }
+  });
+}
+
+// 작업지시서 선택 시 등록 폼에 채우기
+function selectOrder(orderId, productId, lineId, qty, remarks) {
+  $("#selectedOrderId").val(orderId);
+  $("#selectedProductId").val(productId);
+  $("#selectedLineId").val(lineId);
+  $("#selectedQty").val(qty);
+  $("#selectedRemarks").val(remarks);
+  $("#orderModal").modal('hide');
+}

@@ -59,6 +59,8 @@ public class MaterialInventoryController {
 		model.addAttribute("inventoryList", inventoryList);
 		model.addAttribute("sortColumn", sortColumn);         // 현재 정렬 컬럼
 	    model.addAttribute("sortDirection", sortDirection);   // 현재 정렬 방향
+	    model.addAttribute("menu", "material");   
+	    
 		
 		// 현재 시간 now 객체로 전달
 	    model.addAttribute("now", new Date());
