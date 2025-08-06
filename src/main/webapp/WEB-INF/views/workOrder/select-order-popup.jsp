@@ -9,24 +9,55 @@
 <title>확정 수주 선택</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.1">
 
-<!-- 다른 CSS들 먼저 로드 -->
-<link rel="stylesheet"
-	href="${pageContext.request.contextPath}/resources/vendors/css/vendor.bundle.base.css">
-<link rel="stylesheet"
-	href="${pageContext.request.contextPath}/resources/css/vertical-layout-light/style.css">
 
-<!-- 아이콘 CDN -->
-<link rel="stylesheet"
-	href="https://cdn.jsdelivr.net/npm/@mdi/font@6.5.95/css/materialdesignicons.min.css">
-<link rel="stylesheet"
-	href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<style>
+/* 선택된 행 강조 */
+.order-row.selected {
+    background-color: #e8f1ff !important;
+}
 
-<!-- 우리 CSS를 가장 마지막에 로드 (최고 우선순위) -->
-<link rel="stylesheet"
-	href="${pageContext.request.contextPath}/resources/css/popup-style.css">
+/* 선택 정보 표시 영역 */
+#selectionInfo {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
 
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+/* 전체 선택 체크박스 스타일 */
+#selectAll {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+}
+
+/* 체크박스 정렬 */
+.order-checkbox, #selectAll {
+    margin: 0 auto;
+    display: block;
+}
+
+/* 테이블 헤더 고정 (선택사항) */
+.table-container {
+    max-height: 450px;
+    overflow-y: auto;
+}
+
+.table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f8f9fa;
+    z-index: 10;
+}
+
+/* 비활성화된 버튼 스타일 */
+#mergeSelectBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+</style>
+
 </head>
 
 <body>
@@ -40,84 +71,129 @@
 		<form method="get" action="/workorder/select-order">
 			<div class="search-form-wrapper">
 				<input type="text" name="keyword" class="form-control search-input"
-					placeholder="수주번호 또는 제품명을 입력하세요" value="${cri.keyword}">
+					placeholder="수주번호, 제품명, 거래처명 검색" value="${cri.keyword}">
 				<button type="submit" class="btn search-btn">
 					<i class="fas fa-search"></i> 검색
 				</button>
 			</div>
 		</form>
 	</div>
-		
-		
-	<!--  병합 버튼 추가  -->
-	<div class="btn-align-right">
-	  <button id="mergeSelectBtn" class="btn btn-primary" style="background-color: #1C355E; border-color: #1C355E;">
-	    작업지시 등록
-	  </button>
+	
+	<!-- 선택 정보 표시 영역 (동적 생성되는 곳) -->
+	<!-- JS에서 자동으로 추가됨 -->
+	
+	<!-- 병합 버튼 -->
+	<div class="btn-align-right mb-3">
+		<button id="mergeSelectBtn" class="btn btn-primary" 
+				style="background-color: #1C355E; border-color: #1C355E;" disabled>
+			작업지시 등록
+		</button>
 	</div>
-		
 
 	<!-- 수주 목록 테이블 -->
 	<div class="table-container">
 		<div class="table-responsive">
-			<table class="table">
+			<table class="table table-hover">
 				<thead>
 					<tr>
-						<th>선택</th>
+						<th width="50">
+							<input type="checkbox" id="selectAll" title="전체 선택">
+						</th>
 						<th>수주번호</th>
 						<th>거래처</th>
 						<th>제품명</th>
 						<th>수주일</th>
 						<th>납기일</th>
-						<th>수주수량</th>
-						<th>가용수량</th>
-						<th>생산 필요 수량</th>
-
+						<th class="text-right">수주수량</th>
+						<th class="text-right">가용수량</th>
+						<th class="text-right">생산필요</th>
 					</tr>
 				</thead>
 				<tbody>
 					<c:forEach var="order" items="${orderList}">
-						<tr class="order-row" data-order-id="${order.clOrderId}"
-							data-product-id="${order.productId}"
-							data-product-name="${empty order.productName ? '제품명없음' : order.productName}"
-							data-client-name="${empty order.clientName ? '거래처없음' : order.clientName}"
-							data-due-date="<fmt:formatDate value='${order.dueDate}' pattern='yyyy-MM-dd' />"
-							data-required-qty="${order.requiredQty}" tabindex="0"
-							style="cursor: default;">
-
-							<!--  병합 체크박스 컬럼 -->
-							<td><input type="checkbox" class="order-checkbox"
-								data-cl-order-id="${order.clOrderId}"
-								data-product-id="${order.productId}"
-								data-product-name="${order.productName}"
-								data-order-qty="${order.orderQty}"
-								data-due-date="${order.dueDate}"></td>
-
-							<!--  나머지 컬럼 -->
-							<td>${empty order.clOrderId ? '-' : order.clOrderId}</td>
-							<td>${empty order.clientName ? '-' : order.clientName}</td>
-							<td>${empty order.productName ? '-' : order.productName}</td>
-							<td><fmt:formatDate value="${order.clOrderDate}"
-									pattern="yyyy-MM-dd" /></td>
-							<td><c:choose>
+						<tr class="order-row">
+							<!-- 체크박스 -->
+							<c:set var="formattedDueDate">
+							  <fmt:formatDate value="${order.dueDate}" pattern="yyyy-MM-dd" />
+							</c:set>
+							<td class="text-center">
+								<input type="checkbox" class="order-checkbox"
+									data-cl-order-id="${order.clOrderId}"
+									data-product-id="${order.productId}"
+									data-product-name="${order.productName}"
+									data-client-name="${order.clientName}"
+									data-order-qty="${order.orderQty}"
+									data-due-date="${formattedDueDate}">
+							</td>
+							
+							<!-- 수주번호 -->
+							<td class="font-weight-medium">${order.clOrderId}</td>
+							
+							<!-- 거래처 -->
+							<td>
+								<c:choose>
+									<c:when test="${not empty order.clientName}">
+										${order.clientName}
+									</c:when>
+									<c:otherwise>
+										<span class="text-muted">-</span>
+									</c:otherwise>
+								</c:choose>
+							</td>
+							
+							<!-- 제품명 -->
+							<td>
+								<span class="badge badge-info">${order.productName}</span>
+							</td>
+							
+							<!-- 수주일 -->
+							<td>
+								<fmt:formatDate value="${order.clOrderDate}" pattern="yyyy-MM-dd" />
+							</td>
+							
+							<!-- 납기일 -->
+							<td>
+								<c:choose>
 									<c:when test="${not empty order.dueDate}">
 										<fmt:formatDate value="${order.dueDate}" pattern="yyyy-MM-dd" />
 									</c:when>
-									<c:otherwise>-</c:otherwise>
-								</c:choose></td>
+									<c:otherwise>
+										<span class="text-muted">-</span>
+									</c:otherwise>
+								</c:choose>
+							</td>
+							
 							<!-- 수주 수량 -->
-							<td>
-							  <fmt:formatNumber value="${order.orderQty}" pattern="#,##0" />
+							<td class="text-right">
+								<fmt:formatNumber value="${order.orderQty}" pattern="#,##0" />
 							</td>
 							
 							<!-- 가용 수량 -->
-							<td>
-							  <fmt:formatNumber value="${order.availableQty}" pattern="#,##0" />
+							<td class="text-right">
+								<c:choose>
+									<c:when test="${order.availableQty > 0}">
+										<span class="text-success">
+											<fmt:formatNumber value="${order.availableQty}" pattern="#,##0" />
+										</span>
+									</c:when>
+									<c:otherwise>
+										<span class="text-muted">0</span>
+									</c:otherwise>
+								</c:choose>
 							</td>
 							
 							<!-- 생산 필요 수량 -->
-							<td class="production-qty">
-							  <fmt:formatNumber value="${order.requiredQty}" pattern="#,##0" />
+							<td class="text-right">
+								<c:choose>
+									<c:when test="${order.requiredQty > 0}">
+										<span class="text-danger font-weight-bold">
+											<fmt:formatNumber value="${order.requiredQty}" pattern="#,##0" />
+										</span>
+									</c:when>
+									<c:otherwise>
+										<span class="text-muted">0</span>
+									</c:otherwise>
+								</c:choose>
 							</td>
 						</tr>
 					</c:forEach>
@@ -125,8 +201,12 @@
 					<!-- 데이터 없을 때 메시지 -->
 					<c:if test="${empty orderList}">
 						<tr>
-							<td colspan="8" class="empty-message text-center"><i
-								class="fas fa-inbox fa-2x mb-3 d-block"></i> 확정된 수주가 없습니다.</td>
+							<td colspan="9" class="text-center py-5">
+								<div class="empty-message">
+									<i class="fas fa-inbox fa-3x mb-3 text-muted"></i>
+									<p class="text-muted mb-0">확정된 수주가 없습니다.</p>
+								</div>
+							</td>
 						</tr>
 					</c:if>
 				</tbody>
@@ -134,122 +214,87 @@
 		</div>
 	</div>
 
-
 	<!-- 페이징 영역 -->
-	<div class="pagination-container">
-		<nav aria-label="페이지 네비게이션">
-			<ul class="pagination justify-content-center">
-				<!-- 이전 버튼 -->
-				<c:if test="${cri.page > 1}">
-					<li class="page-item"><a class="page-link"
-						href="?page=${cri.page - 1}&keyword=${cri.keyword}"> <i
-							class="fas fa-chevron-left"></i>
-					</a></li>
-				</c:if>
+	<c:if test="${totalCount > 0}">
+		<div class="pagination-container">
+			<nav aria-label="페이지 네비게이션">
+				<ul class="pagination justify-content-center">
+					<!-- 이전 버튼 -->
+					<c:if test="${cri.page > 1}">
+						<li class="page-item">
+							<a class="page-link" href="?page=${cri.page - 1}&keyword=${cri.keyword}">
+								<i class="fas fa-chevron-left"></i>
+							</a>
+						</li>
+					</c:if>
 
-				<!-- 페이지 번호 -->
-				<c:set var="startPage"
-					value="${cri.page - 2 > 0 ? cri.page - 2 : 1}" />
-				<c:set var="endPage"
-					value="${startPage + 4 > totalPages ? totalPages : startPage + 4}" />
+					<!-- 페이지 번호 -->
+					<c:set var="startPage" value="${cri.page - 2 > 0 ? cri.page - 2 : 1}" />
+					<c:set var="endPage" value="${startPage + 4 > totalPages ? totalPages : startPage + 4}" />
+					
+					<!-- 시작 페이지 재조정 -->
+					<c:if test="${endPage - startPage < 4 && startPage > 1}">
+						<c:set var="startPage" value="${endPage - 4 > 0 ? endPage - 4 : 1}" />
+					</c:if>
 
-				<c:forEach begin="${startPage}" end="${endPage}" var="pageNum">
-					<li class="page-item ${cri.page == pageNum ? 'active' : ''}">
-						<a class="page-link"
-						href="?page=${pageNum}&keyword=${cri.keyword}">${pageNum}</a>
-					</li>
-				</c:forEach>
+					<c:forEach begin="${startPage}" end="${endPage}" var="pageNum">
+						<li class="page-item ${cri.page == pageNum ? 'active' : ''}">
+							<a class="page-link" href="?page=${pageNum}&keyword=${cri.keyword}">
+								${pageNum}
+							</a>
+						</li>
+					</c:forEach>
 
-				<!-- 다음 버튼 -->
-				<c:if test="${cri.page < totalPages}">
-					<li class="page-item"><a class="page-link"
-						href="?page=${cri.page + 1}&keyword=${cri.keyword}"> <i
-							class="fas fa-chevron-right"></i>
-					</a></li>
-				</c:if>
-			</ul>
-		</nav>
+					<!-- 다음 버튼 -->
+					<c:if test="${cri.page < totalPages}">
+						<li class="page-item">
+							<a class="page-link" href="?page=${cri.page + 1}&keyword=${cri.keyword}">
+								<i class="fas fa-chevron-right"></i>
+							</a>
+						</li>
+					</c:if>
+				</ul>
+			</nav>
 
-		<!-- 총 개수 -->
-		<div class="text-center mt-3 text-muted">
-			<small>총 ${totalCount}개 (${cri.page}/${totalPages} 페이지)</small>
+			<!-- 총 개수 -->
+			<div class="text-center mt-2 text-muted">
+				<small>총 ${totalCount}건 (${cri.page}/${totalPages} 페이지)</small>
+			</div>
 		</div>
-	</div>
+	</c:if>
+	
+	<!-- jQuery -->
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	
+	<!-- select-order JS -->
+	<script src="${pageContext.request.contextPath}/resources/js/select-order.js"></script>
+	
+	<!-- Bootstrap JS -->
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
 
-	<!-- JavaScript 동작 -->
 	<script>
-  $(document).ready(function () {
+	// 추가 UI 효과 (선택사항)
+	$(document).ready(function() {
+		// 체크박스 변경 시 행 강조
+		$(document).on('change', '.order-checkbox', function() {
+			if ($(this).prop('checked')) {
+				$(this).closest('tr').addClass('selected');
+			} else {
+				$(this).closest('tr').removeClass('selected');
+			}
+		});
+		
+		// 검색 입력창 포커스
+		$('.search-input').focus();
+		
+		// 엔터키 검색 방지 (form에서 처리)
+		$('.search-input').on('keydown', function(e) {
+			if (e.keyCode === 13) {
+				$(this).closest('form').submit();
+			}
+		});
+	});
+	</script>
 
-	  // 디버깅용: 각 행 정보 콘솔 출력
-	  $('.order-row').each(function(index) {
-	    const rowData = {
-	      'order-id': $(this).attr('data-order-id'),
-	      'product-id': $(this).attr('data-product-id'),
-	      'product-name': $(this).attr('data-product-name'),
-	      'client-name': $(this).attr('data-client-name')
-	    };
-	    console.log(`Row ${index}:`, rowData);
-	  });
-
-	  //  병합 선택 버튼 클릭 시 처리
-	  $('#mergeSelectBtn').on('click', function () {
-	    const selected = $('.order-checkbox:checked');
-
-	    if (selected.length < 1) {
-	      alert('최소 1건 이상 선택해주세요.');
-	      return;
-	    }
-
-	    // 동일 제품인지 확인
-	    const baseProductId = selected.first().data('product-id');
-	    const isSameProduct = [...selected].every(cb =>
-	      $(cb).data('product-id') === baseProductId
-	    );
-
-	    if (!isSameProduct) {
-	      alert('동일한 제품만 선택 가능합니다.');
-	      return;
-	    }
-
-	    // 병합 대상 구성
-	    const orderList = [];
-	    let totalQty = 0;
-	    let earliestDueDate = null;
-
-	    selected.each(function () {
-	      const $cb = $(this);
-	      const clOrderId = $cb.data('cl-order-id');
-	      const orderQty = parseInt($cb.data('order-qty'));
-	      const dueDate = new Date($cb.data('due-date'));
-
-	      totalQty += orderQty;
-	      orderList.push(clOrderId);
-
-	      if (!earliestDueDate || dueDate < earliestDueDate) {
-	        earliestDueDate = dueDate;
-	      }
-	    });
-
-	    const formattedDate = earliestDueDate.toISOString().slice(0, 10);
-
-	    const mergedOrderData = {
-	      clOrderIds: orderList,
-	      productId: baseProductId,
-	      orderQty: totalQty,
-	      dueDate: formattedDate
-	    };
-
-	    if (window.opener && typeof window.opener.receiveOrderData === 'function') {
-	      window.opener.receiveOrderData(mergedOrderData);
-	      window.close();
-	    } else {
-	      alert('부모창과의 연결에 실패했습니다.');
-	    }
-	  });
-	  
-  </script>
-
-	<script
-		src="https://stackpath.bootstrapcdn.com/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
