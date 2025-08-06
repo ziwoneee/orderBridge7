@@ -281,7 +281,8 @@
     cd.delivery_qty,
     cd.lot_no,
     cd.delivery_date,
-    cd.tracking_number
+    cd.tracking_number,
+    cd.delivery_status
   FROM client_delivery cd
   JOIN product p ON cd.product_id = p.product_id
   WHERE cd.cl_order_id = #{clOrderId}

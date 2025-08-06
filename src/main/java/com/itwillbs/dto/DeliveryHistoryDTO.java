@@ -12,4 +12,5 @@ public class DeliveryHistoryDTO {
     private String lotNo;
     private Date deliveryDate;
     private String trackingNumber;
+    private String deliveryStatus; //배송상태 확인
 }

@@ -19,11 +19,11 @@
             <h3 class="font-weight-bold">고객사 정보 수정</h3>
           </div>
 
-          <form action="/client/update" method="post" class="w-100">
+          <form action="/client/update" method="post" >
             <input type="hidden" name="clientId" value="${client.clientId}"/>
-            <div class="row">
+            <div class="row gx-1">
               <!-- 기본 정보 -->
-            <div class="col-md-6 me-3"> 
+            <div class="col-md-6 "> 
                 <div class="card mb-4" style="width:600px;">
                   <div class="card-header bg-primary text-white font-weight-bold">기본 정보</div>
                   <div class="card-body">

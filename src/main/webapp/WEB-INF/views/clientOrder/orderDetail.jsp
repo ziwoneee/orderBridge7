@@ -159,6 +159,7 @@
       <th>LOT</th>
       <th>출하일자</th>
       <th>송장번호</th>
+      <th>출하상태</th>
     </tr>
   </thead>
   <tbody>
@@ -170,6 +171,17 @@
         <td>${d.lotNo}</td>
         <td><fmt:formatDate value="${d.deliveryDate}" pattern="yyyy-MM-dd"/></td>
         <td>${d.trackingNumber}</td>
+        <td>
+          <c:choose>
+            <c:when test="${d.deliveryStatus eq 'CANCELLED'}">
+              <span class="badge bg-danger text-white">취소</span>
+            </c:when>
+            <c:otherwise>
+              <span class="badge bg-success text-white">출고</span>
+            </c:otherwise>
+          </c:choose>
+        </td>
+        
       </tr>
     </c:forEach>
     <c:if test="${empty deliveryHistory}">

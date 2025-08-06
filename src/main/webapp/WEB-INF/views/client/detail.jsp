@@ -53,7 +53,7 @@
                     </div>
                   </div>
                   <!-- ✅ 주소 & 담당자 정보 -->
-                  <div class="card mb-4" style="width:600px; height:450px;">
+                  <div class="card mb-4 ml-3" style="width:600px; height:450px;">
                     <div class="card-header bg-info text-white font-weight-bold">주소 & 담당자 정보</div>
                     <div class="card-body">
                       <table class="table table-bordered">
@@ -68,13 +68,14 @@
                       </table>
                     </div>
                   </div>
+                   </div>
                   <!-- ✅ 버튼 영역 -->
                   <div class="text-right">
                     <a href="/client/list" class="btn btn-outline-secondary">목록으로</a>
                    <a href="/client/edit?clientId=${client.clientId}" class="btn btn-warning">수정</a>
-                    <a href="/client/delete?clientId=${client.clientId}" class="btn btn-danger"
-                       onclick="return confirm('정말 삭제하시겠습니까?');">삭제</a>
-                  </div>
+<%--                     <a href="/client/delete?clientId=${client.clientId}" class="btn btn-danger" --%>
+<!--                        onclick="return confirm('정말 삭제하시겠습니까?');">삭제</a> -->
+                 
                 </div>
               </div>
               <!-- 페이징하실거면 여기서 시작 -->

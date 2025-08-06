@@ -435,7 +435,7 @@
                   <td>${item.lotNo}</td>
                   <td class="text-end"><fmt:formatNumber value="${item.deliveryQty}" pattern="#,###"/></td>
                   <td>${item.trackingNumber}</td>
-                  <td><span class="badge bg-success">${item.deliveryStatus}</span></td>
+                  <td><span class="badge bg-success text-white">${item.deliveryStatus}</span></td>
                 </tr>
               </c:forEach>
             </tbody>
