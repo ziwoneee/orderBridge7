@@ -332,10 +332,6 @@
 			              <th>출고담당자</th>
 			              <td id="handledBy"></td>
 			            </tr>
-			            <tr>
-			              <th>품명</th>
-			              <td colspan="3" id="materialName"></td>
-			            </tr>
 			          </tbody>
 			        </table>
 			

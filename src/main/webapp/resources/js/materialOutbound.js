@@ -38,7 +38,6 @@ function openOutboundModal(data) {
   $('#modalStatus').text(data.status);
   $('#outboundDate').text(formatDate(data.outboundDate));
   $('#handledBy').text(data.handledBy);
-  $('#materialName').text(data.materialName);
 
   $('#stockInfo').empty();
   data.materialList.forEach(function(item) {
