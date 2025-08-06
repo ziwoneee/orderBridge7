@@ -105,14 +105,27 @@
 
 	<!-- 출고 목록 전체 개수 조회 -->
 	<select id="getMaterialOutboundCount" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
-		SELECT COUNT(*) 
-		FROM material_outbound o
-		<where>
-			<if test="keyword != null and keyword != '' and condition == 'handledBy'">
-				o.handled_by LIKE CONCAT('%', #{keyword}, '%')
-			</if>
-		</where>
+	  SELECT COUNT(*) 
+	  FROM material_outbound o
+	  <where>
+	    <if test="keyword != null and keyword != '' and condition == 'handledBy'">
+	      o.handled_by LIKE CONCAT('%', #{keyword}, '%')
+	    </if>
+	
+	    <if test="status != null and status != ''">
+	      AND o.status = #{status}
+	    </if>
+	
+	    <if test="startDate != null and startDate != ''">
+	      AND DATE(o.outbound_date) &gt;= #{startDate}
+	    </if>
+	
+	    <if test="endDate != null and endDate != ''">
+	      AND DATE(o.outbound_date) &lt;= #{endDate}
+	    </if>
+	  </where>
 	</select>
+
 	
 
 

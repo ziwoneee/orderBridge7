@@ -30,12 +30,11 @@ import com.itwillbs.service.MaterialOutboundService;
 @RequestMapping("/material/outbound/*")
 public class MaterialOutboundController {
 	
-	// mylog
-	private static final Logger logger = LoggerFactory.getLogger(MaterialOutboundController.class);
-
-	
 	@Inject
 	private MaterialOutboundService moService;
+	
+	// mylog
+	private static final Logger logger = LoggerFactory.getLogger(MaterialOutboundController.class);
 	
 	//http://localhost:8088/material/outbound/list
 	// 출고 목록 조회 요청
