@@ -126,8 +126,15 @@
                 
             <!-- 출하 대기 탭 내용 -->
             <div class="tab-content" id="pendingContent" style="display: ${empty param.tab || param.tab == 'pending' ? 'block' : 'none'};">
-              <form action="${pageContext.request.contextPath}/shipment/process" method="post">
+             <form action="${pageContext.request.contextPath}/shipment/process" method="post" onsubmit="return confirmShipment();">
                 <div class="table-responsive">
+              <c:if test="${not empty message}">
+				  <div class="alert alert-${messageType} text-center fw-bold mx-auto" font-size: 16px;">
+				    ${message}
+				  </div>
+				</c:if>
+
+
                   <table class="table table-hover">
                     <thead style="background-color: #1C355E; color: white; border-top: none;">
                       <tr>
@@ -196,29 +203,37 @@
         </c:if>
       </td>
      <td>
+     
+     <!-- ✅ 예약 실패 시 해당 ID를 예약 목록에서 제외 -->
+<c:set var="isReserved" value="${fn:contains(reservedOrderIds, group.clOrderId)}"/>
+<c:if test="${not empty reserveFailedId and reserveFailedId eq group.clOrderId}">
+  <c:set var="isReserved" value="false"/>
+</c:if>
+     
   <c:choose>
-    <c:when test="${item.stockQty ge item.orderQty}">
-      <c:choose>
-        <c:when test="${fn:contains(reservedOrderIds, group.clOrderId)}">
-          <!-- 예약중 상태일 때 버튼 -->
-          <button type="button" class="btn btn-sm btn-outline-secondary mt-1"
-                  onclick="toggleReservation('${group.clOrderId}', true)">
-            <i class="fas fa-times-circle"></i> 예약중
-          </button>
-        </c:when>
-        <c:otherwise>
-          <!-- 예약 전 상태일 때 버튼 -->
-          <button type="button" class="btn btn-sm btn-outline-primary mt-1"
-                  onclick="toggleReservation('${group.clOrderId}', false)">
-            <i class="fas fa-boxes"></i> 예약
-          </button>
-        </c:otherwise>
-      </c:choose>
-    </c:when>
-    <c:otherwise>
-      <span class="badge badge-danger">부족</span>
-    </c:otherwise>
-  </c:choose>
+  <c:when test="${item.stockQty ge item.orderQty}">
+    <c:choose>
+      <c:when test="${isReserved}">
+        <!-- 예약중 상태일 때 버튼 -->
+        <button type="button" class="btn btn-sm btn-outline-secondary mt-1"
+                onclick="toggleReservation('${group.clOrderId}', true)">
+          <i class="fas fa-times-circle"></i> 예약중
+        </button>
+      </c:when>
+      <c:otherwise>
+        <!-- 예약 전 상태일 때 버튼 -->
+        <button type="button" class="btn btn-sm btn-primary mt-1"
+                onclick="toggleReservation('${group.clOrderId}', false)">
+          예 약
+        </button>
+      </c:otherwise>
+    </c:choose>
+  </c:when>
+  <c:otherwise>
+    <span class="btn btn-sm btn-danger mt-1">부족</span>
+  </c:otherwise>
+</c:choose>
+
 </td>
 
     </tr>
@@ -240,9 +255,7 @@
                   </table>
                 </div>
 
-                <c:if test="${not empty message}">
-                  <div class="alert alert-success mt-2">${message}</div>
-                </c:if>
+                
 
                 <div class="mt-3">
                   <button type="submit" class="btn btn-primary" style="background-color: #1C355E; border-color: #1C355E;">
@@ -350,7 +363,7 @@
       </a>
     </th>
 
-        <th>상세보기</th>
+        <th>상세내역</th>
         <th>관 리</th>
       </tr>
     </thead>
@@ -373,7 +386,7 @@
         <button type="button" class="btn btn-sm btn-outline-primary"
                 data-bs-toggle="modal"
                 data-bs-target="#modal-${status.index}">
-          상세보기
+          확인
         </button>
       </td>
 <td>
@@ -391,7 +404,7 @@
       </form>
     </c:when>
     <c:otherwise>
-      <span class="badge bg-light text-muted">출하 완료</span>
+      <span class="btn btn-sm btn-success">출하 완료</span>
     </c:otherwise>
   </c:choose>
 </td>
@@ -642,5 +655,18 @@
     margin-left: 4px;
   }
 </style>
+
+<script>
+  function confirmShipment() {
+    const checked = document.querySelectorAll("input[name='clOrderIds']:checked");
+    if (checked.length === 0) {
+      alert("출하할 수주건을 선택해주세요.");
+      return false;
+    }
+
+    return confirm("선택한 수주건을 출하 처리하시겠습니까?");
+  }
+</script>
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

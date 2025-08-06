@@ -106,7 +106,7 @@
                   <th>납기요청일</th>
                   <th>수주상태</th>
                   <th>메모</th>
-                  <th>상세</th>
+                  <th>상세내역</th>
                 </tr>
               </thead>
               <tbody>
@@ -138,7 +138,7 @@
                     </td>
                     <td>${order.clOrderMemo}</td>
                     <td>
-                      <a href="${pageContext.request.contextPath}/clientorder/detail?clOrderId=${order.clOrderId}" class="btn btn-outline-secondary btn-sm">상세</a>
+                      <a href="${pageContext.request.contextPath}/clientorder/detail?clOrderId=${order.clOrderId}" class="btn btn-outline-primary btn-sm">확인</a>
                     </td>
                   </tr>
                 </c:forEach>

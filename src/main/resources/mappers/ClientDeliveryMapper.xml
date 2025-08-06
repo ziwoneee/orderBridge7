@@ -168,7 +168,7 @@
     <!-- ✅ 배송상태가 DELIVERED 인 것만 조회 -->
     cd.delivery_status != 'CANCELLED'
       <if test="keyword != null and keyword != ''">
-        (
+       AND (
           cd.cl_order_id LIKE CONCAT('%', #{keyword}, '%')
           OR c.client_name LIKE CONCAT('%', #{keyword}, '%')
           OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
@@ -205,7 +205,7 @@
     JOIN client c ON cd.client_id = c.client_id
     <where>
       <if test="keyword != null and keyword != ''">
-        (
+       AND (
           cd.cl_order_id LIKE CONCAT('%', #{keyword}, '%')
           OR c.client_name LIKE CONCAT('%', #{keyword}, '%')
           OR p.product_name LIKE CONCAT('%', #{keyword}, '%')

@@ -118,11 +118,11 @@
 
                       </td>
                       <td>
-                       <button class="btn btn-outline-secondary btn-sm open-lot-modal"
+                       <button class="btn btn-outline-primary btn-sm open-lot-modal"
         data-productid="${item.productName}"  <%-- UI 표시용으로만 씀 --%>
         data-product="${item.productName}"
         data-lot="${item.lotNo}">
-  내역확인
+  확인
 </button>
 
                       </td>
