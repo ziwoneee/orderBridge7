@@ -136,7 +136,12 @@
 		        </thead>
 		        <tbody>
 		          <c:forEach var="material" items="${materialList}">
-		            <tr class="${material.useYn eq 'N' ? 'text-muted' : ''}">
+		            <tr
+					    class="display-row"
+					    <c:if test="${material.useYn eq 'N'}">
+					      style="color: #bbb; background: #f9f9f9; text-decoration:line-through;"
+					    </c:if>
+					    id="display-${material.materialId}">
 		              <td>${material.materialId}</td>
 		              <td>${material.materialName}</td>
 		              <td>${material.materialType}</td>
@@ -147,14 +152,9 @@
 		              <td><c:if test="${material.lotFlag eq 'Y'}">Y</c:if><c:if test="${material.lotFlag ne 'Y'}">N</c:if></td>
 		              <td>${material.supplyUnit}</td>
 		              <td>
-						<c:choose>
-						  <c:when test="${material.useYn eq 'Y'}">
-						    <span style="color:green;">활성</span>
-						  </c:when>
-						  <c:otherwise>
-						    <span style="color:gray;">비활성</span>
-						  </c:otherwise>
-						</c:choose>
+				        <span style="font-weight:bold; color:${material.useYn eq 'Y' ? '#28a745' : '#aaa'};">
+				          ${material.useYn eq 'Y' ? '활성' : '비활성'}
+				        </span>
 				      </td>
 		              <td>
 		                <button type="button" class="btn btn-sm btn-outline-secondary"

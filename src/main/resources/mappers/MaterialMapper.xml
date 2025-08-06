@@ -39,13 +39,26 @@
 	    AND lot_flag = #{lotFlag}
 	  </if>
 	</where>
-	  <!-- 정렬 조건: 컬럼명, 방향 -->
-	  <if test="sortColumn != null and sortOrder != null">
-	    ORDER BY ${sortColumn} ${sortOrder}
-	  </if>
+	
+	<!-- 정렬 조건: 컬럼명, 방향 -->
+	<choose>
+	  <when test="sortColumn != null and sortOrder != null">
+	    ORDER BY 
+	      CASE WHEN use_yn = 'Y' THEN 0 ELSE 1 END,
+	      ${sortColumn} ${sortOrder}
+	  </when>
+	  <otherwise>
+	    ORDER BY 
+	      CASE WHEN use_yn = 'Y' THEN 0 ELSE 1 END,
+	      material_id ASC
+	  </otherwise>
+	</choose>
+
 	  <!-- 페이징 처리 -->
 	  LIMIT #{perPageNum} OFFSET #{pageStart}
 	</select>
+	
+	
 	
 	<!-- 자재 총 개수 조회 (검색 조건에 맞는 자재 개수) -->
 	<select id="getMaterialCount" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">

@@ -147,23 +147,6 @@ function setWarehouseCode() {
     warehouseCode.value = 'WH002';
   } else if (storageMethod === '상온') {
     warehouseCode.value = 'WH003';
-  } else {
-    warehouseCode.value = ''; // 선택 안 됨
-  }
-}
-</script>
-
-<script>
-function setWarehouseCode() {
-  const storageMethod = document.getElementById('storageMethod').value;
-  const warehouseCode = document.getElementById('warehouseCode');
-
-  if (storageMethod === '냉동') {
-    warehouseCode.value = 'WH001';
-  } else if (storageMethod === '냉장') {
-    warehouseCode.value = 'WH002';
-  } else if (storageMethod === '상온') {
-    warehouseCode.value = 'WH003';
   }
 }
 

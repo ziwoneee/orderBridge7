@@ -141,7 +141,7 @@ public class MaterialController {
 	    model.addAttribute("formType", "edit");      // 수정폼 표시용
 	    model.addAttribute("menu", "material");      // 메뉴 활성화용
 	    
-	    return "master/materialRegister"; 
+	    return "master/materialEdit"; 
 	}
 
 	
