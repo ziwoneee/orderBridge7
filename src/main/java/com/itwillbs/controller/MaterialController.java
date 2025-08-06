@@ -65,7 +65,7 @@ public class MaterialController {
 	    model.addAttribute("materialList", materialList);
 	    model.addAttribute("pageMaker", pageMaker);
 	    model.addAttribute("cri", cri);
-	    model.addAttribute("menu", "material"); // 상단 메뉴 활성화용 (선택)
+	    model.addAttribute("menu", "basic"); // 상단 메뉴 활성화용 (선택)
 
 	    return "master/materialList"; // 반환할 JSP 경로
 	}
