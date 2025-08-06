@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Param;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.BomItemDTO;
 import com.itwillbs.dto.WorkOrderDTO;
+import com.itwillbs.dto.WorkOrderMergedDTO;
 
 /**
  * 작업지시 관련 매퍼 인터페이스
@@ -153,6 +154,22 @@ public interface WorkOrderMapper {
      * @return 등록 성공 여부 (1: 성공, 0: 실패)
      */
     int insertWorkOrder(WorkOrderDTO workOrderDTO);
+    
+    /**
+     * 병합된 수주 정보 등록
+     * 
+     * @param mergedOrder 병합 수주 정보 DTO
+     * @return 등록 성공 여부 (1: 성공, 0: 실패)
+     */
+    int insertMergedOrder(WorkOrderMergedDTO mergedOrder);
+    
+    /**
+     * 작업지시별 자재 소요량 저장 (workorder_material)
+     * 
+     * @param item 자재 BOM 정보 DTO
+     * @return 등록 성공 여부 (1: 성공, 0: 실패)
+     */
+    int insertWorkOrderMaterial(BomItemDTO item);
     
     /**
      * 작업지시 정보 수정
