@@ -4,14 +4,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.http.HttpSession;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import com.itwillbs.domain.SearchCriteria;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.ProductionLineVO;
 import com.itwillbs.dto.BomItemDTO;
@@ -55,24 +60,22 @@ public class WorkOrderController {
     @GetMapping("/list")  
     public String getWorkOrderList(SearchCriteria cri, Model model) {
         log.info("작업지시 목록 조회 요청 - 조건: {}", cri);
-        
-        // 정렬 컬럼 검증 및 변환
+
         validateAndConvertSortColumn(cri);
-        
-        // 데이터 조회
-        List<WorkOrderDTO> workOrderList = workOrderService.getWorkOrderList(cri);
+
         int totalCount = workOrderService.getWorkOrderTotalCount(cri);
+        cri.setTotalCount(totalCount);  // totalCount를 cri에 설정 (한 번만 수행)
         PageMaker pageMaker = new PageMaker(cri, totalCount);
-        
-        // 상태별 통계 조회
+
+        List<WorkOrderDTO> workOrderList = workOrderService.getWorkOrderList(cri);
         Map<String, Integer> statusCounts = getStatusCounts();
-        
-        // 모델 바인딩
+
         bindListModel(model, workOrderList, cri, pageMaker, statusCounts);
-        
+
         log.info("작업지시 목록 조회 완료 - 총 {}건", workOrderList.size());
         return "workOrder/list";
     }
+    
     
     /**
      * 작업지시 상세 정보 조회 (인라인 편집 가능)
@@ -116,58 +119,70 @@ public class WorkOrderController {
     public String showSelectOrderPopup(SearchCriteria cri, Model model) {
         log.info("확정 수주 선택 팝업 요청 - 조건: {}", cri);
         
-        // 확정 수주 목록 조회
+        // 확정 수주 목록 + 총 개수
         List<WorkOrderDTO> confirmedOrders = workOrderService.getConfirmedOrders(cri);
         int totalCount = workOrderService.getConfirmedOrdersCount(cri);
-        int totalPages = calculateTotalPages(totalCount, cri.getPerPageNum());
-        
+
+        // PageMaker 생성
+        PageMaker pageMaker = new PageMaker(cri, totalCount);
+
         // 모델 바인딩
         model.addAttribute("orderList", confirmedOrders);
         model.addAttribute("cri", cri);
         model.addAttribute("totalCount", totalCount);
-        model.addAttribute("totalPages", totalPages);
-        
+        model.addAttribute("pageMaker", pageMaker);  
+
         log.info("확정 수주 목록 조회 완료 - 총 {}건", confirmedOrders.size());
         return "workOrder/select-order-popup";
     }
     
     /**
-     * 작업지시 등록 팝업 페이지
+     * 작업지시 등록 팝업 페이지 (병합 수주용)
+     * - 여러 수주(clOrderIds[])를 병합해서 하나의 작업지시로 등록하는 경우 사용
+     * - productId, 수량, 납기일 등의 정보는 프론트에서 계산되어 전달됨
      * 
-     * @param clOrderId 수주번호
-     * @param productId 제품ID
-     * @param model 뷰 모델
-     * @return 작업지시 등록 팝업 뷰
+     * @param clOrderIds 병합된 수주 번호 목록
+     * @param productId 제품 ID
+     * @param orderQty 총 작업지시 수량
+     * @param dueDate 납기일
+     * @param model JSP 모델
+     * @return 작업지시 등록 화면
      */
     @GetMapping("/register-popup")
-    public String showRegisterPopup(
-            @RequestParam("clOrderId") String clOrderId,
+    public String showMergedRegisterPopup(
+            @RequestParam("clOrderIds") List<String> clOrderIds,
             @RequestParam("productId") String productId,
+            @RequestParam("orderQty") int orderQty,
+            @RequestParam("dueDate") String dueDate,
             Model model) {
-        
-        log.info("작업지시 등록 팝업 요청 - 수주번호: {}, 제품ID: {}", clOrderId, productId);
-        
-        // 파라미터 검증
-        validateRegistrationParams(clOrderId, productId);
-        
+
+        log.info(" 병합 작업지시 등록 팝업 요청 - 수주들: {}, 제품ID: {}, 수량: {}, 납기일: {}");
+
+        // 등록 파라미터 유효성 검사
+        validateRegistrationParams(clOrderIds, productId);
+
+        // 제품명 및 거래처명 등 대표 정보 조회 (1건 기준)
+        WorkOrderDTO orderDetail = workOrderService.getOrderDetail(clOrderIds.get(0), productId);
+
+        // 생산 라인 목록 조회
+        List<ProductionLineVO> lineList = productionLineService.getAvailableLines();
+
+        // 모델 바인딩
+        model.addAttribute("clOrderIds", clOrderIds);              // 수주 ID 리스트
         try {
-            // 수주 상세 정보 조회
-            WorkOrderDTO orderDetail = workOrderService.getOrderDetail(clOrderId, productId);
-            
-            if (orderDetail == null) {
-                throw new IllegalArgumentException("해당 수주 정보를 찾을 수 없습니다.");
-            }
-            
-            // 모델 바인딩
-            bindRegistrationModel(model, clOrderId, productId, orderDetail);
-            
-            log.info("작업지시 등록 팝업 데이터 준비 완료");
-            return "workOrder/register-popup";
-            
-        } catch (Exception e) {
-            log.error("작업지시 등록 팝업 데이터 조회 실패 - 수주번호: {}, 제품ID: {}", clOrderId, productId);
-            throw new IllegalArgumentException("수주 정보 조회 중 오류가 발생했습니다: " + e.getMessage());
+            model.addAttribute("clOrderIdsJson", new ObjectMapper().writeValueAsString(clOrderIds));
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            model.addAttribute("clOrderIdsJson", "[]"); // ← JSON 오류 시 기본값
         }
+        model.addAttribute("productId", productId);                // 제품 ID
+        model.addAttribute("productName", orderDetail.getProductName()); // 제품명
+        model.addAttribute("clientNames", orderDetail.getClientNames()); // 거래처명 목록
+        model.addAttribute("requiredQty", orderQty);               // 총 수량
+        model.addAttribute("dueDate", dueDate);                    // 납기일 (String)
+        model.addAttribute("lineList", lineList);                  // 생산 라인 목록
+
+        return "workOrder/register-popup";
     }
     
     /**
@@ -176,34 +191,46 @@ public class WorkOrderController {
      * @param workOrderDTO 작업지시 정보
      * @return 등록 결과
      */
+    /**
+     * 작업지시 등록 처리 (POST)
+     * - 병합 수주 기반 등록
+     */
     @PostMapping("/register")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> registerWorkOrder(WorkOrderDTO workOrderDTO) {
-        log.info("작업지시 등록 요청: {}", workOrderDTO);
-        
+    public ResponseEntity<?> registerWorkOrder(@RequestBody WorkOrderDTO workOrderDTO, HttpSession session) {
+        log.info(" 작업지시 등록 요청 (Controller) - DTO: {}", workOrderDTO);
+
         Map<String, Object> response = new HashMap<>();
-        
+
         try {
+            String loginUserName = (String) session.getAttribute("userName");
+            workOrderDTO.setOrderManager(loginUserName);
+
             int result = workOrderService.registerWorkOrder(workOrderDTO);
-            
+
             if (result > 0) {
                 response.put("success", true);
-                response.put("message", "작업지시가 성공적으로 등록되었습니다.");
-                response.put("orderId", workOrderDTO.getOrderId());
-                log.info("작업지시 등록 성공 - ID: {}", workOrderDTO.getOrderId());
+                response.put("message", "작업지시 등록이 완료되었습니다.");
             } else {
                 response.put("success", false);
                 response.put("message", "작업지시 등록에 실패했습니다.");
-                log.warn("작업지시 등록 실패 - 결과: {}", result);
             }
-            
+
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(response);
+
         } catch (Exception e) {
-            log.error("작업지시 등록 중 시스템 오류", e);
+            log.error(" 작업지시 등록 중 오류 발생", e);
             response.put("success", false);
-            response.put("message", "시스템 오류가 발생했습니다: " + e.getMessage());
+            response.put("message", "오류 발생: " + e.getMessage());
+
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(response);
         }
-        
-        return ResponseEntity.ok(response);
     }
     
     // ========================================================================
@@ -356,25 +383,21 @@ public class WorkOrderController {
      * 정렬 컬럼 검증 및 변환
      */
     private void validateAndConvertSortColumn(SearchCriteria cri) {
-        // 허용된 정렬 컬럼 목록
         List<String> allowedColumns = List.of(
-            "w.order_id", "w.cl_order_id", "p.product_name", "cl.client_name",
-            "w.created_at", "w.status", "w.priority", "co.cl_delivery_date"
+            "w.order_id", "p.product_name", "w.created_at",
+            "w.status", "w.priority", "w.due_date"
         );
-        
-        // alias → 실제 컬럼명 변환
+
         if ("due_date".equals(cri.getSortColumn())) {
-            cri.setSortColumn("co.cl_delivery_date");
+            cri.setSortColumn("w.due_date"); // 최신 변경사항 반영
         }
-        
-        // 잘못된 정렬 컬럼 방지
+
         if (cri.getSortColumn() == null || 
             cri.getSortColumn().trim().isEmpty() || 
             !allowedColumns.contains(cri.getSortColumn())) {
             cri.setSortColumn("w.created_at");
         }
-        
-        // 잘못된 정렬 순서 방지
+
         if (cri.getSortOrder() == null || 
             !(cri.getSortOrder().equals("asc") || cri.getSortOrder().equals("desc"))) {
             cri.setSortOrder("desc");
@@ -411,33 +434,15 @@ public class WorkOrderController {
     /**
      * 등록 팝업 파라미터 검증
      */
-    private void validateRegistrationParams(String clOrderId, String productId) {
-        if (clOrderId == null || clOrderId.trim().isEmpty()) {
-            throw new IllegalArgumentException("수주번호가 누락되었습니다.");
+    private void validateRegistrationParams(List<String> clOrderIds, String productId) {
+        if (clOrderIds == null || clOrderIds.isEmpty()) {
+            throw new IllegalArgumentException("수주번호 목록이 누락되었습니다.");
         }
-        
+
         if (productId == null || productId.trim().isEmpty()) {
             throw new IllegalArgumentException("제품ID가 누락되었습니다.");
         }
     }
     
-    /**
-     * 등록 팝업 모델 바인딩
-     */
-    private void bindRegistrationModel(Model model, String clOrderId, String productId, 
-                                     WorkOrderDTO orderDetail) {
-        model.addAttribute("clOrderId", clOrderId);
-        model.addAttribute("productId", productId);
-        model.addAttribute("productName", orderDetail.getProductName());
-        model.addAttribute("clientName", orderDetail.getClientName());
-        model.addAttribute("dueDate", orderDetail.getDueDate());
-        model.addAttribute("requiredQty", orderDetail.getRequiredQty());
-    }
-    
-    /**
-     * 전체 페이지 수 계산
-     */
-    private int calculateTotalPages(int totalCount, int perPageNum) {
-        return (int) Math.ceil((double) totalCount / perPageNum);
-    }
+
 }

@@ -8,15 +8,11 @@ import lombok.Data;
  */
 @Data
 public class BomItemDTO {
-    private String materialId;     // 자재코드
-    private String materialName;   // 자재명
-    private String unit;           // 단위
-    private String materialType;   // 자재 용도
-    private Double qty;            // 1팩당 소요량
-    private Double totalQty;       // 총 소요량 (계산값)
+    private String materialId;
+    private String materialName;
+    private String unit;
+    private String materialType;
+    private Double qty;            // 10팩당 소요량
+    private Double totalQty;	   // 총 소요량
     
-    public Double getTotalQty() {
-        System.out.println("totalQty: " + totalQty);
-        return totalQty;
-    }
 }

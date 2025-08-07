@@ -724,3 +724,12 @@ html, body {
 ::-webkit-scrollbar-thumb:hover {
   background: #2c4a73;
 }
+
+
+/* ====== 등록 버튼  ====== */
+.btn-align-right {
+  text-align: right;
+  margin-right: 20px;
+  margin-top: -10px;   /* 위로 살짝 당기기 */
+  margin-bottom: 10px; /* 아래 간격 조금 유지 */
+}

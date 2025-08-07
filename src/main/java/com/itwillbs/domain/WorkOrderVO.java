@@ -10,7 +10,6 @@ import lombok.Data;
 public class WorkOrderVO {
 
     private String orderId;         // 작업 지시 번호
-    private String clOrderId;  		// 수주 번호
     private String productId;       // 제품 ID
     private String lineId;          // 생산 라인 ID
     private int orderQty;           // 지시 수량
@@ -20,4 +19,8 @@ public class WorkOrderVO {
     private Date updatedAt;         // 수정일
     private String status;          // 상태 (대기 / 진행중 / 완료)
     private String remarks;			// 특이사항
+    private Boolean isDeleted;      // 삭제 여부 (true/false)
+    private Date dueDate;           // 납기일 (수주 병합용)
+    private String orderManager;    // 작업지시자 (로그인한 관리자 이름)
+    
 }

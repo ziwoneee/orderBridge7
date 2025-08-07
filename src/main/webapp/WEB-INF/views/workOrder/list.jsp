@@ -99,134 +99,135 @@
               </div>
                   
               <!-- 테이블 -->
-              <div class="table-responsive">
-                <table class="table table-hover">
-                  <thead style="background-color: #1C355E; color: white; border-top: none;">
-                    <tr>
-                      <th>
-                        <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=order_id&sortOrder=${cri.sortColumn == 'order_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-                           class="text-white text-decoration-none">
-                          작업지시번호 
-                          <c:if test="${cri.sortColumn == 'order_id'}">
-                            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-                          </c:if>
-                        </a>
-                      </th>
-                      <th>
-                        <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=cl_order_id&sortOrder=${cri.sortColumn == 'cl_order_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-                           class="text-white text-decoration-none">
-                          수주번호
-                          <c:if test="${cri.sortColumn == 'cl_order_id'}">
-                            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-                          </c:if>
-                        </a>
-                      </th>
-                      <th>
-                        <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=created_at&sortOrder=${cri.sortColumn == 'created_at' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-                           class="text-white text-decoration-none">
-                          작업지시일자
-                          <c:if test="${cri.sortColumn == 'created_at'}">
-                            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-                          </c:if>
-                        </a>
-                      </th>
-                      <th>
-                        <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=due_date&sortOrder=${cri.sortColumn == 'due_date' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-                           class="text-white text-decoration-none">
-                          납기일
-                          <c:if test="${cri.sortColumn == 'due_date'}">
-                            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-                          </c:if>
-                        </a>
-                      </th>
-                      <th>라인ID</th>
-                      <th>제품명</th>
-                      <th>지시수량</th>
-                      <th>
-                        <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=priority&sortOrder=${cri.sortColumn == 'priority' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-                           class="text-white text-decoration-none">
-                          우선순위
-                          <c:if test="${cri.sortColumn == 'priority'}">
-                            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-                          </c:if>
-                        </a>
-                      </th>
-                      <th>상태</th>
-                      <th>상세</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <c:forEach var="workOrder" items="${workOrders}">
-                      <tr>
-                        <td class="font-weight-medium">${workOrder.orderId}</td>
-                        <td>${workOrder.clOrderId}</td>
-                        <td>
-                          <fmt:formatDate value="${workOrder.createdAt}" pattern="yyyy-MM-dd"/>
-                        </td>
-                        <td>
-                          <fmt:formatDate value="${workOrder.dueDate}" pattern="yyyy-MM-dd"/>
-                        </td>
-                        <td>${workOrder.lineId}</td>
-                        <td>${workOrder.productName}</td>
-                        <td class="text-end">
-                          <fmt:formatNumber value="${workOrder.orderQty}" pattern="#,###"/>
-                        </td>
-                        <td>
-                          <c:choose>
-                            <c:when test="${workOrder.priority == 'EMERGENCY'}">
-                              <span class="badge badge-danger">긴급</span>
-                            </c:when>
-                            <c:when test="${workOrder.priority == 'HIGH'}">
-                              <span class="badge badge-warning">높음</span>
-                            </c:when>
-                            <c:when test="${workOrder.priority == 'NORMAL'}">
-                              <span class="badge badge-info">보통</span>
-                            </c:when>
-                            <c:when test="${workOrder.priority == 'LOW'}">
-                              <span class="badge badge-secondary">낮음</span>
-                            </c:when>
-                          </c:choose>
-                        </td>
-                        <td>
-                          <c:choose>
-                            <c:when test="${workOrder.status == 'WAITING'}">
-                              <span class="badge badge-secondary">대기</span>
-                            </c:when>
-                            <c:when test="${workOrder.status == 'IN_PROGRESS'}">
-                              <span class="badge badge-warning">생산중</span>
-                            </c:when>
-                            <c:when test="${workOrder.status == 'COMPLETED'}">
-                              <span class="badge badge-success">생산완료</span>
-                            </c:when>
-                            <c:otherwise>
-                              <span class="badge badge-light">${workOrder.status}</span>
-                            </c:otherwise>
-                          </c:choose>
-                        </td>
-                        <td>
-                          <a href="#" 
-						   onclick="openDetailModal('${workOrder.orderId}')" 
-						   class="btn btn-outline-primary btn-sm" 
-						   style="border-color: #1C355E; color: #1C355E;">
-						  상세
-						  </a>
-                        </td>
-                      </tr>
-                    </c:forEach>
-                    <!-- 데이터가 없을 때 -->
-                    <c:if test="${empty workOrders}">
-                      <tr>
-                        <td colspan="10" class="text-center py-4">
-                          <div class="text-muted">
-                            <i class="ti-info-alt" style="font-size: 24px;"></i>
-                            <p class="mt-2">조회된 작업지시가 없습니다.</p>
-                          </div>
-                        </td>
-                      </tr>
-                    </c:if>
-                  </tbody>
-                </table>
-              </div>
+<div class="table-responsive">
+  <table class="table table-hover">
+    <thead style="background-color: #1C355E; color: white; border-top: none;">
+      <tr>
+        <thead style="background-color: #1C355E; color: white; border-top: none;">
+  <tr>
+    <!-- ✅ 작업지시번호 정렬 O -->
+    <th>
+      <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=order_id&sortOrder=${cri.sortColumn == 'order_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+         class="text-white text-decoration-none">
+        작업지시번호 
+        <c:if test="${cri.sortColumn == 'order_id'}">
+          <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+        </c:if>
+      </a>
+    </th>
+
+    <!-- ✅ 작업지시일자 정렬 O -->
+    <th>
+      <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=created_at&sortOrder=${cri.sortColumn == 'created_at' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+         class="text-white text-decoration-none">
+        작업지시일자
+        <c:if test="${cri.sortColumn == 'created_at'}">
+          <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+        </c:if>
+      </a>
+    </th>
+
+    <!-- ✅ 납기일 정렬 O -->
+    <th>
+      <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=due_date&sortOrder=${cri.sortColumn == 'due_date' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+         class="text-white text-decoration-none">
+        납기일
+        <c:if test="${cri.sortColumn == 'due_date'}">
+          <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+        </c:if>
+      </a>
+    </th>
+
+    <!-- 일반 텍스트 컬럼들 (정렬 X) -->
+    <th>라인ID</th>
+    <th>제품명</th>
+    <th>생산수량</th>
+    <th>작업지시자</th>
+
+    <!-- ✅ 우선순위 정렬 O -->
+    <th>
+      <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=priority&sortOrder=${cri.sortColumn == 'priority' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+         class="text-white text-decoration-none">
+        우선순위
+        <c:if test="${cri.sortColumn == 'priority'}">
+          <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+        </c:if>
+      </a>
+    </th>
+
+    <th>상태</th>
+    <th>상세</th>
+  </tr>
+</thead>
+
+    <tbody>
+      <c:forEach var="workOrder" items="${workOrders}">
+        <tr>
+          <td class="font-weight-medium">${workOrder.orderId}</td>
+          <td><fmt:formatDate value="${workOrder.createdAt}" pattern="yyyy-MM-dd"/></td>
+          <td><fmt:formatDate value="${workOrder.dueDate}" pattern="yyyy-MM-dd"/></td>
+          <td>${workOrder.lineId}</td>
+          <td>${workOrder.productName}</td>
+          <td class="text-end">
+            <fmt:formatNumber value="${workOrder.orderQty}" pattern="#,###"/>
+          </td>
+          <td>${workOrder.orderManager}</td>
+          <td>
+            <c:choose>
+              <c:when test="${workOrder.priority == 'EMERGENCY'}">
+                <span class="badge badge-danger">긴급</span>
+              </c:when>
+              <c:when test="${workOrder.priority == 'HIGH'}">
+                <span class="badge badge-warning">높음</span>
+              </c:when>
+              <c:when test="${workOrder.priority == 'NORMAL'}">
+                <span class="badge badge-info">보통</span>
+              </c:when>
+              <c:when test="${workOrder.priority == 'LOW'}">
+                <span class="badge badge-secondary">낮음</span>
+              </c:when>
+            </c:choose>
+          </td>
+          <td>
+            <c:choose>
+              <c:when test="${workOrder.status == 'WAITING'}">
+                <span class="badge badge-secondary">대기</span>
+              </c:when>
+              <c:when test="${workOrder.status == 'IN_PROGRESS'}">
+                <span class="badge badge-warning">생산중</span>
+              </c:when>
+              <c:when test="${workOrder.status == 'COMPLETED'}">
+                <span class="badge badge-success">생산완료</span>
+              </c:when>
+              <c:otherwise>
+                <span class="badge badge-light">${workOrder.status}</span>
+              </c:otherwise>
+            </c:choose>
+          </td>
+          <td>
+            <a href="#" 
+               onclick="openDetailModal('${workOrder.orderId}')" 
+               class="btn btn-outline-primary btn-sm" 
+               style="border-color: #1C355E; color: #1C355E;">
+              상세
+            </a>
+          </td>
+        </tr>
+      </c:forEach>
+      <!-- 데이터 없을 때 -->
+      <c:if test="${empty workOrders}">
+        <tr>
+          <td colspan="11" class="text-center py-4">
+            <div class="text-muted">
+              <i class="ti-info-alt" style="font-size: 24px;"></i>
+              <p class="mt-2">조회된 작업지시가 없습니다.</p>
+            </div>
+          </td>
+        </tr>
+      </c:if>
+    </tbody>
+  </table>
+</div>
             </div>
 			
           </div>

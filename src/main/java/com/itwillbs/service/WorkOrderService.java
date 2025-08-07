@@ -38,12 +38,6 @@ public interface WorkOrderService {
      */
     int getCountByStatus(String status);
     
-    /**
-     * 작업지시 상세 조회
-     * @param orderId 작업지시번호
-     * @return 작업지시 상세 정보
-     */
-    WorkOrderDTO getWorkOrderDetail(String orderId);
     
     /**
      * 확정 수주 목록 조회 (작업지시 등록용)
@@ -60,11 +54,24 @@ public interface WorkOrderService {
     int getConfirmedOrdersCount(SearchCriteria cri);
     
     /**
-     * 작업지시 등록
-     * @param workOrderDTO 작업지시 정보
-     * @return 등록 성공 여부 (1: 성공, 0: 실패)
+     * 작업지시 등록 서비스
+     * - 병합된 수주 정보 포함
+     * - 자재 소요량 계산 및 저장 포함
+     * 
+     * @param workOrderDTO 작업지시 정보 (제품, 수량, 병합 수주 리스트 등)
+     * @return 등록 성공 여부
      */
     int registerWorkOrder(WorkOrderDTO workOrderDTO);
+    
+    /**
+     * 작업지시 등록 시, BOM 기준 자재 소요량 계산
+     * @param productId 제품 ID
+     * @param orderQty 지시 수량
+     * @return 자재 소요량 목록 (자재명, 단위, 수량 포함)
+     */
+    List<BomItemDTO> calculateMaterialUsage(String productId, int orderQty);
+    
+    
     
     /**
      * 작업지시 상태 변경
@@ -73,6 +80,14 @@ public interface WorkOrderService {
      * @return 변경 성공 여부 (1: 성공, 0: 실패)
      */
     int updateWorkOrderStatus(String orderId, String status);
+    
+    /**
+     * 작업지시 상세 조회
+     * @param orderId 작업지시 번호
+     * @return 작업지시 상세 정보
+     */
+    WorkOrderDTO getWorkOrderDetail(String orderId);
+    
     
     /**
      * 작업지시 수정
@@ -85,19 +100,12 @@ public interface WorkOrderService {
      * @param orderId 작업지시번호
      */
     void deleteWorkOrder(String orderId);
-
+    
+    
     // 수주 상세 정보 조회 (작업지시 등록용)
     WorkOrderDTO getOrderDetail(String clOrderId, String productId);
     
-    /**
-     * 작업지시 등록 시, BOM 기준 자재 소요량 계산
-     * @param productId 제품 ID
-     * @param orderQty 지시 수량
-     * @return 자재 소요량 목록 (자재명, 단위, 수량 포함)
-     */
-    List<BomItemDTO> calculateMaterialUsage(String productId, int orderQty);
-    
-    
+ 
     // 자재 출고관리에 필요
     /**
      * 대기 상태의 작업지시 목록 조회
