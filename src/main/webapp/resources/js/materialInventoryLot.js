@@ -22,6 +22,15 @@ function showLotDetails(materialId) {
 	    success: function (response) {
 	      const tbody = $('#lotTableBody');
 	      tbody.empty();
+	      
+	      // 자재 정보 바인딩
+	      if (response.length > 0) {
+	        const material = response[0];  // 자재 정보가 LOT에 포함된 경우
+	        $('#modalMaterialId').text(material.materialId || '-');
+	        $('#modalMaterialName').text(material.materialName || '-');
+	        $('#modalMaterialType').text(material.materialType || '-');
+	        $('#modalMaterialUnit').text(material.unit || '-');
+	      }
 	
 	      // (1) 전역 배열에 LOT 데이터 저장 → 정렬/페이징에 필요
 	      lotData = Array.isArray(response) ? response : [response];
