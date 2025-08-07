@@ -33,7 +33,7 @@
 	    <!-- 검색 조건 -->
 	    <if test="keyword != null and keyword != ''">
 	      (mo.order_id LIKE CONCAT('%', #{keyword}, '%')
-	      OR m.material_name LIKE CONCAT('%', #{keyword}, '%'))
+	      OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
 	      OR s.supplier_name LIKE CONCAT('%', #{keyword}, '%'))
 	    </if>
 	    <if test="startDate != null and startDate != ''">
@@ -49,18 +49,46 @@
 	  GROUP BY mo.order_id, s.supplier_name
 	  
 	  <choose>
-	    <when test="sortColumn == 'order_id'">
-	      ORDER BY mo.order_id ${sortOrder}
-	    </when>
-	    <when test="sortColumn == 'order_date'">
-	      ORDER BY mo.order_date ${sortOrder}
-	    </when>
-	    <when test="sortColumn == 'expected_arrived_date'">
-	      ORDER BY mo.expected_arrived_date ${sortOrder}
-	    </when>
-	    <otherwise>
-	      ORDER BY mo.order_date DESC
-	    </otherwise>
+	  <when test="sortColumn == 'order_id'">
+	    ORDER BY
+	      CASE mo.order_status
+	        WHEN '요청' THEN 1
+	        WHEN '승인' THEN 2
+	        WHEN '입고완료' THEN 3
+	        ELSE 4
+	      END,
+	      mo.order_id ${sortOrder}
+	  </when>
+	  <when test="sortColumn == 'order_date'">
+	    ORDER BY
+	      CASE mo.order_status
+	        WHEN '요청' THEN 1
+	        WHEN '승인' THEN 2
+	        WHEN '입고완료' THEN 3
+	        ELSE 4
+	      END,
+	      mo.order_date ${sortOrder}
+	  </when>
+	  <when test="sortColumn == 'expected_arrived_date'">
+	    ORDER BY
+	      CASE mo.order_status
+	        WHEN '요청' THEN 1
+	        WHEN '승인' THEN 2
+	        WHEN '입고완료' THEN 3
+	        ELSE 4
+	      END,
+	      mo.expected_arrived_date ${sortOrder}
+	  </when>
+	  <otherwise>
+	    ORDER BY
+	      CASE mo.order_status
+	        WHEN '요청' THEN 1
+	        WHEN '승인' THEN 2
+	        WHEN '입고완료' THEN 3
+	        ELSE 4
+	      END,
+	      mo.order_date DESC
+	  </otherwise>
 	</choose>
 
 	  LIMIT #{pageStart}, #{perPageNum}

@@ -41,7 +41,7 @@
                   </div>
                   <div class="col-md-4 form-group">
                     <input type="text" class="form-control" id="keyword" name="keyword" 
-                           placeholder="발주번호, 품명 검색" value="${param.keyword}">
+                           placeholder="발주번호, 거래처명 검색" value="${param.keyword}">
                   </div>
                   <div class="col-md-3 form-group">
                     <button type="submit" class="btn btn-primary me-2" style="background-color: #1C355E; border-color: #1C355E;">
@@ -65,8 +65,8 @@
 
 			<!-- 상단 제목 + 버튼 -->
 			<div class="d-flex justify-content-end align-items-center mb-3">
-			  <a href="/material/order/register" class="btn btn-primary">
-			    <i class="ti-plus"></i> 발주 등록
+			  <a href="/material/order/register" class="btn btn-success mb-2">
+			    발주 등록
 			  </a>
 			</div>
 
@@ -90,7 +90,6 @@
                         </a>
                       </th>
                       <th>거래처명</th>
-                      <th>발주수량</th>
                       <th>
                         <a href="/material/order/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=order_date&sortOrder=${cri.sortColumn == 'order_date' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
                            class="text-white text-decoration-none">
@@ -119,7 +118,6 @@
 						   </c:choose>
                         </a>
                       </th>
-                      <th>입고창고</th>
                       <th>담당자</th>
                       <th>발주상태</th>
                     </tr>
@@ -135,31 +133,29 @@
                         <!-- 거래처명 -->
                         <td>${order.supplierName}</td>
                         
-                        <!-- 발주수량 -->
-                        <td class="text-end">
-                          <fmt:formatNumber value="${order.totalQuantity}" pattern="#,###"/>
-                        </td>
-                        
                         <!-- 발주일 -->
                         <td>
                           <fmt:formatDate value="${order.orderDate}" pattern="yyyy-MM-dd"/>
                         </td>
                         
                         <!-- 납기일 + D-Day -->
-                        <td>
-                          <fmt:formatDate value="${order.expectedArrivedDate}" pattern="yyyy-MM-dd"/>
-                          <c:set var="today" value="<%=new java.util.Date()%>"/>
-                          <c:set var="daysDiff" value="${(order.expectedArrivedDate.time - today.time) / (1000 * 60 * 60 * 24)}"/>
-                          <c:if test="${daysDiff <= 2 && daysDiff >= 0}">
-                            <span class="badge badge-warning badge-pill">D-${Math.ceil(daysDiff)}</span>
-                          </c:if>
-                          <c:if test="${daysDiff < 0}">
-                            <span class="badge badge-danger badge-pill">지연</span>
-                          </c:if>
-                        </td>
-                        
-                        <!-- 입고창고 -->
-                        <td>${order.warehouseCode}</td>
+						<td>
+						  <fmt:formatDate value="${order.expectedArrivedDate}" pattern="yyyy-MM-dd"/>
+						  
+						  <!-- 오늘 날짜 구하기 -->
+						  <c:set var="today" value="<%=new java.util.Date()%>" />
+						  <c:set var="daysDiff" value="${(order.expectedArrivedDate.time - today.time) / (1000 * 60 * 60 * 24)}" />
+						
+						  <!-- D-Day 뱃지 -->
+						  <c:if test="${daysDiff <= 2 && daysDiff >= 0}">
+						    <span class="badge badge-warning badge-pill">D-${Math.ceil(daysDiff)}</span>
+						  </c:if>
+						
+						  <!-- 지연 뱃지 (단, 입고완료 제외) -->
+						  <c:if test="${daysDiff < 0 && order.orderStatus != '입고완료'}">
+						    <span class="badge badge-danger badge-pill">지연</span>
+						  </c:if>
+						</td>
                         
                         <!-- 담당자 -->
                         <td>${order.createdBy}</td>

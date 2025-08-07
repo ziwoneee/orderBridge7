@@ -61,7 +61,7 @@
           <div class="card-section">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <h5 class="section-title">발주 항목</h5>
-              <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItemRow()">+ 항목 추가</button>
+              <button type="button" class="btn btn-sm btn btn-info" onclick="addItemRow()">+ 항목 추가</button>
             </div>
             
             <input type="hidden" name="order.orderDate" id="orderDate">
@@ -103,8 +103,8 @@
 
           <!-- 버튼 -->
           <div class="text-right">
-            <button type="submit" class="btn custom-navy mr-2">등록</button>
-            <a href="/material/order/list" class="btn btn-secondary">목록</a>
+            <button type="submit" class="btn btn-primary">등록</button>
+            <a href="/material/order/list" class="btn btn-outline-secondary">목록</a>
           </div>
 
         </form>
