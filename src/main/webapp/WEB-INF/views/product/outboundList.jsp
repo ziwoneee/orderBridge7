@@ -39,10 +39,13 @@
 		            		            
 		            <input type="text" name="keyword" value="${cri.keyword}" class="form-control mr-2" placeholder="제품명, ID, LOT, 거래처 검색">
 		            <input type="date" id="startDate" name="startDate" value="${cri.startDate}" class="form-control mr-2" max="<%= today %>">
+		           <span class="mx-1">~</span>
 		            <input type="date" id ="endDate" name="endDate" value="${cri.endDate}" class="form-control mr-2" max="<%= today %>">
 				           
 		
-		            <button type="submit" class="btn btn-primary">조회</button>
+		            <button type="submit" class="btn btn-primary me-2" >
+                      <i class="ti-search"></i> 검색
+                    </button>
 		             <a href="/product/outbound/list" class="btn btn-light">
 			          <i class="ti-reload"></i> 초기화
 			        </a>
@@ -159,11 +162,11 @@
 	                
 	                <td>
 	    <!-- 출고 내역 리스트에 있는 상세보기 버튼 -->
-<button class="btn btn-sm btn-outline-primary"
+<button class="btn btn-sm btn-outline-info"
         data-toggle="modal"
         data-target="#outboundDetailModal"
         data-id="${vo.outboundId}">
-  확인
+  상세
 </button>
 
 	  </td>
@@ -179,8 +182,8 @@
     <div class="modal-content">
 
       <!-- 타이틀 영역 -->
-<div class="modal-header" style="background-color: #003366;">
-  <h5 class="modal-title text-white mb-0">
+  <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
     <span id="detail-productName-title"></span>
     <span id="detail-outboundId-title"></span>
     - 출고 상세정보
@@ -231,7 +234,7 @@
 
       <!-- 푸터 -->
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">닫기</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
       </div>
 
     </div>

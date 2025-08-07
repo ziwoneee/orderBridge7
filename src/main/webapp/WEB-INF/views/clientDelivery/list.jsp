@@ -60,14 +60,11 @@
     <div class="col-md-auto">
       <label class="form-label small text-muted">출하일</label>
       <input type="date" class="form-control" id="startDate" name="startDate" value="${cri.startDate}" max="<%= today_1 %>">
+    <span class="mx-1 ml-3">~</span>    
     </div>
 
     <!-- ~ -->
-    <div class="col-md-auto text-center">
-      <label class="form-label small text-muted d-block">&nbsp;</label>
-      <span>~</span>
-    </div>
-
+    
     <!-- 출하일(끝) -->
     <div class="col-md-auto">
       <label class="form-label small text-muted d-none d-md-block">&nbsp;</label>
@@ -76,7 +73,7 @@
 
     <!-- 키워드 -->
     <div class="col-md-auto">
-      <label class="form-label small text-muted">검색어</label>
+      
       <input type="text" class="form-control" id="keyword" name="keyword"
              placeholder="수주번호, 거래처명, 제품명" value="${cri.keyword}">
     </div>
@@ -107,7 +104,7 @@
           <!-- 출하 관리 탭 -->
           <div class="col-12">
             <!-- 탭 네비게이션 -->
-            <div class="d-flex justify-content-between align-items-center mb-0">
+            
               <ul class="nav nav-underline-custom" id="shipmentTab" role="tablist">
                 <li class="nav-item">
                   <a class="nav-link ${empty param.tab || param.tab == 'pending' ? 'active' : ''}" 
@@ -122,7 +119,7 @@
                   </a>
                 </li>
               </ul>
-            </div>
+            
                 
             <!-- 출하 대기 탭 내용 -->
             <div class="tab-content" id="pendingContent" style="display: ${empty param.tab || param.tab == 'pending' ? 'block' : 'none'};">
@@ -150,12 +147,12 @@
                     </thead>
                     <tbody>
                       <c:forEach var="group" items="${groupedList}">
-  <c:set var="shippable" value="true"/>
-  <c:forEach var="item" items="${group.productList}">
-    <c:if test="${item.stockQty lt item.orderQty}">
-      <c:set var="shippable" value="false"/>
-    </c:if>
-  </c:forEach>
+						  <c:set var="shippable" value="true"/>
+						  <c:forEach var="item" items="${group.productList}">
+						    <c:if test="${item.stockQty lt item.orderQty}">
+						      <c:set var="shippable" value="false"/>
+						    </c:if>
+						  </c:forEach>
 
   <!-- ✅ rowspan 계산 -->
   <c:set var="rowCount" value="${fn:length(group.productList)}"/>
@@ -198,7 +195,7 @@
         <fmt:formatDate value="${item.clDeliveryDate}" pattern="yyyy-MM-dd"/>
         <c:if test="${not empty item.clDeliveryDate}">
           <c:if test="${(item.clDeliveryDate.time - now.time)/(1000*60*60*24) le 5 && (item.clDeliveryDate.time - now.time)/(1000*60*60*24) ge 0}">
-            <span class="badge badge-warning ml-2">임박</span>
+            <span class="badge badge-danger ml-2">임박</span>
           </c:if>
         </c:if>
       </td>
@@ -222,7 +219,7 @@
       </c:when>
       <c:otherwise>
         <!-- 예약 전 상태일 때 버튼 -->
-        <button type="button" class="btn btn-sm btn-primary mt-1"
+        <button type="button" class="btn btn-sm btn-outline-info"
                 onclick="toggleReservation('${group.clOrderId}', false)">
           예 약
         </button>
@@ -230,7 +227,7 @@
     </c:choose>
   </c:when>
   <c:otherwise>
-    <span class="btn btn-sm btn-danger mt-1">부족</span>
+    <span class="btn btn-sm btn-danger mt-1">부 족</span>
   </c:otherwise>
 </c:choose>
 
@@ -383,10 +380,10 @@
 
 
       <td>
-        <button type="button" class="btn btn-sm btn-outline-primary"
+        <button type="button" class="btn btn-sm btn-outline-info"
                 data-bs-toggle="modal"
                 data-bs-target="#modal-${status.index}">
-          확인
+          상세
         </button>
       </td>
 <td>
@@ -422,22 +419,24 @@
   <div class="modal fade" id="modal-${status.index}" tabindex="-1" aria-labelledby="modalLabel-${status.index}" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="modalLabel-${status.index}">
+       <div class="modal-header bg-primary ">
+          <h5 class="modal-title text-white" id="modalLabel-${status.index}">
             출하 상세 내역 - ${group.clOrderId}
           </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+          <button type="button" class="close text-white" data-dismiss="modal">
+    <span>&times;</span>
+  </button>
         </div>
         <div class="modal-body">
           <table class="table table-bordered table-sm">
             <thead class="table-secondary">
               <tr>
-                <th>출하 ID</th>
-                <th>제품명</th>
-                <th>LOT번호</th>
-                <th>출하 수량</th>
-                <th>송장번호</th>
-                <th>상태</th>
+               <th class="bg-light text-dark">출하 ID</th>
+                <th class="bg-light text-dark">제품명</th>
+                <th class="bg-light text-dark">LOT번호</th>
+                <th class="bg-light text-dark">출하 수량</th>
+               <th class="bg-light text-dark">송장번호</th>
+                <th class="bg-light text-dark">상태</th>
               </tr>
             </thead>
             <tbody>
@@ -449,14 +448,20 @@
                   <td class="text-end"><fmt:formatNumber value="${item.deliveryQty}" pattern="#,###"/></td>
                   <td>${item.trackingNumber}</td>
                   <td><span class="badge bg-success text-white">${item.deliveryStatus}</span></td>
-                </tr>
-              </c:forEach>
-            </tbody>
-          </table>
-        </div>
+                 </tr>
+            </c:forEach>
+          </tbody>
+        </table>
       </div>
+
+      <!-- ✅ 모달 하단 닫기 버튼 추가 -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+      </div>
+
     </div>
   </div>
+</div>
 </c:forEach>
 
 

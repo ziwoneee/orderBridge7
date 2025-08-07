@@ -44,7 +44,8 @@ public class ClientDeliveryController {
             deliveryService.processShipmentByOrderId(clOrderId);
         }
 
-        rttr.addFlashAttribute("message", "출하 처리가 완료되었습니다.");
+        rttr.addFlashAttribute("message", "수주번호 [" + clOrderIds + "] 출하처리가 완료되었습니다.");
+        rttr.addFlashAttribute("messageType", "success");
         return "redirect:/shipment/list";
     }
     

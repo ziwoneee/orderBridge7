@@ -39,11 +39,14 @@
         </select>
         <input type="text" name="keyword" value="${cri.keyword}" class="form-control mr-2" placeholder="제품명 ,ID 또는 LOT 검색">
 	<input type="date" name="startDate" value="${cri.startDate}" class="form-control mr-2" max="<%= today %>">
+	<span class="mx-1">~</span>
 	<input type="date" name="endDate" value="${cri.endDate}" class="form-control mr-2" max="<%= today %>">
         
                
         
-        <button type="submit" class="btn btn-primary">조회</button>
+       <button type="submit" class="btn btn-primary me-2" >
+                      <i class="ti-search"></i> 검색
+                    </button>
         <a href="/product/inbound/list" class="btn btn-light">
           <i class="ti-reload"></i> 초기화
         </a>

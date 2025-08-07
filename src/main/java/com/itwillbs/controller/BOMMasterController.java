@@ -81,20 +81,27 @@ public class BOMMasterController {
     @GetMapping("/detail/{bomId}")
     public String getBOMDetail(@PathVariable String bomId, Model model) {
         BOMMasterVO bomMaster = bomMasterService.getBOMDetail(bomId);
-      
+
         List<BOMDetailVO> soupList = bomMaster.getDetails().stream()
             .filter(d -> "육수".equals(d.getMaterialType()))
             .collect(Collectors.toList());
+
         List<BOMDetailVO> solidList = bomMaster.getDetails().stream()
             .filter(d -> "원료".equals(d.getMaterialType()))
             .collect(Collectors.toList());
        
+        List<BOMDetailVO> packagingList = bomMaster.getDetails().stream()
+            .filter(d -> "포장재".equals(d.getMaterialType()))
+            .collect(Collectors.toList());
+
         model.addAttribute("bomMaster", bomMaster);
         model.addAttribute("soupList", soupList);
         model.addAttribute("solidList", solidList);
-       
+        model.addAttribute("packagingList", packagingList); 
+
         return "master/bomDetail";
     }
+
 
     // BOM 상세 삭제
     @PostMapping("/detail/delete")

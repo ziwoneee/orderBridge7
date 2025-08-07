@@ -4,38 +4,6 @@
 <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
 
-<style>
-  h5.section-title {
-    border-left: 5px solid #003366;
-    padding-left: 10px;
-    font-weight: 600;
-    color: #003366;
-    margin-bottom: 1rem;
-  }
-
-  label {
-    font-weight: 500;
-  }
-
-  .card-section {
-    border: 1px solid #dee2e6;
-    padding: 2rem;
-    border-radius: 0.5rem;
-    background-color: #ffffff;
-    margin-bottom: 1.5rem;
-  }
-
-  .form-control:focus {
-    border-color: #003366;
-    box-shadow: 0 0 0 0.1rem rgba(0, 51, 102, 0.25);
-  }
-
-  .form-label.required::after {
-    content: " *";
-    color: red;
-    margin-left: 2px;
-  }
-</style>
 
 <div class="container-scroller">
 
@@ -175,7 +143,7 @@
           </div>
           <div class="text-right mt-4">
             <a href="/client/list" class="btn btn-outline-secondary">목록으로</a>
-            <button type="submit" class="btn btn-primary">등록하기</button>
+            <button type="submit" class="btn btn-primary">등록</button>
           </div>
 
         </form>

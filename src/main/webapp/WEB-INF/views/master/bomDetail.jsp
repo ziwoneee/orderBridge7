@@ -73,11 +73,14 @@ function saveStatus(bomId) {
   <div class="main-panel">
         <div class="content-wrapper">
             <div class="row">
+            
+            
+            
           <div class="col-12 mb-4">
 			  <h3 class="font-weight-bold">BOM 정보</h3>
 			</div>
 
-<div class="container mt-5" style="margin-left: 0; padding-left: 0;">    
+  
     <table class="table table-bordered text-center" >
     <tr><th>BOM ID</th> <td>${bomMaster.bomId}</td></tr>
     <tr><th>대상제품</th> <td>${bomMaster.productName}</td></tr>
@@ -103,6 +106,12 @@ function saveStatus(bomId) {
     <!-- 육수용 원자재 테이블 -->
     <h5 class="mt-4">육수용 원자재</h5>
     <table class="table table-bordered">
+    <colgroup>
+  <col style="width:25%">
+  <col style="width:25%">
+  <col style="width:25%">
+  <col style="width:25%">
+</colgroup>
         <thead>
         <tr>
             <th>원자재명</th>
@@ -154,9 +163,15 @@ function saveStatus(bomId) {
         </tbody>
     </table>
 
-    <!-- 원료용 원자재 테이블도 동일하게 -->
+    <!-- 원료용 원자재 테이블 -->
     <h5 class="mt-4">원료용 원자재</h5>
     <table class="table table-bordered">
+    <colgroup>
+  <col style="width:25%">
+  <col style="width:25%">
+  <col style="width:25%">
+  <col style="width:25%">
+</colgroup>
         <thead>
         <tr>
             <th>원자재명</th>
@@ -204,10 +219,67 @@ function saveStatus(bomId) {
         </tbody>
     </table>
   
+  <!-- 포장재 테이블 -->
+<h5 class="mt-4">포장재</h5>
+<table class="table table-bordered">
+<colgroup>
+  <col style="width:25%">
+  <col style="width:25%">
+  <col style="width:25%">
+  <col style="width:25%">
+</colgroup>
+
+    <thead>
+    <tr>
+        <th>원자재명</th>
+        <th>소요량</th>
+        <th>단위</th>
+        <th>관리</th>
+    </tr>
+    </thead>
+    <tbody>
+    <c:forEach var="d" items="${packagingList}">
+        <tr id="row-${d.bomDetailId}">
+            <td>
+                <span class="view-cell">${d.materialName}</span>
+                <input id="edit-materialName-${d.bomDetailId}" class="edit-cell form-control" type="text" value="${d.materialName}" style="display:none;">
+            </td>
+            <td>
+                <span class="view-cell">${d.qty}</span>
+                <input id="edit-qty-${d.bomDetailId}" class="edit-cell form-control" type="number" value="${d.qty}" style="display:none;">
+            </td>
+            <td>
+                <span class="view-cell">${d.unit}</span>
+                <input id="edit-unit-${d.bomDetailId}" class="edit-cell form-control" type="text" value="${d.unit}" style="display:none;">
+            </td>
+            <td>
+                <button id="edit-btn-${d.bomDetailId}" class="btn btn-warning btn-sm" type="button" onclick="enableEdit('${d.bomDetailId}')">수정</button>
+                <form id="form-${d.bomDetailId}" method="post" action="${pageContext.request.contextPath}/master/bom/detail/update" style="display:inline;">
+                    <input type="hidden" name="bomDetailId" value="${d.bomDetailId}">
+                    <input type="hidden" name="bomId" value="${bomMaster.bomId}">
+                    <input type="hidden" name="materialId" value="${d.materialId}">
+                    <input type="hidden" name="materialType" value="${d.materialType}">
+                    <input type="hidden" name="materialName" value="${d.materialName}">
+                    <input type="hidden" name="qty" value="${d.qty}">
+                    <input type="hidden" name="unit" value="${d.unit}">
+                    <button id="save-btn-${d.bomDetailId}" type="button" class="btn btn-success btn-sm edit-cell" style="display:none;" onclick="submitEdit('${d.bomDetailId}')">저장</button>
+                    <button id="cancel-btn-${d.bomDetailId}" type="button" class="btn btn-secondary btn-sm edit-cell" onclick="cancelEdit('${d.bomDetailId}')" style="display:none;">취소</button>
+                </form>
+                <form method="post" action="${pageContext.request.contextPath}/master/bom/detail/delete" style="display:inline;" onsubmit="return confirm('삭제할까요?');">
+                    <input type="hidden" name="bomDetailId" value="${d.bomDetailId}">
+                    <input type="hidden" name="bomId" value="${bomMaster.bomId}">
+                    <button type="submit" class="btn btn-danger btn-sm">삭제</button>
+                </form>
+            </td>
+        </tr>
+    </c:forEach>
+    </tbody>
+</table>
+  
 
 
     <a href="${pageContext.request.contextPath}/master/bom/list" class="btn btn-secondary mt-3">목록</a>
-  </div>
+ 
 </div>
 </div>
         <!-- content-wrapper 끝 -->

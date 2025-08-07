@@ -13,29 +13,34 @@
     <!-- 본문 시작 -->
     <div class="main-panel">
       <div class="content-wrapper">
-        <div class="row">
-
+      <div class="row">
+      
+ <!-- 제목 -->
           <div class="col-12 mb-4">
             <h3 class="font-weight-bold">고객사 정보 수정</h3>
           </div>
 
           <form action="/client/update" method="post" >
             <input type="hidden" name="clientId" value="${client.clientId}"/>
-            <div class="row gx-1">
+           
+           
+           
               <!-- 기본 정보 -->
-            <div class="col-md-6 "> 
-                <div class="card mb-4" style="width:600px;">
+              <div class="row">
+               <div class="row">
+                <div class="col-12">
+                <div class="card" >
                   <div class="card-header bg-primary text-white font-weight-bold">기본 정보</div>
                   <div class="card-body">
                     <div class="form-group">
-  <label>고객사명</label>
-  <input type="text" name="clientName" class="form-control" value="${client.clientName}" readonly />
-</div>
-
-<div class="form-group">
-  <label>사업자등록번호</label>
-  <input type="text" name="businessNumber" class="form-control" value="${client.businessNumber}" placeholder="000-00-00000" readonly />
-</div>
+						  <label>고객사명</label>
+						  <input type="text" name="clientName" class="form-control" value="${client.clientName}" readonly />
+						</div>
+						
+						<div class="form-group">
+						  <label>사업자등록번호</label>
+						  <input type="text" name="businessNumber" class="form-control" value="${client.businessNumber}" placeholder="000-00-00000" readonly />
+						</div>
 
                     <div class="form-group">
                       <label>대표자명</label>
@@ -68,8 +73,9 @@
               </div>
 
               <!-- 주소 및 담당자 -->
-              <div class="col-md-6">
-                 <div class="card mb-4" style="width:600px;">
+            <div class="row">
+                <div class="col-12">
+                 <div class="card " >
                   <div class="card-header bg-info text-white font-weight-bold">주소 & 담당자 정보</div>
                   <div class="card-body">
                     <div class="form-group">
@@ -111,17 +117,18 @@
                     </div>
                     
                     <div class="form-group">
-  <label>등록상태</label>
-  <select name="statusCode" class="form-control" required>
-    <option value="1" ${client.statusCode == 1 ? 'selected' : ''}>활성</option>
-    <option value="0" ${client.statusCode == 0 ? 'selected' : ''}>비활성</option>
-  </select>
-</div>
-                    
+					  <label>등록상태</label>
+					  <select name="statusCode" class="form-control" required>
+					    <option value="1" ${client.statusCode == 1 ? 'selected' : ''}>활성</option>
+					    <option value="0" ${client.statusCode == 0 ? 'selected' : ''}>비활성</option>
+					  </select>
+					</div>
+					                    
                   </div>
                 </div>
               </div>
-            </div>
+              </div>
+           
             <!-- 버튼 영역 -->
             <div class="text-right mb-4">
               <button type="submit" class="btn btn-primary">저장</button>
@@ -130,6 +137,8 @@
           </form>
         </div>
       </div>
+       </div>
+       
       <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
     </div>
   </div>

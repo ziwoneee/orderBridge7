@@ -36,12 +36,16 @@
               <div class="form-group d-flex flex-wrap">
                 <input type="text" name="keyword" class="form-control mr-2 mb-2" style="min-width: 220px;"
                        value="${cri.keyword}"/>
-                <button type="submit" class="btn btn-primary mb-2">검색</button>
-                <a href="/client/register" class="btn btn-success mb-2">신규 등록</a>
+                 <button type="submit" class="btn btn-primary me-2 mb-2" >
+                      <i class="ti-search"></i> 검색
+                    </button>
+                
                 
                 <a href="/client/list" class="btn btn-light">
           <i class="ti-reload"></i> 초기화
         </a>
+        
+        <a href="/client/register" class="btn btn-success me-2">신규 등록</a>
               </div>
             </form>
           </div>
@@ -119,7 +123,7 @@
             </span>
           </td>
           <td>
-            <a href="/client/detail?clientId=${client.clientId}" class="btn btn-sm btn-outline-info">상세보기</a>
+            <a href="/client/detail?clientId=${client.clientId}" class="btn btn-sm btn-outline-info">상세</a>
           </td>
         </tr>
       </c:forEach>

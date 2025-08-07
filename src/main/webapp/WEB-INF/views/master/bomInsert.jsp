@@ -42,7 +42,14 @@
             return;
         }
 
-        var tbody = materialType === "육수" ? document.getElementById("soupDetailBody") : document.getElementById("solidDetailBody");
+        let tbody;
+        if (materialType === "육수") {
+            tbody = document.getElementById("soupDetailBody");
+        } else if (materialType === "원료") {
+            tbody = document.getElementById("solidDetailBody");
+        } else if (materialType === "포장재") {
+            tbody = document.getElementById("packagingDetailBody");
+        }
         var idx = detailsIndex++;
         var tr = document.createElement("tr");
         tr.id = rowId;
@@ -74,7 +81,7 @@
     }
 
     function renumberDetails() {
-        var rows = document.querySelectorAll("#soupDetailBody tr, #solidDetailBody tr");
+    	var rows = document.querySelectorAll("#soupDetailBody tr, #solidDetailBody tr, #packagingDetailBody tr");
         for (let i = 0; i < rows.length; i++) {
             rows[i].querySelectorAll("input").forEach(function(input) {
                 input.name = input.name.replace(/details\[\d+\]/, "details[" + i + "]");
@@ -153,7 +160,8 @@
                 <div class="col-9">
                   <div class="form-inline mb-3">
                     <label class="mr-2"><input type="radio" name="matType" value="육수" checked /> 육수용</label>
-                    <label class="mr-4"><input type="radio" name="matType" value="원료" /> 원료용</label>
+                    <label class="mr-2"><input type="radio" name="matType" value="원료" /> 원료용</label>
+					<label class="mr-4"><input type="radio" name="matType" value="포장재" /> 포장재</label>
 
                     <input type="hidden" id="materialId" name="dummyMaterialId" />
                     <input type="text" id="materialName" class="form-control mr-2" style="width:160px;" placeholder="자재명" readonly />
@@ -178,6 +186,15 @@
                     </thead>
                     <tbody id="solidDetailBody"></tbody>
                   </table>
+                  
+				 <h5>포장재</h5>
+				<table class="table table-bordered">
+				  <thead>
+				    <tr><th>자재명</th><th>소요량</th><th>단위</th><th>관리</th></tr>
+				  </thead>
+				  <tbody id="packagingDetailBody"></tbody>
+				</table>
+                  
                 </div>
               </div>
 

@@ -110,7 +110,7 @@
         <td>-</td>
         <td>-</td>
         <td>
-            <button type="submit" class="btn btn-success btn-sm">등록</button>
+            <button type="submit" class="btn btn-primary btn-sm ">등록</button>
             <button type="button" class="btn btn-secondary btn-sm" onclick="cancelInsert()">취소</button>
         </td>
     </form>
@@ -139,7 +139,7 @@
         <td><fmt:formatDate value="${product.regDate}" pattern="yyyy-MM-dd"/></td>
         <td><fmt:formatDate value="${product.updDate}" pattern="yyyy-MM-dd"/></td>
         <td>
-            <button type="button" class="btn btn-primary btn-sm"
+            <button type="button" class="btn btn-sm btn-outline-info"
                 onclick="editRow('${product.productId}')"
                 <c:if test="${product.deleteYn eq 'Y'}"> disabled</c:if>
             >수정</button>
@@ -197,7 +197,7 @@
                         <td><fmt:formatDate value="${product.regDate}" pattern="yyyy-MM-dd"/></td>
                         <td><fmt:formatDate value="${product.updDate}" pattern="yyyy-MM-dd"/></td>
                         <td>
-                            <button type="submit" class="btn btn-success btn-sm">저장</button>
+                            <button type="submit" class="btn btn-primary btn-sm">저장</button>
                             <button type="button" class="btn btn-secondary btn-sm" onclick="cancelEdit('${product.productId}')">취소</button>
                         </td>
                     </form>
