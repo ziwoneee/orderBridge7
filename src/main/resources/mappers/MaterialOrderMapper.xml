@@ -128,5 +128,22 @@
 	    )
 	</insert>
 	
+	
+	<!-- 자재명 키워드로 거래처 + 자재 단가 정보 조회 -->
+	<select id="searchSuppliersByMaterial" parameterType="string" resultType="com.itwillbs.dto.SupplierItemDTO">
+	  SELECT
+	    m.material_name AS materialName,
+	    s.supplier_id AS supplierId,
+	    s.supplier_name AS supplierName,
+	    si.unit_price AS unitPrice,
+	    m.warehouse_code AS warehouseCode
+	  FROM supplier_item si
+	  JOIN material m ON si.material_id = m.material_id
+	  JOIN supplier s ON si.supplier_id = s.supplier_id
+	  WHERE m.material_name LIKE CONCAT('%', #{keyword}, '%')
+	  ORDER BY s.supplier_name ASC
+	</select>
+	
+	
 
 </mapper>

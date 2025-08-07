@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
@@ -25,6 +27,7 @@ import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.SupplierVO;
 import com.itwillbs.dto.MaterialOrderDTO;
+import com.itwillbs.dto.SupplierItemDTO;
 import com.itwillbs.service.MaterialOrderService;
 import com.itwillbs.service.MaterialService;
 import com.itwillbs.service.SupplierService;
@@ -165,5 +168,17 @@ public class MaterialOrderController {
 	    
 	    return "redirect:/material/order/list";
 	}
+	
+	
+	/**
+	 * 자재명으로 거래처 검색 (Ajax)
+	 */
+	@GetMapping("/search-suppliers")
+	@ResponseBody
+	public List<SupplierItemDTO> searchSuppliersByMaterial(@RequestParam("keyword") String keyword) {
+	    return mOrderService.searchSuppliersByMaterial(keyword);
+	}
+
+	
 
 } 

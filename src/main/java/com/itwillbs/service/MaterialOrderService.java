@@ -5,6 +5,7 @@ import java.util.List;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.MaterialOrderDTO;
+import com.itwillbs.dto.SupplierItemDTO;
 
 /**
  * 자재 발주 서비스 인터페이스
@@ -20,5 +21,9 @@ public interface MaterialOrderService {
 
     // 발주 등록
     void insertOrder(MaterialOrderDTO orderDTO) throws Exception;
+    
+    // 자재명으로 거래처 검색
+    List<SupplierItemDTO> searchSuppliersByMaterial(String keyword);
+
 
 }

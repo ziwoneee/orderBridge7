@@ -28,15 +28,24 @@
 			      <label>납기요청일 <span class="text-danger">*</span></label>
 			      <input type="date" name="order.expectedArrivedDate" class="form-control" required>
 			    </div>
+			    
 			    <div class="col-md-4 mb-3">
-			      <label>거래처 <span class="text-danger">*</span></label>
-			      <select name="order.supplierId" class="form-control" required>
-			        <option value="">선택하세요</option>
-			        <c:forEach var="supplier" items="${supplierList}">
-			          <option value="${supplier.supplierId}">${supplier.supplierName}</option>
-			        </c:forEach>
-			      </select>
-			    </div>
+				  <label>거래처 <span class="text-danger">*</span></label>
+				  <div class="input-group">
+				    <select name="order.supplierId" class="form-control" required>
+				      <option value="">선택하세요</option>
+				      <c:forEach var="supplier" items="${supplierList}">
+				        <option value="${supplier.supplierId}">${supplier.supplierName}</option>
+				      </c:forEach>
+				    </select>
+				    <div class="input-group-append">
+				      <button type="button" id="btnSearchSupplier" class="btn btn-outline-secondary" title="자재로 거래처 찾기">
+				        🔍
+				      </button>
+				    </div>
+				  </div>
+				</div>
+
 			    <div class="col-md-4 mb-3">
 			      <label>담당자 <span class="text-danger">*</span></label>
 			      <input type="text" name="order.createdBy" class="form-control" placeholder="예: 홍길동" required>
@@ -59,7 +68,7 @@
 			<input type="hidden" name="order.orderStatus" value="요청">
 
             <table class="table table-bordered text-center" id="itemTable">
-              <thead class="thead-light">
+              <thead>
                 <tr>
                   <th>자재명</th>
                   <th>수량</th>
@@ -76,6 +85,7 @@
 				      <select name="orderItems[0].materialId" class="form-control" required>
 				        <option value="">거래처를 먼저 선택하세요</option>
 				      </select>
+				      
 				    </td>
 				    <td><input type="number" name="orderItems[0].orderQuantity" class="form-control" min="1" onchange="calculateTotal(this)" required></td>
 				    <td><input type="number" name="orderItems[0].unitPrice" class="form-control" min="0" step="0.01" onchange="calculateTotal(this)" required></td>
@@ -97,6 +107,48 @@
           </div>
 
         </form>
+        
+		<!-- 검색 모달 -->
+		<div class="modal fade" id="supplierSearchModal" tabindex="-1" role="dialog" aria-labelledby="supplierSearchModalLabel" aria-hidden="true">
+		  <div class="modal-dialog modal-lg" role="document">
+		    <div class="modal-content">
+		
+		      <div class="modal-header">
+		        <h5 class="modal-title" id="supplierSearchModalLabel">자재 기준 거래처 검색</h5>
+		        <button type="button" class="close" data-dismiss="modal" aria-label="닫기">
+		          <span aria-hidden="true">&times;</span>
+		        </button>
+		      </div>
+		
+		      <div class="modal-body">
+		        <div class="form-inline mb-2">
+		          <input type="text" id="materialSearchInput" class="form-control mr-2" placeholder="자재명 입력 (2글자 이상)">
+		        </div>
+		        <div class="table-responsive">
+		          <table class="table table-bordered table-hover">
+		            <thead class="thead-light">
+		              <tr>
+		                <th>자재명</th>
+		                <th>공급 거래처</th>
+		                <th>단가</th>
+		                <th>입고창고</th>
+		                <th>선택</th>
+		              </tr>
+		            </thead>
+		            <tbody id="supplierSearchResult">
+		              <tr>
+		                <td colspan="5" class="text-center">검색어를 입력하세요.</td>
+		              </tr>
+		            </tbody>
+		          </table>
+		        </div>
+		      </div>
+		
+		    </div>
+		  </div>
+		</div>
+
+		
         
        </div>
        <!-- content-wrapper 끝 -->
