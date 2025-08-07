@@ -234,6 +234,27 @@
 		      
 		      <div class="modal-body">
 		        <div class="table-responsive">
+		        
+		        <!-- ✅ 자재 기본 정보 -->
+		        <h5 class="font-weight-bold mb-3">자재 기본 정보</h5>
+		        <table class="table table-bordered table-sm mb-4">
+		          <tbody>
+		            <tr>
+		              <th class="bg-light">자재코드</th>
+		              <td id="modalMaterialId">-</td>
+		              <th class="bg-light">자재명</th>
+		              <td id="modalMaterialName">-</td>
+		            </tr>
+		            <tr>
+		              <th class="bg-light">자재유형</th>
+		              <td id="modalMaterialType">-</td>
+		              <th class="bg-light">단위</th>
+		              <td id="modalMaterialUnit">-</td>
+		            </tr>
+		          </tbody>
+		        </table>
+		        
+		          <h5 class="font-weight-bold mb-3">LOT 상세</h5>
 		          <table class="table table-bordered text-center">
 		            <thead>
 		             <tr id="lotTableHeader">

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.SupplierItemDTO;
 
 /**
  * 자재 발주 DAO 구현체
@@ -53,7 +54,12 @@ public class MaterialOrderDAOImpl implements MaterialOrderDAO {
     }
 
     
-	
+    // 자재명으로 거래처 검색
+    @Override
+    public List<SupplierItemDTO> searchSuppliersByMaterial(String keyword) {
+        return sqlSession.selectList(NAMESPACE + "searchSuppliersByMaterial", keyword);
+    }
+
 	
 	
 	

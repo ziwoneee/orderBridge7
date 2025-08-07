@@ -2,6 +2,7 @@ package com.itwillbs.service;
 
 import java.util.List;
 
+import com.itwillbs.domain.MaterialVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.SupplierVO;
 
@@ -29,8 +30,12 @@ public interface SupplierService {
     // 5. 협력사 정보 수정 기능
     void updateSupplier(SupplierVO vo) throws Exception;
     
-    
     // 목록 조회 (자재 발주관리 등록 폼에서 필요)
-    List<SupplierVO> getAllSuppliers();
+    List<SupplierVO> getAllSuppliers() throws Exception;
+    
+    
+    // 거래처 ID로 공급 자재 목록 조회 (자재 발주관리)
+    List<MaterialVO> getMaterialsBySupplier(String supplierId, String keyword) throws Exception;
+
 
 }

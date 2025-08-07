@@ -10,6 +10,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.session.SqlSession;
 import org.springframework.stereotype.Repository;
 
+import com.itwillbs.domain.MaterialVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.SupplierVO;
 
@@ -77,7 +78,21 @@ public class SupplierDAOImpl implements SupplierDAO {
 	
 	// 목록 조회 (자재 발주관리 등록 폼에서 필요)
 	@Override
-	public List<SupplierVO> selectAllSuppliers() {
+	public List<SupplierVO> selectAllSuppliers() throws Exception {
 	    return sqlSession.selectList(NAMESPACE + "selectAllSuppliers");
 	}
+	
+	// 거래처 ID로 공급 자재 목록 조회 (자재 발주관리)
+	@Override
+	public List<MaterialVO> getMaterialsBySupplier(String supplierId, String keyword) throws Exception {
+	    
+		Map<String, Object> params = new HashMap<>();
+	    params.put("supplierId", supplierId);
+	    params.put("keyword", keyword);
+		
+		return sqlSession.selectList(NAMESPACE + "getMaterialsBySupplier", params);
+	}
+
+	
+	
 }

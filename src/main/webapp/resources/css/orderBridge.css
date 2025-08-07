@@ -259,3 +259,11 @@
 	    padding: 8px !important;
 	  }
 	}
+
+	
+	
+/* 뱃지 기본 색	*/
+	.badge-primary {
+	    color: #fff;
+	    background-color: #1C355E !important;
+	}

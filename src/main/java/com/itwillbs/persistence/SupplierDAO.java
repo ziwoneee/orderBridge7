@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.apache.ibatis.annotations.Param;
 
+import com.itwillbs.domain.MaterialVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.SupplierVO;
 
@@ -38,6 +39,10 @@ public interface SupplierDAO {
  	
  	
  	// 목록 조회 (자재 발주관리 등록 폼에서 필요)
- 	List<SupplierVO> selectAllSuppliers();
+ 	List<SupplierVO> selectAllSuppliers() throws Exception;
+ 	
+ 	// 거래처 ID로 공급 자재 목록 조회 (자재 발주관리)
+ 	List<MaterialVO> getMaterialsBySupplier(String supplierId, String keyword) throws Exception;
+
 
 }

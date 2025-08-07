@@ -5,6 +5,7 @@ import java.util.List;
 import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.SupplierItemDTO;
 
 /**
  * 자재 발주 DAO 인터페이스
@@ -22,5 +23,9 @@ public interface MaterialOrderDAO {
     String generateOrderId() throws Exception;
     void insertOrder(MaterialOrderVO order) throws Exception;
     void insertOrderItem(MaterialOrderItemVO item) throws Exception;
+    
+    // 자재명으로 거래처 검색
+    public List<SupplierItemDTO> searchSuppliersByMaterial(String keyword);
+
     
 }

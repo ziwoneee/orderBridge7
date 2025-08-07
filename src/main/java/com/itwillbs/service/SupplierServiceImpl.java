@@ -9,6 +9,7 @@ import javax.inject.Inject;
 
 import org.springframework.stereotype.Service;
 
+import com.itwillbs.domain.MaterialVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.SupplierVO;
 import com.itwillbs.persistence.SupplierDAO;
@@ -119,13 +120,16 @@ public class SupplierServiceImpl implements SupplierService{
 	
 	// 목록 조회 (자재 발주관리 등록 폼에서 필요)
 	@Override
-    public List<SupplierVO> getAllSuppliers() {
+    public List<SupplierVO> getAllSuppliers() throws Exception {
         return sDAO.selectAllSuppliers(); // DAO 메서드 필요
     }
 	
 	
-	
-	
+	// 거래처 ID로 공급 자재 목록 조회 (자재 발주관리)
+	@Override
+	public List<MaterialVO> getMaterialsBySupplier(String supplierId, String keyword) throws Exception {
+	    return sDAO.getMaterialsBySupplier(supplierId, keyword);
+	}
 	
 	
 	

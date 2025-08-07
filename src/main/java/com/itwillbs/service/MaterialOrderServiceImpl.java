@@ -10,6 +10,7 @@ import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.MaterialOrderDTO;
+import com.itwillbs.dto.SupplierItemDTO;
 import com.itwillbs.persistence.MaterialOrderDAO;
 
 /**
@@ -70,7 +71,13 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
 
     }
 	
-	
+    
+    // 자재명으로 거래처 검색
+    @Override
+    public List<SupplierItemDTO> searchSuppliersByMaterial(String keyword) {
+        return mOrderDAO.searchSuppliersByMaterial(keyword);
+    }
+
 	
 	
 	

@@ -11,6 +11,7 @@
 	  SELECT 
 	    mo.order_id AS orderId,
 	    mo.supplier_id AS supplierId,
+	    s.supplier_name AS supplierName, 
 	    mo.order_date AS orderDate,
 	    mo.order_status AS orderStatus,
 	    mo.expected_arrived_date AS expectedArrivedDate,
@@ -27,11 +28,13 @@
 	  FROM material_order mo
 	  JOIN material_order_item moi ON mo.order_id = moi.order_id
 	  JOIN material m ON moi.material_id = m.material_id
+	  JOIN supplier s ON mo.supplier_id = s.supplier_id 
 	  <where>
 	    <!-- 검색 조건 -->
 	    <if test="keyword != null and keyword != ''">
 	      (mo.order_id LIKE CONCAT('%', #{keyword}, '%')
-	      OR m.material_name LIKE CONCAT('%', #{keyword}, '%'))
+	      OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
+	      OR s.supplier_name LIKE CONCAT('%', #{keyword}, '%'))
 	    </if>
 	    <if test="startDate != null and startDate != ''">
 	      AND mo.order_date &gt;= #{startDate}
@@ -43,21 +46,49 @@
 	      AND mo.order_status = #{status}
 	    </if>
 	  </where>
-	  GROUP BY mo.order_id
+	  GROUP BY mo.order_id, s.supplier_name
 	  
 	  <choose>
-	    <when test="sortColumn == 'order_id'">
-	      ORDER BY mo.order_id ${sortOrder}
-	    </when>
-	    <when test="sortColumn == 'order_date'">
-	      ORDER BY mo.order_date ${sortOrder}
-	    </when>
-	    <when test="sortColumn == 'expected_arrived_date'">
-	      ORDER BY mo.expected_arrived_date ${sortOrder}
-	    </when>
-	    <otherwise>
-	      ORDER BY mo.order_date DESC
-	    </otherwise>
+	  <when test="sortColumn == 'order_id'">
+	    ORDER BY
+	      CASE mo.order_status
+	        WHEN '요청' THEN 1
+	        WHEN '승인' THEN 2
+	        WHEN '입고완료' THEN 3
+	        ELSE 4
+	      END,
+	      mo.order_id ${sortOrder}
+	  </when>
+	  <when test="sortColumn == 'order_date'">
+	    ORDER BY
+	      CASE mo.order_status
+	        WHEN '요청' THEN 1
+	        WHEN '승인' THEN 2
+	        WHEN '입고완료' THEN 3
+	        ELSE 4
+	      END,
+	      mo.order_date ${sortOrder}
+	  </when>
+	  <when test="sortColumn == 'expected_arrived_date'">
+	    ORDER BY
+	      CASE mo.order_status
+	        WHEN '요청' THEN 1
+	        WHEN '승인' THEN 2
+	        WHEN '입고완료' THEN 3
+	        ELSE 4
+	      END,
+	      mo.expected_arrived_date ${sortOrder}
+	  </when>
+	  <otherwise>
+	    ORDER BY
+	      CASE mo.order_status
+	        WHEN '요청' THEN 1
+	        WHEN '승인' THEN 2
+	        WHEN '입고완료' THEN 3
+	        ELSE 4
+	      END,
+	      mo.order_date DESC
+	  </otherwise>
 	</choose>
 
 	  LIMIT #{pageStart}, #{perPageNum}
@@ -124,6 +155,23 @@
 	        #{warehouseCode}
 	    )
 	</insert>
+	
+	
+	<!-- 자재명 키워드로 거래처 + 자재 단가 정보 조회 -->
+	<select id="searchSuppliersByMaterial" parameterType="string" resultType="com.itwillbs.dto.SupplierItemDTO">
+	  SELECT
+	    m.material_name AS materialName,
+	    s.supplier_id AS supplierId,
+	    s.supplier_name AS supplierName,
+	    si.unit_price AS unitPrice,
+	    m.warehouse_code AS warehouseCode
+	  FROM supplier_item si
+	  JOIN material m ON si.material_id = m.material_id
+	  JOIN supplier s ON si.supplier_id = s.supplier_id
+	  WHERE m.material_name LIKE CONCAT('%', #{keyword}, '%')
+	  ORDER BY s.supplier_name ASC
+	</select>
+	
 	
 
 </mapper>
