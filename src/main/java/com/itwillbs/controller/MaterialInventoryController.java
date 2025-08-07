@@ -7,11 +7,14 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.itwillbs.domain.MaterialInventoryVO;
 import com.itwillbs.domain.PageMaker;
@@ -60,6 +63,15 @@ public class MaterialInventoryController {
 
 	    // 5. 뷰 리턴
 	    return "material/inventory/summary"; // → JSP 파일명
+	}
+	
+	
+	// material_id로 LOT 목록 조회
+	@GetMapping("/lot-details")
+	@ResponseBody
+	public ResponseEntity<List<MaterialInventoryVO>> getLotList(@RequestParam("materialId") String materialId) throws Exception {
+	    List<MaterialInventoryVO> lotList = miService.getLotListByMaterialId(materialId);
+	    return ResponseEntity.ok(lotList);
 	}
 
 

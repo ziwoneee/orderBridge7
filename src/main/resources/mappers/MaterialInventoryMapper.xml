@@ -58,7 +58,28 @@
 	
 
 
-
+	<!-- material_id로 LOT 목록 조회 -->
+	<select id="selectLotListByMaterialId" resultType="com.itwillbs.domain.MaterialInventoryVO" parameterType="string">
+	  SELECT 
+	    inventory_id,
+	    material_id,
+	    quantity,
+	    lot_no,
+	    expiration_date,
+	    received_date,
+	    warehouse_code,
+	    status,
+	    inventory_status,
+	    last_updated,
+	    last_movement_date,
+	    is_discarded,
+	    discarded_date,
+	    discard_reason
+	  FROM material_inventory
+	  WHERE material_id = #{materialId}
+	  ORDER BY expiration_date ASC
+	</select>
+	
 
 
 

@@ -16,5 +16,7 @@ public interface MaterialInventoryService {
 	// 자재 재고 전체 건수 조회 (페이징용)
 	int getInventoryCount(SearchCriteria cri) throws Exception;
 	
+	// material_id로 LOT 목록 조회
+	List<MaterialInventoryVO> getLotListByMaterialId(String materialId) throws Exception;
 
 }

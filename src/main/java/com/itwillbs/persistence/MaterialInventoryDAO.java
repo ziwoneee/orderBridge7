@@ -16,6 +16,9 @@ public interface MaterialInventoryDAO {
 	// 자재 재고 전체 건수 조회 (페이징용)
 	int selectInventoryCount(SearchCriteria cri) throws Exception;
 	
+	// material_id로 LOT 목록 조회
+	List<MaterialInventoryVO> selectLotListByMaterialId(String materialId) throws Exception;
+
 
 	
 }

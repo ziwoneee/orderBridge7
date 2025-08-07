@@ -35,6 +35,15 @@ public class MaterialInventoryServiceImpl implements MaterialInventoryService {
 	public int getInventoryCount(SearchCriteria cri) throws Exception {
 		return miDAO.selectInventoryCount(cri);
 	}
+
+
+	// material_id로 LOT 목록 조회
+	@Override
+	public List<MaterialInventoryVO> getLotListByMaterialId(String materialId) throws Exception {
+		return miDAO.selectLotListByMaterialId(materialId);
+	}
+	
+	
 	
 
 

@@ -1,14 +1,13 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
 
 <div class="container-scroller">
-
   <%@ include file="/WEB-INF/views/main/top.jsp" %>      
 
   <div class="container-fluid page-body-wrapper">
-
     <%@ include file="/WEB-INF/views/main/sidebar.jsp" %>
 
       <!-- 본문 시작 -->
@@ -260,6 +259,59 @@
 	  </table>
 	  </div>
 	  
+	  <!-- LOT 상세 모달 -->
+		<div class="modal fade" id="lotModal" tabindex="-1" role="dialog">
+		  <div class="modal-dialog modal-lg" role="document">
+		    <div class="modal-content">
+		
+		      <div class="modal-header">
+		        <h5 class="modal-title">LOT 상세 정보</h5>
+		        <button type="button" class="close" data-dismiss="modal">
+		          <span>&times;</span>
+		        </button>
+		      </div>
+		
+		      <div class="modal-body">
+		        <div class="table-responsive">
+		          <!-- LOT 상세 테이블 -->
+					<table class="table table-bordered text-center">
+					  <thead class="thead-dark">
+					    <tr>
+					      <th>LOT 번호</th>
+					      <th>수량</th>
+					      <th>유통기한</th>
+					      <th>보관창고</th>
+					      <th>상태</th>
+					    </tr>
+					  </thead>
+					  <tbody id="lotTableBody">
+					    <c:forEach var="item" items="${lotList}">
+					      <tr>
+					        <td>${empty item.lotNo ? '-' : item.lotNo}</td>
+					        <td class="text-end">${empty item.quantity ? '-' : item.quantity}</td>
+					        <td>
+					          <c:choose>
+					            <c:when test="${not empty item.expirationDate}">
+					              <fmt:formatDate value="${item.expirationDate}" pattern="yyyy-MM-dd"/>
+					            </c:when>
+					            <c:otherwise>-</c:otherwise>
+					          </c:choose>
+					        </td>
+					        <td>${empty item.warehouseCode ? '-' : item.warehouseCode}</td>
+					        <td>${empty item.status ? '-' : item.status}</td>
+					      </tr>
+					    </c:forEach>
+					  </tbody>
+					</table>
+
+		        </div>
+		      </div>
+		
+		    </div>
+		  </div>
+		</div>
+	  
+	  
 	  <!-- 페이징 처리 시작 -->
 		<div class="d-flex justify-content-center mt-4">
 		  <nav>
@@ -313,4 +365,42 @@ function showLotDetails(materialId) {
     // 예: 모달 팝업 또는 새 창으로 LOT 정보 표시
     window.open('/material/inventory/lot-details/' + materialId, '_blank', 'width=800,height=600');
 }
+</script>
+
+<script>
+function showLotDetails(materialId) {
+	  $.ajax({
+	    url: '/material/inventory/lot-details',
+	    method: 'GET',
+	    data: { materialId },
+	    success: function(data) {
+	      const tbody = $('#lotTableBody');
+	      tbody.empty();
+
+	      if (!data || data.length === 0) {
+	        tbody.append('<tr><td colspan="5">해당 자재의 LOT 정보가 없습니다.</td></tr>');
+	        return;
+	      }
+
+	      data.forEach(item => {
+	    	  const row = `
+	    	    <tr>
+	    	      <td>${item.lotNo ? item.lotNo : '-'}</td>
+	    	      <td class="text-end">${item.quantity == null ? '-' : item.quantity}</td>
+	    	      <td>${item.expirationDate ? item.expirationDate.split('T')[0] : '-'}</td>
+	    	      <td>${item.warehouseCode ? item.warehouseCode : '-'}</td>
+	    	      <td>${item.inventoryStatus ? item.inventoryStatus : '-'}</td>
+	    	    </tr>
+	    	  `;
+	    	  tbody.append(row);
+	    	});
+
+	      $('#lotModal').modal('show');
+	    },
+	    error: function() {
+	      alert('LOT 상세 정보를 불러오는 중 오류가 발생했습니다.');
+	    }
+	  });
+	}
+
 </script>
