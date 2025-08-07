@@ -72,6 +72,7 @@ function getMaterialOptions() {
 document.querySelector("select[name='order.supplierId']").addEventListener("change", function () {
   const supplierId = this.value;
   materialMap = {};
+  supplierItemMap = {};
 
   // 모든 자재 select 초기화
   document.querySelectorAll("select[name$='.materialId']").forEach(select => {
@@ -88,6 +89,7 @@ document.querySelector("select[name='order.supplierId']").addEventListener("chan
     .then(data => {
       data.forEach(item => {
         materialMap[item.materialId] = item;
+        supplierItemMap[item.materialId] = item; 
       });
 
       const optionHTML = getMaterialOptions();
@@ -241,55 +243,87 @@ $('#materialSearchInput').on('input', function () {
 });
 
 //선택 시 거래처 select에 반영 + 항목 자동 세팅
+let supplierItemMap = {};  // 거래처 자재 목록 저장 (키: materialId)
+
 function selectSupplier(supplierId, supplierName) {
-  const $select = $('#supplierSelect');
+	  const $select = $('#supplierSelect');
 
-  // 거래처 select에 option이 없다면 추가
-  if ($select.find(`option[value="${supplierId}"]`).length === 0) {
-    $select.append(`<option value="${supplierId}">${supplierName}</option>`);
-  }
+	  if ($select.find(`option[value="${supplierId}"]`).length === 0) {
+	    $select.append(`<option value="${supplierId}">${supplierName}</option>`);
+	  }
+	  $select.val(supplierId).change();
 
-  // select 값 설정 및 change 이벤트 트리거
-  $select.val(supplierId).change();
+	  // 1. 전체 자재 목록 가져오기 → 전역 저장용
+	  $.ajax({
+	    url: '/material/order/supplier-items',
+	    method: 'GET',
+	    data: {
+	      supplierId: supplierId
+	    },
+	    success: function (allItems) {
+	      // ✅ 전체 자재를 전역에 저장
+	      supplierItemMap = {};
+	      allItems.forEach(item => {
+	        supplierItemMap[item.materialId] = item;
+	      });
 
-  // === [신규 추가] 거래처의 자재 목록 조회 Ajax ===
-  $.ajax({
-    url: '/material/order/supplier-items',
-    method: 'GET',
-    data: {
-        supplierId: supplierId,
-        keyword: $('#materialSearchInput').val() // <- 자재명 검색어
-      },
-    success: function (items) {
-      const tbody = $('#itemTable tbody');
-      tbody.empty(); // 기존 항목 제거
+	      // 2. 검색어 기반 자동 추가 (필터링은 이 시점에만 사용)
+	      const keyword = $('#materialSearchInput').val();
+	      const filtered = keyword
+	        ? allItems.filter(i => i.materialName.includes(keyword))
+	        : [];
 
-      if (items.length === 0) {
-        tbody.append(`<tr><td colspan="6">해당 거래처의 공급 품목이 없습니다.</td></tr>`);
-        return;
-      }
+	      const tbody = $('#itemTable tbody').empty();
 
-      // 항목 렌더링
-      items.forEach((item, index) => {
-        const row = `
-          <tr>
-            <td><input type="hidden" name="orderItems[${index}].materialId" value="${item.materialId}">
-                <input type="text" class="form-control" value="${item.materialName}" readonly></td>
-            <td><input type="number" name="orderItems[${index}].quantity" class="form-control" value="1" required></td>
-            <td><input type="number" name="orderItems[${index}].unitPrice" class="form-control" value="${item.unitPrice}" readonly></td>
-            <td><input type="number" name="orderItems[${index}].totalPrice" class="form-control" value="${item.unitPrice}" readonly></td>
-            <td><input type="text" name="orderItems[${index}].warehouseCode" class="form-control" value="${item.warehouseCode}" readonly></td>
-            <td><button type="button" class="btn btn-danger btn-sm">삭제</button></td>
-          </tr>
-        `;
-        tbody.append(row);
-      });
-    },
-    error: function () {
-      alert('거래처 자재 목록 조회 중 오류가 발생했습니다.');
-    }
-  });
+	      if (filtered.length > 0) {
+	        filtered.forEach((item, index) => {
+	          const row = `
+	            <tr>
+	              <td><input type="hidden" name="orderItems[${index}].materialId" value="${item.materialId}">
+	                  <input type="text" class="form-control" value="${item.materialName}" readonly></td>
+	              <td><input type="number" name="orderItems[${index}].quantity" class="form-control" value="1" required></td>
+	              <td><input type="number" name="orderItems[${index}].unitPrice" class="form-control" value="${item.unitPrice}" readonly></td>
+	              <td><input type="number" name="orderItems[${index}].totalPrice" class="form-control" value="${item.unitPrice}" readonly></td>
+	              <td><input type="text" name="orderItems[${index}].warehouseCode" class="form-control" value="${item.warehouseCode}" readonly></td>
+	              <td><button type="button" class="btn btn-danger btn-sm">삭제</button></td>
+	            </tr>
+	          `;
+	          tbody.append(row);
+	        });
+	      }
+	    }
+	  });
 
-  // 모달 닫기
-  $('#supplierSearchModal').modal('hide');
-}
+	  $('#supplierSearchModal').modal('hide');
+	}
+
+
+// 항목 추가 시 드롭다운 렌더링 함수
+function getMaterialOptions() {
+	  return Object.values(supplierItemMap).map(item =>
+	    `<option value="${item.materialId}">${item.materialName}</option>`
+	  ).join('');
+	}
+
+	function addItemRow() {
+	  const tbody = $("#itemTable tbody");
+	  const index = tbody.find("tr").length;
+
+	  const row = `
+	    <tr>
+	      <td>
+	        <select name="orderItems[${index}].materialId" class="form-control material-select">
+	          <option value="">선택</option>
+	          ${getMaterialOptions()}
+	        </select>
+	      </td>
+	      <td><input type="number" name="orderItems[${index}].quantity" class="form-control" required></td>
+	      <td><input type="number" name="orderItems[${index}].unitPrice" class="form-control" readonly></td>
+	      <td><input type="number" name="orderItems[${index}].totalPrice" class="form-control" readonly></td>
+	      <td><input type="text" name="orderItems[${index}].warehouseCode" class="form-control" readonly></td>
+	      <td><button type="button" class="btn btn-danger btn-sm">삭제</button></td>
+	    </tr>
+	  `;
+
+	  tbody.append(row);
+	}
