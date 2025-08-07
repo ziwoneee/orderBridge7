@@ -180,5 +180,18 @@ public class MaterialOrderController {
 	}
 
 	
+	/**
+	 * 거래처 ID로 공급 자재 목록 조회 (Ajax)
+	 * 예: /material/order/supplier-items?supplierId=SUP-20250710-002
+	 */
+	@GetMapping("/supplier-items")
+	@ResponseBody
+	public List<MaterialVO> getSupplierItems(@RequestParam("supplierId") String supplierId,
+											 @RequestParam(value = "keyword", required = false) String keyword)
+											 throws Exception {
+	    return supplierService.getMaterialsBySupplier(supplierId, keyword);
+	}
+
+	
 
 } 

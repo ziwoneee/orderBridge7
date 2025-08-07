@@ -32,7 +32,7 @@
 			    <div class="col-md-4 mb-3">
 				  <label>거래처 <span class="text-danger">*</span></label>
 				  <div class="input-group">
-				    <select name="order.supplierId" class="form-control" required>
+				    <select id="supplierSelect" name="order.supplierId" class="form-control" required>
 				      <option value="">선택하세요</option>
 				      <c:forEach var="supplier" items="${supplierList}">
 				        <option value="${supplier.supplierId}">${supplier.supplierName}</option>

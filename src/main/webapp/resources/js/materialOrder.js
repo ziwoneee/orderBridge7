@@ -240,8 +240,56 @@ $('#materialSearchInput').on('input', function () {
   });
 });
 
-// 선택 시 거래처 select에 반영
+//선택 시 거래처 select에 반영 + 항목 자동 세팅
 function selectSupplier(supplierId, supplierName) {
-  $('#supplierSelect').val(supplierId).change(); // 거래처 select에 반영
+  const $select = $('#supplierSelect');
+
+  // 거래처 select에 option이 없다면 추가
+  if ($select.find(`option[value="${supplierId}"]`).length === 0) {
+    $select.append(`<option value="${supplierId}">${supplierName}</option>`);
+  }
+
+  // select 값 설정 및 change 이벤트 트리거
+  $select.val(supplierId).change();
+
+  // === [신규 추가] 거래처의 자재 목록 조회 Ajax ===
+  $.ajax({
+    url: '/material/order/supplier-items',
+    method: 'GET',
+    data: {
+        supplierId: supplierId,
+        keyword: $('#materialSearchInput').val() // <- 자재명 검색어
+      },
+    success: function (items) {
+      const tbody = $('#itemTable tbody');
+      tbody.empty(); // 기존 항목 제거
+
+      if (items.length === 0) {
+        tbody.append(`<tr><td colspan="6">해당 거래처의 공급 품목이 없습니다.</td></tr>`);
+        return;
+      }
+
+      // 항목 렌더링
+      items.forEach((item, index) => {
+        const row = `
+          <tr>
+            <td><input type="hidden" name="orderItems[${index}].materialId" value="${item.materialId}">
+                <input type="text" class="form-control" value="${item.materialName}" readonly></td>
+            <td><input type="number" name="orderItems[${index}].quantity" class="form-control" value="1" required></td>
+            <td><input type="number" name="orderItems[${index}].unitPrice" class="form-control" value="${item.unitPrice}" readonly></td>
+            <td><input type="number" name="orderItems[${index}].totalPrice" class="form-control" value="${item.unitPrice}" readonly></td>
+            <td><input type="text" name="orderItems[${index}].warehouseCode" class="form-control" value="${item.warehouseCode}" readonly></td>
+            <td><button type="button" class="btn btn-danger btn-sm">삭제</button></td>
+          </tr>
+        `;
+        tbody.append(row);
+      });
+    },
+    error: function () {
+      alert('거래처 자재 목록 조회 중 오류가 발생했습니다.');
+    }
+  });
+
+  // 모달 닫기
   $('#supplierSearchModal').modal('hide');
 }
