@@ -79,7 +79,7 @@
 	            </a>
 	            <div class="collapse ${menu eq 'material' ? 'show' : ''}" id="menu-material">
 	              <ul class="nav flex-column sub-menu">
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/material/inventory/list">재고 현황</a></li>
+	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/material/inventory/summary">재고 현황</a></li>
 	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/material/order/list">발주 관리</a></li>
 	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/material/inbound/list">입고 관리</a></li>
 	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/material/outbound/list">출고 관리</a></li>

@@ -7,13 +7,18 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.itwillbs.domain.MaterialInventoryVO;
+import com.itwillbs.domain.PageMaker;
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.service.MaterialInventoryService;
 
 @Controller
@@ -30,59 +35,54 @@ public class MaterialInventoryController {
 	
 	
 	/**
-     * 자재 재고현황 리스트 조회
-     * @param materialId 자재 ID (선택 필터)
-     * @param materialName 자재명 (선택 필터)
-     * @param warehouseCode 보관창고 (선택 필터)
-     * @param model View에 전달할 데이터 모델
-     * @return JSP 페이지 경로
-     */
+	 * 자재 재고 요약 목록 페이지 요청 처리
+	 * - 자재별 1행으로 요약 표시
+	 * - 검색 + 페이징 포함
+	 * @throws Exception 
+	 */
+	@GetMapping("/summary")
+	public String inventorySummaryList(SearchCriteria cri, Model model) throws Exception {
+	    logger.info(" inventorySummaryList() 호출 ");
+	    logger.info("검색 조건: {}", cri);
+
+	    // 1. 요약 목록 조회 (자재 ID 기준 1행 요약)
+	    List<MaterialInventoryVO> summaryList = miService.getInventorySummaryList(cri);
+
+	    // 2. 전체 건수 조회 (페이징용)
+	    int totalCount = miService.getInventoryCount(cri); // 기존 사용
+
+	    // 3. PageMaker 생성
+	    PageMaker pageMaker = new PageMaker(cri, totalCount);
+
+	    // 4. 모델에 담기
+	    model.addAttribute("summaryList", summaryList);   // 요약 목록
+	    model.addAttribute("pageMaker", pageMaker);       // 페이징 정보
+	    model.addAttribute("cri", cri);                   // 검색 조건 유지
+	    model.addAttribute("menu", "material");           // 메뉴 활성화용
+	    model.addAttribute("now", new Date());            // 현재 시간 (선택)
+
+	    // 5. 뷰 리턴
+	    return "material/inventory/summary"; // → JSP 파일명
+	}
 	
-	// http://localhost:8088/material/inventory/list
-	// 자재 재고현황 리스트 조회
-	@RequestMapping(value = "/list", method = RequestMethod.GET)
-	public String getInventoryList(@RequestParam(required = false) String materialId,
-            					   @RequestParam(required = false) String materialName,
-            					   @RequestParam(required = false) String materialType,
-            					   @RequestParam(required = false) String sortColumn,    // 정렬 컬럼
-                                   @RequestParam(required = false) String sortDirection, // 정렬 방향 (asc/desc)
-            					   Model model) throws Exception {
-		
-		logger.info(" getInventoryList() 호출 ");
-		logger.info("정렬 파라미터: {}, {}", sortColumn, sortDirection);
-		
-		// 서비스 호출 → 자재 재고 목록 조회 (정렬 조건 포함)
-		List<MaterialInventoryVO> inventoryList 
-					= miService.getInventoryList(materialId, materialName, materialType, sortColumn, sortDirection);
-        
-		// 모델에 담기
-		model.addAttribute("inventoryList", inventoryList);
-		model.addAttribute("sortColumn", sortColumn);         // 현재 정렬 컬럼
-	    model.addAttribute("sortDirection", sortDirection);   // 현재 정렬 방향
-	    model.addAttribute("menu", "material");   
+	
+	// material_id로 LOT 목록 조회
+	@GetMapping("/lot-details")
+	@ResponseBody
+	public ResponseEntity<List<MaterialInventoryVO>> getLotDetails(@RequestParam("materialId") String materialId) throws Exception {
+	    logger.info("LOT 조회 요청 - materialId: {}", materialId);
 	    
-		
-		// 현재 시간 now 객체로 전달
-	    model.addAttribute("now", new Date());
+	    List<MaterialInventoryVO> lotList = miService.getLotListByMaterialId(materialId);
 	    
-		
-		// 뷰페이지로 이동
-		return "material/inventoryList";
+	    logger.info("조회된 LOT 데이터 개수: {}", lotList != null ? lotList.size() : 0);
+	    if (lotList != null && !lotList.isEmpty()) {
+	        logger.info("첫 번째 LOT 데이터: {}", lotList.get(0));
+	    }
+	    
+	    return ResponseEntity.ok(lotList);
 	}
 
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
 	
 	
 	
@@ -93,10 +93,4 @@ public class MaterialInventoryController {
 	
 	
 } // MaterialInventoryController 끝
-
-
-
-
-
-
 

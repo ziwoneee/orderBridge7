@@ -10,6 +10,7 @@ import org.apache.ibatis.session.SqlSession;
 import org.springframework.stereotype.Repository;
 
 import com.itwillbs.domain.MaterialInventoryVO;
+import com.itwillbs.domain.SearchCriteria;
 
 @Repository
 public class MaterialInventoryDAOImpl implements MaterialInventoryDAO {
@@ -19,23 +20,28 @@ public class MaterialInventoryDAOImpl implements MaterialInventoryDAO {
 	
 	private static final String NAMESPACE = "com.itwillbs.mapper.MaterialInventoryMapper.";
 
-	// 자재 목록 조회
+	// 자재 재고 요약 목록 조회 (자재 ID별 1행)
 	@Override
-	public List<MaterialInventoryVO> selectInventoryList(String materialId,
-														 String materialName,
-														 String materialType,
-														 String sortColumn,
-														 String sortDirection) throws Exception {
-		
-		// 검색 조건을 담을 Map 생성
-		Map<String, Object> paramMap = new HashMap<>();
-		paramMap.put("materialId", materialId);
-		paramMap.put("materialName", materialName);
-		paramMap.put("materialType", materialType);
-		
-		// MyBatis 매퍼 호출
-		return sqlSession.selectList(NAMESPACE + "selectInventoryList", paramMap);
+	public List<MaterialInventoryVO> selectInventorySummaryList(SearchCriteria cri) throws Exception {
+		// MyBatis 매퍼 호출: selectInventorySummaryList
+		return sqlSession.selectList(NAMESPACE + "selectInventorySummaryList", cri);
 	}
+
+	// 자재 재고 전체 건수 조회 (페이징용)
+	@Override
+	public int selectInventoryCount(SearchCriteria cri) throws Exception {
+		return sqlSession.selectOne(NAMESPACE + "selectInventoryCount", cri);
+	}
+
+	
+	// material_id로 LOT 목록 조회
+	@Override
+	public List<MaterialInventoryVO> selectLotListByMaterialId(String materialId) throws Exception {
+		 return sqlSession.selectList(NAMESPACE + "selectLotListByMaterialId", materialId);
+	}
+	
+
+	
 	
 	
 
