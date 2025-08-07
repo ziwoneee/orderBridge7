@@ -340,3 +340,21 @@ function addItemRow() {
 	  itemIndex++;
 	}
 
+
+
+//자재 select 변경 시 중복 검사
+document.addEventListener("change", function (e) {
+  if (e.target.matches("select[name$='.materialId']")) {
+    const selectedId = e.target.value;
+
+    // 현재 테이블에서 선택된 자재 ID 목록
+    const selectedIds = Array.from(document.querySelectorAll("select[name$='.materialId']"))
+      .filter(sel => sel !== e.target) // 현재 선택 중인 셀은 제외
+      .map(sel => sel.value);
+
+    if (selectedIds.includes(selectedId)) {
+      alert("이미 선택된 자재입니다.");
+      e.target.value = ""; // 선택 취소
+    }
+  }
+});
