@@ -20,13 +20,13 @@
         
         <form action="/material/order/register" method="post">
 
-          <!-- 기본 정보 섹션 - orderDate 제거 -->
+          <!-- 기본 정보 섹션 -->
 			<div class="card-section">
 			  <h5 class="section-title">기본 정보</h5>
 			  <div class="row">
 			    <div class="col-md-4 mb-3">
 			      <label>납기요청일 <span class="text-danger">*</span></label>
-			      <input type="date" name="order.expectedArrivedDate" class="form-control" required>
+			      <input type="date" id="expectedArrivedDate" name="order.expectedArrivedDate" class="form-control" value="${orderDTO.order.expectedArrivedDate}" required>
 			    </div>
 			    
 			    <div class="col-md-4 mb-3">
@@ -35,7 +35,10 @@
 				    <select id="supplierSelect" name="order.supplierId" class="form-control" required>
 				      <option value="">선택하세요</option>
 				      <c:forEach var="supplier" items="${supplierList}">
-				        <option value="${supplier.supplierId}">${supplier.supplierName}</option>
+				        <option value="${supplier.supplierId}"
+						  ${supplier.supplierId eq orderDTO.order.supplierId ? 'selected="selected"' : ''}>
+						  ${supplier.supplierName}
+			        	</option>
 				      </c:forEach>
 				    </select>
 				    <div class="input-group-append">
@@ -48,11 +51,11 @@
 
 			    <div class="col-md-4 mb-3">
 			      <label>담당자 <span class="text-danger">*</span></label>
-			      <input type="text" name="order.createdBy" class="form-control" placeholder="예: 홍길동" required>
+			      <input type="text" name="order.createdBy" class="form-control" placeholder="예: 홍길동" value="${orderDTO.order.createdBy}" required>
 			    </div>
 			    <div class="col-md-12">
 			      <label>비고</label>
-			      <textarea name="order.note" class="form-control" rows="2" placeholder="발주 관련 특이사항을 입력하세요"></textarea>
+			      <textarea name="order.note" class="form-control" rows="2" placeholder="발주 관련 특이사항을 입력하세요">${orderDTO.order.note}</textarea>
 			    </div>
 			  </div>
 			</div>
@@ -79,25 +82,64 @@
                   <th>삭제</th>
                 </tr>
               </thead>
+              
               <!-- 항목 테이블의 첫 번째 행도 수정 -->
 				<tbody>
-				  <tr>
-				    <td>
-				      <select name="orderItems[0].materialId" class="form-control" required>
-				        <option value="">거래처를 먼저 선택하세요</option>
-				      </select>
-				      
-				    </td>
-				    <td><input type="number" name="orderItems[0].orderQuantity" class="form-control" min="1" onchange="calculateTotal(this)" required></td>
-				    <td><input type="number" name="orderItems[0].unitPrice" class="form-control" min="0" step="0.01" onchange="calculateTotal(this)" required></td>
-				    <td>
-				      <input type="number" class="form-control" value="0" readonly>
-				      <input type="hidden" name="orderItems[0].totalPrice" value="0">
-				    </td>
-				    <td><input type="text" name="orderItems[0].warehouseCode" class="form-control" readonly></td>
-				    <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button></td>
-				  </tr>
-				</tbody>
+  <c:choose>
+    <c:when test="${not empty orderDTO.orderItems}">
+      <c:forEach var="item" items="${orderDTO.orderItems}" varStatus="i">
+        <tr>
+          <td>
+            <select name="orderItems[${i.index}].materialId" class="form-control" disabled>
+              <option value="${item.materialId}">${item.materialName}</option>
+            </select>
+            <input type="hidden" name="orderItems[${i.index}].materialId" value="${item.materialId}">
+          </td>
+          <td>
+            <input type="number" name="orderItems[${i.index}].orderQuantity"
+                   class="form-control" value="${item.orderQuantity}" min="1"
+                   onchange="calculateTotal(this)" required>
+          </td>
+          <td>
+            <input type="number" name="orderItems[${i.index}].unitPrice"
+                   class="form-control" value="${item.unitPrice}" min="0"
+                   onchange="calculateTotal(this)" required>
+          </td>
+          <td>
+            <input type="number" class="form-control" value="${item.totalPrice}" readonly>
+            <input type="hidden" name="orderItems[${i.index}].totalPrice" value="${item.totalPrice}">
+          </td>
+          <td>
+            <input type="text" name="orderItems[${i.index}].warehouseCode"
+                   class="form-control" value="${item.warehouseCode}" readonly>
+          </td>
+          <td>
+            <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button>
+          </td>
+        </tr>
+      </c:forEach>
+    </c:when>
+
+    <c:otherwise>
+      <tr>
+        <td>
+          <select name="orderItems[0].materialId" class="form-control" required>
+            <option value="">거래처를 먼저 선택하세요</option>
+          </select>
+        </td>
+        <td><input type="number" name="orderItems[0].orderQuantity" class="form-control" min="1" onchange="calculateTotal(this)" required></td>
+        <td><input type="number" name="orderItems[0].unitPrice" class="form-control" min="0" onchange="calculateTotal(this)" required></td>
+        <td>
+          <input type="number" class="form-control" value="0" readonly>
+          <input type="hidden" name="orderItems[0].totalPrice" value="0">
+        </td>
+        <td><input type="text" name="orderItems[0].warehouseCode" class="form-control" readonly></td>
+        <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button></td>
+      </tr>
+    </c:otherwise>
+  </c:choose>
+</tbody>
+
             </table>
           </div>
 
