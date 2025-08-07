@@ -11,38 +11,38 @@ let materialMap = {};
 /**
  * 발주 항목 행 추가 함수
  */
-function addItemRow() {
-  const tbody = document.querySelector("#itemTable tbody");
+function addItemRowFromMaterial(item) {
+	  const tbody = document.querySelector("#itemTable tbody");
 
-  const row = document.createElement("tr");
-  row.innerHTML = `
-    <td>
-      <select name="orderItems[${itemIndex}].materialId" class="form-control">
-        <option value="">선택</option>
-        ${getMaterialOptions()}
-      </select>
-    </td>
-    <td>
-      <input type="number" name="orderItems[${itemIndex}].orderQuantity" class="form-control" min="1" onchange="calculateTotal(this)" required>
-    </td>
-    <td>
-      <input type="number" name="orderItems[${itemIndex}].unitPrice" class="form-control" min="0" step="0.01" onchange="calculateTotal(this)" required>
-    </td>
-    <td>
-      <input type="number" class="form-control" readonly value="0">
-      <input type="hidden" name="orderItems[${itemIndex}].totalPrice" value="0">
-    </td>
-    <td>
-      <input type="text" name="orderItems[${itemIndex}].warehouseCode" class="form-control" readonly>
-    </td>
-    <td>
-      <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button>
-    </td>
-  `;
+	  const row = document.createElement("tr");
+	  row.innerHTML = `
+	    <td>
+	      <select name="orderItems[${itemIndex}].materialId" class="form-control" disabled>
+	        <option value="${item.materialId}">${item.materialName}</option>
+	      </select>
+	      <input type="hidden" name="orderItems[${itemIndex}].materialId" value="${item.materialId}">
+	    </td>
+	    <td>
+	      <input type="number" name="orderItems[${itemIndex}].orderQuantity" class="form-control" value="1" min="1" onchange="calculateTotal(this)" required>
+	    </td>
+	    <td>
+	      <input type="number" name="orderItems[${itemIndex}].unitPrice" class="form-control" value="${item.unitPrice}" min="0" step="0.01" onchange="calculateTotal(this)" required>
+	    </td>
+	    <td>
+	      <input type="number" name="orderItems[${itemIndex}].visibleTotal" class="form-control" readonly value="${item.unitPrice}">
+	      <input type="hidden" name="orderItems[${itemIndex}].totalPrice" value="${item.unitPrice}">
+	    </td>
+	    <td>
+	      <input type="text" name="orderItems[${itemIndex}].warehouseCode" class="form-control" value="${item.warehouseCode}" readonly>
+	    </td>
+	    <td>
+	      <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button>
+	    </td>
+	  `;
+	  tbody.appendChild(row);
+	  itemIndex++;
+	}
 
-  tbody.appendChild(row);
-  itemIndex++;
-}
 
 /**
  * 항목 행 삭제
@@ -131,21 +131,34 @@ document.addEventListener("change", function (e) {
  * [4] 수량 or 단가 변경 시 총금액 자동 계산
  * ------------------------------------- */
 function calculateTotal(input) {
-  const row = input.closest("tr");
-  const qtyInput = row.querySelector("input[name$='.orderQuantity']");
-  const priceInput = row.querySelector("input[name$='.unitPrice']");
-  
-  const qty = parseFloat(qtyInput.value) || 0;
-  const price = parseFloat(priceInput.value) || 0;
+	  const row = input.closest("tr");
 
-  const visibleTotal = row.querySelector("input[type='number']:not([name])");
-  const hiddenTotal = row.querySelector("input[type='hidden'][name$='.totalPrice']");
+	  // 수량 입력 필드 찾기 (이름 다를 수 있음)
+	  const qtyInput = row.querySelector("input[name$='.orderQuantity']") || 
+	                   row.querySelector("input[name$='.quantity']");
+	  const priceInput = row.querySelector("input[name$='.unitPrice']");
 
-  const result = qty * price;
+	  if (!qtyInput || !priceInput) return;
 
-  if (visibleTotal) visibleTotal.value = result.toFixed(2);
-  if (hiddenTotal) hiddenTotal.value = result.toFixed(2);
-}
+	  const qty = parseFloat(qtyInput.value) || 0;
+	  const price = parseFloat(priceInput.value) || 0;
+	  const total = (qty * price).toFixed(2);
+
+	  // 총금액 출력 필드들: hidden + readonly
+	  const hiddenTotalInput = row.querySelector("input[type='hidden'][name$='.totalPrice']");
+	  const totalPriceInputs = row.querySelectorAll("input[name$='.totalPrice']");
+
+	  totalPriceInputs.forEach(input => {
+	    input.value = total;
+	  });
+
+	  // 혹시 읽기전용 필드에만 보여줄 게 있다면
+	  const readonlyVisible = row.querySelector("input[readonly][type='number']");
+	  if (readonlyVisible && !readonlyVisible.name.endsWith('.totalPrice')) {
+	    readonlyVisible.value = total;
+	  }
+	}
+
 
 
 /* ---------------------------------------
@@ -277,18 +290,7 @@ function selectSupplier(supplierId, supplierName) {
 
 	      if (filtered.length > 0) {
 	        filtered.forEach((item, index) => {
-	          const row = `
-	            <tr>
-	              <td><input type="hidden" name="orderItems[${index}].materialId" value="${item.materialId}">
-	                  <input type="text" class="form-control" value="${item.materialName}" readonly></td>
-	              <td><input type="number" name="orderItems[${index}].quantity" class="form-control" value="1" required></td>
-	              <td><input type="number" name="orderItems[${index}].unitPrice" class="form-control" value="${item.unitPrice}" readonly></td>
-	              <td><input type="number" name="orderItems[${index}].totalPrice" class="form-control" value="${item.unitPrice}" readonly></td>
-	              <td><input type="text" name="orderItems[${index}].warehouseCode" class="form-control" value="${item.warehouseCode}" readonly></td>
-	              <td><button type="button" class="btn btn-danger btn-sm">삭제</button></td>
-	            </tr>
-	          `;
-	          tbody.append(row);
+	        	addItemRowFromMaterial(item); 
 	        });
 	      }
 	    }
@@ -305,25 +307,35 @@ function getMaterialOptions() {
 	  ).join('');
 	}
 
-	function addItemRow() {
-	  const tbody = $("#itemTable tbody");
-	  const index = tbody.find("tr").length;
+function addItemRow() {
+	  const tbody = document.querySelector("#itemTable tbody");
 
-	  const row = `
-	    <tr>
-	      <td>
-	        <select name="orderItems[${index}].materialId" class="form-control material-select">
-	          <option value="">선택</option>
-	          ${getMaterialOptions()}
-	        </select>
-	      </td>
-	      <td><input type="number" name="orderItems[${index}].quantity" class="form-control" required></td>
-	      <td><input type="number" name="orderItems[${index}].unitPrice" class="form-control" readonly></td>
-	      <td><input type="number" name="orderItems[${index}].totalPrice" class="form-control" readonly></td>
-	      <td><input type="text" name="orderItems[${index}].warehouseCode" class="form-control" readonly></td>
-	      <td><button type="button" class="btn btn-danger btn-sm">삭제</button></td>
-	    </tr>
+	  const row = document.createElement("tr");
+	  row.innerHTML = `
+	    <td>
+	      <select name="orderItems[${itemIndex}].materialId" class="form-control">
+	        <option value="">선택</option>
+	        ${getMaterialOptions()}
+	      </select>
+	    </td>
+	    <td>
+	      <input type="number" name="orderItems[${itemIndex}].orderQuantity" class="form-control" min="1" onchange="calculateTotal(this)" required>
+	    </td>
+	    <td>
+	      <input type="number" name="orderItems[${itemIndex}].unitPrice" class="form-control" min="0" step="0.01" onchange="calculateTotal(this)" required>
+	    </td>
+	    <td>
+	      <input type="number" name="orderItems[${itemIndex}].visibleTotal" class="form-control" readonly value="0">
+	      <input type="hidden" name="orderItems[${itemIndex}].totalPrice" value="0">
+	    </td>
+	    <td>
+	      <input type="text" name="orderItems[${itemIndex}].warehouseCode" class="form-control" readonly>
+	    </td>
+	    <td>
+	      <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button>
+	    </td>
 	  `;
-
-	  tbody.append(row);
+	  tbody.appendChild(row);
+	  itemIndex++;
 	}
+
