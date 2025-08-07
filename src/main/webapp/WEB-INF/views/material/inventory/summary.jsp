@@ -31,7 +31,7 @@
 			      <!-- 자재유형 -->
 			      <div class="col-md-2 form-group">
 			        <label class="form-label text-muted small">자재유형</label>
-			        <select name="materialType" class="form-control">
+			        <select name="materialType" class="form-control" onchange="this.form.submit()">
 			          <option value="">전체</option>
 			          <option value="생육" ${cri.materialType eq '생육' ? 'selected' : ''}>생육</option>
 			          <option value="채소류" ${cri.materialType eq '채소류' ? 'selected' : ''}>채소류</option>
@@ -133,34 +133,8 @@
 			          </a>
 			        </th>
 			        
-			        <!-- 안전재고 (정렬 가능) -->
-			        <th>
-			          <a href="/material/inventory/summary?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&materialType=${cri.materialType}&sortColumn=safety_stock&sortOrder=${cri.sortColumn == 'safety_stock' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-			             class="text-white text-decoration-none">
-			            안전재고
-			            <c:choose>
-			              <c:when test="${cri.sortColumn == 'safety_stock'}">
-			                <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-			              </c:when>
-			              <c:otherwise>⇅</c:otherwise>
-			            </c:choose>
-			          </a>
-			        </th>
-			        
-			        <!-- 상태 (정렬 가능) -->
-			        <th>
-			          <a href="/material/inventory/summary?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&materialType=${cri.materialType}&sortColumn=inventory_status&sortOrder=${cri.sortColumn == 'inventory_status' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-			             class="text-white text-decoration-none">
-			            상태
-			            <c:choose>
-			              <c:when test="${cri.sortColumn == 'inventory_status'}">
-			                <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-			              </c:when>
-			              <c:otherwise>⇅</c:otherwise>
-			            </c:choose>
-			          </a>
-			        </th>
-			        
+			        <th>안전재고</th>
+			        <th>상태</th>
 			        <th>단위</th>
 			        
 			        <!-- 유통기한 (정렬 가능) -->
@@ -191,20 +165,8 @@
 			          </a>
 			        </th>
 			        
-			        <!-- 보관창고 (정렬 가능) -->
-			        <th>
-			          <a href="/material/inventory/summary?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&materialType=${cri.materialType}&sortColumn=warehouse_code&sortOrder=${cri.sortColumn == 'warehouse_code' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-			             class="text-white text-decoration-none">
-			            보관창고
-			            <c:choose>
-			              <c:when test="${cri.sortColumn == 'warehouse_code'}">
-			                <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-			              </c:when>
-			              <c:otherwise>⇅</c:otherwise>
-			            </c:choose>
-			          </a>
-			        </th>
-			        <th>LOT 번호 상세</th>
+			        <th>보관창고</th>
+			        <th>LOT 번호</th>
 		        </tr>
 			</thead>
 			
@@ -278,7 +240,7 @@
 				      <th>LOT 번호</th>
 				      <th>수량</th>
 				      <th>유통기한</th>
-				      <th>창고코드</th>
+				      <th>보관창고</th>
 				      <th>재고상태</th>
 				    </tr>
 		            </thead>

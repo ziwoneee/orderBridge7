@@ -9,20 +9,18 @@
 
 	<!-- 자재 재고 전체 건수 조회 (페이징용) -->
 	<select id="selectInventoryCount" resultType="int" parameterType="com.itwillbs.domain.SearchCriteria">
-	  SELECT COUNT(*) 
-	  FROM 
-	    material_inventory mi
-	  JOIN 
-	    material m 
-	    ON mi.material_id = m.material_id
-	   WHERE 1=1
-       	<if test="keyword != null and keyword != ''">
-		  AND (
-		    mi.material_id LIKE CONCAT('%', #{keyword}, '%')
-		    OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
-		    OR m.material_type LIKE CONCAT('%', #{keyword}, '%')
-		  )
-		</if>
+	  SELECT COUNT(*) FROM (
+	    SELECT m.material_id
+	    FROM material_inventory mi
+	    JOIN material m ON mi.material_id = m.material_id
+	    WHERE 1=1
+	      <if test="keyword != null and keyword != ''">
+	        AND (mi.material_id LIKE CONCAT('%', #{keyword}, '%')
+	             OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
+	             OR m.material_type LIKE CONCAT('%', #{keyword}, '%'))
+	      </if>
+	    GROUP BY m.material_id
+	  ) AS grouped
 	</select>
 	
 	
@@ -50,9 +48,29 @@
 	        OR m.material_type LIKE CONCAT('%', #{keyword}, '%')
 	      )
 	    </if>
-	  GROUP BY
+		<if test="materialType != null and materialType != ''">
+		  AND m.material_type = #{materialType}
+		</if>
+	   GROUP BY
 	    m.material_id, m.material_name, m.material_type, m.unit, m.safety_stock
-	  ORDER BY m.material_id ASC
+	  <choose>
+	  <when test="sortColumn != null and sortOrder != null">
+	    ORDER BY
+	    <choose>
+	      <when test="sortColumn == 'material_id'"> m.material_id </when>
+	      <when test="sortColumn == 'material_name'"> m.material_name </when>
+	      <when test="sortColumn == 'material_type'"> m.material_type </when>
+	      <when test="sortColumn == 'quantity'"> quantity </when>
+	      <when test="sortColumn == 'expiration_date'"> expirationDate </when>
+	      <when test="sortColumn == 'last_movement_date'"> lastMovementDate </when>
+	      <otherwise> m.material_id </otherwise>
+	    </choose>
+	    ${sortOrder}
+	  </when>
+	  <otherwise>
+	    ORDER BY m.material_id ASC
+	  </otherwise>
+	</choose>
 	  LIMIT #{pageStart}, #{perPageNum}
 	</select>
 	
