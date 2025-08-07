@@ -278,6 +278,7 @@ function selectSupplier(supplierId, supplierName) {
 	      supplierItemMap = {};
 	      allItems.forEach(item => {
 	        supplierItemMap[item.materialId] = item;
+	        materialMap[item.materialId] = item;
 	      });
 
 	      // 2. 검색어 기반 자동 추가 (필터링은 이 시점에만 사용)
