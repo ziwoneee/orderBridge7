@@ -9,112 +9,71 @@ function showLotDetails(materialId) {
 	    loadLotData(materialId);
 	}
 	
+	//LOT 목록을 자재 ID 기준으로 불러오는 함수
 	function loadLotData(materialId) {
-	    $.ajax({
-	        url: '/material/inventory/lot-details',
-	        method: 'GET',
-	        data: { materialId: materialId },
-	        dataType: 'json',
-	        beforeSend: function() {
-	            console.log('AJAX 요청 전송 중...');
-	            $('#lotTableBody').html('<tr><td colspan="5" class="text-center">데이터를 불러오는 중...</td></tr>');
-	        },
-	        success: function(response) {
-	            console.log('=== AJAX 성공 ===');
-	            console.log('응답 데이터:', response);
-	            console.log('응답 타입:', typeof response);
-	            console.log('응답 길이:', Array.isArray(response) ? response.length : 'not array');
-	            
-	            const tbody = $('#lotTableBody');
-	            tbody.empty();
-	            
-	        	 // 응답 데이터 검증
-	            if (!response) {
-	                console.log('응답 데이터가 null/undefined');
-	                tbody.html('<tr><td colspan="5" class="text-center text-muted">응답 데이터가 없습니다.</td></tr>');
-	                return;
-	            }
+	  $.ajax({
+	    url: '/material/inventory/lot-details',
+	    method: 'GET',
+	    data: { materialId: materialId },
+	    dataType: 'json',
+	    beforeSend: function () {
+	      $('#lotTableBody').html('<tr><td colspan="5" class="text-center">데이터를 불러오는 중...</td></tr>');
+	    },
+	    success: function (response) {
+	      const tbody = $('#lotTableBody');
+	      tbody.empty();
 	
-	            // ✅ 먼저 dataArray 선언
-	            let dataArray = Array.isArray(response) ? response : [response];
+	      // (1) 전역 배열에 LOT 데이터 저장 → 정렬/페이징에 필요
+	      lotData = Array.isArray(response) ? response : [response];
+	      currentPage = 1;                  // 페이지 초기화
+	      currentSort = { column: '', order: '' };  // 정렬 상태 초기화
 	
-	            console.log('응답 타입:', typeof response);
-	            console.log('응답 길이:', dataArray.length);
+	      // (2) 응답 유효성 검사
+	      if (!lotData || lotData.length === 0) {
+	        console.log('LOT 데이터 없음');
+	        tbody.html('<tr><td colspan="5" class="text-center text-muted">해당 자재의 LOT 정보가 없습니다.</td></tr>');
+	        $('#lotPagination').empty();  // 페이징 초기화
+	        return;
+	      }
 	
-	            console.log('=== LOT 디버깅 시작 ===');
-	            dataArray.forEach((item, index) => {
-	              console.log(`[${index}] lotNo:`, item.lotNo);
-	              console.log(`[${index}] quantity:`, item.quantity);
-	              console.log(`[${index}] expirationDate:`, item.expirationDate);
-	              console.log(`[${index}] warehouseCode:`, item.warehouseCode);
-	              console.log(`[${index}] inventoryStatus:`, item.inventoryStatus);
-	            });
+	      // (3) 디버깅용 로그 (유지)
+	      console.log('=== LOT 디버깅 시작 ===');
+	      lotData.forEach((item, index) => {
+	        console.log(`[${index}] lotNo:`, item.lotNo);
+	        console.log(`[${index}] quantity:`, item.quantity);
+	        console.log(`[${index}] expirationDate:`, item.expirationDate);
+	        console.log(`[${index}] warehouseCode:`, item.warehouseCode);
+	        console.log(`[${index}] inventoryStatus:`, item.inventoryStatus);
+	      });
 	
-	            
-	            if (dataArray.length === 0) {
-	                console.log('빈 배열 수신');
-	                tbody.html('<tr><td colspan="5" class="text-center text-muted">해당 자재의 LOT 정보가 없습니다.</td></tr>');
-	                return;
-	            }
-	            
-	         // 각 LOT 데이터 처리
-	            dataArray.forEach(function(item, index) {
-	                console.log(`LOT ${index + 1} 처리:`, item);
+	      // (4) 테이블 & 페이징 렌더링
+	      renderLotTable();       // 전역 배열 기반 테이블 렌더링
+	      renderPagination();     // 페이징 버튼 생성
+	      renderLotHeaders();
+	    },
+	    error: function (xhr, status, error) {
+	      console.error('=== AJAX 오류 ===');
+	      console.error('Status:', xhr.status);
+	      console.error('Error:', error);
+	      console.error('Response Text:', xhr.responseText);
 	
-	                // 안전한 데이터 추출
-	                const lotNo = item.lotNo || item.lot_no || '-';
-	                const quantity = formatNumber(item.quantity);
-	                const warehouseCode = item.warehouseCode || item.warehouse_code || '-';
-	                const expirationDate = formatDate(item.expirationDate || item.expiration_date);
-	                const status = item.inventoryStatus || item.inventory_status || '정상';
+	      let errorMessage = '오류가 발생했습니다.';
+	      if (xhr.status === 404) errorMessage = 'API 엔드포인트를 찾을 수 없습니다.';
+	      else if (xhr.status === 500) errorMessage = '서버 내부 오류가 발생했습니다.';
+	      else if (xhr.status === 0) errorMessage = '네트워크 연결을 확인해주세요.';
 	
-	                // 상태 배지 생성
-	                const statusBadge = createStatusBadge(status);
-	
-	                // ✅ 실제 데이터를 row에 출력
-	                const row = `
-	                    <tr>
-	                        <td>${lotNo}</td>
-	                        <td>${quantity}</td>
-	                        <td>${expirationDate}</td>
-	                        <td>${warehouseCode}</td>
-	                        <td>${statusBadge}</td>
-	                    </tr>
-	                `;
-	
-	                tbody.append(row);
-	                console.log(`LOT ${index + 1} 행 추가 완료`);
-	            });
-	            
-	            console.log('모든 LOT 데이터 처리 완료. 총 행 수:', tbody.find('tr').length);
-	        },
-	        error: function(xhr, status, error) {
-	            console.error('=== AJAX 오류 ===');
-	            console.error('Status:', xhr.status);
-	            console.error('Error:', error);
-	            console.error('Response Text:', xhr.responseText);
-	            
-	            let errorMessage = '오류가 발생했습니다.';
-	            
-	            if (xhr.status === 404) {
-	                errorMessage = 'API 엔드포인트를 찾을 수 없습니다.';
-	            } else if (xhr.status === 500) {
-	                errorMessage = '서버 내부 오류가 발생했습니다.';
-	            } else if (xhr.status === 0) {
-	                errorMessage = '네트워크 연결을 확인해주세요.';
-	            }
-	            
-	            $('#lotTableBody').html(`
-	                <tr>
-	                    <td colspan="5" class="text-center text-danger">
-	                        ${errorMessage}<br>
-	                        <small class="text-muted">(Status: ${xhr.status}, Error: ${error})</small>
-	                    </td>
-	                </tr>
-	            `);
-	        }
-	    });
+	      $('#lotTableBody').html(`
+	        <tr>
+	          <td colspan="5" class="text-center text-danger">
+	            ${errorMessage}<br>
+	            <small class="text-muted">(Status: ${xhr.status}, Error: ${error})</small>
+	          </td>
+	        </tr>
+	      `);
+	    }
+	  });
 	}
+
 	
 	// 숫자 포맷팅 함수
 	function formatNumber(value) {
@@ -195,4 +154,176 @@ function showLotDetails(materialId) {
 	    
 	    const badgeClass = statusMap[status] || 'badge-secondary';
 	    return `<span class="badge ${badgeClass}">${status}</span>`;
+	}
+	
+	
+	
+	/************************************************************
+	 * materialInventoryLot.js - 모달 내 LOT 테이블 정렬 및 페이징 (최신)
+	 ************************************************************/
+
+	let lotData = []; // LOT 전체 데이터를 담는 전역 배열
+	let currentPage = 1; // 현재 페이지
+	let itemsPerPage = 10; // 페이지당 항목 수
+	let currentSort = { column: '', order: '' }; // 정렬 상태
+
+	// 날짜 포맷 함수
+	function formatDate(dateValue) {
+	  if (!dateValue) return '-';
+	  const date = new Date(dateValue);
+	  if (isNaN(date)) return '-';
+	  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+	}
+
+	// 숫자 포맷 함수
+	function formatNumber(value) {
+	  const num = Number(value);
+	  return isNaN(num) ? '0' : num.toLocaleString();
+	}
+
+	// 상태 배지 HTML 생성 함수
+	function createStatusBadge(status) {
+	  const badgeClass = {
+	    '정상': 'badge-success',
+	    '부족': 'badge-warning',
+	    '위험': 'badge-danger'
+	  }[status] || 'badge-secondary';
+
+	  return `<span class="badge ${badgeClass}">${status}</span>`;
+	}
+
+	// 정렬 아이콘 반환 함수 (⇅ / ↑ / ↓ 형태)
+	function getSortIcon(column) {
+	  if (currentSort.column === column) {
+	    return currentSort.order === 'asc'
+        ? '<i class="ti-arrow-up"></i>'
+        : '<i class="ti-arrow-down"></i>';
+	  }
+	  return '⇅';
+	}
+
+	// [1] 모달 열기 및 데이터 로드
+	function loadInboundDetail(inboundId) {
+	  $.ajax({
+	    url: '/material/inbound/detail',
+	    method: 'GET',
+	    data: { inboundId: inboundId },
+	    success: function (data) {
+	      lotData = data.items || [];
+	      currentPage = 1;
+	      currentSort = { column: '', order: '' };
+	      renderLotTable();
+	      renderPagination();
+	      renderLotHeaders();
+	    },
+	    error: function () {
+	      alert('LOT 상세 데이터를 불러오는데 실패했습니다.');
+	    }
+	  });
+	}
+
+	// [2] LOT 테이블 렌더링 함수
+	function renderLotTable() {
+	  const tbody = $('#lotTableBody');
+	  tbody.empty();
+
+	  const start = (currentPage - 1) * itemsPerPage;
+	  const pageItems = lotData.slice(start, start + itemsPerPage);
+
+	  pageItems.forEach(item => {
+	    const row = `<tr>
+	      <td>${item.lotNo || '-'}</td>
+	      <td>${formatNumber(item.quantity)}</td>
+	      <td>${formatDate(item.expirationDate)}</td>
+	      <td>${item.warehouseCode || '-'}</td>
+	      <td>${createStatusBadge(item.inventoryStatus || '정상')}</td>
+	    </tr>`;
+	    tbody.append(row);
+	  });
+	}
+
+	// [2.1] 헤더 아이콘 렌더링
+	function renderLotHeaders() {
+	  $('#lotTableHeader th').each(function () {
+	    const col = $(this).data('column');
+	    if (col) {
+	      $(this).find('span.sort-icon').remove();
+	      const icon = getSortIcon(col);
+	      $(this).find('a').append(`<span class="ml-1 sort-icon">${icon}</span>`);
+	    }
+	  });
+	}
+
+	// [3] 페이징 버튼 생성 (이전/다음 포함)
+	function renderPagination() {
+	  const totalPages = Math.ceil(lotData.length / itemsPerPage);
+	  const pagination = $('#lotPagination');
+	  pagination.empty();
+
+	  if (currentPage > 1) {
+	    pagination.append(`
+	      <li class="page-item">
+	        <a class="page-link" href="#" onclick="goToPage(${currentPage - 1})">&laquo;</a>
+	      </li>
+	    `);
+	  }
+
+	  for (let i = 1; i <= totalPages; i++) {
+	    const active = i === currentPage ? 'active' : '';
+	    pagination.append(`
+	      <li class="page-item ${active}">
+	        <a class="page-link" href="#" onclick="goToPage(${i})">${i}</a>
+	      </li>
+	    `);
+	  }
+
+	  if (currentPage < totalPages) {
+	    pagination.append(`
+	      <li class="page-item">
+	        <a class="page-link" href="#" onclick="goToPage(${currentPage + 1})">&raquo;</a>
+	      </li>
+	    `);
+	  }
+	}
+
+	// [4] 페이지 이동
+	function goToPage(page) {
+	  currentPage = page;
+	  renderLotTable();
+	  renderPagination();
+	  renderLotHeaders();
+	}
+
+	// [5] 정렬 함수
+	function sortLotBy(column) {
+	  const order = (currentSort.column === column && currentSort.order === 'asc') ? 'desc' : 'asc';
+	  currentSort = { column, order };
+
+	  lotData.sort((a, b) => {
+	    let valA = a[column];
+	    let valB = b[column];
+
+	    if (column === 'expirationDate') {
+	      valA = new Date(valA);
+	      valB = new Date(valB);
+	    }
+
+	    if (valA == null) return 1;
+	    if (valB == null) return -1;
+
+	    if (typeof valA === 'number' && typeof valB === 'number') {
+	      return order === 'asc' ? valA - valB : valB - valA;
+	    } else if (valA instanceof Date && valB instanceof Date) {
+	      return order === 'asc' ? valA - valB : valB - valA;
+	    } else {
+	      return order === 'asc'
+	        ? String(valA).localeCompare(String(valB))
+	        : String(valB).localeCompare(String(valA));
+	    }
+	  });
+
+	  currentPage = 1;
+	  renderLotTable();
+	  renderPagination();
+	  renderLotHeaders();
 	}

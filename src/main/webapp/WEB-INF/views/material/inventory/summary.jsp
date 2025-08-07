@@ -202,7 +202,7 @@
 			          <td>${inv.warehouseCode}</td>
 			          <!-- LOT 상세 버튼 -->
 			          <td>
-			            <button class="btn btn-outline-info btn-sm" onclick="showLotDetails('${inv.materialId}')">
+			            <button class="btn btn-sm btn-outline-info" onclick="showLotDetails('${inv.materialId}')">
 			              상세
 			            </button>
 			          </td>
@@ -225,7 +225,7 @@
 		<div class="modal fade" id="lotModal" tabindex="-1" role="dialog" aria-labelledby="lotModalLabel" aria-hidden="true">
 		  <div class="modal-dialog modal-lg" role="document">
 		    <div class="modal-content">
-		      <div class="modal-header">
+		      <div class="modal-header" style="background-color: #1c355e; color: #ffffff;">
 		        <h5 class="modal-title" id="lotModalLabel">LOT 상세 정보</h5>
 		        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
 		          <span aria-hidden="true">&times;</span>
@@ -236,10 +236,16 @@
 		        <div class="table-responsive">
 		          <table class="table table-bordered text-center">
 		            <thead>
-		             <tr>
-				      <th>LOT 번호</th>
-				      <th>수량</th>
-				      <th>유통기한</th>
+		             <tr id="lotTableHeader">
+				      <th data-column="lotNo">
+					    <a href="#" onclick="sortLotBy('lotNo'); return false;">LOT 번호</a>
+					  </th>
+				      <th data-column="quantity">
+					    <a href="#" onclick="sortLotBy('quantity'); return false;">현재고</a>
+					  </th>
+				      <th data-column="expirationDate">
+					    <a href="#" onclick="sortLotBy('expirationDate'); return false;">유통기한</a>
+					  </th>
 				      <th>보관창고</th>
 				      <th>재고상태</th>
 				    </tr>
@@ -248,6 +254,10 @@
 		              <!-- JavaScript로 동적 생성 -->
 		            </tbody>
 		          </table>
+		          
+		          <!-- LOT 테이블 페이징 버튼 영역 -->
+				  <ul class="pagination justify-content-center mt-3" id="lotPagination"></ul>
+		          
 		        </div>
 		      </div>
 		      
