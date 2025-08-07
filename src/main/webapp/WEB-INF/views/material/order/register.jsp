@@ -64,6 +64,7 @@
               <button type="button" class="btn btn-sm btn-outline-primary" onclick="addItemRow()">+ 항목 추가</button>
             </div>
             
+            <input type="hidden" name="order.orderDate" id="orderDate">
             <!-- 발주 상태 hidden으로 추가 -->
 			<input type="hidden" name="order.orderStatus" value="요청">
 

@@ -142,7 +142,7 @@ function calculateTotal(input) {
 
 	  const qty = parseFloat(qtyInput.value) || 0;
 	  const price = parseFloat(priceInput.value) || 0;
-	  const total = (qty * price).toFixed(2);
+	  const total = Math.round(qty * price);
 
 	  // 총금액 출력 필드들: hidden + readonly
 	  const hiddenTotalInput = row.querySelector("input[type='hidden'][name$='.totalPrice']");
@@ -358,3 +358,10 @@ document.addEventListener("change", function (e) {
     }
   }
 });
+
+
+// 발주일
+document.addEventListener("DOMContentLoaded", function () {
+    const today = new Date().toISOString().split("T")[0];
+    document.getElementById("orderDate").value = today;
+  });
