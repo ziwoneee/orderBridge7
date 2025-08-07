@@ -287,19 +287,32 @@
 					  <tbody id="lotTableBody">
 					    <c:forEach var="item" items="${lotList}">
 					      <tr>
-					        <td>${empty item.lotNo ? '-' : item.lotNo}</td>
-					        <td class="text-end">${empty item.quantity ? '-' : item.quantity}</td>
-					        <td>
-					          <c:choose>
-					            <c:when test="${not empty item.expirationDate}">
-					              <fmt:formatDate value="${item.expirationDate}" pattern="yyyy-MM-dd"/>
-					            </c:when>
-					            <c:otherwise>-</c:otherwise>
-					          </c:choose>
-					        </td>
-					        <td>${empty item.warehouseCode ? '-' : item.warehouseCode}</td>
-					        <td>${empty item.status ? '-' : item.status}</td>
-					      </tr>
+							  <td>${item.lotNo != null ? item.lotNo : '-'}</td>
+							  <td>${item.quantity != null ? item.quantity : '-'}</td>
+							  <td>
+							    <c:choose>
+							      <c:when test="${item.expirationDate != null}">
+							        <fmt:formatDate value="${item.expirationDate}" pattern="yyyy-MM-dd"/>
+							      </c:when>
+							      <c:otherwise>-</c:otherwise>
+							    </c:choose>
+							  </td>
+							  <td>${item.warehouseCode != null ? item.warehouseCode : '-'}</td>
+							  <td>
+							    <c:choose>
+							      <c:when test="${item.inventoryStatus == '정상'}">
+							        <span class="badge badge-success">정상</span>
+							      </c:when>
+							      <c:when test="${item.inventoryStatus == '위험'}">
+							        <span class="badge badge-danger">위험</span>
+							      </c:when>
+							      <c:otherwise>
+							        <span class="badge badge-secondary">-</span>
+							      </c:otherwise>
+							    </c:choose>
+							  </td>
+							</tr>
+
 					    </c:forEach>
 					  </tbody>
 					</table>
@@ -369,38 +382,60 @@ function showLotDetails(materialId) {
 
 <script>
 function showLotDetails(materialId) {
-	  $.ajax({
-	    url: '/material/inventory/lot-details',
-	    method: 'GET',
-	    data: { materialId },
-	    success: function(data) {
-	      const tbody = $('#lotTableBody');
-	      tbody.empty();
+  $.ajax({
+    url: '/material/inventory/lot-details',
+    method: 'GET',
+    data: { materialId },
+    success: function(data) {
+      const tbody = $('#lotTableBody');
+      tbody.empty();
 
-	      if (!data || data.length === 0) {
-	        tbody.append('<tr><td colspan="5">해당 자재의 LOT 정보가 없습니다.</td></tr>');
-	        return;
-	      }
+      if (!data || data.length === 0) {
+        tbody.append('<tr><td colspan="5">해당 자재의 LOT 정보가 없습니다.</td></tr>');
+        $('#lotModal').modal('show');
+        return;
+      }
 
-	      data.forEach(item => {
-	    	  const row = `
-	    	    <tr>
-	    	      <td>${item.lotNo ? item.lotNo : '-'}</td>
-	    	      <td class="text-end">${item.quantity == null ? '-' : item.quantity}</td>
-	    	      <td>${item.expirationDate ? item.expirationDate.split('T')[0] : '-'}</td>
-	    	      <td>${item.warehouseCode ? item.warehouseCode : '-'}</td>
-	    	      <td>${item.inventoryStatus ? item.inventoryStatus : '-'}</td>
-	    	    </tr>
-	    	  `;
-	    	  tbody.append(row);
-	    	});
+      data.forEach(item => {
+        // JavaScript에서 날짜 포맷팅
+        let formattedDate = '-';
+        if (item.expirationDate) {
+          const date = new Date(item.expirationDate);
+          formattedDate = date.getFullYear() + '-' + 
+                         String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                         String(date.getDate()).padStart(2, '0');
+        }
 
-	      $('#lotModal').modal('show');
-	    },
-	    error: function() {
-	      alert('LOT 상세 정보를 불러오는 중 오류가 발생했습니다.');
-	    }
-	  });
-	}
+        // 상태 배지 처리
+        let statusBadge = '<span class="badge badge-secondary">-</span>';
+        if (item.inventoryStatus === '정상') {
+          statusBadge = '<span class="badge badge-success">정상</span>';
+        } else if (item.inventoryStatus === '위험') {
+          statusBadge = '<span class="badge badge-danger">위험</span>';
+        } else if (item.inventoryStatus === '부족') {
+          statusBadge = '<span class="badge badge-warning">부족</span>';
+        }
 
+        const row = `
+          <tr>
+            <td>${item.lotNo || '-'}</td>
+            <td>${item.quantity || '-'}</td>
+            <td>${formattedDate}</td>
+            <td>${item.warehouseCode || '-'}</td>
+            <td>${statusBadge}</td>
+          </tr>
+        `;
+        tbody.append(row);
+      });
+
+      // 모달 표시
+      $('#lotModal').modal('show');
+    },
+    error: function(err) {
+      console.error('LOT 정보 조회 실패', err);
+      $('#lotTableBody').html('<tr><td colspan="5">LOT 정보를 불러오지 못했습니다.</td></tr>');
+      $('#lotModal').modal('show');
+    }
+  });
+}
 </script>
