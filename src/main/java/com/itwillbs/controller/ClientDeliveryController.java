@@ -2,6 +2,7 @@ package com.itwillbs.controller;
 
 import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.domain.StockReservationVO;
 import com.itwillbs.dto.ShipmentCompletedDTO;
 import com.itwillbs.dto.ShipmentCompletedGroupDTO;
 import com.itwillbs.dto.ShipmentPendingGroupDTO;
@@ -49,60 +50,45 @@ public class ClientDeliveryController {
         return "redirect:/shipment/list";
     }
     
-    // 출하 완료 목록 보기
-    @GetMapping("/completed")
-    public String showCompletedShipmentList(@ModelAttribute SearchCriteria cri, Model model) {
-        // ✅ 정렬 컬럼 화이트리스트
-    	List<String> allowed = Arrays.asList("deliveryId", "clOrderId", "deliveryDate", "productName", "clientName", "lotNo", "trackingNumber");
-
-        // ✅ 기본값 설정
-        if (cri.getSortColumn() == null) {
-            cri.setSortColumn("deliveryDate");
-        }
-        if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) {
-            cri.setSortOrder("desc");
-        }
-
-        // ✅ 빈 문자열 처리
-        if (cri.getStartDate() != null && cri.getStartDate().trim().isEmpty()) cri.setStartDate(null);
-        if (cri.getEndDate() != null && cri.getEndDate().trim().isEmpty()) cri.setEndDate(null);
-
-        // ✅ 데이터 조회
-        List<ShipmentCompletedDTO> completedList = deliveryService.searchCompletedShipmentList(cri);
-        int totalCount = deliveryService.countCompletedShipmentList(cri);
-        PageMaker pageMaker = new PageMaker(cri, totalCount);
-
-        model.addAttribute("completedList", completedList);
-        model.addAttribute("pageMaker", pageMaker);
-        model.addAttribute("cri", cri);
-
-        return "clientDelivery/completed";
-    }
-
+    
+//출하관리 전체 목록보기
     
     @GetMapping("/list")
     public String showShipmentTabs(@ModelAttribute SearchCriteria cri,
                                    @RequestParam(value = "tab", required = false, defaultValue = "pending") String tab,
                                    Model model) {
-    	System.out.println(cri);
+
+        model.addAttribute("cri", cri);
+        model.addAttribute("tab", tab);
+
+        // ✅ 예약관리 탭일 경우
+        if ("reservation".equals(tab)) {
+            // 예약 리스트 조회
+            List<StockReservationVO> reservationList = reservationService.getFilteredReservationList(cri);
+            int totalReservationCount = reservationService.countFilteredReservationList(cri);
+            PageMaker reservationPage = new PageMaker(cri, totalReservationCount);
+
+            model.addAttribute("reservationList", reservationList);
+            model.addAttribute("reservationPage", reservationPage);
+
+            return "clientDelivery/list";  // 기존 JSP 공유
+        }
+
         // ✅ 출하대기 목록
         List<ShipmentPendingGroupDTO> groupedList = deliveryService.searchPendingGroupedList(cri);
-        System.out.println(groupedList);
         int totalPending = deliveryService.countPendingGroupedList(cri);
-        System.out.println(totalPending);
         PageMaker pendingPage = new PageMaker(cri, totalPending);
-
         model.addAttribute("groupedList", groupedList);
         model.addAttribute("pendingPage", pendingPage);
 
-        // ✅ 예약된 수주번호 목록 전달
+        // ✅ 예약된 수주번호 목록 전달 (출하대기 탭에서 "예약중" 여부 체크용)
         List<String> reservedOrderIds = reservationService.getReservedOrderIds();
         model.addAttribute("reservedOrderIds", reservedOrderIds);
 
-        // ✅ 출하완료 검색조건 보정
+        // ✅ 출하완료 목록
         List<String> allowed = Arrays.asList("deliveryId", "clOrderId", "deliveryDate", "productName", "clientName", "lotNo", "trackingNumber");
 
-        if (cri.getSortColumn() == null ) {
+        if (cri.getSortColumn() == null || !allowed.contains(cri.getSortColumn())) {
             cri.setSortColumn("deliveryDate");
         }
 
@@ -113,23 +99,18 @@ public class ClientDeliveryController {
         if (cri.getStartDate() != null && cri.getStartDate().trim().isEmpty()) cri.setStartDate(null);
         if (cri.getEndDate() != null && cri.getEndDate().trim().isEmpty()) cri.setEndDate(null);
 
-        // ✅ 출하완료 flat 리스트 (기존 테이블용, 유지)
         List<ShipmentCompletedDTO> completedList = deliveryService.searchCompletedShipmentList(cri);
-        int totalCount = deliveryService.countCompletedShipmentList(cri);
-        PageMaker pageMaker = new PageMaker(cri, totalCount);
+        int totalCompleted = deliveryService.countCompletedShipmentList(cri);
+        PageMaker completedPage = new PageMaker(cri, totalCompleted);
 
-        // ✅ 출하완료 그룹 리스트 (모달용 추가)
         List<ShipmentCompletedGroupDTO> groupedCompletedList = deliveryService.getCompletedGroupedList(cri);
 
-        // ✅ 모델에 전달
-        model.addAttribute("completedList", completedList); // (선택: 기존 flat 테이블 유지 시)
-        model.addAttribute("groupedCompletedList", groupedCompletedList); // 👉 모달용!
-        model.addAttribute("pageMaker", pageMaker);
-        model.addAttribute("cri", cri);
-        model.addAttribute("tab", tab);
-
+        model.addAttribute("completedList", completedList);
+        model.addAttribute("groupedCompletedList", groupedCompletedList);
+        model.addAttribute("pageMaker", completedPage); // 출하완료용
         return "clientDelivery/list";
     }
+
 
  // ✅ 예약 등록
     @GetMapping("/reserve")
@@ -176,6 +157,8 @@ public class ClientDeliveryController {
         return "redirect:/shipment/list?tab=completed";
     }
 
+    
+   
 
 
 }

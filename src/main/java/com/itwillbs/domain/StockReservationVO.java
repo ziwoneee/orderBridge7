@@ -16,4 +16,12 @@ public class StockReservationVO {
 	public int detailId; //주문상세 ID
 	public Date createdAt;
 	
+	private String productName;   // product 테이블 조인
+	private String clientName;    // client 테이블 조인
+	public String expireDate; //유효기간
+	public int stockQty; // 재고수량
+	public Date deliveryDate; //납기일
+		
+	
+	
 }

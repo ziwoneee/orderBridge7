@@ -1,5 +1,6 @@
 package com.itwillbs.persistence;
 
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.StockReservationVO;
 import com.itwillbs.dto.LotStockDTO;
 
@@ -94,6 +95,19 @@ public class StockReservationDAOImpl implements StockReservationDAO {
     @Override
     public int countReservationsByOrderId(String clOrderId) {
         return sqlSession.selectOne(NAMESPACE + ".countReservationsByOrderId", clOrderId);
+    }
+    
+    /**
+     * ✅ 예약 내역 확인 
+     */
+    @Override
+    public List<StockReservationVO> getFilteredReservationList(SearchCriteria cri) {
+        return sqlSession.selectList(NAMESPACE + ".getFilteredReservationList", cri);
+    }
+
+    @Override
+    public int countFilteredReservationList(SearchCriteria cri) {
+        return sqlSession.selectOne(NAMESPACE + ".countFilteredReservationList", cri);
     }
 
 }

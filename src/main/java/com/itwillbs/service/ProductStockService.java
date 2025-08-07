@@ -7,6 +7,7 @@ import java.util.Map;
 import com.itwillbs.domain.ProductStockTransactionVO;
 import com.itwillbs.domain.ProductStockVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.domain.StockReservationVO;
 import com.itwillbs.dto.LotStockDTO;
 
 public interface ProductStockService {
@@ -32,4 +33,5 @@ public interface ProductStockService {
 			String inboundId, String outboundId, String clOrderId);
 	
      
+       
 }

@@ -194,9 +194,10 @@
   LEFT JOIN client c ON po.client_id = c.client_id
   WHERE po.product_id = #{productId}
     AND po.lot_no = #{lotNo}
-
+  
   ORDER BY reg_date ASC
 </select>
+
 
  <!-- ✅ 6. resultMap (VO 전용) -->
 <resultMap id="StockDetailMap" type="com.itwillbs.domain.ProductStockTransactionVO">
@@ -250,8 +251,10 @@
   FROM product_transaction pt
   LEFT JOIN client c ON pt.client_id = c.client_id
   WHERE pt.lot_no = #{lotNo}
+    AND pt.type NOT IN ('RESERVE', 'CANCEL_RESERVE')  <!-- 예약 관련 이력 제외 -->
   ORDER BY pt.reg_date ASC
 </select>
+
 
   
   <!-- 재고 저장 -->

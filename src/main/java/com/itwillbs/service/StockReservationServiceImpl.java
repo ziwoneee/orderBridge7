@@ -1,6 +1,7 @@
 package com.itwillbs.service;
 
 import com.itwillbs.domain.ClientOrderDetailVO;
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.StockReservationVO;
 import com.itwillbs.dto.LotStockDTO;
 import com.itwillbs.persistence.ClientDeliveryDAO;
@@ -35,15 +36,37 @@ public class StockReservationServiceImpl implements StockReservationService {
 
     @Autowired
     private ClientOrderDAO orderDAO;
+    
+    @Autowired
+    private ProductStockService productStockService; 
+
+  
 
     /**
      * 단일 예약 등록
      */
     @Override
     public void reserveStock(StockReservationVO vo) {
+        // 1. 예약 등록
         reservationDAO.insertReservation(vo);
-        stockDAO.increaseReservedQty(vo.getProductId(), vo.getLotNo(), vo.getReservedQty()); // ✅ lotNo 추가
+
+        // 2. 재고 예약 수량 증가
+        stockDAO.increaseReservedQty(vo.getProductId(), vo.getLotNo(), vo.getReservedQty());
+
+        // ✅ 3. 예약 이력 기록 - clientId 포함!
+        productStockService.insertTransaction(
+            "RESERVE",
+            vo.getLotNo(),
+            vo.getReservedQty(),
+            vo.getProductId(),
+            vo.getClientId(),     
+            vo.getManager(),      
+            null,
+            null,
+            vo.getClOrderId()
+        );
     }
+
 
     /**
      * 단일 예약 해제 (제품 기준)
@@ -60,6 +83,21 @@ public class StockReservationServiceImpl implements StockReservationService {
 
                 // 재고 복원 (LOT 단위)
                 stockDAO.decreaseReservedQty(r.getProductId(), r.getLotNo(), r.getReservedQty());
+               
+                // ✅ 예약 해제 이력 기록
+                productStockService.insertTransaction(
+                    "CANCEL_RESERVE",
+                    r.getLotNo(),
+                    r.getReservedQty(),
+                    r.getProductId(),
+                    r.getClientId(),
+                    r.getManager(),
+                    null,
+                    null,
+                    r.getClOrderId()
+                );
+            
+            
             }
         }
     }
@@ -122,7 +160,19 @@ public class StockReservationServiceImpl implements StockReservationService {
                 reservationDAO.insertReservation(reservation);
                 stockDAO.increaseReservedQty(productId, lot.getLotNo(), allocQty);
 
-                tempReservations.add(reservation); // ✅ rollback 대상 저장
+                tempReservations.add(reservation); 
+                
+                productStockService.insertTransaction(
+                        "RESERVE",
+                        lot.getLotNo(),
+                        allocQty,
+                        productId,
+                        detail.getClientId(),
+                        "SYSTEM",         
+                        null,
+                        null,
+                        clOrderId
+                    );
 
                 requiredQty -= allocQty;
                 reserved = true;
@@ -162,6 +212,21 @@ public class StockReservationServiceImpl implements StockReservationService {
 
             // 예약 수량 만큼 재고에서 복원
             stockDAO.decreaseReservedQty(r.getProductId(), r.getLotNo(), r.getReservedQty());
+        
+         // ✅ 예약 전체 해제 이력 기록
+            productStockService.insertTransaction(
+                "CANCEL_RESERVE",
+                r.getLotNo(),
+                r.getReservedQty(),
+                r.getProductId(),
+                r.getClientId(),
+                r.getManager(),
+                null,
+                null,
+                r.getClOrderId()
+            );
+        
+        
         }
     }
 
@@ -188,4 +253,16 @@ public class StockReservationServiceImpl implements StockReservationService {
     public boolean isReserved(String clOrderId) {
         return reservationDAO.countReservationsByOrderId(clOrderId) > 0;
     }
+    
+    //예약내역확인
+    @Override
+    public List<StockReservationVO> getFilteredReservationList(SearchCriteria cri) {
+        return reservationDAO.getFilteredReservationList(cri);
+    }
+
+    @Override
+    public int countFilteredReservationList(SearchCriteria cri) {
+        return reservationDAO.countFilteredReservationList(cri);
+    }
+
 }
