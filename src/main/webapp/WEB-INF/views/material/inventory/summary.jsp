@@ -241,7 +241,7 @@
 			          <!-- LOT 상세 버튼 -->
 			          <td>
 			            <button class="btn btn-outline-info btn-sm" onclick="showLotDetails('${inv.materialId}')">
-			              <i class="ti-eye"></i> LOT
+			              상세
 			            </button>
 			          </td>
 			        </tr>
@@ -259,67 +259,39 @@
 	  </table>
 	  </div>
 	  
-	  <!-- LOT 상세 모달 -->
-		<div class="modal fade" id="lotModal" tabindex="-1" role="dialog">
+		<!-- LOT 상세 모달 -->
+		<div class="modal fade" id="lotModal" tabindex="-1" role="dialog" aria-labelledby="lotModalLabel" aria-hidden="true">
 		  <div class="modal-dialog modal-lg" role="document">
 		    <div class="modal-content">
-		
 		      <div class="modal-header">
-		        <h5 class="modal-title">LOT 상세 정보</h5>
-		        <button type="button" class="close" data-dismiss="modal">
-		          <span>&times;</span>
+		        <h5 class="modal-title" id="lotModalLabel">LOT 상세 정보</h5>
+		        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+		          <span aria-hidden="true">&times;</span>
 		        </button>
 		      </div>
-		
+		      
 		      <div class="modal-body">
 		        <div class="table-responsive">
-		          <!-- LOT 상세 테이블 -->
-					<table class="table table-bordered text-center">
-					  <thead class="thead-dark">
-					    <tr>
-					      <th>LOT 번호</th>
-					      <th>수량</th>
-					      <th>유통기한</th>
-					      <th>보관창고</th>
-					      <th>상태</th>
-					    </tr>
-					  </thead>
-					  <tbody id="lotTableBody">
-					    <c:forEach var="item" items="${lotList}">
-					      <tr>
-							  <td>${item.lotNo != null ? item.lotNo : '-'}</td>
-							  <td>${item.quantity != null ? item.quantity : '-'}</td>
-							  <td>
-							    <c:choose>
-							      <c:when test="${item.expirationDate != null}">
-							        <fmt:formatDate value="${item.expirationDate}" pattern="yyyy-MM-dd"/>
-							      </c:when>
-							      <c:otherwise>-</c:otherwise>
-							    </c:choose>
-							  </td>
-							  <td>${item.warehouseCode != null ? item.warehouseCode : '-'}</td>
-							  <td>
-							    <c:choose>
-							      <c:when test="${item.inventoryStatus == '정상'}">
-							        <span class="badge badge-success">정상</span>
-							      </c:when>
-							      <c:when test="${item.inventoryStatus == '위험'}">
-							        <span class="badge badge-danger">위험</span>
-							      </c:when>
-							      <c:otherwise>
-							        <span class="badge badge-secondary">-</span>
-							      </c:otherwise>
-							    </c:choose>
-							  </td>
-							</tr>
-
-					    </c:forEach>
-					  </tbody>
-					</table>
-
+		          <table class="table table-bordered text-center">
+		            <thead>
+		             <tr>
+				      <th>LOT 번호</th>
+				      <th>수량</th>
+				      <th>유통기한</th>
+				      <th>창고코드</th>
+				      <th>재고상태</th>
+				    </tr>
+		            </thead>
+		            <tbody id="lotTableBody">
+		              <!-- JavaScript로 동적 생성 -->
+		            </tbody>
+		          </table>
 		        </div>
 		      </div>
-		
+		      
+		      <div class="modal-footer">
+		        <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
+		      </div>
 		    </div>
 		  </div>
 		</div>
@@ -372,70 +344,4 @@
 </div>
 <!-- container-scroller 끝-->
 
-<script>
-function showLotDetails(materialId) {
-    // LOT 상세 정보를 보여주는 모달이나 새 페이지로 이동하는 함수
-    // 예: 모달 팝업 또는 새 창으로 LOT 정보 표시
-    window.open('/material/inventory/lot-details/' + materialId, '_blank', 'width=800,height=600');
-}
-</script>
-
-<script>
-function showLotDetails(materialId) {
-  $.ajax({
-    url: '/material/inventory/lot-details',
-    method: 'GET',
-    data: { materialId },
-    success: function(data) {
-      const tbody = $('#lotTableBody');
-      tbody.empty();
-
-      if (!data || data.length === 0) {
-        tbody.append('<tr><td colspan="5">해당 자재의 LOT 정보가 없습니다.</td></tr>');
-        $('#lotModal').modal('show');
-        return;
-      }
-
-      data.forEach(item => {
-        // JavaScript에서 날짜 포맷팅
-        let formattedDate = '-';
-        if (item.expirationDate) {
-          const date = new Date(item.expirationDate);
-          formattedDate = date.getFullYear() + '-' + 
-                         String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-                         String(date.getDate()).padStart(2, '0');
-        }
-
-        // 상태 배지 처리
-        let statusBadge = '<span class="badge badge-secondary">-</span>';
-        if (item.inventoryStatus === '정상') {
-          statusBadge = '<span class="badge badge-success">정상</span>';
-        } else if (item.inventoryStatus === '위험') {
-          statusBadge = '<span class="badge badge-danger">위험</span>';
-        } else if (item.inventoryStatus === '부족') {
-          statusBadge = '<span class="badge badge-warning">부족</span>';
-        }
-
-        const row = `
-          <tr>
-            <td>${item.lotNo || '-'}</td>
-            <td>${item.quantity || '-'}</td>
-            <td>${formattedDate}</td>
-            <td>${item.warehouseCode || '-'}</td>
-            <td>${statusBadge}</td>
-          </tr>
-        `;
-        tbody.append(row);
-      });
-
-      // 모달 표시
-      $('#lotModal').modal('show');
-    },
-    error: function(err) {
-      console.error('LOT 정보 조회 실패', err);
-      $('#lotTableBody').html('<tr><td colspan="5">LOT 정보를 불러오지 못했습니다.</td></tr>');
-      $('#lotModal').modal('show');
-    }
-  });
-}
-</script>
+<script src="${pageContext.request.contextPath}/resources/js/materialInventoryLot.js"></script>

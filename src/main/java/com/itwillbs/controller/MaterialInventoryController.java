@@ -69,8 +69,16 @@ public class MaterialInventoryController {
 	// material_id로 LOT 목록 조회
 	@GetMapping("/lot-details")
 	@ResponseBody
-	public ResponseEntity<List<MaterialInventoryVO>> getLotList(@RequestParam("materialId") String materialId) throws Exception {
+	public ResponseEntity<List<MaterialInventoryVO>> getLotDetails(@RequestParam("materialId") String materialId) throws Exception {
+	    logger.info("LOT 조회 요청 - materialId: {}", materialId);
+	    
 	    List<MaterialInventoryVO> lotList = miService.getLotListByMaterialId(materialId);
+	    
+	    logger.info("조회된 LOT 데이터 개수: {}", lotList != null ? lotList.size() : 0);
+	    if (lotList != null && !lotList.isEmpty()) {
+	        logger.info("첫 번째 LOT 데이터: {}", lotList.get(0));
+	    }
+	    
 	    return ResponseEntity.ok(lotList);
 	}
 
