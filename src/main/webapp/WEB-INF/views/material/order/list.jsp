@@ -89,7 +89,7 @@
 						   </c:choose>
                         </a>
                       </th>
-                      <th>품명</th>
+                      <th>거래처명</th>
                       <th>발주수량</th>
                       <th>
                         <a href="/material/order/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=order_date&sortOrder=${cri.sortColumn == 'order_date' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
@@ -120,8 +120,6 @@
                         </a>
                       </th>
                       <th>입고창고</th>
-                      <th>단가계</th>
-                      <th>부가세</th>
                       <th>담당자</th>
                       <th>발주상태</th>
                     </tr>
@@ -134,8 +132,8 @@
                         <!-- 발주번호 -->
                         <td class="font-weight-medium">${order.orderId}</td>
                         
-                        <!-- 품명 (대표 품명 또는 첫번째 품명) -->
-                        <td>${order.materialName}</td>
+                        <!-- 거래처명 -->
+                        <td>${order.supplierName}</td>
                         
                         <!-- 발주수량 -->
                         <td class="text-end">
@@ -162,16 +160,6 @@
                         
                         <!-- 입고창고 -->
                         <td>${order.warehouseCode}</td>
-                        
-                        <!-- 단가계 -->
-                        <td class="text-end">
-                          <fmt:formatNumber value="${order.totalPrice}" pattern="#,###"/>
-                        </td>
-                        
-                        <!-- 부가세 (10%) -->
-                        <td class="text-end">
-                          <fmt:formatNumber value="${order.totalPrice * 0.1}" pattern="#,###"/>
-                        </td>
                         
                         <!-- 담당자 -->
                         <td>${order.createdBy}</td>
