@@ -156,25 +156,31 @@ function processMergeOrders() {
         return;
     }
     
-    // 5. 부모창으로 데이터 전달
-    if (window.opener && typeof window.opener.receiveOrderData === 'function') {
-        try {
-            window.opener.receiveOrderData(mergedData);
-            
-            // 성공 시 팝업 닫기
-            setTimeout(() => {
-                window.close();
-            }, 100);
-            
-        } catch (error) {
-            console.error('데이터 전달 오류:', error);
-            alert('데이터 전달 중 오류가 발생했습니다.');
-        }
+    // 5. URL 파라미터 구성
+    const clOrderParams = mergedData.clOrderIds
+        .map(id => `clOrderIds=${encodeURIComponent(id)}`)
+        .join('&');
+
+    const productParam = `productId=${encodeURIComponent(mergedData.productId)}`;
+    const qtyParam = `orderQty=${mergedData.orderQty}`;
+    const dateParam = `dueDate=${encodeURIComponent(mergedData.dueDate)}`;
+    
+    const fullUrl = `/workorder/register-popup?${clOrderParams}&${productParam}&${qtyParam}&${dateParam}`;
+
+    // 6. 팝업 창 열기
+    const popup = window.open(
+        fullUrl,
+        "registerPopup",
+        "width=1000,height=800,scrollbars=yes"
+    );
+
+    // 7. (선택) 수주 선택 팝업 닫기
+    if (popup) {
+        window.close();
     } else {
-        alert('부모창과의 연결이 끊어졌습니다. 페이지를 새로고침 후 다시 시도해주세요.');
+        alert("팝업 차단이 되어있을 수 있습니다. 브라우저 설정을 확인해주세요.");
     }
 }
-
 /**
  * 동일 제품 검증
  */
@@ -338,6 +344,7 @@ function formatDate(date) {
 /**
  * 디버깅용 - 선택된 데이터 콘솔 출력
  */
+
 function debugSelectedData() {
     console.log('=== 선택된 수주 데이터 ===');
     $('.order-checkbox:checked').each(function() {

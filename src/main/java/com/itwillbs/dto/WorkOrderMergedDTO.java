@@ -12,4 +12,6 @@ public class WorkOrderMergedDTO {
     private String clOrderId;     // 수주번호
     private String productId;     // 제품 ID
     private int orderQty;         // 수주 수량
+    private String clientName; 
+    private String dueDate;  // 수주 납기일
 }

@@ -2,8 +2,9 @@ package com.itwillbs.service;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
-
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.BomItemDTO;
 import com.itwillbs.dto.WorkOrderDTO;
+import com.itwillbs.dto.WorkOrderMaterialDTO;
 import com.itwillbs.dto.WorkOrderMergedDTO;
 import com.itwillbs.mapper.WorkOrderMapper;
 
@@ -95,47 +97,71 @@ public class WorkOrderServiceImpl implements WorkOrderService {
      * 작업지시 등록
      */
     @Override
-    @Transactional  // 트랜잭션 관리 - 작업지시 등록 전체가 하나의 트랜잭션으로 처리됨
+    @Transactional
     public int registerWorkOrder(WorkOrderDTO workOrderDTO) {
         try {
-            // 1. 작업지시번호 자동 생성 (예: WO-20250807-001)
+            // 1. 작업지시번호 자동 생성
             String orderId = generateOrderId();
             workOrderDTO.setOrderId(orderId);
 
-            // 2. 작업지시 상태 초기화 및 등록일 세팅
-            workOrderDTO.setStatus("WAITING");           // 기본 상태: 대기
-            workOrderDTO.setCreatedAt(new Date());       // 현재 시각으로 등록일 설정
+            // 2. 상태 및 생성일 설정
+            workOrderDTO.setStatus("WAITING");
+            workOrderDTO.setCreatedAt(new Date());
 
-            // 3. work_order 테이블에 기본 작업지시 정보 저장
+            // 3. 작업지시 등록
             int result = workOrderMapper.insertWorkOrder(workOrderDTO);
             if (result <= 0) {
-                // 저장 실패 시 예외 발생
                 throw new RuntimeException("작업지시 등록 실패");
             }
 
-            // 4. 병합된 수주 정보(work_order_client_order 테이블)에 저장
-            List<WorkOrderMergedDTO> mergedOrders = workOrderDTO.getMergedOrders();
-            if (mergedOrders != null) {
-                for (WorkOrderMergedDTO merged : mergedOrders) {
-                    merged.setWorkOrderId(orderId);          // 방금 생성한 작업지시번호 주입
-                    workOrderMapper.insertMergedOrder(merged); // 병합 수주 데이터 삽입
+            // 4. 병합된 수주정보 저장
+            List<String> mergedOrderIds = workOrderDTO.getMergedOrders();
+            String productId = workOrderDTO.getProductId();   // ✅ 추가
+            int orderQty = workOrderDTO.getOrderQty();        // ✅ 추가
+
+            if (mergedOrderIds != null && !mergedOrderIds.isEmpty()) {
+                for (String clOrderId : mergedOrderIds) {
+                    WorkOrderMergedDTO merged = new WorkOrderMergedDTO();
+                    merged.setWorkOrderId(orderId);
+                    merged.setClOrderId(clOrderId);
+
+                    // ✅ 누락된 필드 채워주기
+                    merged.setProductId(productId);
+                    merged.setOrderQty(orderQty);
+
+                    workOrderMapper.insertMergedOrder(merged);
+                }
+            } else {
+                log.warn("병합 수주 정보가 없음 - 저장 생략");
+            }
+
+            //  5. 자재 소요량 저장 (중복 자재 합산 처리)
+            List<WorkOrderMaterialDTO> materialList = workOrderDTO.getMaterialList();
+            if (materialList != null && !materialList.isEmpty()) {
+                
+                // 자재ID 기준으로 소요량 합산
+                Map<String, Integer> materialMap = new HashMap<>();
+                
+                for (WorkOrderMaterialDTO item : materialList) {
+                    int roundedQty = (int) Math.round(item.getRequiredQty());  // 🔧 소수점 반올림
+                    materialMap.merge(item.getMaterialId(), roundedQty, Integer::sum);
+                }
+
+                // 중복 제거된 자재 소요량 리스트로 저장
+                for (Map.Entry<String, Integer> entry : materialMap.entrySet()) {
+                    WorkOrderMaterialDTO material = new WorkOrderMaterialDTO();
+                    material.setWorkOrderId(orderId);
+                    material.setMaterialId(entry.getKey());
+                    material.setRequiredQty(entry.getValue());
+
+                    workOrderMapper.insertWorkOrderMaterial(material);
                 }
             }
 
-            // 5. BOM 기준 자재 소요량 계산 (제품ID와 작업지시 수량 기반)
-            List<BomItemDTO> bomList = calculateMaterialUsage(workOrderDTO.getProductId(), workOrderDTO.getOrderQty());
-
-            // 6. 자재 소요량을 workorder_material 테이블에 저장
-            for (BomItemDTO item : bomList) {
-                item.setWorkOrderId(orderId);                 // 작업지시 번호 FK 세팅
-                workOrderMapper.insertWorkOrderMaterial(item); // 자재 소요량 저장
-            }
-
-            // 7. 성공적으로 등록됐으면 결과 반환 (1 이상)
+            // 6. 성공적으로 등록됐으면 result 반환
             return result;
 
         } catch (Exception e) {
-            // 에러 발생 시 로그 기록 및 RuntimeException으로 재발생
             log.error("작업지시 등록 중 오류", e);
             throw new RuntimeException("작업지시 등록 중 오류: " + e.getMessage());
         }

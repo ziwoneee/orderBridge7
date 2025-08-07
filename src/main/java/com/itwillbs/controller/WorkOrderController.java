@@ -8,12 +8,15 @@ import javax.servlet.http.HttpSession;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import com.itwillbs.domain.SearchCriteria;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.ProductionLineVO;
 import com.itwillbs.dto.BomItemDTO;
@@ -134,46 +137,52 @@ public class WorkOrderController {
     }
     
     /**
-     * 작업지시 등록 팝업 페이지
+     * 작업지시 등록 팝업 페이지 (병합 수주용)
+     * - 여러 수주(clOrderIds[])를 병합해서 하나의 작업지시로 등록하는 경우 사용
+     * - productId, 수량, 납기일 등의 정보는 프론트에서 계산되어 전달됨
      * 
-     * @param clOrderId 수주번호
-     * @param productId 제품ID
-     * @param model 뷰 모델
-     * @return 작업지시 등록 팝업 뷰
+     * @param clOrderIds 병합된 수주 번호 목록
+     * @param productId 제품 ID
+     * @param orderQty 총 작업지시 수량
+     * @param dueDate 납기일
+     * @param model JSP 모델
+     * @return 작업지시 등록 화면
      */
     @GetMapping("/register-popup")
-    public String showRegisterPopup(
-            @RequestParam("clOrderId") String clOrderId,
+    public String showMergedRegisterPopup(
+            @RequestParam("clOrderIds") List<String> clOrderIds,
             @RequestParam("productId") String productId,
+            @RequestParam("orderQty") int orderQty,
+            @RequestParam("dueDate") String dueDate,
             Model model) {
-        
-        log.info("작업지시 등록 팝업 요청 - 수주번호: {}, 제품ID: {}", clOrderId, productId);
-        
-        // 파라미터 검증
-        validateRegistrationParams(List.of(clOrderId), productId);
-        
+
+        log.info(" 병합 작업지시 등록 팝업 요청 - 수주들: {}, 제품ID: {}, 수량: {}, 납기일: {}");
+
+        // 등록 파라미터 유효성 검사
+        validateRegistrationParams(clOrderIds, productId);
+
+        // 제품명 및 거래처명 등 대표 정보 조회 (1건 기준)
+        WorkOrderDTO orderDetail = workOrderService.getOrderDetail(clOrderIds.get(0), productId);
+
+        // 생산 라인 목록 조회
+        List<ProductionLineVO> lineList = productionLineService.getAvailableLines();
+
+        // 모델 바인딩
+        model.addAttribute("clOrderIds", clOrderIds);              // 수주 ID 리스트
         try {
-            // 수주 상세 정보 조회
-            WorkOrderDTO orderDetail = workOrderService.getOrderDetail(clOrderId, productId);
-            
-            if (orderDetail == null) {
-                throw new IllegalArgumentException("해당 수주 정보를 찾을 수 없습니다.");
-            }
-            
-            // 모델 바인딩
-            bindRegistrationModel(model, List.of(clOrderId), productId, orderDetail);
-
-            // 생산 라인 목록 추가
-            List<ProductionLineVO> lineList = productionLineService.getAvailableLines();
-            model.addAttribute("lineList", lineList);
-
-            log.info("작업지시 등록 팝업 데이터 준비 완료");
-            return "workOrder/register-popup";
-            
-        } catch (Exception e) {
-            log.error("작업지시 등록 팝업 데이터 조회 실패 - 수주번호: {}, 제품ID: {}", clOrderId, productId);
-            throw new IllegalArgumentException("수주 정보 조회 중 오류가 발생했습니다: " + e.getMessage());
+            model.addAttribute("clOrderIdsJson", new ObjectMapper().writeValueAsString(clOrderIds));
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            model.addAttribute("clOrderIdsJson", "[]"); // ← JSON 오류 시 기본값
         }
+        model.addAttribute("productId", productId);                // 제품 ID
+        model.addAttribute("productName", orderDetail.getProductName()); // 제품명
+        model.addAttribute("clientNames", orderDetail.getClientNames()); // 거래처명 목록
+        model.addAttribute("requiredQty", orderQty);               // 총 수량
+        model.addAttribute("dueDate", dueDate);                    // 납기일 (String)
+        model.addAttribute("lineList", lineList);                  // 생산 라인 목록
+
+        return "workOrder/register-popup";
     }
     
     /**
@@ -194,11 +203,9 @@ public class WorkOrderController {
         Map<String, Object> response = new HashMap<>();
 
         try {
-            // 로그인 사용자명 → 작업지시자(orderManager)에 설정
             String loginUserName = (String) session.getAttribute("userName");
             workOrderDTO.setOrderManager(loginUserName);
 
-            // 서비스 호출
             int result = workOrderService.registerWorkOrder(workOrderDTO);
 
             if (result > 0) {
@@ -209,13 +216,21 @@ public class WorkOrderController {
                 response.put("message", "작업지시 등록에 실패했습니다.");
             }
 
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(response);
+
         } catch (Exception e) {
-            log.error("❌ 작업지시 등록 중 오류 발생", e);
+            log.error(" 작업지시 등록 중 오류 발생", e);
             response.put("success", false);
             response.put("message", "오류 발생: " + e.getMessage());
-        }
 
-        return ResponseEntity.ok(response);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(response);
+        }
     }
     
     // ========================================================================
@@ -428,19 +443,6 @@ public class WorkOrderController {
             throw new IllegalArgumentException("제품ID가 누락되었습니다.");
         }
     }
-    
-    /**
-     * 등록 팝업 모델 바인딩
-     */
-    private void bindRegistrationModel(Model model, List<String> clOrderIds, String productId, 
-            WorkOrderDTO orderDetail) {
-		model.addAttribute("clOrderIds", clOrderIds);
-		model.addAttribute("productId", productId);
-		model.addAttribute("productName", orderDetail.getProductName());
-		model.addAttribute("clientNames", orderDetail.getClientNames()); // 병합된 거래처명 목록
-		model.addAttribute("dueDate", orderDetail.getDueDate());
-		model.addAttribute("requiredQty", orderDetail.getRequiredQty());
-		}
     
 
 }

@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Param;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.BomItemDTO;
 import com.itwillbs.dto.WorkOrderDTO;
+import com.itwillbs.dto.WorkOrderMaterialDTO;
 import com.itwillbs.dto.WorkOrderMergedDTO;
 
 /**
@@ -169,7 +170,7 @@ public interface WorkOrderMapper {
      * @param item 자재 BOM 정보 DTO
      * @return 등록 성공 여부 (1: 성공, 0: 실패)
      */
-    int insertWorkOrderMaterial(BomItemDTO item);
+    void insertWorkOrderMaterial(WorkOrderMaterialDTO item);
     
     /**
      * 작업지시 정보 수정

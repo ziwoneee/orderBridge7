@@ -381,20 +381,20 @@
 	</insert>
 
 
-	<!-- 자재 소요량 저장 쿼리 -->
+	<!-- 자재 소요량 저장 쿼리 (WorkOrderMaterialDTO 기준) -->
 	<insert id="insertWorkOrderMaterial"
-		parameterType="com.itwillbs.dto.BomItemDTO">
-		INSERT INTO workorder_material (
-		work_order_id,
-		material_id,
-		required_qty,
-		created_at
-		) VALUES (
-		#{workOrderId},
-		#{materialId},
-		#{totalQty},
-		NOW()
-		)
+	    parameterType="com.itwillbs.dto.WorkOrderMaterialDTO">
+	    INSERT INTO work_order_material (
+	        work_order_id,
+	        material_id,
+	        required_qty,
+	        created_at
+	    ) VALUES (
+	        #{workOrderId},
+	        #{materialId},
+	        #{requiredQty},
+	        NOW()
+	    )
 	</insert>
 
 	<!-- 작업지시별 병합 수주 목록 조회 -->

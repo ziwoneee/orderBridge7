@@ -278,7 +278,7 @@ function receiveOrderData(orderData) {
 	  });
 
 	  // BOM 불러오기
-	  fetchBomAndRender(orderData.productId, orderData.orderQty);
+	  loadBom(orderData.productId, orderData.orderQty);
 	}
 
 
@@ -346,4 +346,44 @@ function getStatusInfo(status) {
     
     return statusMap[status] || { text: status || '', class: 'badge-light' };
 }
+
+function loadBom(productId, orderQty) {
+	  $.ajax({
+	    url: '/workorder/getBomByProduct',
+	    type: 'GET',
+	    data: { 
+	      productId: productId, 
+	      orderQty: orderQty 
+	    },
+	    success: function(bomList) {
+	      var tbody = $('#bomTableBody');
+	      tbody.empty();
+	      
+	      if (!bomList || bomList.length === 0) {
+	        tbody.html('<tr><td colspan="6" class="text-center text-muted">BOM 정보 없음</td></tr>');
+	        return;
+	      }
+	      
+	      var packs = orderQty / 10;
+	      
+	      for (var i = 0; i < bomList.length; i++) {
+	        var item = bomList[i];
+	        var total = item.qty * packs;
+	        var row = '<tr>' +
+	                  '<td>' + item.materialId + '</td>' +
+	                  '<td>' + item.materialName + '</td>' +
+	                  '<td>' + item.materialType + '</td>' +
+	                  '<td class="text-center">' + item.qty + '</td>' +
+	                  '<td class="text-center font-weight-bold">' + total.toFixed(1) + '</td>' +
+	                  '<td>' + item.unit + '</td>' +
+	                  '</tr>';
+	        tbody.append(row);
+	      }
+	    },
+	    error: function() {
+	      $('#bomTableBody').html('<tr><td colspan="6" class="text-center text-danger">로딩 실패</td></tr>');
+	    }
+	  });
+	}
+
 

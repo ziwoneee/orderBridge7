@@ -8,12 +8,11 @@ import lombok.Data;
  */
 @Data
 public class BomItemDTO {
-    private String workOrderId;        // 작업지시번호 추가 (FK용)
     private String materialId;
     private String materialName;
     private String unit;
     private String materialType;
-    private Double qty;            // 1팩당 소요량
+    private Double qty;            // 10팩당 소요량
     private Double totalQty;	   // 총 소요량
     
 }
