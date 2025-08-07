@@ -18,7 +18,7 @@
         #clientSuggestionList { position: absolute; z-index: 9999; width: 100%; background: #fff !important; border: 1px solid #ccc; max-height: 200px; overflow-y: auto; }
         #clientSuggestionList a { display: block; padding: 8px 12px; text-decoration: none; color: #000; font-size: 14px;}
         #clientSuggestionList a:hover { background: #f1f1f1;}
-         #submitBtn:disabled {cursor: not-allowed;  opacity: 0.6;}
+        
     </style>
 
     <div class="main-panel">
@@ -101,9 +101,9 @@
                             
                             
                             <div id="productCart1"></div>
-                            <button type="button" class="btn btn-primary" onclick="addProductItem()">+ 제품 추가</button>
-                            <button type="submit" class="btn btn-success" id="submitBtn">수주 등록</button>
-                            <a href="${pageContext.request.contextPath}/clientorder/list" class="btn btn-secondary">목록</a>
+                            <button type="button" class="btn btn-info" onclick="addProductItem()">제품 추가</button>
+                            <button type="submit" class="btn btn-primary" >수주 등록</button>
+                            <a href="${pageContext.request.contextPath}/clientorder/list" class="btn btn-outline-secondary">목록</a>
                         </form>
                     </div>
                 </div>

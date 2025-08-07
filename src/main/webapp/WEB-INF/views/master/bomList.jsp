@@ -43,6 +43,7 @@
 			<div class="col-12 mb-4">
 			  <h3 class="font-weight-bold">BOM 정보</h3>
 			</div>
+			
    <button id="insert-btn" type="button" class="btn btn-success mb-2"
     onclick="location.href='${pageContext.request.contextPath}/master/bom/insert'">신규등록</button>
 
@@ -74,13 +75,19 @@
         <td>${bom.bomName}</td>
         <td><fmt:formatDate value="${bom.bomDate}" pattern="yyyy-MM-dd"/></td>
         <td>
-            <span style="font-weight:bold; color:${bom.status eq 'ACTIVE' ? '#28a745' : '#aaa'};">
-                ${bom.status eq 'ACTIVE' ? '활성' : '비활성'}
-            </span>
-        </td>
+  <c:choose>
+    <c:when test="${bom.status eq 'ACTIVE'}">
+      <span class="badge badge-success">활성</span>
+    </c:when>
+    <c:otherwise>
+      <span class="badge badge-secondary">비활성</span>
+    </c:otherwise>
+  </c:choose>
+</td>
+
         <td>${bom.bomEtc}</td>
         <td>                   
-            <a href="${pageContext.request.contextPath}/master/bom/detail/${bom.bomId}" class="btn btn-info btn-sm">상세</a>
+            <a href="${pageContext.request.contextPath}/master/bom/detail/${bom.bomId}" class="btn btn-sm btn-outline-info">상세</a>
         </td>
     </tr>
 </c:forEach>

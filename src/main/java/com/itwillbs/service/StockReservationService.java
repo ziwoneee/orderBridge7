@@ -1,5 +1,6 @@
 package com.itwillbs.service;
 
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.StockReservationVO;
 import com.itwillbs.dto.LotStockDTO;
 
@@ -58,5 +59,13 @@ public interface StockReservationService {
      * 해당 수주번호가 예약 상태인지 여부
      */
     boolean isReserved(String clOrderId); // 예약 여부 확인
+    
+  //예약내역확인
+    List<StockReservationVO> getFilteredReservationList(SearchCriteria cri);
+   
+    int countFilteredReservationList(SearchCriteria cri);
+
+
+	
 
 }

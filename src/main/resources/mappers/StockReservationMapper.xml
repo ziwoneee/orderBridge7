@@ -112,6 +112,72 @@
   WHERE cl_order_id = #{clOrderId}
 </select>
 
+<!-- 예약 전체 내역 확인 -->
+<!-- ✅ 예약 내역 조회 (검색 + 날짜 + 페이징) -->
+<select id="getFilteredReservationList"
+        parameterType="com.itwillbs.domain.SearchCriteria"
+        resultType="com.itwillbs.domain.StockReservationVO">
+  SELECT
+    sr.cl_order_id,
+    sr.detail_id,
+    sr.product_id,
+    p.product_name,
+    sr.lot_no,
+    sr.reserved_qty,
+    sr.reserved_at,
+    sr.manager,
+    c.client_name
+  FROM stock_reservation sr
+  JOIN product p ON sr.product_id = p.product_id
+  JOIN client_order co ON sr.cl_order_id = co.cl_order_id
+  JOIN client c ON co.client_id = c.client_id
+  <where>
+    <if test="keyword != null and keyword != ''">
+      (
+        sr.cl_order_id LIKE CONCAT('%', #{keyword}, '%') OR
+        p.product_name LIKE CONCAT('%', #{keyword}, '%') OR
+        c.client_name LIKE CONCAT('%', #{keyword}, '%')
+      )
+    </if>
+
+    <if test="startDate != null and startDate != ''">
+      AND sr.reserved_at <![CDATA[ >= ]]> #{startDate}
+    </if>
+    <if test="endDate != null and endDate != ''">
+      AND sr.reserved_at <![CDATA[ <= ]]> #{endDate}
+    </if>
+  </where>
+
+  ORDER BY sr.reserved_at DESC
+  LIMIT #{pageStart}, #{perPageNum}
+</select>
+
+<!-- 예약 페이지카운트 -->
+
+<select id="countFilteredReservationList"
+        parameterType="com.itwillbs.domain.SearchCriteria"
+        resultType="int">
+  SELECT COUNT(*)
+  FROM stock_reservation sr
+  JOIN product p ON sr.product_id = p.product_id
+  JOIN client_order co ON sr.cl_order_id = co.cl_order_id
+  JOIN client c ON co.client_id = c.client_id
+  <where>
+    <if test="keyword != null and keyword != ''">
+      (
+        sr.cl_order_id LIKE CONCAT('%', #{keyword}, '%') OR
+        p.product_name LIKE CONCAT('%', #{keyword}, '%') OR
+        c.client_name LIKE CONCAT('%', #{keyword}, '%')
+      )
+    </if>
+    <if test="startDate != null and startDate != ''">
+      AND sr.reserved_at <![CDATA[ >= ]]> #{startDate}
+    </if>
+    <if test="endDate != null and endDate != ''">
+      AND sr.reserved_at <![CDATA[ <= ]]> #{endDate}
+    </if>
+  </where>
+</select>
 
   
 

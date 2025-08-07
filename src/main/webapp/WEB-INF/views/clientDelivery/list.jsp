@@ -52,88 +52,73 @@
             </div>
           </div>
           
-          <!-- 검색 영역 (출하 완료 탭일 때만 보임) -->
-<div class="col-12 mb-4" id="searchArea" >
-  <form method="get" action="/shipment/list" class="form-inline row g-2 align-items-end">
-
-    <!-- 출하일(시작) -->
-    <div class="col-md-auto">
-      <label class="form-label small text-muted">출하일</label>
-      <input type="date" class="form-control" id="startDate" name="startDate" value="${cri.startDate}" max="<%= today_1 %>">
-    </div>
-
-    <!-- ~ -->
-    <div class="col-md-auto text-center">
-      <label class="form-label small text-muted d-block">&nbsp;</label>
-      <span>~</span>
-    </div>
-
-    <!-- 출하일(끝) -->
-    <div class="col-md-auto">
-      <label class="form-label small text-muted d-none d-md-block">&nbsp;</label>
-      <input type="date" class="form-control" id="endDate" name="endDate" value="${cri.endDate}" max="<%= today_1 %>">
-    </div>
-
-    <!-- 키워드 -->
-    <div class="col-md-auto">
-      <label class="form-label small text-muted">검색어</label>
-      <input type="text" class="form-control" id="keyword" name="keyword"
-             placeholder="수주번호, 거래처명, 제품명" value="${cri.keyword}">
-    </div>
-
-    <!-- 버튼 -->
-    <div class="col-md-auto">
-      <label class="form-label d-none d-md-block">&nbsp;</label>
-      <div class="d-flex">
-        <button type="submit" class="btn btn-primary me-2"
-                style="background-color: #1C355E; border-color: #1C355E;">
-          <i class="ti-search"></i> 검색
-        </button>
-        <a href="/shipment/list?tab=completed" class="btn btn-light">
-          <i class="ti-reload"></i> 초기화
-        </a>
-      </div>
-    </div>
-
-    <!-- 숨겨진 파라미터 -->
-    <input type="hidden" name="tab" value="completed">
-    <input type="hidden" name="sortOrder" value="${cri.sortOrder}">
-    <input type="hidden" name="page" value="1">
-    <input type="hidden" name="perPageNum" value="${cri.perPageNum}">
-  </form>
-</div>
 
           
           <!-- 출하 관리 탭 -->
           <div class="col-12">
             <!-- 탭 네비게이션 -->
-            <div class="d-flex justify-content-between align-items-center mb-0">
+            
               <ul class="nav nav-underline-custom" id="shipmentTab" role="tablist">
                 <li class="nav-item">
                   <a class="nav-link ${empty param.tab || param.tab == 'pending' ? 'active' : ''}" 
                      href="/shipment/list?tab=pending">
                     출하 대기 <span class="badge badge-light ms-1">${pendingCount}</span>
                   </a>
-                </li>
+                </li>                
+                <li class="nav-item">
+			    <a class="nav-link ${param.tab == 'reservation' ? 'active' : ''}"
+			       href="/shipment/list?tab=reservation">예약 관리</a>
+			  </li>
                 <li class="nav-item">
                   <a class="nav-link ${param.tab == 'completed' ? 'active' : ''}" 
                      href="/shipment/list?tab=completed">
                     출하 완료 <span class="badge badge-light ms-1">${completedCount}</span>
                   </a>
                 </li>
+                
               </ul>
-            </div>
+            
                 
             <!-- 출하 대기 탭 내용 -->
             <div class="tab-content" id="pendingContent" style="display: ${empty param.tab || param.tab == 'pending' ? 'block' : 'none'};">
-             <form action="${pageContext.request.contextPath}/shipment/process" method="post" onsubmit="return confirmShipment();">
+             <form method="get" action="/shipment/list" class="row mb-3">
+				  <!-- 탭 상태 유지 -->
+				  <input type="hidden" name="tab" value="pending"/>
+				
+				  <!-- 키워드 -->
+				  <div class="col-md-3">
+				    <input type="text" name="keyword" value="${cri.keyword}" class="form-control"
+				           placeholder="수주번호 / 제품명 / 거래처명 검색" />
+				  </div>
+				
+				  <!-- 납기일(시작) -->
+				  <div class="col-md-3">
+				    <input type="date" name="startDate" value="${cri.startDate}" max="<%= today_1 %>" class="form-control" />
+				  </div>
+				
+				  <!-- 납기일(끝) -->
+				  <div class="col-md-3">
+				    <input type="date" name="endDate" value="${cri.endDate}" max="<%= today_1 %>" class="form-control" />
+				  </div>
+				
+				  <!-- 검색/초기화 버튼 -->
+				  <div class="col-md-3 form-group">
+				    <button type="submit" class="btn btn-primary me-2"
+				            style="background-color: #1C355E; border-color: #1C355E;">
+				      <i class="ti-search"></i> 검색
+				    </button>
+				    <a href="/shipment/list?tab=pending" class="btn btn-light">
+				      <i class="ti-reload"></i> 초기화
+				    </a>
+				  </div>
+				</form>
+			 <form action="${pageContext.request.contextPath}/shipment/process" method="post" onsubmit="return confirmShipment();">
                 <div class="table-responsive">
               <c:if test="${not empty message}">
 				  <div class="alert alert-${messageType} text-center fw-bold mx-auto" font-size: 16px;">
 				    ${message}
 				  </div>
 				</c:if>
-
 
                   <table class="table table-hover">
                     <thead style="background-color: #1C355E; color: white; border-top: none;">
@@ -150,95 +135,95 @@
                     </thead>
                     <tbody>
                       <c:forEach var="group" items="${groupedList}">
-  <c:set var="shippable" value="true"/>
-  <c:forEach var="item" items="${group.productList}">
-    <c:if test="${item.stockQty lt item.orderQty}">
-      <c:set var="shippable" value="false"/>
-    </c:if>
-  </c:forEach>
+						  <c:set var="shippable" value="true"/>
+						  <c:forEach var="item" items="${group.productList}">
+						    <c:if test="${item.stockQty lt item.orderQty}">
+						      <c:set var="shippable" value="false"/>
+						    </c:if>
+						  </c:forEach>
 
-  <!-- ✅ rowspan 계산 -->
-  <c:set var="rowCount" value="${fn:length(group.productList)}"/>
-
-  <c:forEach var="item" items="${group.productList}" varStatus="status">
-    <tr>
-      <!-- ✅ 체크박스 및 출하 여부: 첫 행에만 출력 -->
-      <c:if test="${status.first}">
-        <td class="text-center" rowspan="${rowCount}">
-          <div class="d-flex justify-content-center align-items-center">
-            <input type="checkbox"
-                   name="clOrderIds"
-                   value="${group.clOrderId}"
-                   class="highlight-checkbox"
-                   <c:if test="${not shippable}">disabled</c:if> />
-            <c:if test="${shippable}">
-              <span class="badge border border-success text-success ml-2 d-flex align-items-center" style="gap: 5px;">
-                <i class="fas fa-shipping-fast"></i> 출하
-              </span>
-            </c:if>
-          </div>
-        </td>
-
-        <!-- ✅ 수주번호: 첫 행에만 rowspan -->
-        <td class="font-weight-medium" rowspan="${rowCount}">
-          ${group.clOrderId}
-        </td>
-        
-         <!-- ✅ 고객사명: 첫 행에만 rowspan -->
-        <td class="font-weight-medium" rowspan="${rowCount}">
-          ${group.clientName}
-        </td>
-      </c:if>
-
-      <!-- ✅ 나머지 칼럼은 반복 -->     
-      <td>${item.productName}</td>
-      <td class="text-end"><fmt:formatNumber value="${item.orderQty}" pattern="#,###"/></td>
-      <td class="text-end"><fmt:formatNumber value="${item.stockQty}" pattern="#,###"/></td>
-      <td>
-        <fmt:formatDate value="${item.clDeliveryDate}" pattern="yyyy-MM-dd"/>
-        <c:if test="${not empty item.clDeliveryDate}">
-          <c:if test="${(item.clDeliveryDate.time - now.time)/(1000*60*60*24) le 5 && (item.clDeliveryDate.time - now.time)/(1000*60*60*24) ge 0}">
-            <span class="badge badge-warning ml-2">임박</span>
-          </c:if>
-        </c:if>
-      </td>
-     <td>
-     
-     <!-- ✅ 예약 실패 시 해당 ID를 예약 목록에서 제외 -->
-<c:set var="isReserved" value="${fn:contains(reservedOrderIds, group.clOrderId)}"/>
-<c:if test="${not empty reserveFailedId and reserveFailedId eq group.clOrderId}">
-  <c:set var="isReserved" value="false"/>
-</c:if>
-     
-  <c:choose>
-  <c:when test="${item.stockQty ge item.orderQty}">
-    <c:choose>
-      <c:when test="${isReserved}">
-        <!-- 예약중 상태일 때 버튼 -->
-        <button type="button" class="btn btn-sm btn-outline-secondary mt-1"
-                onclick="toggleReservation('${group.clOrderId}', true)">
-          <i class="fas fa-times-circle"></i> 예약중
-        </button>
-      </c:when>
-      <c:otherwise>
-        <!-- 예약 전 상태일 때 버튼 -->
-        <button type="button" class="btn btn-sm btn-primary mt-1"
-                onclick="toggleReservation('${group.clOrderId}', false)">
-          예 약
-        </button>
-      </c:otherwise>
-    </c:choose>
-  </c:when>
-  <c:otherwise>
-    <span class="btn btn-sm btn-danger mt-1">부족</span>
-  </c:otherwise>
-</c:choose>
-
-</td>
-
-    </tr>
-  </c:forEach>
-</c:forEach>
+					  <!-- ✅ rowspan 계산 -->
+					  <c:set var="rowCount" value="${fn:length(group.productList)}"/>
+					
+					  <c:forEach var="item" items="${group.productList}" varStatus="status">
+					    <tr>
+					      <!-- ✅ 체크박스 및 출하 여부: 첫 행에만 출력 -->
+					      <c:if test="${status.first}">
+					        <td class="text-center" rowspan="${rowCount}">
+					          <div class="d-flex justify-content-center align-items-center">
+					            <input type="checkbox"
+					                   name="clOrderIds"
+					                   value="${group.clOrderId}"
+					                   class="highlight-checkbox"
+					                   <c:if test="${not shippable}">disabled</c:if> />
+					            <c:if test="${shippable}">
+					              <span class="badge border border-success text-success ml-2 d-flex align-items-center" style="gap: 5px;">
+					                <i class="fas fa-shipping-fast"></i> 출하
+					              </span>
+					            </c:if>
+					          </div>
+					        </td>
+					
+					        <!-- ✅ 수주번호: 첫 행에만 rowspan -->
+					        <td class="font-weight-medium" rowspan="${rowCount}">
+					          ${group.clOrderId}
+					        </td>
+					        
+					         <!-- ✅ 고객사명: 첫 행에만 rowspan -->
+					        <td class="font-weight-medium" rowspan="${rowCount}">
+					          ${group.clientName}
+					        </td>
+					      </c:if>
+					
+					      <!-- ✅ 나머지 칼럼은 반복 -->     
+					      <td>${item.productName}</td>
+					      <td class="text-end"><fmt:formatNumber value="${item.orderQty}" pattern="#,###"/></td>
+					      <td class="text-end"><fmt:formatNumber value="${item.stockQty}" pattern="#,###"/></td>
+					      <td>
+					        <fmt:formatDate value="${item.clDeliveryDate}" pattern="yyyy-MM-dd"/>
+					        <c:if test="${not empty item.clDeliveryDate}">
+					          <c:if test="${(item.clDeliveryDate.time - now.time)/(1000*60*60*24) le 5 && (item.clDeliveryDate.time - now.time)/(1000*60*60*24) ge 0}">
+					            <span class="badge badge-danger ml-2">임박</span>
+					          </c:if>
+					        </c:if>
+					      </td>
+					     <td>
+					     
+					     <!-- ✅ 예약 실패 시 해당 ID를 예약 목록에서 제외 -->
+					<c:set var="isReserved" value="${fn:contains(reservedOrderIds, group.clOrderId)}"/>
+					<c:if test="${not empty reserveFailedId and reserveFailedId eq group.clOrderId}">
+					  <c:set var="isReserved" value="false"/>
+					</c:if>
+					     
+					  <c:choose>
+					  <c:when test="${item.stockQty ge item.orderQty}">
+					    <c:choose>
+					      <c:when test="${isReserved}">
+					        <!-- 예약중 상태일 때 버튼 -->
+					        <button type="button" class="btn btn-sm btn-outline-secondary mt-1"
+					                onclick="toggleReservation('${group.clOrderId}', true)">
+					          <i class="fas fa-times-circle"></i> 예약중
+					        </button>
+					      </c:when>
+					      <c:otherwise>
+					        <!-- 예약 전 상태일 때 버튼 -->
+					        <button type="button" class="btn btn-sm btn-outline-info"
+					                onclick="toggleReservation('${group.clOrderId}', false)">
+					          예 약
+					        </button>
+					      </c:otherwise>
+					    </c:choose>
+					  </c:when>
+					  <c:otherwise>
+					    <span class="btn btn-sm btn-danger mt-1">부 족</span>
+					  </c:otherwise>
+					</c:choose>
+					
+					</td>
+					
+					    </tr>
+					  </c:forEach>
+					</c:forEach>
 
                       <!-- 데이터가 없을 때 -->
                       <c:if test="${empty groupedList}">
@@ -302,10 +287,42 @@
 </c:if>
             
 
-            <!-- 출하 완료 탭 내용 -->
-    <!-- 출하 완료 탭 내용 -->
-    
+            <!-- 출하 완료 탭 내용 -->    
 <div class="tab-content" id="completedContent" style="display: ${param.tab == 'completed' ? 'block' : 'none'};">
+
+<form method="get" action="/shipment/list" class="row mb-3">
+  <!-- 탭 상태 유지 -->
+  <input type="hidden" name="tab" value="completed"/>
+
+  <!-- 키워드 -->
+  <div class="col-md-3">
+    <input type="text" name="keyword" value="${cri.keyword}" class="form-control"
+           placeholder="수주번호 / 제품명 / 거래처명 검색" />
+  </div>
+
+  <!-- 출하일(시작) -->
+  <div class="col-md-3">
+    <input type="date" name="startDate" value="${cri.startDate}" max="<%= today_1 %>" class="form-control" />
+  </div>
+
+  <!-- 출하일(끝) -->
+  <div class="col-md-3">
+    <input type="date" name="endDate" value="${cri.endDate}" max="<%= today_1 %>" class="form-control" />
+  </div>
+
+  <!-- 검색/초기화 버튼 -->
+  <div class="col-md-3 form-group">
+    <button type="submit" class="btn btn-primary me-2"
+            style="background-color: #1C355E; border-color: #1C355E;">
+      <i class="ti-search"></i> 검색
+    </button>
+    <a href="/shipment/list?tab=completed" class="btn btn-light">
+      <i class="ti-reload"></i> 초기화
+    </a>
+  </div>
+</form>
+
+
 
   <!-- ✅ 출하 완료 테이블 -->
 <div style="text-align: right;">
@@ -383,10 +400,10 @@
 
 
       <td>
-        <button type="button" class="btn btn-sm btn-outline-primary"
+        <button type="button" class="btn btn-sm btn-outline-info"
                 data-bs-toggle="modal"
                 data-bs-target="#modal-${status.index}">
-          확인
+          상세
         </button>
       </td>
 <td>
@@ -422,22 +439,24 @@
   <div class="modal fade" id="modal-${status.index}" tabindex="-1" aria-labelledby="modalLabel-${status.index}" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="modalLabel-${status.index}">
+       <div class="modal-header bg-primary ">
+          <h5 class="modal-title text-white" id="modalLabel-${status.index}">
             출하 상세 내역 - ${group.clOrderId}
           </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+          <button type="button" class="close text-white" data-dismiss="modal">
+    <span>&times;</span>
+  </button>
         </div>
         <div class="modal-body">
           <table class="table table-bordered table-sm">
             <thead class="table-secondary">
               <tr>
-                <th>출하 ID</th>
-                <th>제품명</th>
-                <th>LOT번호</th>
-                <th>출하 수량</th>
-                <th>송장번호</th>
-                <th>상태</th>
+               <th class="bg-light text-dark">출하 ID</th>
+                <th class="bg-light text-dark">제품명</th>
+                <th class="bg-light text-dark">LOT번호</th>
+                <th class="bg-light text-dark">출하 수량</th>
+               <th class="bg-light text-dark">송장번호</th>
+                <th class="bg-light text-dark">상태</th>
               </tr>
             </thead>
             <tbody>
@@ -449,14 +468,20 @@
                   <td class="text-end"><fmt:formatNumber value="${item.deliveryQty}" pattern="#,###"/></td>
                   <td>${item.trackingNumber}</td>
                   <td><span class="badge bg-success text-white">${item.deliveryStatus}</span></td>
-                </tr>
-              </c:forEach>
-            </tbody>
-          </table>
-        </div>
+                 </tr>
+            </c:forEach>
+          </tbody>
+        </table>
       </div>
+
+      <!-- ✅ 모달 하단 닫기 버튼 추가 -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+      </div>
+
     </div>
   </div>
+</div>
 </c:forEach>
 
 
@@ -513,11 +538,167 @@
 </c:if>
 
 
-</div>
-    </div>
-          </div>
+
+          
+          <!-- 예약 관리 탭 영역 -->
+<div class="tab-content" id="reservationContent"
+     style="display: ${param.tab == 'reservation' ? 'block' : 'none'};">
+   
+       <!-- ✅ 1. 검색창 영역 -->
        
-      
+  <form method="get" action="/shipment/list" class="row mb-3">
+    <input type="hidden" name="tab" value="reservation"/>
+    
+    <div class="col-md-3">
+      <input type="text" name="keyword" value="${cri.keyword}" class="form-control" placeholder="수주번호 / 제품명 / 거래처명 검색" />
+    </div>
+    <div class="col-md-3">
+      <input type="date" name="startDate" value="${cri.startDate}" class="form-control" />
+    </div>
+    <div class="col-md-3">
+      <input type="date" name="endDate" value="${cri.endDate}" class="form-control" />
+    </div>
+     <div class="col-md-3 form-group">
+                    <button type="submit" class="btn btn-primary me-2" style="background-color: #1C355E; border-color: #1C355E;">
+                      <i class="ti-search"></i> 검색
+                    </button>
+                    <a href="/shipment/list?tab=reservation" class="btn btn-light">
+                      <i class="ti-reload"></i> 초기화
+                    </a>
+                  </div>
+  </form>
+  
+  <!-- 예약 리스트 테이블 -->
+  <table class="table">
+    <thead>
+      <tr>
+        <th>LOT 번호</th>
+        <th>수주번호</th>
+        <th>제품명</th>
+        <th>거래처</th>
+        <th>예약수량</th>
+        <th>예약일시</th>
+        <th>상태</th>
+        <th>상세</th>
+      </tr>
+    </thead>
+    <tbody>
+      <c:forEach var="item" items="${reservationList}">
+        <tr>
+          <td>${item.lotNo}</td>
+          <td>${item.clOrderId}</td>
+          <td>${item.productName}</td>
+          <td>${item.clientName}</td>
+          <td>${item.reservedQty}</td>
+          <td><fmt:formatDate value="${item.reservedAt}" pattern="yyyy-MM-dd HH:mm" /></td>
+          <td><span class="badge bg-warning text-dark">예약</span></td>
+          <td>
+           <button class="btn btn-sm btn-outline-secondary btn-reservation-detail"
+		        data-lot="${item.lotNo}"
+		        data-order="${item.clOrderId}">
+			  상세
+			</button>
+
+          </td>
+        </tr>
+      </c:forEach>
+
+      <c:if test="${empty reservationList}">
+        <tr><td colspan="8" class="text-center text-muted">예약 내역이 없습니다.</td></tr>
+      </c:if>
+    </tbody>
+  </table> 
+  
+  <!-- 예약 상세정보 모달 -->
+  <!-- 📦 예약 상세정보 모달 -->
+<div class="modal fade" id="reservationDetailModal" tabindex="-1" aria-labelledby="reservationDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="reservationDetailModalLabel">예약 상세 정보</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-bordered">
+          <tbody>
+            <tr>
+              <th>LOT 번호</th>
+              <td id="modal-lot-no"></td>
+              <th>제품명</th>
+              <td id="modal-product-name"></td>
+            </tr>
+            <tr>
+              <th>수주번호</th>
+              <td id="modal-cl-order-id"></td>
+              <th>거래처</th>
+              <td id="modal-client-name"></td>
+            </tr>
+            <tr>
+              <th>예약수량</th>
+              <td id="modal-reserved-qty"></td>
+              <th>예약일시</th>
+              <td id="modal-reserved-at"></td>
+            </tr>
+            <tr>
+              <th>유통기한</th>
+              <td id="modal-expire-date"></td>
+              <th>현재고</th>
+              <td id="modal-current-stock"></td>
+            </tr>
+            <tr>
+              <th>납기 요청일</th>
+              <td id="modal-delivery-date"></td>
+              <th colspan="2"></th>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+  
+  
+  
+  <!-- 예약관리 페이지네이션 -->
+  <c:if test="${param.tab == 'reservation'}">
+  <div class="d-flex justify-content-center mt-4">
+    <nav>
+      <ul class="pagination justify-content-center mt-4">
+        <c:if test="${reservationPage.cri.page > 1}">
+          <li class="page-item">
+            <a class="page-link"
+               href="/shipment/list?tab=reservation&page=${reservationPage.startPage - 1}&perPageNum=${reservationPage.cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}">
+              &laquo;
+            </a>
+          </li>
+        </c:if>
+
+        <c:forEach var="p" begin="${reservationPage.startPage}" end="${reservationPage.endPage}">
+          <li class="page-item ${p == reservationPage.cri.page ? 'active' : ''}">
+            <a class="page-link"
+               href="/shipment/list?tab=reservation&page=${p}&perPageNum=${reservationPage.cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}">
+              ${p}
+            </a>
+          </li>
+        </c:forEach>
+
+        <c:if test="${reservationPage.cri.page < reservationPage.endPage}">
+          <li class="page-item">
+            <a class="page-link"
+               href="/shipment/list?tab=reservation&page=${reservationPage.cri.page + 1}&perPageNum=${reservationPage.cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}">
+              &raquo;
+            </a>
+          </li>
+        </c:if>
+      </ul>
+    </nav>
+  </div>
+</c:if>
+  
+</div>
+</div>
+</div>
+        
       <!-- content-wrapper 끝 -->
       <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
   </div>
@@ -529,144 +710,6 @@
 </div>
 <!-- container-scroller 끝-->
 
-<script>
-  function toggleAll(source) {
-    const checkboxes = document.querySelectorAll("input[name='clOrderIds']");
-    checkboxes.forEach(cb => {
-      if (!cb.disabled) cb.checked = source.checked;
-    });
-  }
-
-  // 탭 변경 시 검색 영역 표시/숨김
-  document.addEventListener('DOMContentLoaded', function() {
-    const currentTab = new URLSearchParams(window.location.search).get('tab') || 'pending';
-    const searchArea = document.getElementById('searchArea');
-    
-    if (currentTab === 'completed') {
-      searchArea.style.display = 'block';
-    } else {
-      searchArea.style.display = 'none';
-    }
-  });
-</script>
-<script>
-  function reserveStock(clOrderId) {
-    if (confirm("이 수주건의 재고를 예약하시겠습니까?")) {
-      location.href = "/shipment/reserve?clOrderId=" + clOrderId;
-    }
-  }
-  
-  
-</script>
-<script>
-  function toggleReservation(clOrderId, isReserved) {
-    const action = isReserved ? "예약을 해지" : "재고를 예약";
-    const url = isReserved 
-      ? "/shipment/unreserve?clOrderId=" + clOrderId 
-      : "/shipment/reserve?clOrderId=" + clOrderId;
-
-    if (confirm("이 수주건의 " + action + "하시겠습니까?")) {
-      location.href = url;
-    }
-  }
-</script>
-
-
-<style>
-/* 언더라인 탭 스타일 - 상단 라인 */
-.nav-underline-custom {
-    border-bottom: 1px solid #dee2e6;
-    margin-bottom: 0;
-}
-
-.nav-underline-custom .nav-link {
-    border: none;
-    border-top: 3px solid transparent;
-    color: #6c757d;
-    padding: 0.75rem 1.5rem;
-    font-weight: 500;
-    background: none;
-}
-
-.nav-underline-custom .nav-link.active {
-    color: #1C355E;
-    border-top-color: #1C355E;
-    background: none;
-    font-weight: 700;
-}
-
-.nav-underline-custom .nav-link:hover {
-    color: #1C355E;
-    border-top-color: rgba(28, 53, 94, 0.5);
-    background: none;
-}
-
-/* 배지 스타일 */
-.nav-link .badge {
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-
-/* 체크박스 스타일 */
-.highlight-checkbox {
-    width: 18px;
-    height: 18px;
-    accent-color: #28a745;
-    cursor: pointer;
-}
-
-.highlight-checkbox:hover {
-    box-shadow: 0 0 5px #28a745;
-    transform: scale(1.1);
-    transition: all 0.2s ease;
-}
-
-/* 테이블 호버 효과 */
-.table-hover tbody tr:hover {
-    background-color: rgba(28, 53, 94, 0.05);
-}
-
-/* 정렬 링크 스타일 */
-.table thead th a:hover {
-    color: #f8f9fa !important;
-    text-decoration: underline !important;
-}
-
-/* 페이지네이션 호버 효과 */
-.page-link:hover {
-    background-color: rgba(28, 53, 94, 0.1);
-    border-color: #1C355E;
-    color: #1C355E;
-}
-
-/* 버튼 호버 효과 */
-.btn-primary:hover {
-    background-color: #152a4a !important;
-    border-color: #152a4a !important;
-}
-
-/* 탭 콘텐츠 부드러운 전환 */
-.tab-content {
-    margin-top: 20px;
-}
- .neutral-arrow {
-    color: #ccc;
-    font-size: 12px;
-    margin-left: 4px;
-  }
-</style>
-
-<script>
-  function confirmShipment() {
-    const checked = document.querySelectorAll("input[name='clOrderIds']:checked");
-    if (checked.length === 0) {
-      alert("출하할 수주건을 선택해주세요.");
-      return false;
-    }
-
-    return confirm("선택한 수주건을 출하 처리하시겠습니까?");
-  }
-</script>
-
+<script src="${pageContext.request.contextPath}/resources/js/shipment.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

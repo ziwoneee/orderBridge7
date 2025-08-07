@@ -191,7 +191,7 @@
 </table>
 
 <div class="mt-4">
-        <a href="${pageContext.request.contextPath}/clientorder/list" class="btn btn-secondary">목록으로</a>
+        <a href="${pageContext.request.contextPath}/clientorder/list" class="btn btn-outline-secondary">목록으로</a>
     </div>
 
 </div>

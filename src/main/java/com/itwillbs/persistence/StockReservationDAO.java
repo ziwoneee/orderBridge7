@@ -1,5 +1,6 @@
 package com.itwillbs.persistence;
 
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.StockReservationVO;
 import com.itwillbs.dto.LotStockDTO;
 
@@ -22,5 +23,10 @@ public interface StockReservationDAO {
     
     int countReservationsByOrderId(String clOrderId);
 
+    
+    //예약내역확인
+    List<StockReservationVO> getFilteredReservationList(SearchCriteria cri);
+   
+    int countFilteredReservationList(SearchCriteria cri);
 
 }

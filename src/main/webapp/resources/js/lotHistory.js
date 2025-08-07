@@ -82,30 +82,47 @@ function openLotHistoryModal(lotNo, productId) {
       $('#lotHistoryEmpty').addClass('d-none');
       // 테이블에 입출고 이력 추가
       history.forEach(entry => {
-        const row = `
-          <tr>
-           <td>
-	      ${formatDate(entry.regDate)}
-	      <i class="bi bi-clock text-muted mx-1"></i>
-	      <span class="text-muted" style="font-size: 0.9em;">${formatTime(entry.regDate)}</span>
-	    </td>
-            <td>${entry.clientName || '-'}</td>
-            <td>${entry.qty}</td>
-            <td>
-              ${entry.type === '출고'
-                ? '<span class="badge badge-danger">출고</span>'
-                : entry.type === '입고'
-                ? '<span class="badge badge-success">입고</span>'
-                : entry.type === '예약'
-                ? '<span class="badge badge-warning">예약</span>'
-                : entry.type === '취소'
-                ? '<span class="badge badge-warning">취소</span>'
-                : entry.type}
-            </td>        
-            
-          </tr>`;
-        $('#lotHistoryTableBody').append(row);
-      });
+    	  // ✅ 예약 / 예약취소는 무시
+    	  if (entry.type === 'RESERVE' || entry.type === '예약' ||
+    	      entry.type === 'CANCEL_RESERVE' || entry.type === '예약취소') {
+    	    return;  // 이 항목은 건너뛰기
+    	  }
+
+    	  let badgeHtml = '';
+
+    	  switch (entry.type) {
+    	    case 'INBOUND':
+    	    case '입고':
+    	      badgeHtml = '<span class="badge badge-success">입고</span>';
+    	      break;
+    	    case 'OUTBOUND':
+    	    case '출고':
+    	      badgeHtml = '<span class="badge badge-danger">출고</span>';
+    	      break;
+    	    case 'CANCEL':
+    	    case '취소':
+    	      badgeHtml = '<span class="badge badge-warning">취소</span>';
+    	      break;
+    	    default:
+    	      badgeHtml = entry.type;
+    	  }
+
+    	  const row = `
+    	    <tr>
+    	      <td>
+    	        ${formatDate(entry.regDate)}
+    	        <i class="bi bi-clock text-muted mx-1"></i>
+    	        <span class="text-muted" style="font-size: 0.9em;">${formatTime(entry.regDate)}</span>
+    	      </td>
+    	      <td>${entry.clientName || '-'}</td>
+    	      <td>${entry.qty}</td>
+    	      <td>${badgeHtml}</td>
+    	    </tr>
+    	  `;
+    	  $('#lotHistoryTableBody').append(row);
+    	});
+
+
 
       $('#lotHistoryModal').modal('show');
     },

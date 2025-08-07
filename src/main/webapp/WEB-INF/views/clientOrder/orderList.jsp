@@ -138,7 +138,7 @@
                     </td>
                     <td>${order.clOrderMemo}</td>
                     <td>
-                      <a href="${pageContext.request.contextPath}/clientorder/detail?clOrderId=${order.clOrderId}" class="btn btn-outline-primary btn-sm">확인</a>
+                      <a href="${pageContext.request.contextPath}/clientorder/detail?clOrderId=${order.clOrderId}" class="btn btn-sm btn-outline-info">상세</a>
                     </td>
                   </tr>
                 </c:forEach>
@@ -148,7 +148,7 @@
 
           <!-- 등록 버튼 -->
           <div class="text-right mb-3">
-            <a href="${pageContext.request.contextPath}/clientorder/register" class="btn btn-primary">+ 신규 수주 등록</a>
+            <a href="${pageContext.request.contextPath}/clientorder/register" class="btn btn-success mb-2">신규 수주 등록</a>
           </div>
 </div>
   </div>

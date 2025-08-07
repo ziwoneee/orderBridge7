@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import com.itwillbs.domain.ProductStockTransactionVO;
 import com.itwillbs.domain.ProductStockVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.domain.StockReservationVO;
 import com.itwillbs.dto.LotStockDTO;
 import com.itwillbs.persistence.ProductStockDAO;
 import com.itwillbs.persistence.StockReservationDAO;
@@ -112,5 +113,6 @@ public class ProductStockServiceImpl implements ProductStockService {
         return productStockDAO.getLotSummary(lotNo);
     }
 
+   
     
 }
