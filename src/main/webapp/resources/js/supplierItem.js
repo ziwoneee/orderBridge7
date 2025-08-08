@@ -6,8 +6,28 @@ $(document).ready(function () {
 
 		  const supplierId = $("#supplierId").val();
 		  const materialId = $("#materialId").val();
+		  const unitPrice = $("#unitPrice").val();
+		  const unit = $("#unit").val();
 		  const mode = $("#itemForm").attr("data-mode");
 		  const itemId = (mode === 'edit') ? $("#itemId").val() : "";
+		  
+		  // ✅ 필수 입력값 검사
+		  if (!materialId) {
+		    alert("자재를 선택해주세요.");
+		    return;
+		  }
+		  if (!unitPrice) {
+		    alert("단가를 입력해주세요.");
+		    return;
+		  }
+		  if (isNaN(unitPrice) || Number(unitPrice) <= 0) {
+		    alert("단가는 0보다 큰 숫자로 입력해주세요.");
+		    return;
+		  }
+		  if (!unit) {
+		    alert("단위를 입력해주세요.");
+		    return;
+		  }
 
 		  const params = new URLSearchParams({
 		    supplierId: supplierId,
@@ -24,7 +44,13 @@ $(document).ready(function () {
 		        alert("⚠ 이미 등록된 자재입니다");
 		        return;
 		      }
-		      $("#itemForm").submit(); // ✅ 중복 아닐 때만 실행돼야 함!
+		      
+		      if (mode === 'create') {
+		    	    $("#itemForm input[name='id']").remove(); 
+		    	  }
+		      
+		      // 중복 아니면 제출
+		      $("#itemForm").submit(); 
 		    },
 		    error: function () {
 		      alert("중복 확인 중 오류 발생!");
