@@ -54,7 +54,10 @@
           </div>
 
         <!-- content-wrapper 끝 -->
+      <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>  
 	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
+	  <script src="${pageContext.request.contextPath}/resources/vendors/select2/select2.min.js"></script>
+      <script src="${pageContext.request.contextPath}/resources/js/supplierItem.js"></script>
      </div>
      <!-- 본문.jsp main-panel ends -->
   </div>   
@@ -73,17 +76,30 @@
         </div>
         <div class="modal-body">
           <input type="hidden" name="supplierId" value="<%= sid %>">
-          <div class="form-group">
-            <label>자재 ID</label>
-            <input type="text" name="materialId" class="form-control">
-          </div>
+
+<div class="form-group">
+  <label>자재 선택</label>
+  <select id="materialId" name="materialId" class="form-control select2" style="width: 100%;">
+    <option value="">자재를 선택하세요</option>
+    <c:forEach var="m" items="${materialList}">
+      <option value="${m.materialId}" data-unitprice="${m.unitPrice}">
+        ${m.materialName} (${m.materialId})
+      </option>
+    </c:forEach>
+  </select>
+</div>
+
+
+
+
+
           <div class="form-group">
             <label>단가</label>
-            <input type="number" name="unitPrice" class="form-control">
+            <input type="number" name="unitPrice" class="form-control" required>
           </div>
           <div class="form-group">
             <label>단위</label>
-            <input type="text" name="unit" class="form-control">
+            <input type="text" name="unit" class="form-control" required>
           </div>
           <div class="form-group">
             <label>공급 가능</label>
@@ -106,4 +122,3 @@
   </div>
 </div>
 
-<script src="${pageContext.request.contextPath}/resources/js/supplierItem.js"></script>

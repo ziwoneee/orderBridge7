@@ -13,8 +13,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.itwillbs.domain.MaterialVO;
 import com.itwillbs.domain.SupplierItemVO;
 import com.itwillbs.domain.SupplierVO;
+import com.itwillbs.service.MaterialService;
 import com.itwillbs.service.SupplierItemService;
 import com.itwillbs.service.SupplierService;
 
@@ -31,6 +33,9 @@ public class SupplierItemController {
 	
 	@Inject
     private SupplierItemService siService;
+	
+	@Inject
+	private MaterialService materialService;
 
     /**
      * 특정 거래처의 공급 품목 목록 조회 (Ajax)
@@ -42,9 +47,11 @@ public class SupplierItemController {
     public String showSupplierItems(@RequestParam("supplierId") String supplierId, Model model) throws Exception {
     	
 		SupplierVO supplier = sService.getSupplierById(supplierId);
+		List<MaterialVO> materialList = materialService.getAllMaterials();
     	
 		model.addAttribute("supplier", supplier);
         model.addAttribute("supplierId", supplierId);
+        model.addAttribute("materialList", materialList);
         model.addAttribute("menu", "basic");
         
         return "supplier/items"; 

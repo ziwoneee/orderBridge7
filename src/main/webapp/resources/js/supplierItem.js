@@ -6,6 +6,28 @@ $(document).ready(function () {
     $("#itemModal .modal-title").text("공급 품목 등록");
     $("#itemModal").modal("show");
   });
+  
+  
+//모달 열릴 때마다 select2 적용
+//select2는 모달 open 이후에 초기화해야 깨지지 않음!
+  $('#itemModal').on('shown.bs.modal', function () {
+    const $select = $(this).find('.select2');
+
+    if (!$select.hasClass('select2-hidden-accessible')) {
+      $select.select2({
+        theme: 'bootstrap',
+        placeholder: '자재를 선택하세요',
+        width: '100%',
+        allowClear: true
+      });
+    }
+  });
+
+  // 모달 닫힐 때 select2 초기화 해제
+  $('#registerModal').on('hidden.bs.modal', function () {
+	  $('#materialId').val(null).trigger('change.select2'); // 선택값 초기화
+	});
+
 
   // ✅ [2] 등록 폼 제출 시 → Ajax 등록 처리
   $("#itemForm").on("submit", function (e) {
@@ -77,3 +99,17 @@ $(document).ready(function () {
   // ✅ [5] 페이지 진입 시 목록 자동 로딩
   loadItemList();
 });
+
+//자재 선택 시 단가 자동 입력
+$(document).on('change', '#materialId', function () {
+	  const unitPrice = $(this).find('option:selected').data('unitprice');
+	  $('#unitPrice').val(unitPrice || '');
+	});
+
+
+// 모달 닫힐 떄 완전 destroy
+$('#itemModal').on('hidden.bs.modal', function () {
+	  const $select = $(this).find('.select2');
+	  $select.val(null).trigger('change.select2');
+	  $select.select2('destroy'); // 완전 해제
+	});
