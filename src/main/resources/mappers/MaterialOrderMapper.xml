@@ -149,9 +149,9 @@
 	        #{orderItemId},
 	        #{orderId}, 
 	        #{materialId}, 
-	        #{orderQuantity},
-	        #{unitPrice}, 
-	        #{totalPrice}, 
+	        #{orderQuantity, 	jdbcType=INTEGER},
+	        #{unitPrice, 		jdbcType=INTEGER},
+	        #{totalPrice, 		jdbcType=INTEGER}, 
 	        #{warehouseCode}
 	    )
 	</insert>
@@ -215,6 +215,15 @@
 		    #{expectedArrivedDate}, #{createdBy}, #{note}
 		  )
 		</insert>
+		
+		
+		<select id="selectNextOrderItemIndex" parameterType="string" resultType="int">
+		  SELECT IFNULL(
+		           MAX(CAST(SUBSTRING_INDEX(order_item_id, '-', -1) AS UNSIGNED)), 0
+		         ) + 1
+		  FROM material_order_item
+		  WHERE order_id = #{orderId}
+		</select>
 	  <!-- 부족분 발주 자동 생성 (출고관리) 끝 -->
 
 </mapper>

@@ -138,7 +138,7 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
             bySupplier.computeIfAbsent(sup, k -> new ArrayList<>()).add(it);
         }
 
-     // 4) 거래처별 초안 생성
+        // 4) 거래처별 초안 생성
         String lastOrderId = null;
         for (Map.Entry<String, List<ShortageItem>> e : bySupplier.entrySet()) {
             String supplierId = e.getKey();
@@ -154,24 +154,33 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
 
             mOrderDAO.insertOrderHeaderDraft(header);      // 여기서 selectKey가 header.orderId 세팅
 
-            String orderId = (String) header.get("orderId"); // ✅ selectKey가 채운 값 사용
+            String orderId = (String) header.get("orderId");
 
-            for (ShortageItem item : e.getValue()) {
-                Map<String, Object> map = byMaterial.get(item.getMaterialId());
-                String warehouse = (String) map.getOrDefault("default_warehouse_code", "WH001"); // 코드 표기 일관!
-                Number unitPrice = (Number) map.getOrDefault("unit_price", 0);
+	         // ✅ 이 주문의 시작 인덱스를 한 번만 조회
+	         int idx = mOrderDAO.selectNextOrderItemIndex(orderId);
+	
+	         for (ShortageItem item : e.getValue()) {
+	             Map<String, Object> map = byMaterial.get(item.getMaterialId());
+	
+	             String warehouse = (String) map.getOrDefault("warehouse_code", "WH001");
+	             int unit  = ((Number) map.getOrDefault("unit_price", 0)).intValue();
+	             int qty   = item.getLackQty();
+	             int total = unit * qty;
+	
+	             String orderItemId = orderId + "-" + (idx++); // ✅ 계속 증가
+	
+	             Map<String, Object> row = new HashMap<>();
+	             row.put("orderItemId", orderItemId);
+	             row.put("orderId", orderId);
+	             row.put("materialId", item.getMaterialId());
+	             row.put("orderQuantity", qty);
+	             row.put("unitPrice", unit);
+	             row.put("totalPrice", total);
+	             row.put("warehouseCode", warehouse);
+	
+	             mOrderDAO.insertOrderItem(row);
+	         }
 
-                Map<String, Object> row = new HashMap<>();
-                // ✅ 전부 camelCase로!
-                row.put("orderId", orderId);
-                row.put("materialId", item.getMaterialId());
-                row.put("orderQuantity", item.getLackQty());
-                row.put("unitPrice", unitPrice);
-                row.put("totalPrice", unitPrice.doubleValue() * item.getLackQty());
-                row.put("warehouseCode", warehouse);
-
-                mOrderDAO.insertOrderItem(row);           // 매퍼가 #{orderId} 등 camelCase로 받음
-            }
 
             lastOrderId = orderId;
         }

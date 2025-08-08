@@ -13,7 +13,7 @@ public class PurchaseDraftRequest {
     @Data
     public static class ShortageItem {
         private String materialId;
-        private int lackQty;                 // 부족 수량(= 발주 후보 수량)
+        private Integer lackQty;                 // 부족 수량(= 발주 후보 수량)
     }
 
 }
