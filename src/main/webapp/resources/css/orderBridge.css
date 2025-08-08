@@ -267,3 +267,11 @@
 	    color: #fff;
 	    background-color: #1C355E !important;
 	}
+	
+	
+/* 테이블 비활성화 시 css */
+	.inactive-row {
+	  color: #bbb !important;
+	  background-color: #f9f9f9 !important;
+	  text-decoration: line-through;
+	}

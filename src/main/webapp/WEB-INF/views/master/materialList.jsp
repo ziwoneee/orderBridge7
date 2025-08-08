@@ -136,12 +136,9 @@
 		        </thead>
 		        <tbody>
 		          <c:forEach var="material" items="${materialList}">
-		            <tr
-					    class="display-row"
-					    <c:if test="${material.useYn eq 'N'}">
-					      style="color: #bbb; background: #f9f9f9; text-decoration:line-through;"
-					    </c:if>
-					    id="display-${material.materialId}">
+		          	<tr
+						class="display-row ${material.useYn eq 'N' ? 'inactive-row' : ''}"
+						id="display-${material.materialId}">
 		              <td>${material.materialId}</td>
 		              <td>${material.materialName}</td>
 		              <td>${material.materialType}</td>

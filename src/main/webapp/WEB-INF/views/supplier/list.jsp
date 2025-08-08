@@ -100,7 +100,10 @@
 		
 			    <tbody>
 			      <c:forEach var="supplier" items="${supplierList}">
-			        <tr>
+			        <tr
+						class="display-row ${supplier.status eq '비활성' ? 'inactive-row' : ''}"
+						id="display-${supplier.supplierId}">
+
 			          <td>${supplier.supplierId}</td>
 			          <td>${supplier.supplierName}</td>
 			          <td>${supplier.businessNumber}</td>
