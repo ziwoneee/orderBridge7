@@ -93,9 +93,16 @@
           <h5 class="section-title">정산 정보</h5>
           <div class="row">
             <div class="col-md-6 mb-3">
-              <label>정산방식</label>
-              <input type="text" class="form-control" name="settlementMethod" value="${supplierVO.settlementMethod}">
-            </div>
+			  <label>정산방식</label>
+			  <select class="form-control" name="settlementMethod">
+			    <option value="">선택</option>
+			    <option value="계좌이체" ${supplierVO.settlementMethod == '계좌이체' ? 'selected' : ''}>계좌이체</option>
+			    <option value="현금" ${supplierVO.settlementMethod == '현금' ? 'selected' : ''}>현금</option>
+			    <option value="외상" ${supplierVO.settlementMethod == '외상' ? 'selected' : ''}>외상</option>
+			    <option value="선지급" ${supplierVO.settlementMethod == '선지급' ? 'selected' : ''}>선지급</option>
+			    <option value="기타" ${supplierVO.settlementMethod == '기타' ? 'selected' : ''}>기타</option>
+			  </select>
+			</div>
             <div class="col-md-6 mb-3">
               <label>예금주</label>
               <input type="text" class="form-control" name="accountHolder" value="${supplierVO.accountHolder}">

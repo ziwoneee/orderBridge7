@@ -4,50 +4,6 @@
 <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
 
-<style>
-  h5.section-title {
-    border-left: 5px solid #003366;
-    padding-left: 10px;
-    font-weight: 600;
-    color: #003366;
-    margin-bottom: 1rem;
-  }
-
-  label {
-    font-weight: 500;
-  }
-
-  .card-section {
-    border: 1px solid #dee2e6;
-    padding: 2rem;
-    border-radius: 0.5rem;
-    background-color: #ffffff;
-    margin-bottom: 1.5rem;
-  }
-
-  .form-control:focus {
-    border-color: #003366;
-    box-shadow: 0 0 0 0.1rem rgba(0, 51, 102, 0.25);
-  }
-
-  .custom-navy {
-    background-color: #002f6c;  /* 남색 계열 */
-	color: #fff;
-	border: none;
-  }
-
-  .custom-navy:hover {
-    background-color: #001f4d;
-  }
-  
-  /* 필수 입력 항목 */
-  .form-label.required::after {
-    content: " *";
-    color: red;
-    margin-left: 2px;
-  }
-</style>
-
 <div class="container-scroller">
 
   <%@ include file="/WEB-INF/views/main/top.jsp" %>      
@@ -138,9 +94,16 @@
           <h5 class="section-title">정산 정보</h5>
           <div class="row">
             <div class="col-md-6 mb-3">
-              <label>정산방식</label>
-              <input type="text" class="form-control" name="settlementMethod" value="${supplierVO.settlementMethod}">
-            </div>
+			  <label>정산방식</label>
+			  <select class="form-control" name="settlementMethod">
+			    <option value="">선택</option>
+			    <option value="계좌이체" ${supplierVO.settlementMethod == '계좌이체' ? 'selected' : ''}>계좌이체</option>
+			    <option value="현금" ${supplierVO.settlementMethod == '현금' ? 'selected' : ''}>현금</option>
+			    <option value="외상" ${supplierVO.settlementMethod == '외상' ? 'selected' : ''}>외상</option>
+			    <option value="선지급" ${supplierVO.settlementMethod == '선지급' ? 'selected' : ''}>선지급</option>
+			    <option value="기타" ${supplierVO.settlementMethod == '기타' ? 'selected' : ''}>기타</option>
+			  </select>
+			</div>
             <div class="col-md-6 mb-3">
               <label>예금주</label>
               <input type="text" class="form-control" name="accountHolder" value="${supplierVO.accountHolder}">

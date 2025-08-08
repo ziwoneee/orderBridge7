@@ -116,7 +116,7 @@
 			                <span class="badge badge-success">활성</span>
 			              </c:when>
 			              <c:otherwise>
-			                <span class="badge bg-secondary">비활성</span>
+			                <span class="badge badge-secondary">비활성</span>
 			              </c:otherwise>
 			            </c:choose>
 			          </td>

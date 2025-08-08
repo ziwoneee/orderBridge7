@@ -149,10 +149,15 @@
 		              <td><c:if test="${material.lotFlag eq 'Y'}">Y</c:if><c:if test="${material.lotFlag ne 'Y'}">N</c:if></td>
 		              <td>${material.supplyUnit}</td>
 		              <td>
-				        <span style="font-weight:bold; color:${material.useYn eq 'Y' ? '#28a745' : '#aaa'};">
-				          ${material.useYn eq 'Y' ? '활성' : '비활성'}
-				        </span>
-				      </td>
+			            <c:choose>
+			              <c:when test="${material.useYn eq 'Y'}">
+			                <span class="badge badge-success">활성</span>
+			              </c:when>
+			              <c:otherwise>
+			                <span class="badge badge-secondary">비활성</span>
+			              </c:otherwise>
+			            </c:choose>
+			          </td>
 		              <td>
 		                <button type="button" class="btn btn-sm btn-outline-secondary"
 		                       onclick="location.href='/material/edit?materialId=${material.materialId}'">
