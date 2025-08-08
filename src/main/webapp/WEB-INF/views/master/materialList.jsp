@@ -159,7 +159,7 @@
 			            </c:choose>
 			          </td>
 		              <td>
-		                <button type="button" class="btn btn-sm btn-outline-secondary"
+		                <button type="button" class="btn btn-sm btn-outline-warning"
 		                       onclick="location.href='/material/edit?materialId=${material.materialId}'">
 		                  수정
 		                </button>

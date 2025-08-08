@@ -224,7 +224,7 @@
                         
   
                          <td>
-                           <button class="btn btn-sm btn-outline-primary" 
+                           <button class="btn btn-sm btn-outline-info" 
                                    onclick="loadOutboundDetail('${item.outboundId}')">
                              상세
                            </button>

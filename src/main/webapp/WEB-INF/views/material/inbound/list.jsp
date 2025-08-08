@@ -269,7 +269,7 @@
                         
                         <!-- 상세 -->
                         <td>
-                          <button class="btn btn-sm btn-outline-primary" 
+                          <button class="btn btn-sm btn-outline-info" 
                                   onclick="loadInboundDetail('${inbound.inboundId}')">
                             상세
                           </button>

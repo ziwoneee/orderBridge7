@@ -153,7 +153,7 @@
         <!-- 버튼 -->
         <div class="text-right">
           <button type="submit" class="btn btn-primary mr-2">수정</button>
-          <a href="/supplier/list" class="btn btn-secondary">목록</a>
+          <a href="/supplier/list" class="btn btn-outline-secondary">목록</a>
         </div>
         
 		<input type="hidden" id="errorMsg" value="${errorMsg}">

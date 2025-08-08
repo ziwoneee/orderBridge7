@@ -152,8 +152,8 @@ $.ajax({
 
       const btns = $(`
         <td>
-          <button class='btn btn-warning btn-sm btn-edit'>수정</button>
-          <button class='btn btn-danger btn-sm btn-delete'>삭제</button>
+          <button class='btn btn-sm btn-outline-warning btn-edit'>수정</button>
+          <button class='btn btn-sm btn-outline-danger btn-delete'>삭제</button>
         </td>
       `);
       tr.append(btns);
