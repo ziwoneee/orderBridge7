@@ -21,5 +21,9 @@ public interface SupplierItemDAO {
     
     // 공급 품목 등록
     void insertItem(SupplierItemVO item) throws Exception;
+    
+    
+    // 공급 품목 수정
+    void updateItem(SupplierItemVO item) throws Exception;
 
 }

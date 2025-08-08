@@ -64,6 +64,21 @@
   </insert>
   
   
+  <!-- 공급 품목 수정 쿼리 -->
+  <update id="updateItem" parameterType="com.itwillbs.domain.SupplierItemVO">
+	  UPDATE supplier_item
+	  SET 
+	    unit_price = #{unitPrice},
+	    unit = #{unit},
+	    note = #{note},
+	    supply_available = #{supplyAvailable},
+	    updated_at = NOW()
+	  WHERE id = #{id}
+  </update>
+  
+  
+  
+  
   
   
 </mapper>

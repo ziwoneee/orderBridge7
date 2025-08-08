@@ -21,5 +21,8 @@ public interface SupplierItemService {
     
     // 공급 품목 등록
     void registerItem(SupplierItemVO item) throws Exception;
+    
+    // 공급 품목 수정
+    void updateItem(SupplierItemVO item) throws Exception;
 
 }

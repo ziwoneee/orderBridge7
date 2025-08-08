@@ -80,7 +80,6 @@
 				<th>업태/종목</th>
 				<th>대표자명</th>
 				<th>담당자 연락처</th>
-				<th>거래상태</th>
 				<th>
 				  <a href="?page=1&sortColumn=created_at&sortOrder=${cri.sortColumn eq 'created_at' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&condition=${cri.condition}&keyword=${fn:escapeXml(cri.keyword)}">
 				    등록일자
@@ -94,6 +93,7 @@
 				    </c:choose>
 				  </a>
 				</th>
+				<th>거래상태</th>
 				<th>상세</th>
 	         </tr>
 		</thead>
@@ -110,6 +110,7 @@
 			          <td>${supplier.supplierType}</td>
 			          <td>${supplier.representativeName}</td>
 			          <td>${supplier.contactPhone}</td>
+			          <td><fmt:formatDate value="${supplier.createdAt}" pattern="yyyy-MM-dd" /></td>
 			          <td>
 			            <c:choose>
 			              <c:when test="${supplier.status eq '활성'}">
@@ -120,7 +121,6 @@
 			              </c:otherwise>
 			            </c:choose>
 			          </td>
-			          <td><fmt:formatDate value="${supplier.createdAt}" pattern="yyyy-MM-dd" /></td>
 			          <td>
 			            <a href="/supplierItem/items?supplierId=${supplier.supplierId}" class="btn btn-sm btn-outline-primary">품목</a>
   						<a href="/supplier/view?supplierId=${supplier.supplierId}" class="btn btn-sm btn-outline-info">상세</a>

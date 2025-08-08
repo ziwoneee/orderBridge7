@@ -42,4 +42,12 @@ public class SupplierItemServiceImpl implements SupplierItemService {
 		siDAO.insertItem(item);
     }
 	
+	
+	// 공급 품목 수정
+	@Override
+	public void updateItem(SupplierItemVO item) throws Exception {
+		siDAO.updateItem(item);
+	}
+	
+	
 }

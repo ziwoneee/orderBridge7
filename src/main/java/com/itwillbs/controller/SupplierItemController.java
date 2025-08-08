@@ -102,6 +102,23 @@ public class SupplierItemController {
     
     
     
+    /**
+     * 공급 품목 수정
+     */
+    @PostMapping("/update")
+    @ResponseBody
+    public String updateItem(SupplierItemVO vo) throws Exception {
+    	siService.updateItem(vo);
+        return "success";
+    }
+
+    
+    
+    
+    
+    
+    
+    
     
 } // SupplierItemController 끝
 

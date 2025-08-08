@@ -70,30 +70,30 @@
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <form id="itemForm">
+      	<input type="hidden" name="id" id="itemId">
+      	
         <div class="modal-header">
           <h5 class="modal-title">공급 품목 등록</h5>
           <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
         </div>
+        
         <div class="modal-body">
           <input type="hidden" name="supplierId" value="<%= sid %>">
 
-<div class="form-group">
-  <label>자재 선택</label>
-  <select id="materialId" name="materialId" class="form-control select2" style="width: 100%;">
-    <option value="">자재를 선택하세요</option>
-    <c:forEach var="m" items="${materialList}">
-	  <option 
-	    value="${m.materialId}" 
-	    data-unitprice="${m.unitPrice}" 
-	    data-unit="${m.unit}">
-	    ${m.materialName} (${m.materialId})
-	  </option>
-	</c:forEach>
-  </select>
-</div>
-
-
-
+		<div class="form-group invisible-select2-wrapper" id="materialIdWrapper">
+		  <label>자재 선택</label>
+		  <select id="materialId" name="materialId" class="form-control select2" style="width: 100%;">
+		    <option value="">자재를 선택하세요</option>
+		    <c:forEach var="m" items="${materialList}">
+		      <option 
+		        value="${m.materialId}" 
+		        data-unitprice="${m.unitPrice}" 
+		        data-unit="${m.unit}">
+		        ${m.materialName} (${m.materialId})
+		      </option>
+		    </c:forEach>
+		  </select>
+		</div>
 
 
           <div class="form-group">
@@ -125,30 +125,10 @@
   </div>
 </div>
 
-<<style>
-/* select2 기본 선택 박스 스타일 오버라이드 */
-.select2-container--default .select2-selection--single {
-  border: 1px solid #003366 !important;  /* 원하는 테두리 색 */
-  height: 38px !important;               /* 원하는 높이 */
-  padding: 6px 12px !important;
-  font-family: 'Noto Sans KR', sans-serif !important;
+<style>
+/* ✅ select2 깜빡임 완전 방지용 CSS */
+/* ✅ 더 이상 숨김/보임 처리가 필요없으므로 기본적인 스타일만 */
+#materialIdWrapper {
+  margin-bottom: 1rem;
 }
-
-/* 선택된 텍스트 */
-.select2-container--default .select2-selection--single .select2-selection__rendered {
-  color: #333 !important;
-  font-weight: 500 !important;
-}
-
-/* x버튼 */
-.select2-container--default .select2-selection__clear {
-  color: #888 !important;
-  font-weight: bold !important;
-}
-
-/* 화살표 */
-.select2-container--default .select2-selection__arrow b {
-  border-color: #003366 transparent transparent transparent !important;
-}
-
 </style>

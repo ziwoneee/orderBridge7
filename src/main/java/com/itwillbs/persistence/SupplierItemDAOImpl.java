@@ -37,6 +37,13 @@ public class SupplierItemDAOImpl implements SupplierItemDAO {
     public void insertItem(SupplierItemVO item) throws Exception {
         sqlSession.insert(NAMESPACE + "insertItem", item);
     }
+    
+    // 공급 품목 수정
+    @Override
+    public void updateItem(SupplierItemVO item) throws Exception {
+        sqlSession.update(NAMESPACE + "updateItem", item);
+    }
+
 
 
 }
