@@ -89,21 +89,31 @@ $('#itemModal').on('shown.bs.modal', function () {
         }
 
         data.forEach(function (item) {
-        	const tr = $("<tr>")
-        	.attr("data-item-id", item.id)
-            .attr("data-material-id", item.materialId);
+          const tr = $("<tr>")
+            .attr("data-item-id", item.id)
+            .attr("data-material-id", item.materialId)
+        	.addClass(item.supplyAvailable === "N" ? "inactive-row" : "")
+        	.attr("id", "display-" + item.id);
         	
-          tr.append($("<td>").text(item.materialName ? item.materialName : "-"));
-          tr.append($("<td>").text(item.materialType ? item.materialType : "-"));
-          tr.append($("<td>").text(item.unitPrice ? item.unitPrice : "-"));
-          tr.append($("<td>").text(item.unit ? item.unit : "-"));
-          tr.append($("<td>").text(item.supplyAvailable === "Y" ? "가능" : "불가"));
+          tr.append($("<td>").text(item.materialName || "-"));
+          tr.append($("<td>").text(item.materialType || "-"));
+          tr.append($("<td>").text(item.unitPrice || "-"));
+          tr.append($("<td>").text(item.unit || "-"));
+
+          
+          const statusBadge = $("<span>")
+          	.addClass("badge")
+          	.addClass(item.supplyAvailable === "Y" ? "badge-success" : "badge-secondary")
+          	.text(item.supplyAvailable === "Y" ? "활성" : "비활성");
+          
+          tr.append($("<td>").append(statusBadge));
           tr.append($("<td>").text(item.note ? item.note : "-"));
 
           const td = $("<td>");
-          const editBtn = $("<button>").addClass("btn btn-sm btn-outline-warning btn-edit").text("수정");
-          const deleteBtn = $("<button>").addClass("btn btn-sm btn-outline-danger btn-delete").text("삭제");
-          td.append(editBtn).append(" ").append(deleteBtn);
+          const editBtn = $("<button>")
+          	.addClass("btn btn-sm btn-outline-warning btn-edit")
+          	.text("수정");
+          td.append(editBtn);
           tr.append(td);
 
           tbody.append(tr);

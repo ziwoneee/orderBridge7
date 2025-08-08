@@ -33,15 +33,15 @@
           <div class="col-12">
                 <div class="table-responsive">
                   <table class="table table-hover" id="itemTable">
-                    <thead style="background-color: #1c355e; color: white;">
+                    <thead>
                       <tr>
                         <th>자재명</th>
                         <th>유형</th>
                         <th>단가</th>
                         <th>단위</th>
-                        <th>공급 가능</th>
+                        <th>공급 상태</th>
                         <th>비고</th>
-                        <th>작업</th>
+                        <th>수정</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -51,8 +51,17 @@
                 </div>
               </div>
             </div>
+            
+            <div class="d-flex justify-content-center mt-4">
+			  <nav>
+			    <ul class="pagination justify-content-center mt-4">
+			      <!-- 자바스크립트가 이 안에 페이징을 채워줌 -->
+			    </ul>
+			  </nav>
+			</div>
+			            
+            
           </div>
-
         <!-- content-wrapper 끝 -->
       <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>  
 	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
@@ -105,10 +114,10 @@
             <input type="text" name="unit" id="unit" class="form-control" required>
           </div>
           <div class="form-group">
-            <label>공급 가능</label>
+            <label>공급 상태</label>
             <select name="supplyAvailable" class="form-control">
-              <option value="Y">Y</option>
-              <option value="N">N</option>
+              <option value="Y">활성</option>
+              <option value="N">비활성</option>
             </select>
           </div>
           <div class="form-group">
@@ -117,7 +126,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
+          <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">목록</button>
           <button type="submit" class="btn btn-primary">저장</button>
         </div>
       </form>
