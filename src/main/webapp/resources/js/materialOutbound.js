@@ -1,160 +1,241 @@
-// materialOutbound.js
+/* materialOutbound.js (list.jsp & register.jsp 공용) */
+/* 전제: 각 JSP 상단에
+<script>var ctx='${pageContext.request.contextPath}';</script>
+*/
 
-// 출고 처리
-function processOut(outboundId) {
-  if (confirm("출고처리 하시겠습니까?")) {
-    location.href = '/material/out/process?outboundId=' + outboundId;
-  }
+// =========================================================
+// 공통 유틸
+// =========================================================
+function toYmd(d) {
+  if (!d) return '';
+  if (typeof d === 'string') return d.slice(0, 10);
+  if (typeof d === 'number') return new Date(d).toISOString().slice(0, 10);
+  if (typeof d === 'object' && d.time) return new Date(d.time).toISOString().slice(0, 10);
+  try { return new Date(d).toISOString().slice(0, 10); } catch(e){ return ''; }
 }
 
-// 상세 페이지 이동 (단순 링크 이동용)
-function viewDetail(outboundId) {
-  location.href = '/material/out/detail?outboundId=' + outboundId;
-}
+function fmtDate(val) { return toYmd(val); }
 
-// Ajax 호출로 출고 상세 불러오기
-function loadOutboundDetail(outboundId) {
-  $.ajax({
-    url: '/material/outbound/detail',
-    method: 'GET',
-    data: { outboundId: outboundId },
-    success: function(response) {
-      console.log("Ajax 응답 데이터:", response);
-      openOutboundModal(response);
-    },
-    error: function() {
-      alert('상세 정보를 불러오는 데 실패했습니다.');
-    }
-  });
-}
+// =========================================================
+// list.jsp 영역
+// =========================================================
 
-// 상세 모달 열기 및 데이터 채우기
-function openOutboundModal(data) {
-  $('#workOrderNo').text(data.workOrderNo);
-  $('#dueDate').text(formatDate(data.dueDate));
-  $('#workOrderDate').text(formatDate(data.workOrderDate));
-  $('#lineId').text(data.lineId);
-  $('#outboundId').text(data.outboundId);
-  $('#modalStatus').text(data.status);
-  $('#outboundDate').text(formatDate(data.outboundDate));
-  $('#handledBy').text(data.handledBy);
+// 대기 작업지시 모달 열릴 때 목록 로드 (한 번만 바인딩)
+$(document).off('shown.bs.modal', '#orderModal').on('shown.bs.modal', '#orderModal', function () {
+  loadWaitingOrders();
+});
 
-  $('#stockInfo').empty();
-  data.materialList.forEach(function(item) {
-    const stockStatus = item.stockQty >= item.requiredQty
-      ? '<span class="badge badge-success">정상</span>'
-      : '<span class="badge badge-danger">부족</span>';
-
-    $('#stockInfo').append(`
-      <tr>
-        <td>${item.materialId}</td>
-        <td>${item.materialName}</td>
-        <td>${item.requiredQty}</td>
-        <td>${item.stockQty}</td>
-        <td>${stockStatus}</td>
-      </tr>
-    `);
-  });
-
-  $('#outboundDetailModal').modal('show');
-}
-
-// 날짜 포맷 변환 (yyyy-MM-dd)
-function formatDate(timestamp) {
-  if (!timestamp) return '--';
-  const date = new Date(timestamp);
-  if (isNaN(date.getTime())) return '--';
-  const yyyy = date.getFullYear();
-  const mm = ('0' + (date.getMonth() + 1)).slice(-2);
-  const dd = ('0' + date.getDate()).slice(-2);
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function processOutbound(outboundId, requiredQty, stockQty, btn) {
-	  if (stockQty < requiredQty) {
-	    alert("실재고가 부족하여 출고처리 불가능합니다.");
-	    return;
-	  }
-
-	  if (!confirm("출고처리를 진행하시겠습니까?")) return;
-
-	  $.ajax({
-	    type: "POST",
-	    url: "/material/outbound/process",
-	    data: { outboundId: outboundId },
-	    contentType: "application/x-www-form-urlencoded; charset=UTF-8",
-	    success: function (result) {
-	      alert("출고처리 완료되었습니다.");
-
-	      // 버튼 비활성화 및 UI 변경
-	      btn.disabled = true;
-	      btn.classList.remove("btn-outline-primary");
-	      btn.classList.add("btn-secondary");
-	      btn.innerText = "출고완료";
-
-	      // 상태 뱃지도 변경
-	      const row = btn.closest("tr");
-	      const statusCell = row.querySelector("td:nth-child(3)");
-	      statusCell.innerHTML = '<span class="badge badge-success">출고완료</span>';
-	    },
-	    error: function (xhr, status, error) {
-	      alert(xhr.responseText);
-	      console.error(error);
-	    }
-	  });
-	}
-
-
-
-//[작업지시서 불러오기] 버튼 클릭 시 모달 열기
-function openOrderModal() {
+// 작업지시 불러오기 버튼
+$(document).off('click', '#btnLoadOrder').on('click', '#btnLoadOrder', function(){
   $('#orderModal').modal('show');
-  loadOrderList(); // 목록 불러오기
-}
+});
 
-// 작업지시서 목록 Ajax로 불러오기
-function loadOrderList() {
-  $.ajax({
-    url: "/material/outbound/order-list",
-    method: "GET",
-    success: function(data) {
-      const tbody = $("#orderTableBody").empty();
-
-      if (data.length === 0) {
-        tbody.append("<tr><td colspan='6' class='text-center'>대기 중인 작업지시서가 없습니다.</td></tr>");
-        return;
-      }
-
-      data.forEach(order => {
-        const row = `
-          <tr>
-            <td>${order.orderId}</td>
-            <td>${order.productId}</td>
-            <td>${order.lineId}</td>
-            <td>${order.orderQty}</td>
-            <td>${order.remarks || '-'}</td>
-            <td>
-              <button class="btn btn-sm btn-outline-primary" onclick="selectOrder('${order.orderId}', '${order.productId}', '${order.lineId}', ${order.orderQty}, '${order.remarks || ''}')">
-                선택
-              </button>
-            </td>
-          </tr>
-        `;
-        tbody.append(row);
-      });
-    },
-    error: function() {
-      alert("작업지시서를 불러오지 못했습니다.");
+// [AJAX] WAITING 지시서 목록 로드
+function loadWaitingOrders() {
+  $.getJSON(ctx + '/material/outbound/order-list', function(list) {
+    var $tbody = $('#orderBody').empty();
+    if (!list || list.length === 0) {
+      $tbody.append('<tr><td colspan="6" class="text-center text-muted">대기 작업지시가 없습니다.</td></tr>');
+      return;
     }
+
+    list.forEach(function(wo){
+      var orderId = wo.orderId || '';
+      var product = (wo.productName && wo.productName.length) ? wo.productName : (wo.productId || '');
+      var lineId  = wo.lineId || '';
+      var qty     = (wo.orderQty != null ? wo.orderQty : '');
+      var ymd     = toYmd(wo.dueDate);
+
+      var $tr = $('<tr>').attr('data-order-no', orderId)
+        .append($('<td>').text(orderId))
+        .append($('<td>').text(product))
+        .append($('<td>').text(lineId))
+        .append($('<td>').addClass('text-right').text(qty))
+        .append($('<td>').text(ymd))
+        .append(
+          $('<td>').addClass('text-center').css('width','90px')
+            .append(
+              $('<button>', {
+                type: 'button',
+                'data-order-no': orderId
+              }).addClass('btn btn-primary btn-xs btn-select-wo').text('선택')
+            )
+        );
+      $tbody.append($tr);
+    });
   });
 }
 
-// 작업지시서 선택 시 등록 폼에 채우기
-function selectOrder(orderId, productId, lineId, qty, remarks) {
-  $("#selectedOrderId").val(orderId);
-  $("#selectedProductId").val(productId);
-  $("#selectedLineId").val(lineId);
-  $("#selectedQty").val(qty);
-  $("#selectedRemarks").val(remarks);
-  $("#orderModal").modal('hide');
+// 선택 → 출고 등록 화면 이동
+$(document).off('click', '.btn-select-wo').on('click', '.btn-select-wo', function(){
+  var orderNo = $(this).data('order-no');
+  location.href = ctx + '/material/outbound/register?workOrderId=' + encodeURIComponent(orderNo);
+});
+
+// 출고 처리(목록 화면용)
+function processOutbound(outboundId) {
+  if(!confirm('출고처리 하시겠습니까?')) return;
+  $.post(ctx + '/material/outbound/process', { outboundId: outboundId })
+    .done(function(){ alert('출고처리 완료'); location.reload(); })
+    .fail(function(){ alert('출고처리 중 오류'); });
 }
+
+// =========================================================
+/* register.jsp 영역 */
+// =========================================================
+
+// 쿼리에서 workOrderId 읽고 상세 호출
+$(function(){
+  if (!$('#outboundForm').length) return; // register.jsp가 아닐 때는 패스
+
+  var params = new URLSearchParams(location.search);
+  var workOrderId = params.get('workOrderId');
+  if (!workOrderId) return;
+
+  // [1] 작업지시 헤더 + 자재 목록 로드
+  $.get(ctx + '/material/outbound/work-order', { workOrderId: workOrderId }, function(dto){
+    $('#workOrderNo').val(dto.workOrderNo || '');
+    $('#productId').val(dto.productId || '');
+    $('#lineId').val(dto.lineId || '');
+    $('#dueDate').val(toYmd(dto.dueDate));
+    renderMaterialRows(dto.materialList || []);
+  });
+});
+
+// 자재 행 렌더 + LOT(FEFO) 로드
+function renderMaterialRows(items){
+  var $body = $('#materialLotBody').empty();
+
+  var reqs = (items || []).map(function(it){
+    return $.get(ctx + '/material/inventory/lots', { materialId: it.materialId })
+      .then(function(lots){
+        lots = lots || [];
+        // FEFO: 유통기한 오름차순
+        lots.sort(function(a,b){ return new Date(a.expiration_date) - new Date(b.expiration_date); });
+
+        // tr 생성
+        var $tr = $('<tr>').attr('data-material', it.materialId);
+
+        // 1) 자재 표시 셀
+        $tr.append(
+          $('<td>').append(
+            $('<div>').addClass('font-weight-bold').text(it.materialName || it.materialId),
+            $('<div>').addClass('text-muted').append($('<small>').text(it.materialId))
+          )
+        );
+
+        // 2) 필요수량 셀
+        $tr.append(
+          $('<td>').addClass('text-right align-middle')
+            .append($('<span>').addClass('req').attr('data-req', it.requiredQty).text(it.requiredQty))
+        );
+
+     // 3) LOT 입력 셀
+        var $lotCell = $('<td>');
+        if (!lots || lots.length === 0) {
+          $lotCell.append($('<span>').addClass('text-danger').text('사용 가능한 LOT 없음'));
+        } else {
+          lots.forEach(function(l){
+            var wh   = l.warehouse_code || it.defaultWarehouseCode || '';
+            var qty0 = (l.quantity != null ? l.quantity : 0);
+
+            var $row = $('<div>')
+              .addClass('form-row align-items-center lot-row mb-1')
+              .attr('data-lot', l.lot_no);
+
+            // LOT 정보
+            var $info = $('<div>').addClass('col-md-5');
+            $info.append($('<small>').addClass('text-muted').text('LOT: ' + l.lot_no));
+            $info.append('<br>');
+            $info.append($('<small>').text('유통기한: ' + fmtDate(l.expiration_date) + ' / 재고: ' + qty0));
+            $row.append($info);
+
+            // 수량 입력
+            var $qtyCol = $('<div>').addClass('col-md-4');
+            $qtyCol.append(
+              $('<input>')
+                .attr({ type:'number', min:0, max: qty0, value:0 })
+                .addClass('form-control form-control-sm lot-qty')
+                .data({ material: it.materialId, lot: l.lot_no, wh: wh })
+            );
+            $row.append($qtyCol);
+
+            // 창고 표기
+            var $whCol = $('<div>').addClass('col-md-3');
+            $whCol.append($('<span>').addClass('badge badge-secondary').text(wh));
+            $row.append($whCol);
+
+            $lotCell.append($row);
+          });
+        }
+        $tr.append($lotCell);
+
+        // 4) 합계 셀
+        $tr.append(
+          $('<td>').addClass('text-right align-middle').append($('<span>').addClass('sum').text('0'))
+        );
+
+        // 입력 변화시 합계/검증 갱신
+        $tr.on('input', '.lot-qty', function(){
+          updateRowSumAndValidate($tr);
+          validateAll();
+        });
+
+        $body.append($tr);
+        updateRowSumAndValidate($tr);
+
+
+// 행 합계/상태 표시
+function updateRowSumAndValidate($row){
+  var req = parseInt($row.find('.req').data('req'), 10) || 0;
+  var sum = 0;
+  $row.find('.lot-qty').each(function(){
+    var v = parseInt(this.value, 10) || 0;
+    sum += v;
+  });
+
+  $row.find('.sum').text(sum);
+
+  $row.removeClass('table-success table-warning table-danger');
+  if (sum === req) $row.addClass('table-success');
+  else if (sum > 0 && sum !== req) $row.addClass('table-warning');
+  else if (sum === 0) $row.addClass('table-danger');
+}
+
+// 전체 검증: 모든 행 req==sum 일 때만 제출 가능
+function validateAll(){
+  var ok = true;
+  $('#materialLotBody tr').each(function(){
+    var req = parseInt($(this).find('.req').data('req'), 10) || 0;
+    var sum = parseInt($(this).find('.sum').text(), 10) || 0;
+    if (req !== sum) { ok = false; return false; }
+  });
+  $('#btnSubmit').prop('disabled', !ok);
+}
+
+// 제출 시 서버 VO(List)로 hidden 생성 (+ 창고 포함)
+$(document).off('submit', '#outboundForm').on('submit', '#outboundForm', function(){
+  var $f = $(this);
+  // 기존 hidden 제거
+  $f.find('input[name=materialIdList],input[name=reqQtyList],input[name=lotMaterialIdList],input[name=lotNoList],input[name=qtyList],input[name=lotWarehouseList]').remove();
+
+  // 자재 행 -> materialIdList, reqQtyList
+  $('#materialLotBody tr').each(function(){
+    var mid = $(this).data('material');
+    var req = parseInt($(this).find('.req').data('req'), 10) || 0;
+    $f.append($('<input>', {type:'hidden', name:'materialIdList', value: mid}));
+    $f.append($('<input>', {type:'hidden', name:'reqQtyList',     value: req}));
+  });
+
+  // LOT 입력 -> lotMaterialIdList, lotNoList, qtyList, lotWarehouseList
+  $('.lot-qty').each(function(){
+    var v = parseInt(this.value, 10) || 0;
+    if (v > 0) {
+      var $el = $(this);
+      $f.append($('<input>', {type:'hidden', name:'lotMaterialIdList', value: $el.data('material')}));
+      $f.append($('<input>', {type:'hidden', name:'lotNoList',         value: $el.data('lot')}));
+      $f.append($('<input>', {type:'hidden', name:'qtyList',           value: v}));
+      $f.append($('<input>', {type:'hidden', name:'lotWarehouseList',  value: ($el.data('wh') || '')}));
+    }
+  });
+});

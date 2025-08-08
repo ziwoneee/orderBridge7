@@ -7,273 +7,158 @@
 <mapper namespace="com.itwillbs.mapper.MaterialOutboundMapper">
 
 	<!-- 출고 목록 조회 -->
-	<select id="getOutboundList" resultType="com.itwillbs.dto.MaterialOutboundSummaryDTO" parameterType="com.itwillbs.domain.SearchCriteria">
-	  SELECT 
-	    o.outbound_id        AS outboundId,
-	    o.work_order_no      AS workOrderNo,
-	    o.work_order_date    AS workOrderDate,
-	    o.due_date           AS dueDate,
-	    o.outbound_date      AS outboundDate,
-	    o.status             AS status,
-	    o.handled_by         AS handledBy,
-	    (
-	      SELECT 
-	        CONCAT(
-	          MIN(m2.material_name),
-	          CASE 
-	            WHEN COUNT(*) > 1 THEN CONCAT(' 외 ', COUNT(*) - 1, '건')
-	            ELSE ''
-	          END
-	        )
-	      FROM material_outbound_item i2
-	      JOIN material m2 ON i2.material_id = m2.material_id
-	      WHERE i2.outbound_id = o.outbound_id
-	    ) AS materialSummary,
-	    m.material_name      AS materialName,
-	    s.supplier_name      AS supplierName,
-	    i.required_qty       AS requiredQty,
-	    i.stock_qty          AS stockQty,
-	    CASE 
-	      WHEN i.stock_qty >= i.required_qty THEN '정상'
-	      ELSE CONCAT('부족 (재고 ', i.stock_qty, ')')
-	    END AS stockStatus,
-	    
-	    ROW_NUMBER() OVER(PARTITION BY o.outbound_id ORDER BY i.material_id) AS rowNum
-	
+	<!-- 목록 + 카운트 (페이징) -->
+	<select id="getOutboundList" parameterType="com.itwillbs.domain.SearchCriteria" resultType="map">
+	  SELECT o.outbound_id, o.work_order_no, o.outbound_date, o.due_date, o.status, o.handled_by
 	  FROM material_outbound o
-	  LEFT JOIN material_outbound_item i ON o.outbound_id = i.outbound_id
-	  LEFT JOIN material m ON i.material_id = m.material_id
-	  LEFT JOIN supplier_item si ON m.material_id = si.material_id
-	  LEFT JOIN supplier s ON si.supplier_id = s.supplier_id
-	
-	  <where>
-	    <if test="keyword != null and keyword != ''">
-	      AND (
-	        o.outbound_id LIKE CONCAT('%', #{keyword}, '%')
-	        OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
-	      )
-	    </if>
-	
-	    <if test="startDate != null and startDate != ''">
-	      AND DATE(o.outbound_date) &gt;= #{startDate}
-	    </if>
-	
-	    <if test="endDate != null and endDate != ''">
-	      AND DATE(o.outbound_date) &lt;= #{endDate}
-	    </if>
-	    
-	    <if test="status != null and status != ''">
-		  AND o.status = #{status}
-		</if>
-	    
-	  </where>
-
-	
-	<!-- 정렬 조건 -->
-	<choose>
-	  <when test="sortColumn == 'outbound_id' and sortOrder == 'asc'">
-	    ORDER BY o.outbound_date ASC
-	  </when>
-	  <when test="sortColumn == 'outbound_id' and sortOrder == 'desc'">
-	    ORDER BY o.outbound_date DESC
-	  </when>
-	
-	  <when test="sortColumn == 'outbound_date' and sortOrder == 'asc'">
-	    ORDER BY o.status ASC
-	  </when>
-	  <when test="sortColumn == 'outbound_date' and sortOrder == 'desc'">
-	    ORDER BY o.status DESC
-	  </when>
-	
-	  <when test="sortColumn == 'due_date' and sortOrder == 'asc'">
-	    ORDER BY o.due_date ASC
-	  </when>
-	  <when test="sortColumn == 'due_date' and sortOrder == 'desc'">
-	    ORDER BY o.due_date DESC
-	  </when>
-	
-	  <otherwise>
-	    ORDER BY o.outbound_date DESC
-	  </otherwise>
-	</choose>
-
-	
+	  ORDER BY o.outbound_date DESC
 	  LIMIT #{perPageNum} OFFSET #{pageStart}
 	</select>
-
-
-
-	<!-- 출고 목록 전체 개수 조회 -->
+	
 	<select id="getMaterialOutboundCount" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
-	  SELECT COUNT(*) 
-	  FROM material_outbound o
-	  <where>
-	    <if test="keyword != null and keyword != '' and condition == 'handledBy'">
-	      o.handled_by LIKE CONCAT('%', #{keyword}, '%')
-	    </if>
-	
-	    <if test="status != null and status != ''">
-	      AND o.status = #{status}
-	    </if>
-	
-	    <if test="startDate != null and startDate != ''">
-	      AND DATE(o.outbound_date) &gt;= #{startDate}
-	    </if>
-	
-	    <if test="endDate != null and endDate != ''">
-	      AND DATE(o.outbound_date) &lt;= #{endDate}
-	    </if>
-	  </where>
-	</select>
-
-	
-
-
-	<!-- 출고 상세 기본 정보 조회 -->
-	<select id="getOutboundDetail" parameterType="String" resultType="com.itwillbs.dto.MaterialOutboundDetailDTO">
-	  SELECT 
-	    o.outbound_id      AS outboundId,
-	    o.outbound_date    AS outboundDate,
-	    o.handled_by       AS handledBy,
-	    o.status           AS status,
-	    o.work_order_no    AS workOrderNo,
-	    o.work_order_date  AS workOrderDate,
-	    o.due_date         AS dueDate,
-	    o.note             AS note,
-	    m.material_name    AS materialName
-	    
-	  FROM material_outbound o
-	  LEFT JOIN work_order wo ON o.work_order_no = wo.order_id
-	  LEFT JOIN material_outbound_item i ON o.outbound_id = i.outbound_id
-	  LEFT JOIN material m ON i.material_id = m.material_id
-	
-	  WHERE o.outbound_id = #{outboundId}
-	  LIMIT 1
+	  SELECT COUNT(*) FROM material_outbound
 	</select>
 	
-
-	<!-- 출고 자재 항목 리스트 조회 -->
-	<select id="getOutboundItemList" parameterType="String" resultType="com.itwillbs.dto.MaterialOutboundItemDTO">
-	  SELECT 
-	    i.material_id      AS materialId,
-	    m.material_name    AS materialName,
-	    i.required_qty     AS requiredQty,
-	    i.stock_qty        AS stockQty,
-	    CASE
-	      WHEN i.stock_qty >= i.required_qty THEN '정상'
-	      ELSE '부족'
-	    END AS stockStatus
-	  FROM material_outbound_item i
-	  LEFT JOIN material m ON i.material_id = m.material_id
-	  WHERE i.outbound_id = #{outboundId}
-	</select>
-	
-
-
-	<!-- 출고 자재 목록 (VO용: 수량 비교용) -->
-	<select id="getOutboundItemListRaw" parameterType="String" resultType="com.itwillbs.domain.MaterialOutboundItemVO">
-	  SELECT material_id, required_qty, stock_qty
-	  FROM material_outbound_item
-	  WHERE outbound_id = #{outboundId}
-	</select>
-	
-	<!-- 출고 완료 처리 (상태/출고일자 변경) -->
-	<update id="updateOutboundAsCompleted" parameterType="String">
-	  UPDATE material_outbound
-	  SET 
-	    status = '출고완료',
-	    outbound_date = NOW()
-	  WHERE outbound_id = #{outboundId}
-	</update>
-	
-
-	<!-- 자재 차감 -->
-	<update id="decreaseMaterialStock">
-	  UPDATE material_inventory
-	  SET quantity = quantity - #{qty}
-	  WHERE material_id = #{materialId}
-	</update>
-	<update id="updateOutboundItemStock">
-	  UPDATE material_outbound_item
-	  SET stock_qty = stock_qty - #{qty}
-	  WHERE outbound_id = #{outboundId}
-	    AND material_id = #{materialId}
-	</update>
-		
-
-
-	<!-- status가 WAITING인 작업지시서 목록 조회 -->
+	<!-- WAITING 작업지시 -->
 	<select id="getWaitingOrders" resultType="com.itwillbs.domain.WorkOrderVO">
-	  SELECT 
-	    order_id,
-	    cl_order_id,
-	    product_id,
-	    line_id,
-	    order_qty,
-	    priority,
-	    is_followup,
-	    created_at,
-	    updated_at,
-	    status,
-	    remarks
-	  FROM work_order
-	  WHERE status = 'WAITING'
-	  ORDER BY created_at ASC
+	  SELECT
+	    wo.order_id   AS orderId,
+	    wo.product_id AS productId,
+	    p.product_name AS productName,
+	    wo.line_id    AS lineId,
+	    wo.order_qty  AS orderQty,
+	    wo.due_date   AS dueDate
+	  FROM work_order wo
+	  LEFT JOIN product p ON p.product_id = wo.product_id 
+	  WHERE wo.status = 'WAITING'
+	  ORDER BY wo.due_date ASC, wo.order_id ASC
 	</select>
 	
-	
-	<!-- 작업지시 기본 정보 조회 -->
-	<select id="getWorkOrderInfo" resultType="com.itwillbs.dto.MaterialOutboundDetailDTO">
-	    SELECT 
-	        wo.order_id AS workOrderNo,
-	        wo.order_date AS workOrderDate,
-	        wo.due_date AS dueDate,
-	        wo.manager AS workOrderManager,
-	        l.line_name AS lineId,
-	        p.product_id AS productId
-	    FROM work_order wo
-	    JOIN line l ON wo.line_id = l.line_id
-	    JOIN product p ON wo.product_id = p.product_id
-	    WHERE wo.order_id = #{workOrderNo}
+	<!-- 등록 화면: 헤더 -->
+	<select id="getWorkOrderWithStock" parameterType="string" resultType="map">
+	  SELECT wo.order_id AS workOrderNo, wo.product_id, wo.line_id, wo.due_date
+	  FROM work_order wo WHERE wo.order_id = #{_parameter}
 	</select>
 	
-	<!-- 작업지시서 기반 필요 자재 목록 -->
-	<select id="getRequiredMaterialsByWorkOrder" resultType="com.itwillbs.dto.MaterialOutboundItemDTO">
-	    SELECT 
-	        mr.material_id,
-	        m.material_name,
-	        mr.required_qty AS requiredQty,
-	        COALESCE(i.quantity, 0) AS stockQty
-	    FROM material_requirement mr
-	    JOIN material m ON mr.material_id = m.material_id
-	    LEFT JOIN material_inventory i ON m.material_id = i.material_id
-	    WHERE mr.order_id = #{workOrderNo}
+	<!-- 등록 화면: 자재 + 현재고 합계 -->
+	<select id="getWorkOrderItemsWithStock" parameterType="string" resultType="map">
+	  SELECT wom.material_id AS materialId, m.material_name AS materialName,
+	         wom.required_qty AS requiredQty,
+	         IFNULL(SUM(mi.quantity),0) AS stockQty
+	  FROM work_order_material wom
+	  JOIN material m ON m.material_id = wom.material_id
+	  LEFT JOIN material_inventory mi
+	         ON mi.material_id = wom.material_id
+	        AND (mi.is_discarded = 0 OR mi.is_discarded IS NULL)
+	  WHERE wom.work_order_id = #{_parameter}
+	  GROUP BY wom.material_id, m.material_name, wom.required_qty
 	</select>
 	
-	<!-- 출고 마스터 저장 -->
-	<insert id="insertMaterialOutbound" parameterType="com.itwillbs.dto.MaterialOutboundDetailDTO">
-	  INSERT INTO material_outbound (
-	    outbound_id, work_order_no, outbound_date, status, handled_by
-	  ) VALUES (
-	    #{outboundId}, #{workOrderNo}, NOW(), '미출고', #{handledBy}
-	  )
-	</insert>
+	<!-- LOT 목록(참고: 인벤토리 컨트롤러에서 이 id를 호출) -->
+	<select id="getLotsByMaterial" parameterType="string" resultType="map">
+	  SELECT inventory_id, lot_no, quantity, expiration_date, warehouse_code
+	  FROM material_inventory
+	  WHERE material_id = #{_parameter}
+	    AND quantity > 0
+	    AND (is_discarded = 0 OR is_discarded IS NULL)
+	  ORDER BY expiration_date ASC, received_date ASC
+	</select>
 	
-	<!-- 출고 자재 항목 저장 -->
-	<insert id="insertMaterialOutboundItem" parameterType="com.itwillbs.dto.MaterialOutboundItemDTO">
-	  INSERT INTO material_outbound_item (
-	    outbound_id, material_id, required_qty, stock_qty
-	  ) VALUES (
-	    #{outboundId}, #{materialId}, #{requiredQty}, #{stockQty}
-	  )
-	</insert>
-	
-	<!-- 가장 마지막 출고ID 조회 -->
-	<select id="getLastOutboundId" parameterType="String" resultType="String">
-	  SELECT MAX(outbound_id)
+	<!-- 출고 ID -->
+	<select id="getNextOutboundId" resultType="string">
+	  SELECT CONCAT('OUT-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-',
+	    LPAD(COALESCE(MAX(CAST(SUBSTRING_INDEX(outbound_id, '-', -1) AS UNSIGNED)),0)+1,3,'0'))
 	  FROM material_outbound
-	  WHERE outbound_id LIKE CONCAT(#{prefix}, '%')
+	  WHERE outbound_id LIKE CONCAT('OUT-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-%')
 	</select>
+	
+	<!-- 헤더 INSERT -->
+	<insert id="insertMaterialOutbound" parameterType="map">
+	  INSERT INTO material_outbound(outbound_id, work_order_no, status, handled_by, due_date)
+	  VALUES(#{outbound_id}, #{work_order_no}, '미출고', #{handled_by},
+	         (SELECT due_date FROM work_order WHERE order_id=#{work_order_no}))
+	</insert>
+	
+	<!-- 항목 INSERT (list of map) -->
+	<insert id="insertMaterialOutboundItems" parameterType="java.util.List">
+	  INSERT INTO material_outbound_item(outbound_id, material_id, quantity, lot_no)
+	  VALUES
+	  <foreach collection="list" item="it" separator=",">
+	    (#{it.outbound_id}, #{it.material_id}, #{it.quantity}, #{it.lot_no})
+	  </foreach>
+	</insert>
+	
+	<!-- 상세 헤더/항목 -->
+	<select id="getOutboundDetailFull" parameterType="string" resultType="map">
+	  SELECT outbound_id AS outboundId, work_order_no AS workOrderNo,
+	         outbound_date AS outboundDate, due_date AS dueDate,
+	         status, handled_by AS handledBy
+	  FROM material_outbound
+	  WHERE outbound_id = #{_parameter}
+	</select>
+	
+	<select id="getOutboundItems" parameterType="string" resultType="map">
+	  SELECT i.material_id AS materialId, m.material_name AS materialName,
+	         i.quantity, i.lot_no AS lotNo
+	  FROM material_outbound_item i
+	  JOIN material m ON m.material_id = i.material_id
+	  WHERE i.outbound_id = #{_parameter}
+	</select>
+	
+	<!-- 처리: LOT 단위 차감 -->
+	<update id="decreaseInventoryByOutbound" parameterType="string">
+	  UPDATE material_inventory mi
+	  JOIN material_outbound_item oi
+	    ON oi.lot_no = mi.lot_no
+	   AND oi.material_id = mi.material_id
+	  SET mi.quantity = mi.quantity - oi.quantity
+	  WHERE oi.outbound_id = #{_parameter}
+	    AND mi.quantity >= oi.quantity
+	</update>
+	
+	<update id="updateOutboundAsCompleted" parameterType="string">
+	  UPDATE material_outbound
+	  SET status='출고완료', outbound_date=NOW()
+	  WHERE outbound_id = #{_parameter}
+	</update>
+	
+	<!-- MaterialOutboundMapper.xml -->
+	<select id="countByStatus" parameterType="string" resultType="int">
+	  SELECT COUNT(*)
+	  FROM material_outbound
+	  WHERE status = #{_parameter}
+	</select>
+	
+	
+	<!-- 작업지시 헤더 1건 -->
+	<select id="selectWorkOrderHeader" parameterType="string" resultType="map">
+	  SELECT
+	    wo.order_id    AS workOrderNo,
+	    wo.product_id  AS productId,
+	    wo.line_id     AS lineId,
+	    wo.due_date    AS dueDate
+	  FROM work_order wo
+	  WHERE wo.order_id = #{workOrderId}
+	</select>
+	
+	<!-- 작업지시 자재 목록 (필요수량) -->
+	<select id="selectWorkOrderMaterials" parameterType="string" resultType="map">
+	  SELECT
+	    m.material_id    AS materialId,
+	    m.material_name  AS materialName,
+	    wom.required_qty AS requiredQty,
+	    COALESCE(m.default_warehouse_code,
+	             CASE 
+	               WHEN m.storage_method = '냉동' THEN 'WH001'
+	               WHEN m.storage_method = '냉장' THEN 'WH002'
+	               ELSE 'WH003'
+	             END)        AS defaultWarehouseCode
+	  FROM work_order_material wom
+	  JOIN material m ON m.material_id = woi.material_id
+	  WHERE wom.work_order_id = #{workOrderId}
+	  ORDER BY m.material_id
+	</select>
+	
 	
 	
 
