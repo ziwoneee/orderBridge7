@@ -51,8 +51,8 @@ public class SupplierItemServiceImpl implements SupplierItemService {
 	
 	// 공급 품목 중복 확인
 	@Override
-	public boolean isDuplicateItem(String supplierId, String materialId) throws Exception {
-	    return siDAO.countBySupplierAndMaterial(supplierId, materialId) > 0;
+	public boolean isDuplicateItem(String supplierId, String materialId, String itemId) throws Exception {
+	    return siDAO.countBySupplierAndMaterial(supplierId, materialId, itemId) > 0;
 	}
 	
 	

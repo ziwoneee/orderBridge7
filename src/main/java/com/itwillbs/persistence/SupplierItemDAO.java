@@ -25,7 +25,7 @@ public interface SupplierItemDAO {
     
     
     // 공급 품목 중복 확인
-    int countBySupplierAndMaterial(String supplierId, String materialId) throws Exception;
+    int countBySupplierAndMaterial(String supplierId, String materialId, String itemId) throws Exception;
     
     // 공급 품목 수정
     void updateItem(SupplierItemVO item) throws Exception;

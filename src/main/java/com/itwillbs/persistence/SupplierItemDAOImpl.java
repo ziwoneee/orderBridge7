@@ -1,5 +1,6 @@
 package com.itwillbs.persistence;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -57,10 +58,15 @@ public class SupplierItemDAOImpl implements SupplierItemDAO {
     
     // 공급 품목 중복 확인
     @Override
-    public int countBySupplierAndMaterial(String supplierId, String materialId) {
-        return sqlSession.selectOne(NAMESPACE + "countBySupplierAndMaterial",
-                                    Map.of("supplierId", supplierId, "materialId", materialId));
+    public int countBySupplierAndMaterial(String supplierId, String materialId, String itemId) throws Exception {
+        Map<String, Object> paramMap = new HashMap<>();
+        paramMap.put("supplierId", supplierId);
+        paramMap.put("materialId", materialId);
+        paramMap.put("itemId", itemId); // ✅ 중요
+
+        return sqlSession.selectOne(NAMESPACE + "countBySupplierAndMaterial", paramMap);
     }
+
 
     
     

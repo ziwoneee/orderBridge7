@@ -67,12 +67,15 @@
   </insert>
   
   
-  <!-- 중복 확인용 쿼리 -->
+  	<!-- 중복 확인용 쿼리 -->
 	<select id="countBySupplierAndMaterial" parameterType="map" resultType="int">
 	  SELECT COUNT(*) 
-	  FROM supplier_item 
-	  WHERE supplier_id = #{supplierId} 
+	  FROM supplier_item
+	  WHERE supplier_id = #{supplierId}
 	    AND material_id = #{materialId}
+	    <if test="itemId != null and itemId != ''">
+	      AND id != #{id}
+	    </if>
 	</select>
   
   

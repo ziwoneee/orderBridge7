@@ -138,7 +138,7 @@
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <form id="itemForm">
-      	<input type="hidden" name="itemId" id="itemId">
+      	<input type="hidden" name="id" id="itemId" value="">
       	
         <div class="modal-header">
           <h5 class="modal-title">공급 품목 등록</h5>

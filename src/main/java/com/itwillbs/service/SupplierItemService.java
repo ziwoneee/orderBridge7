@@ -22,7 +22,7 @@ public interface SupplierItemService {
     void registerItem(SupplierItemVO item) throws Exception;
     
     // 공급 품목 중복 확인
-    boolean isDuplicateItem(String supplierId, String materialId) throws Exception;
+    boolean isDuplicateItem(String supplierId, String materialId, String itemId) throws Exception;
     
     // 공급 품목 수정
     void updateItem(SupplierItemVO item) throws Exception;

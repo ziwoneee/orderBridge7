@@ -123,9 +123,10 @@ public class SupplierItemController {
 	@GetMapping("/check")
 	@ResponseBody
 	public boolean checkDuplicate(@RequestParam("supplierId") String supplierId,
-	                              @RequestParam("materialId") String materialId) throws Exception {
-		 System.out.println("🔥 중복 검사 쿼리 - supplierId: " + supplierId + ", materialId: " + materialId);
-	    return siService.isDuplicateItem(supplierId, materialId);
+	                              @RequestParam("materialId") String materialId,
+	                              @RequestParam(value = "itemId", required = false) String itemId) throws Exception {
+
+		return siService.isDuplicateItem(supplierId, materialId, itemId);
 	}
 	
 

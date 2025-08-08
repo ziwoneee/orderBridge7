@@ -6,10 +6,13 @@ $(document).ready(function () {
 
 		  const supplierId = $("#supplierId").val();
 		  const materialId = $("#materialId").val();
+		  const mode = $("#itemForm").attr("data-mode");
+		  const itemId = (mode === 'edit') ? $("#itemId").val() : "";
 
 		  const params = new URLSearchParams({
 		    supplierId: supplierId,
-		    materialId: materialId
+		    materialId: materialId,
+		    itemId: itemId
 		  }).toString();
 
 		  $.ajax({
