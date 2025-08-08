@@ -19,18 +19,6 @@
 	  <result property="warehouseCode" column="warehouse_code"/>
   </resultMap>
   	
-  <!-- 특정 협력사가 공급하는 자재 목록 조회 - supplier_item + material 조인 -->
-  <select id="selectSuppliedItemsBySupplierId" resultMap="supplierItemMap">
-    SELECT 
-      si.*, 
-      m.material_name, 
-      m.material_type
-    FROM supplier_item si
-    JOIN material m ON si.material_id = m.material_id
-    WHERE si.supplier_id = #{supplierId}
-  </select>
-  
-  
   <!-- 특정 거래처의 공급 품목 JSON 목록 반환 -->
   <select id="getItemsBySupplier" parameterType="String" resultMap="supplierItemMap">
 	 SELECT 
@@ -50,6 +38,23 @@
 	  JOIN material m ON si.material_id = m.material_id
 	  WHERE si.supplier_id = #{supplierId}
   </select>
+  
+    <!-- 전체 공급 품목 수 -->
+	<select id="getItemCountBySupplier" parameterType="String" resultType="int">
+	    SELECT COUNT(*) FROM supplier_item
+	    WHERE supplier_id = #{supplierId}
+	</select>
+	
+	<!-- 페이징된 공급 품목 목록 -->
+	<select id="getItemListBySupplierWithPaging" parameterType="map" resultType="com.itwillbs.domain.SupplierItemVO">
+	  SELECT si.*, m.material_name, m.material_type
+	  FROM supplier_item si
+	  JOIN material m ON si.material_id = m.material_id
+	  WHERE si.supplier_id = #{supplierId}
+	  ORDER BY si.id ASC
+	  LIMIT #{perPageNum} OFFSET #{pageStart}
+	</select>
+  
   
   
   

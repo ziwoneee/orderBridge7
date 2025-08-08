@@ -8,6 +8,9 @@
                ? (String)request.getAttribute("supplierId") 
                : "";
 %>
+<c:if test="${empty cri.perPageNum}">
+  <c:set var="cri.perPageNum" value="10" />
+</c:if>
 
 
 <div class="container-scroller">
@@ -52,13 +55,42 @@
               </div>
             </div>
             
-            <div class="d-flex justify-content-center mt-4">
+            <!-- 페이징 처리 -->
+			<div class="d-flex justify-content-center mt-4">
 			  <nav>
 			    <ul class="pagination justify-content-center mt-4">
-			      <!-- 자바스크립트가 이 안에 페이징을 채워줌 -->
+			
+			      <c:if test="${pageMaker.cri.page > 1}">
+			        <li class="page-item">
+			          <a class="page-link"
+			             href="?supplierId=${supplierId}&page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}">
+			            &laquo;
+			          </a>
+			        </li>
+			      </c:if>
+			
+			      <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+			        <li class="page-item ${p == cri.page ? 'active' : ''}">
+			          <a class="page-link"
+			             href="?supplierId=${supplierId}&page=${p}&perPageNum=${cri.perPageNum}">
+			            ${p}
+			          </a>
+			        </li>
+			      </c:forEach>
+			
+			      <c:if test="${pageMaker.cri.page < pageMaker.endPage}">
+			        <li class="page-item">
+			          <a class="page-link"
+			             href="?supplierId=${supplierId}&page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}">
+			            &raquo;
+			          </a>
+			        </li>
+			      </c:if>
+			
 			    </ul>
 			  </nav>
 			</div>
+			<!-- 페이징 끝 -->
 			            
             
           </div>

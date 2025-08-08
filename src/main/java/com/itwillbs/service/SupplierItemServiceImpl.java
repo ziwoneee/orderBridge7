@@ -5,6 +5,8 @@ import java.util.List;
 import javax.inject.Inject;
 
 import org.springframework.stereotype.Service;
+
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.SupplierItemVO;
 import com.itwillbs.persistence.SupplierItemDAO;
 
@@ -20,19 +22,25 @@ public class SupplierItemServiceImpl implements SupplierItemService {
     private SupplierItemDAO siDAO;
 
 
-	// 특정 협력사의 공급 품목 전체 조회
-	@Override
-	public List<SupplierItemVO> getSuppliedItemsBySupplierId(String supplierId) {
-		
-		return siDAO.selectSuppliedItemsBySupplierId(supplierId);
-	}
-	
 	// 특정 거래처의 공급 품목 JSON 목록 반환
 	@Override
 	public List<SupplierItemVO> getItemsBySupplier(String supplierId) throws Exception {
 		
 	    return siDAO.getItemsBySupplier(supplierId);
 	}
+	
+	// 페이징
+	@Override
+	public int getItemCountBySupplier(String supplierId) throws Exception {
+	    return siDAO.getItemCountBySupplier(supplierId);
+	}
+
+	@Override
+	public List<SupplierItemVO> getItemListBySupplierWithPaging(String supplierId, SearchCriteria cri) throws Exception {
+	    return siDAO.getItemListBySupplierWithPaging(supplierId, cri);
+	}
+
+	
 
 	
 	 // 공급 품목 등록
