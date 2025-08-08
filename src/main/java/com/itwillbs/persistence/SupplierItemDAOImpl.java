@@ -31,6 +31,12 @@ public class SupplierItemDAOImpl implements SupplierItemDAO {
         return sqlSession.selectList(NAMESPACE + "getItemsBySupplier", supplierId);
     }
 
+    
+    // 공급 품목 등록
+    @Override
+    public void insertItem(SupplierItemVO item) throws Exception {
+        sqlSession.insert(NAMESPACE + "insertItem", item);
+    }
 
 
 }

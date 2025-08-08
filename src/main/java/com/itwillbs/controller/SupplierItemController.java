@@ -4,9 +4,11 @@ import java.util.List;
 
 import javax.inject.Inject;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -75,6 +77,21 @@ public class SupplierItemController {
     	return itemList;
     }
 
+    
+    /**
+     * 공급 품목 등록 처리
+     * - POST 요청으로 등록 폼 데이터를 전달받아 DB에 저장
+     */
+    @PostMapping("/register")
+    @ResponseBody
+    public ResponseEntity<String> registerItem(SupplierItemVO item) {
+        try {
+            siService.registerItem(item);
+            return ResponseEntity.ok("등록 성공");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("등록 실패: " + e.getMessage());
+        }
+    }
     
     
     

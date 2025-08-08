@@ -35,4 +35,11 @@ public class SupplierItemServiceImpl implements SupplierItemService {
 	}
 
 	
+	 // 공급 품목 등록
+	@Override
+    public void registerItem(SupplierItemVO item) throws Exception {
+        // DAO를 통해 DB에 저장
+		siDAO.insertItem(item);
+    }
+	
 }

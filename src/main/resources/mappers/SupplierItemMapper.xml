@@ -51,4 +51,19 @@
 	  WHERE si.supplier_id = #{supplierId}
   </select>
   
+  
+  
+  <!-- 공급 품목 등록 쿼리 -->
+  <insert id="insertItem" parameterType="com.itwillbs.domain.SupplierItemVO">
+    INSERT INTO supplier_item (
+      supplier_id, material_id, unit_price, unit, supply_available, note
+    )
+    VALUES (
+      #{supplierId}, #{materialId}, #{unitPrice}, #{unit}, #{supplyAvailable}, #{note}
+    )
+  </insert>
+  
+  
+  
+  
 </mapper>

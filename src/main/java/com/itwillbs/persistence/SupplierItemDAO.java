@@ -17,5 +17,9 @@ public interface SupplierItemDAO {
     
     // 특정 거래처의 공급 품목 JSON 목록 반환
     public List<SupplierItemVO> getItemsBySupplier(String supplierId) throws Exception;
+    
+    
+    // 공급 품목 등록
+    void insertItem(SupplierItemVO item) throws Exception;
 
 }
