@@ -136,12 +136,9 @@
 		        </thead>
 		        <tbody>
 		          <c:forEach var="material" items="${materialList}">
-		            <tr
-					    class="display-row"
-					    <c:if test="${material.useYn eq 'N'}">
-					      style="color: #bbb; background: #f9f9f9; text-decoration:line-through;"
-					    </c:if>
-					    id="display-${material.materialId}">
+		          	<tr
+						class="display-row ${material.useYn eq 'N' ? 'inactive-row' : ''}"
+						id="display-${material.materialId}">
 		              <td>${material.materialId}</td>
 		              <td>${material.materialName}</td>
 		              <td>${material.materialType}</td>
@@ -152,12 +149,17 @@
 		              <td><c:if test="${material.lotFlag eq 'Y'}">Y</c:if><c:if test="${material.lotFlag ne 'Y'}">N</c:if></td>
 		              <td>${material.supplyUnit}</td>
 		              <td>
-				        <span style="font-weight:bold; color:${material.useYn eq 'Y' ? '#28a745' : '#aaa'};">
-				          ${material.useYn eq 'Y' ? '활성' : '비활성'}
-				        </span>
-				      </td>
+			            <c:choose>
+			              <c:when test="${material.useYn eq 'Y'}">
+			                <span class="badge badge-success">활성</span>
+			              </c:when>
+			              <c:otherwise>
+			                <span class="badge badge-secondary">비활성</span>
+			              </c:otherwise>
+			            </c:choose>
+			          </td>
 		              <td>
-		                <button type="button" class="btn btn-sm btn-outline-secondary"
+		                <button type="button" class="btn btn-sm btn-outline-warning"
 		                       onclick="location.href='/material/edit?materialId=${material.materialId}'">
 		                  수정
 		                </button>

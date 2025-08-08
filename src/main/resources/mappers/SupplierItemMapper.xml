@@ -19,18 +19,6 @@
 	  <result property="warehouseCode" column="warehouse_code"/>
   </resultMap>
   	
-  <!-- 특정 협력사가 공급하는 자재 목록 조회 - supplier_item + material 조인 -->
-  <select id="selectSuppliedItemsBySupplierId" resultMap="supplierItemMap">
-    SELECT 
-      si.*, 
-      m.material_name, 
-      m.material_type
-    FROM supplier_item si
-    JOIN material m ON si.material_id = m.material_id
-    WHERE si.supplier_id = #{supplierId}
-  </select>
-  
-  
   <!-- 특정 거래처의 공급 품목 JSON 목록 반환 -->
   <select id="getItemsBySupplier" parameterType="String" resultMap="supplierItemMap">
 	 SELECT 
@@ -50,5 +38,72 @@
 	  JOIN material m ON si.material_id = m.material_id
 	  WHERE si.supplier_id = #{supplierId}
   </select>
+  
+    <!-- 전체 공급 품목 수 -->
+	<select id="getItemCountBySupplier" parameterType="String" resultType="int">
+	    SELECT COUNT(*) FROM supplier_item
+	    WHERE supplier_id = #{supplierId}
+	</select>
+	
+	<!-- 페이징된 공급 품목 목록 -->
+	<select id="getItemListBySupplierWithPaging" parameterType="map" resultType="com.itwillbs.domain.SupplierItemVO">
+	  SELECT si.*, m.material_name, m.material_type
+	  FROM supplier_item si
+	  JOIN material m ON si.material_id = m.material_id
+	  WHERE si.supplier_id = #{supplierId}
+	  ORDER BY si.supply_available DESC, m.material_name ASC
+	  LIMIT #{perPageNum} OFFSET #{pageStart}
+	</select>
+  
+  
+  <!-- 공급 품목 등록 쿼리 -->
+  <insert id="insertItem" parameterType="com.itwillbs.domain.SupplierItemVO">
+    INSERT INTO supplier_item (
+      supplier_id, material_id, unit_price, unit, supply_available, note
+    )
+    VALUES (
+      #{supplierId}, #{materialId}, #{unitPrice}, #{unit}, #{supplyAvailable}, #{note}
+    )
+  </insert>
+  
+  
+  	<!-- 중복 확인용 쿼리 -->
+	<select id="countBySupplierAndMaterial" parameterType="map" resultType="int">
+	  SELECT COUNT(*) 
+	  FROM supplier_item
+	  WHERE supplier_id = #{supplierId}
+	    AND material_id = #{materialId}
+	    <if test="itemId != null and itemId != ''">
+	      AND id != #{id}
+	    </if>
+	</select>
+  
+  
+  
+  <!-- 공급 품목 수정 쿼리 -->
+  <update id="updateItem" parameterType="com.itwillbs.domain.SupplierItemVO">
+	  UPDATE supplier_item
+	  SET 
+	    unit_price = #{unitPrice},
+	    unit = #{unit},
+	    note = #{note},
+	    supply_available = #{supplyAvailable},
+	    updated_at = NOW()
+	  WHERE id = #{id}
+  </update>
+  
+  
+  <!-- 공급 품목 단건 조회 (수정폼용) -->
+  <select id="getItemById" resultType="com.itwillbs.domain.SupplierItemVO">
+	  SELECT si.*, m.material_name, m.material_type
+	  FROM supplier_item si
+	  JOIN material m ON si.material_id = m.material_id
+	  WHERE si.id = #{itemId}
+  </select>
+  
+  
+  
+  
+  
   
 </mapper>

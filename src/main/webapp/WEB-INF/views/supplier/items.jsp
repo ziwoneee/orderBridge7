@@ -1,5 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
 
@@ -8,6 +10,9 @@
                ? (String)request.getAttribute("supplierId") 
                : "";
 %>
+<c:if test="${empty cri.perPageNum}">
+  <c:set var="cri.perPageNum" value="10" />
+</c:if>
 
 
 <div class="container-scroller">
@@ -20,55 +25,116 @@
       <div class="content-wrapper">
         <div class="row">
           <div class="col-12 mb-4">
-            <h3 class="font-weight-bold">[${supplier.supplierName}] 공급 품목 목록</h3>
+            <h3 class="font-weight-bold">${supplier.supplierName} 공급 품목 목록</h3>
             <p class="text-muted">${supplier.supplierName} 협력사의 공급 가능한 자재 목록을 확인하세요.</p>
           </div>
           
           <!-- 등록 버튼 -->
           <div class="col-12 mb-3 text-right">
-            <button class="btn btn-primary" id="btnAddItem">공급 품목 등록</button>
+            <button class="btn btn-success mb-2" id="btnAddItem" data-supplier-id="${supplier.supplierId}">공급 품목 등록</button>
           </div>
                     
-          <!-- 상단 제목 아래에 협력사명 출력 -->
-<%-- 			<div class="card mb-3">
-			  <div class="card-body py-2">
-			    <strong>거래처:</strong> ${supplier.supplierName}  
-			    <strong class="ml-3">대표자:</strong> ${supplier.representativeName}
-			    <strong class="ml-3">사업자번호:</strong> ${supplier.businessNumber}
-			    <strong class="ml-3">담당자 연락처:</strong> ${supplier.contactPhone}
-			  </div>
-			</div> --%>
-          
-          <!-- 공급 품목 테이블 -->
-          <div class="col-12">
-            <div class="card">
-              <div class="card-body">
+	          <!-- 공급 품목 테이블 -->
+	          <div class="col-12">
                 <div class="table-responsive">
                   <table class="table table-hover" id="itemTable">
-                    <thead style="background-color: #1c355e; color: white;">
+                    <thead>
                       <tr>
                         <th>자재명</th>
                         <th>유형</th>
                         <th>단가</th>
                         <th>단위</th>
-                        <th>공급 가능</th>
+                        <th>공급 상태</th>
                         <th>비고</th>
-                        <th>작업</th>
+                        <th>수정</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <!-- JavaScript로 동적 로딩 -->
-                    </tbody>
+				    <c:choose>
+				      <c:when test="${empty itemList}">
+				        <tr>
+				          <td colspan="7" class="text-center text-muted">등록된 공급 품목이 없습니다.</td>
+				        </tr>22-9999	2025-07-23	
+				      </c:when>
+				      <c:otherwise>
+				        <c:forEach var="item" items="${itemList}">
+				          <tr class="${item.supplyAvailable eq 'N' ? 'inactive-row' : ''}" data-item-id="${item.id}">
+				            <td>${item.materialName}</td>
+				            <td>${item.materialType}</td>
+				            <td><fmt:formatNumber value="${item.unitPrice}" pattern="#,##0" /></td>
+				            <td>${item.unit}</td>
+				            <td>
+				              <span class="badge ${item.supplyAvailable eq 'Y' ? 'badge-success' : 'badge-secondary'}">
+				                ${item.supplyAvailable eq 'Y' ? '활성' : '비활성'}
+				              </span>
+				            </td>
+				            <td>${item.note}</td>
+				            <td>
+				              <button class="btn btn-sm btn-outline-warning btn-edit">수정</button>
+				            </td>
+				          </tr>
+				        </c:forEach>
+				      </c:otherwise>
+				    </c:choose>
+				  </tbody>
                   </table>
                 </div>
               </div>
             </div>
+            
+            <div class="d-flex justify-content-end mt-4">
+			  <a href="/supplier/list" class="btn btn-outline-secondary">
+			    ← 목록
+			  </a>
+			</div>
+			
+            <!-- 페이징 처리 -->
+			<div class="d-flex justify-content-center mt-4">
+			  <nav>
+			    <ul class="pagination justify-content-center mt-4">
+			
+			      <c:if test="${pageMaker.cri.page > 1}">
+			        <li class="page-item">
+			          <a class="page-link"
+			             href="?supplierId=${supplierId}&page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}">
+			            &laquo;
+			          </a>
+			        </li>
+			      </c:if>
+			
+			      <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+			        <li class="page-item ${p == cri.page ? 'active' : ''}">
+			          <a class="page-link"
+			             href="?supplierId=${supplierId}&page=${p}&perPageNum=${cri.perPageNum}">
+			            ${p}
+			          </a>
+			        </li>
+			      </c:forEach>
+			
+			      <c:if test="${pageMaker.cri.page < pageMaker.endPage}">
+			        <li class="page-item">
+			          <a class="page-link"
+			             href="?supplierId=${supplierId}&page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}">
+			            &raquo;
+			          </a>
+			        </li>
+			      </c:if>
+			
+			    </ul>
+			  </nav>
+			</div>
+			<!-- 페이징 끝 -->
+			
+			
+			
+			            
+            
           </div>
-
-        </div>
-        </div>
         <!-- content-wrapper 끝 -->
+      <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>  
 	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
+	  <script src="${pageContext.request.contextPath}/resources/vendors/select2/select2.min.js"></script>
+      <script src="${pageContext.request.contextPath}/resources/js/supplierItem.js"></script>
      </div>
      <!-- 본문.jsp main-panel ends -->
   </div>   
@@ -81,29 +147,45 @@
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <form id="itemForm">
-        <div class="modal-header">
+      	<input type="hidden" name="id" id="itemId" value="">
+      	
+        <div class="modal-header" style="background-color: #1c355e; color: #ffffff;">
           <h5 class="modal-title">공급 품목 등록</h5>
           <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
         </div>
+       
         <div class="modal-body">
-          <input type="hidden" name="supplierId" value="<%= sid %>">
-          <div class="form-group">
-            <label>자재 ID</label>
-            <input type="text" name="materialId" class="form-control">
-          </div>
+          <input type="hidden" id="supplierId" name="supplierId" value="<%= sid %>">
+
+		<div class="form-group invisible-select2-wrapper" id="materialIdWrapper">
+		  <label>자재 선택</label>
+		  <select id="materialId" name="materialId" class="form-control select2" style="width: 100%;">
+		    <option value="">자재를 선택하세요</option>
+		    <c:forEach var="m" items="${materialList}">
+		      <option 
+		        value="${m.materialId}" 
+		        data-unitprice="${m.unitPrice}" 
+		        data-unit="${m.unit}">
+		        ${m.materialName} (${m.materialId})
+		      </option>
+		    </c:forEach>
+		  </select>
+		</div>
+
+
           <div class="form-group">
             <label>단가</label>
-            <input type="number" name="unitPrice" class="form-control">
+            <input type="number" name="unitPrice" id="unitPrice" class="form-control" required>
           </div>
           <div class="form-group">
             <label>단위</label>
-            <input type="text" name="unit" class="form-control">
+            <input type="text" name="unit" id="unit" class="form-control" required>
           </div>
           <div class="form-group">
-            <label>공급 가능</label>
+            <label>공급 상태</label>
             <select name="supplyAvailable" class="form-control">
-              <option value="Y">Y</option>
-              <option value="N">N</option>
+              <option value="Y">활성</option>
+              <option value="N">비활성</option>
             </select>
           </div>
           <div class="form-group">
@@ -112,57 +194,18 @@
           </div>
         </div>
         <div class="modal-footer">
+          <button type="submit" id="btnAddItemSubmit" class="btn btn-primary">등록</button>
           <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
-          <button type="submit" class="btn btn-primary">저장</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
-
-<script>
-$.ajax({
-  url: `/supplierItem/list?supplierId=${supplierId}`,
-  method: "GET",
-  success: function(data) {
-    const tbody = $("#itemTable tbody");
-    tbody.empty();
-
-    if (data.length == 0) {
-      tbody.append(`
-        <tr>
-          <td colspan="7" class="text-center text-muted">
-            등록된 공급 품목이 없습니다.
-          </td>
-        </tr>
-      `);
-      return;
-    }
-
-    data.forEach(function(item) {
-      const tr = $("<tr>");
-
-      tr.append($("<td>").text(item.materialName ?? "-"));
-      tr.append($("<td>").text(item.materialType ?? "-"));
-      tr.append($("<td>").text(item.unitPrice ?? "-"));
-      tr.append($("<td>").text(item.unit ?? "-"));
-      tr.append($("<td>").text(item.supplyAvailable == "Y" ? "가능" : "불가"));
-      tr.append($("<td>").text(item.note ?? "-"));
-
-      const btns = $(`
-        <td>
-          <button class='btn btn-warning btn-sm btn-edit'>수정</button>
-          <button class='btn btn-danger btn-sm btn-delete'>삭제</button>
-        </td>
-      `);
-      tr.append(btns);
-
-      tbody.append(tr);
-    });
-  },
-  error: function(xhr) {
-    console.error("❌ 공급 품목 불러오기 실패:", xhr);
-  }
-});
-</script>
+<style>
+/* ✅ select2 깜빡임 완전 방지용 CSS */
+/* ✅ 더 이상 숨김/보임 처리가 필요없으므로 기본적인 스타일만 */
+#materialIdWrapper {
+  margin-bottom: 1rem;
+}
+</style>

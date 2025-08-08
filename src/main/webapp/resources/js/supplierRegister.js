@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (!isBizNoChecked) {
+    if (!isEditPage && !isBizNoChecked) {
       alert("사업자등록번호 중복확인을 해주세요.");
       businessNumber.focus();
       e.preventDefault();
@@ -89,43 +89,49 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  //수정 페이지 여부 확인
+  const isEditPage = location.pathname.includes("/supplier/edit");
+
   // 👉 사업자등록번호 중복 확인
-  document.getElementById("checkBizBtn").addEventListener("click", () => {
-    const bizNoInput = document.getElementById("businessNumber");
-    const bizNo = bizNoInput.value.trim();
-    const msg = document.getElementById("bizCheckMsg");
+  if (!isEditPage) {
+    document.getElementById("checkBizBtn").addEventListener("click", () => {
+      const bizNoInput = document.getElementById("businessNumber");
+      const bizNo = bizNoInput.value.trim();
+      const msg = document.getElementById("bizCheckMsg");
 
-    const pattern = /^\d{3}-\d{2}-\d{5}$/;
-    if (!pattern.test(bizNo)) {
-      msg.innerText = "사업자등록번호 형식이 올바르지 않습니다.";
-      msg.classList.remove("text-success");
-      msg.classList.add("text-danger");
-      bizNoInput.focus();
-      return;
-    }
+      const pattern = /^\d{3}-\d{2}-\d{5}$/;
+      if (!pattern.test(bizNo)) {
+        msg.innerText = "사업자등록번호 형식이 올바르지 않습니다.";
+        msg.classList.remove("text-success");
+        msg.classList.add("text-danger");
+        bizNoInput.focus();
+        return;
+      }
 
-    fetch("/supplier/checkBizNo?businessNumber=" + encodeURIComponent(bizNo))
-      .then(res => res.json())
-      .then(data => {
-        if (data.exists) {
-          msg.innerText = "이미 등록된 사업자등록번호입니다.";
+      fetch("/supplier/checkBizNo?businessNumber=" + encodeURIComponent(bizNo))
+        .then(res => res.json())
+        .then(data => {
+          if (data.exists) {
+            msg.innerText = "이미 등록된 사업자등록번호입니다.";
+            msg.classList.remove("text-success");
+            msg.classList.add("text-danger");
+            isBizNoChecked = false;
+          } else {
+            msg.innerText = "사용 가능한 사업자등록번호입니다.";
+            msg.classList.remove("text-danger");
+            msg.classList.add("text-success");
+            isBizNoChecked = true;
+          }
+        })
+        .catch(() => {
+          msg.innerText = "확인 중 오류가 발생했습니다.";
           msg.classList.remove("text-success");
           msg.classList.add("text-danger");
           isBizNoChecked = false;
-        } else {
-          msg.innerText = "사용 가능한 사업자등록번호입니다.";
-          msg.classList.remove("text-danger");
-          msg.classList.add("text-success");
-          isBizNoChecked = true;
-        }
-      })
-      .catch(() => {
-        msg.innerText = "확인 중 오류가 발생했습니다.";
-        msg.classList.remove("text-success");
-        msg.classList.add("text-danger");
-        isBizNoChecked = false;
-      });
-  });
+        });
+    });
+  }
+
 
   // 👉 주소검색 버튼 클릭
   document.getElementById("findAddressBtn").addEventListener("click", () => {

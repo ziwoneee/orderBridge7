@@ -6,7 +6,7 @@
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <form id="inboundForm">
-        <div class="modal-header">
+        <div class="modal-header" style="background-color: #1c355e; color: #ffffff;">
           <h5 class="modal-title">입고처리</h5>
         </div>
         

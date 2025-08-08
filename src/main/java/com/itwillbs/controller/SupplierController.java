@@ -161,5 +161,36 @@ public class SupplierController {
 		sService.updateSupplier(supplier);
 		return "redirect:/supplier/list"; // 수정 후 목록 페이지로 이동
 	}
+	
+	
+	
+	// 협력사 비활성화 처리 (소프트 삭제)
+	@PostMapping("deactivate")
+	public String deactivateSupplier(@RequestParam("supplierId") String supplierId,
+	                                 RedirectAttributes rttr) throws Exception {
+	    try {
+	        sService.deactivateSupplier(supplierId);
+	        rttr.addFlashAttribute("msg", "협력사가 비활성화 처리되었습니다.");
+	    } catch (Exception e) {
+	        rttr.addFlashAttribute("msg", "비활성화 처리 중 오류가 발생했습니다.");
+	    }
+	    return "redirect:/supplier/list";
+	}
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 
 } // SupplierController 끝

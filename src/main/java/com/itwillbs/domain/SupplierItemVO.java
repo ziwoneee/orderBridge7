@@ -11,7 +11,7 @@ public class SupplierItemVO {
     private String supplierId;         // 거래처 ID (FK)
     private String materialId;         // 자재 ID (FK)
     
-    private double unitPrice;          // 단가
+    private Integer unitPrice;          // 단가
     private String unit;                // 단위 (kg, 박스 등)
     private String supplyAvailable;    // 공급 가능 여부 (Y/N)
     private String note;                // 비고

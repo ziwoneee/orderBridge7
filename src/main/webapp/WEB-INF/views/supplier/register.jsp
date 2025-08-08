@@ -92,18 +92,18 @@
         <div class="card-section">
           <h5 class="section-title">정산 정보</h5>
           <div class="row">
-            <div class="col-md-4 mb-3">
-              <label>정산방식</label>
-              <input type="text" class="form-control" name="settlementMethod" value="${supplierVO.settlementMethod}">
-            </div>
-            <div class="col-md-4 mb-3">
-              <label>상태</label>
-              <select class="form-control" name="status">
-                <option value="활성" ${supplierVO.status == '활성' ? 'selected' : ''}>활성</option>
-                <option value="비활성" ${supplierVO.status == '비활성' ? 'selected' : ''}>비활성</option>
-              </select>
-            </div>
-            <div class="col-md-4 mb-3">
+            <div class="col-md-6 mb-3">
+			  <label>정산방식</label>
+			  <select class="form-control" name="settlementMethod">
+			    <option value="">선택</option>
+			    <option value="계좌이체" ${supplierVO.settlementMethod == '계좌이체' ? 'selected' : ''}>계좌이체</option>
+			    <option value="현금" ${supplierVO.settlementMethod == '현금' ? 'selected' : ''}>현금</option>
+			    <option value="외상" ${supplierVO.settlementMethod == '외상' ? 'selected' : ''}>외상</option>
+			    <option value="선지급" ${supplierVO.settlementMethod == '선지급' ? 'selected' : ''}>선지급</option>
+			    <option value="기타" ${supplierVO.settlementMethod == '기타' ? 'selected' : ''}>기타</option>
+			  </select>
+			</div>
+            <div class="col-md-6 mb-3">
               <label>예금주</label>
               <input type="text" class="form-control" name="accountHolder" value="${supplierVO.accountHolder}">
             </div>
@@ -139,6 +139,14 @@
               <textarea class="form-control" rows="3" name="note">${supplierVO.note}</textarea>
             </div>
           </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+          <label>상태</label>
+          <select class="form-control" name="status">
+            <option value="활성" ${supplierVO.status == '활성' ? 'selected' : ''}>활성</option>
+            <option value="비활성" ${supplierVO.status == '비활성' ? 'selected' : ''}>비활성</option>
+          </select>
         </div>
 
         <!-- 버튼 -->

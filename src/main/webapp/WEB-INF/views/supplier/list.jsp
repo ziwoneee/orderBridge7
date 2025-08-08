@@ -80,7 +80,6 @@
 				<th>업태/종목</th>
 				<th>대표자명</th>
 				<th>담당자 연락처</th>
-				<th>거래상태</th>
 				<th>
 				  <a href="?page=1&sortColumn=created_at&sortOrder=${cri.sortColumn eq 'created_at' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&condition=${cri.condition}&keyword=${fn:escapeXml(cri.keyword)}">
 				    등록일자
@@ -94,33 +93,37 @@
 				    </c:choose>
 				  </a>
 				</th>
+				<th>거래상태</th>
 				<th>상세</th>
 	         </tr>
 		</thead>
 		
 			    <tbody>
 			      <c:forEach var="supplier" items="${supplierList}">
-			        <tr>
+			        <tr
+						class="display-row ${supplier.status eq '비활성' ? 'inactive-row' : ''}"
+						id="display-${supplier.supplierId}">
+
 			          <td>${supplier.supplierId}</td>
 			          <td>${supplier.supplierName}</td>
 			          <td>${supplier.businessNumber}</td>
 			          <td>${supplier.supplierType}</td>
 			          <td>${supplier.representativeName}</td>
 			          <td>${supplier.contactPhone}</td>
+			          <td><fmt:formatDate value="${supplier.createdAt}" pattern="yyyy-MM-dd" /></td>
 			          <td>
 			            <c:choose>
 			              <c:when test="${supplier.status eq '활성'}">
 			                <span class="badge badge-success">활성</span>
 			              </c:when>
 			              <c:otherwise>
-			                <span class="badge bg-secondary">비활성</span>
+			                <span class="badge badge-secondary">비활성</span>
 			              </c:otherwise>
 			            </c:choose>
 			          </td>
-			          <td><fmt:formatDate value="${supplier.createdAt}" pattern="yyyy-MM-dd" /></td>
 			          <td>
 			            <a href="/supplierItem/items?supplierId=${supplier.supplierId}" class="btn btn-sm btn-outline-primary">품목</a>
-  						<a href="/supplier/view?supplierId=${supplier.supplierId}" class="btn btn-sm btn-outline-secondary">상세</a>
+  						<a href="/supplier/view?supplierId=${supplier.supplierId}" class="btn btn-sm btn-outline-info">상세</a>
 			          </td>
 			        </tr>
 			      </c:forEach>

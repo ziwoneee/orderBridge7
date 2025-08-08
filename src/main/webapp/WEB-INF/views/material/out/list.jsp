@@ -224,7 +224,7 @@
                         
   
                          <td>
-                           <button class="btn btn-sm btn-outline-primary" 
+                           <button class="btn btn-sm btn-outline-info" 
                                    onclick="loadOutboundDetail('${item.outboundId}')">
                              상세
                            </button>
@@ -303,9 +303,9 @@
 			  <div class="modal-dialog modal-lg" role="document">
 			    <div class="modal-content">
 			
-			      <div class="modal-header">
+			      <div class="modal-header" style="background-color: #1c355e; color: #ffffff;">
 			        <h5 class="modal-title">출고관리 상세</h5>
-			        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+			        <button type="button" class="close" data-dismiss="modal" aria-label="Close" >
 			          <span aria-hidden="true">&times;</span>
 			        </button>
 			      </div>
@@ -315,27 +315,27 @@
 			        <table class="table table-bordered">
 			          <tbody>
 			            <tr>
-			              <th>작업지시번호</th>
+			              <th class="bg-light">작업지시번호</th>
 			              <td id="workOrderNo"></td>
-			              <th>납기일</th>
+			              <th class="bg-light">납기일</th>
 			              <td id="dueDate"></td>
 			            </tr>
 			            <tr>
-			              <th>작업지시일자</th>
+			              <th class="bg-light">작업지시일자</th>
 			              <td id="workOrderDate"></td>
-			              <th>생산라인</th>
+			              <th class="bg-light">생산라인</th>
 			              <td id="lineId"></td>
 			            </tr>
 			            <tr>
-			              <th>출고관리번호</th>
+			              <th class="bg-light">출고관리번호</th>
 			              <td id="outboundId"></td>
-			              <th>출고진행현황</th>
+			              <th class="bg-light">출고진행현황</th>
 			              <td id="modalStatus"></td>
 			            </tr>
 			            <tr>
-			              <th>출고일자</th>
+			              <th class="bg-light">출고일자</th>
 			              <td id="outboundDate"></td>
-			              <th>출고담당자</th>
+			              <th class="bg-light">출고담당자</th>
 			              <td id="handledBy"></td>
 			            </tr>
 			          </tbody>

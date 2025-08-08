@@ -3,15 +3,15 @@
 /* 테이블 css */
   /* 테이블 헤더 스타일 오버라이드 */
   .table-header-dark th {
-	  background-color: #1c355e;
-	  color: white;
-	  font-weight: 600;
+	  background-color: #1c355e !important;
+	  color: white !important;
+	  font-weight: 600 !important;
   }
   
   /* 테이블 안 중간 정렬 */
   table th, table td {
 	  vertical-align: middle !important;   /* 세로 중앙 */
-	  text-align: center;                  /* 가로 중앙 */
+	  text-align: center !important;       /* 가로 중앙 */
   }
   
   
@@ -26,50 +26,50 @@
   /* 컬럼명(th)만 폰트 크기 크게 */
   table thead th {
 	  font-size: 0.9rem !important;     /* 기존 .875rem → 0.9rem 정도로 확대 */
-	  font-weight: 700;                 /* 더 굵게 */
+	  font-weight: 700 !important;      /* 더 굵게 */
 	  background-color: #1c355e;        /* 기존 배경색 유지 */
-	  color: white;
-	  text-align: center;
+	  color: white !important;
+	  text-align: center !important;
    }
   
   	/* 사이드바 메뉴색 */
     .sidebar .nav.sub-menu {
-  	    background: #1c355e;
+  	    background: #1c355e !important;
     }
   
 	.sidebar .nav:not(.sub-menu) > .nav-item > .nav-link[aria-expanded="true"] {
-	    background: #1c355e;
+	    background: #1c355e !important;
 	}
 	
 	.sidebar .nav:not(.sub-menu) > .nav-item:hover > .nav-link {
-	    background: #1c355e;
+	    background: #1c355e !important;
 	}
 	
 	.sidebar .nav .nav-item.active > .nav-link {
-		background: #1c355e;
+		background: #1c355e !important;
 	}
 	
 	
 /* 버튼 css */
 	/* 기본 버튼 예) 협력사 검색버튼 */
 	.btn-primary, .wizard > .actions a {
-	  color: #fff;
-	  background-color: #1c355e;
-	  border-color: #1c355e;
-	  transition: all 0.2s ease-in-out;
+	  color: #fff !important;
+	  background-color: #1c355e !important;
+	  border-color: #1c355e !important;
+	  transition: all 0.2s ease-in-out !important;
 	}
 	
 	/* hover 시 */
 	.btn-primary:hover, .wizard > .actions a:hover {
-	  background-color: #2a4a80;  /* 밝은 남청색 계열 hover 색 */
-	  border-color: #1c355e;
-	  color: #fff;
+	  background-color: #2a4a80 !important;  /* 밝은 남청색 계열 hover 색 */
+	  border-color: #1c355e !important;
+	  color: #fff !important;
 	}
 	
 	.btn-outline-primary:hover {
-	    color: #fff;
-	    background-color: #1c355e;
-	    border-color: #1c355e;
+	    color: #fff !important;
+	    background-color: #1c355e !important;
+	    border-color: #1c355e !important;
 	}
 
 	/* 협력사 품목 버튼 - 아웃라인 색상 커스터마이징 */
@@ -125,65 +125,65 @@
 
 /* 정렬 컬럼 css */
 	th a {
-	  color: white;
-	  text-decoration: none;
-	  cursor: pointer;
-	  display: inline-flex;
-	  align-items: center;
-	  gap: 4px;
+	  color: white !important;
+	  text-decoration: none !important;
+	  cursor: pointer !important;
+	  display: inline-flex !important;
+	  align-items: center !important;
+	  gap: 4px !important;
 	}
 	
 	th a:hover {
-	  color: white;
-	  text-decoration: underline;
+	  color: white !important;
+	  text-decoration: underline !important;
 
 	}
 	
 	th a span {
-	  color: white;
-	  font-size: 0.8rem;
+	  color: white !important;
+	  font-size: 0.8rem !important;
 	}
 	
 	.neutral-arrow {
-	  color: #ccc;
+	  color: #ccc !important;
 	}
 
 	
 	
 /* 언더라인 탭 스타일 - 상단 라인 */
 	.nav-underline-custom {
-	    border-bottom: 1px solid #dee2e6;
-	    margin-bottom: 20px;
+	    border-bottom: 1px solid #dee2e6 !important;
+	    margin-bottom: 20px !important;
 	}
 	.nav-underline-custom .nav-link {
-	    border: none;
-	    border-top: 3px solid transparent;
-	    color: #6c757d;
-	    padding: 0.75rem 1.5rem;
-	    font-weight: 500;
-	    background: none;
+	    border: none !important;
+	    border-top: 3px solid transparent !important;
+	    color: #6c757d !important;
+	    padding: 0.75rem 1.5rem !important;
+	    font-weight: 500 !important;
+	    background: none !important;
 	}
 	.nav-underline-custom .nav-link.active {
-	    color: #1C355E;
-	    border-top-color: #1C355E;
-	    background: none;
-	    font-weight: 700;
+	    color: #1C355E !important;
+	    border-top-color: #1C355E !important;
+	    background: none !important;
+	    font-weight: 700 !important;
 	}
 	.nav-underline-custom .nav-link:hover {
-	    color: #1C355E;
-	    border-top-color: rgba(28, 53, 94, 0.5);
-	    background: none;
+	    color: #1C355E !important;
+	    border-top-color: rgba(28, 53, 94, 0.5) !important;
+	    background: none !important;
 	}
 	.tab-count {
-	  background: #6c757d;
-	  color: white;
-	  border-radius: 12px;
-	  padding: 2px 8px;
-	  font-size: 12px;
-	  margin-left: 8px;
+	  background: #6c757d !important;
+	  color: white !important;
+	  border-radius: 12px !important;
+	  padding: 2px 8px !important;
+	  font-size: 12px !important;
+	  margin-left: 8px !important;
 	}
 	.nav-underline-custom .nav-link.active .tab-count {
-	  background: #1C355E;
+	  background: #1C355E !important;
 	}
 
 	
@@ -266,4 +266,11 @@
 	.badge-primary {
 	    color: #fff;
 	    background-color: #1C355E !important;
+	}
+	
+/* 테이블 비활성화 시 css */
+	.inactive-row {
+	  color: #bbb !important;
+	  background-color: #f9f9f9 !important;
+	  text-decoration: line-through;
 	}

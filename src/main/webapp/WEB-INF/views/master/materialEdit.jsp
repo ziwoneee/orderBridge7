@@ -19,7 +19,7 @@
         <h3 class="font-weight-bold mb-4">자재 정보 수정</h3>
 
         <!-- 수정 폼 시작 -->
-        <form action="/material/edit" method="post">
+        <form action="/material/save" method="post">
           <div class="card">
             <div class="card-body">
               <div class="row">
