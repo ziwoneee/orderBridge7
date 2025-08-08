@@ -10,9 +10,31 @@ window.validateAll = function () {
   return ok;
 };
 
+// 부족분 발주 생성
+window.collectShortages = function () {
+  const s = [];
+  $('#materialLotBody tr').each(function(){
+    const mid  = $(this).data('material');
+    const name = $(this).find('.font-weight-bold').text().trim();
+    const req  = +($(this).find('.req').data('req')||0);
+    const sum  = +($(this).find('.sum').text()||0);
+    if (sum < req) s.push({ materialId: mid, lackQty: req - sum, materialName: name });
+  });
+  return s;
+};
+
 /* ---------- 공통 유틸 ---------- */
-function toYmd(d){ /* 그대로 */ }
-function fmtDate(val){ return toYmd(val); }
+function toYmd(d){
+	  if (!d) return '';
+	  const dt = (d instanceof Date) ? d : new Date(d);
+	  if (isNaN(dt.getTime())) return '';        // 파싱 실패 방지
+	  const y = dt.getFullYear();
+	  const m = ('0' + (dt.getMonth() + 1)).slice(-2);
+	  const dd = ('0' + dt.getDate()).slice(-2);
+	  return `${y}-${m}-${dd}`;
+	}
+	function fmtDate(val){ return toYmd(val); }
+
 
 /* ---------- list.jsp 로직 (그대로) ---------- */
 // ... loadWaitingOrders, 선택 이동 등 기존 코드 유지 ...
@@ -41,7 +63,7 @@ function renderMaterialRows(items){
     return $.get(ctx + '/material/inventory/lot-details', { materialId: it.materialId })
       .then(function(lots){
         lots = lots || [];
-        lots.sort((a,b) => new Date(a.expiration_date) - new Date(b.expiration_date));
+        lots.sort((a,b) => new Date(a.expirationDate) - new Date(b.expirationDate));
 
         const $tr = $('<tr>').attr('data-material', it.materialId);
 
@@ -65,22 +87,22 @@ function renderMaterialRows(items){
           $lotCell.append($('<span>').addClass('text-danger').text('사용 가능한 LOT 없음'));
         } else {
           lots.forEach(function(l){
-            const wh   = l.warehouse_code || it.defaultWarehouseCode || '';
+            const wh   = l.warehouseCode || it.defaultWarehouseCode || '';
             const qty0 = (l.quantity != null ? l.quantity : 0);
 
             const $row = $('<div>').addClass('form-row align-items-center lot-row mb-1')
-                                   .attr('data-lot', l.lot_no);
+                                   .attr('data-lot', l.lotNo);
 
             const $info = $('<div>').addClass('col-md-5')
-              .append($('<small>').addClass('text-muted').text('LOT: ' + l.lot_no))
+              .append($('<small>').addClass('text-muted').text(l.lotNo || '-'))
               .append('<br>')
-              .append($('<small>').text('유통기한: ' + fmtDate(l.expiration_date) + ' / 재고: ' + qty0));
+              .append($('<small>').text('유통기한: ' + fmtDate(l.expirationDate) + ' / 재고: ' + qty0));
 
             const $qtyCol = $('<div>').addClass('col-md-4')
               .append($('<input>', {
                 type:'number', min:0, max: qty0, step:1, value:0, 'aria-label':'수량 입력'
               }).addClass('form-control form-control-sm lot-qty')
-                .data({ material: it.materialId, lot: l.lot_no, wh: wh }));
+                .data({ material: it.materialId, lot: l.lotNo, wh: wh }));
 
             const $whCol = $('<div>').addClass('col-md-3')
               .append($('<span>').addClass('badge badge-secondary').text(wh));
@@ -101,7 +123,10 @@ function renderMaterialRows(items){
   });
 
   // LOT 로드 끝난 뒤 전체 검증
-  $.when.apply($, reqs).then(function(){ window.validateAll(); });
+  $.when.apply($, reqs).then(function(){ 
+	  // 페이지 진입 시: 재고가 '충분한' 자재만 자동 배정
+	  autoAllocateAll(false);     // true = 충분한 경우에만 꽉 채움
+	  window.validateAll(); });
 } // ← 여기서 renderMaterialRows 끝!
 
 /* ---------- 전역: 행 합계/상태 ---------- */
@@ -164,3 +189,84 @@ $(document).off('submit', '#outboundForm').on('submit', '#outboundForm', functio
 
   return true;
 });
+
+
+//==================== 부족분 발주 초안 생성 ====================
+//부족분 발주 버튼 → 초안 생성 → 모달 오픈
+$('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
+	  e.preventDefault();
+
+	  const workOrderId = $('#workOrderNo').val();
+	  if (!workOrderId) { alert('작업지시서를 먼저 선택하세요.'); return; }
+
+	  const shortages = collectShortages();
+	  if (!shortages.length) { alert('부족분이 없습니다.'); return; }
+
+	  const payload = {
+	    workOrderId,
+	    items: shortages.map(x => ({ materialId: x.materialId, lackQty: x.lackQty }))
+	  };
+
+	  $.ajax({
+	    url: ctx + '/material/order/draft',
+	    method: 'POST',
+	    contentType: 'application/json',
+	    data: JSON.stringify(payload),
+	    // beforeSend: (xhr)=>xhr.setRequestHeader('X-CSRF-TOKEN', token) // CSRF 쓰면
+	  })
+	  .done(res => {
+	    // ➊ 서비스가 '초안 미리보기'로 주는 경우
+	    if (res.suppliers) {
+	      renderDraftModal(res);                        // 모달 본문 채우기
+	      $('#draftModal').appendTo('body').modal('show');
+	      return;
+	    }
+	    // ➋ 서비스가 바로 임시 주문을 만들고 orderId를 주는 경우
+	    if (res.orderId) {
+	      location.href = ctx + '/material/order/register?orderId=' + encodeURIComponent(res.orderId);
+	      return;
+	    }
+	    alert('생성할 초안이 없습니다.');
+	  })
+	  .fail(() => alert('발주 초안 생성 실패'));
+	});
+
+
+//행 단위 자동 배정 (FEFO 순: 너가 이미 expiration_date로 정렬함)
+function autoAllocateForRow($tr, onlyIfEnough) {
+  const req = +($tr.find('.req').data('req') || 0);
+  const $lots = $tr.find('.lot-qty');
+
+  // 총 가능 수량
+  const totalAvail = $lots.toArray().reduce((s, el) => {
+    const m = Number($(el).attr('max')) || 0;
+    return s + m;
+  }, 0);
+
+  if (onlyIfEnough && totalAvail < req) {
+    // 충분하지 않으면 손대지 않음
+    return false;
+  }
+
+  let sum = 0;
+  $lots.each(function () {
+    const $inp = $(this);
+    const max = Number($inp.attr('max')) || 0;
+    if (sum >= req) { $inp.val(0); return; }
+    const need = req - sum;
+    const v = Math.min(max, need);
+    $inp.val(v);
+    sum += v;
+  });
+
+  updateRowSumAndValidate($tr);
+  return sum >= req;
+}
+
+// 전체 자동 배정
+function autoAllocateAll(onlyIfEnough) {
+  $('#materialLotBody tr').each(function () {
+    autoAllocateForRow($(this), onlyIfEnough);
+  });
+  window.validateAll();
+}

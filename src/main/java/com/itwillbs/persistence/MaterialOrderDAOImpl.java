@@ -1,6 +1,7 @@
 package com.itwillbs.persistence;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -61,8 +62,21 @@ public class MaterialOrderDAOImpl implements MaterialOrderDAO {
     }
 
 	
-	
-	
+    // 부족분으로 발주 자동 생성
+    @Override
+    public List<Map<String, Object>> selectSupplierItemMappings(List<String> materialIds) throws Exception {
+        return sqlSession.selectList(NAMESPACE + "selectSupplierItemMappings", materialIds);
+    }
+
+    @Override
+    public int insertOrderHeaderDraft(Map<String, Object> header) throws Exception {
+        return sqlSession.insert(NAMESPACE + "insertOrderHeaderDraft", header);
+    }
+
+    @Override
+    public int insertOrderItem(Map<String, Object> item) throws Exception {
+        return sqlSession.insert(NAMESPACE + "insertOrderItem", item);
+    }
 	
 	
 	

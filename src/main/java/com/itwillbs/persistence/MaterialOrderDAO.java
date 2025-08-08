@@ -1,6 +1,7 @@
 package com.itwillbs.persistence;
 
 import java.util.List;
+import java.util.Map;
 
 import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
@@ -26,6 +27,12 @@ public interface MaterialOrderDAO {
     
     // 자재명으로 거래처 검색
     public List<SupplierItemDTO> searchSuppliersByMaterial(String keyword);
+    
+    
+    // 부족분으로 발주 자동 생성
+    List<Map<String,Object>> selectSupplierItemMappings(List<String> materialIds) throws Exception;
+    int insertOrderHeaderDraft(Map<String, Object> header) throws Exception;
+    int insertOrderItem(Map<String, Object> item) throws Exception;
 
     
 }

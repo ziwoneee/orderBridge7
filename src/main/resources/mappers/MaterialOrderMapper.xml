@@ -173,5 +173,48 @@
 	</select>
 	
 	
+	
+	<!-- 부족분 발주 자동 생성 (출고관리) 시작 -->
+	<!-- 자재→거래처/단가/기본창고 매핑 조회 -->
+	  <select id="selectSupplierItemMappings" parameterType="list" resultType="map">
+	    SELECT
+	      si.supplier_id,
+	      si.material_id,
+	      si.unit_price,
+	      COALESCE(m.warehouse_code, 'WH001')
+	    FROM supplier_item si
+	    JOIN material m ON m.material_id = si.material_id
+	    WHERE si.supply_available = 'Y'
+	      AND si.material_id IN
+	      <foreach collection="list" item="mid" open="(" separator="," close=")">
+	        #{mid}
+	      </foreach>
+	  </select>
+	
+	  <!-- 발주 헤더(초안) -->
+	  <insert id="insertOrderHeaderDraft" parameterType="map">
+		  <selectKey keyProperty="orderId" resultType="string" order="BEFORE">
+		    SELECT CONCAT(
+		      'PO-RM-',
+		      DATE_FORMAT(NOW(), '%Y%m%d'),
+		      '-',
+		      LPAD(
+		        IFNULL(MAX(CAST(SUBSTRING(order_id, 16, 3) AS UNSIGNED)), 0) + 1,
+		        3, '0'
+		      )
+		    )
+		    FROM material_order
+		    WHERE order_id LIKE CONCAT('PO-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-%')
+		  </selectKey>
+		
+		  INSERT INTO material_order (
+		    order_id, supplier_id, order_date, order_status,
+		    expected_arrived_date, created_by, note
+		  ) VALUES (
+		    #{orderId}, #{supplierId}, NOW(), #{orderStatus},
+		    #{expectedArrivedDate}, #{createdBy}, #{note}
+		  )
+		</insert>
+	  <!-- 부족분 발주 자동 생성 (출고관리) 끝 -->
 
 </mapper>

@@ -1,15 +1,27 @@
 package com.itwillbs.service;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.MaterialOrderDTO;
+import com.itwillbs.dto.PurchaseDraftRequest;
+import com.itwillbs.dto.PurchaseDraftRequest.ShortageItem;
+import com.itwillbs.dto.PurchaseDraftResult;
 import com.itwillbs.dto.SupplierItemDTO;
 import com.itwillbs.persistence.MaterialOrderDAO;
 
@@ -81,18 +93,91 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
 	
 	
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public PurchaseDraftResult createDraftFromShortages(PurchaseDraftRequest req) throws Exception {
+        PurchaseDraftResult result = new PurchaseDraftResult();
 
+        if (req.getItems() == null || req.getItems().isEmpty()) {
+            result.setOrderId(null);
+            result.setUnmappedMaterials(Collections.emptyList());
+            return result;
+        }
+
+        // 1) 자재→거래처/단가 매핑
+        List<String> materialIds = req.getItems().stream()
+                .map(ShortageItem::getMaterialId).distinct().collect(Collectors.toList());
+
+        List<Map<String, Object>> mappings = mOrderDAO.selectSupplierItemMappings(materialIds);
+
+        Map<String, Map<String, Object>> byMaterial = new HashMap<>();
+        for (Map<String, Object> m : mappings) {
+            byMaterial.put((String)m.get("material_id"), m);
+        }
+
+        // 매핑 없는 자재
+        List<String> unmapped = new ArrayList<>();
+        for (String mid : materialIds) {
+            if (!byMaterial.containsKey(mid)) unmapped.add(mid);
+        }
+        result.setUnmappedMaterials(unmapped);
+
+        // 발주 대상만
+        List<ShortageItem> mappable = req.getItems().stream()
+                .filter(it -> byMaterial.containsKey(it.getMaterialId()) && it.getLackQty() > 0)
+                .collect(Collectors.toList());
+        if (mappable.isEmpty()) {
+            result.setOrderId(null);
+            return result;
+        }
+
+        // 3) 거래처별 그룹
+        Map<String, List<ShortageItem>> bySupplier = new LinkedHashMap<>();
+        for (ShortageItem it : mappable) {
+            String sup = (String) byMaterial.get(it.getMaterialId()).get("supplier_id");
+            bySupplier.computeIfAbsent(sup, k -> new ArrayList<>()).add(it);
+        }
+
+     // 4) 거래처별 초안 생성
+        String lastOrderId = null;
+        for (Map.Entry<String, List<ShortageItem>> e : bySupplier.entrySet()) {
+            String supplierId = e.getKey();
+            Date now = new Date();
+
+            Map<String, Object> header = new HashMap<>();
+            // ⚠️ orderId는 넣지 마! selectKey가 채움
+            header.put("supplierId", supplierId);          // ✅ camelCase
+            header.put("orderStatus", "DRAFT");
+            header.put("expectedArrivedDate", null);
+            header.put("createdBy", "SYSTEM");
+            header.put("note", "[AUTO] 작업지시 " + req.getWorkOrderId() + " 부족분 초안");
+
+            mOrderDAO.insertOrderHeaderDraft(header);      // 여기서 selectKey가 header.orderId 세팅
+
+            String orderId = (String) header.get("orderId"); // ✅ selectKey가 채운 값 사용
+
+            for (ShortageItem item : e.getValue()) {
+                Map<String, Object> map = byMaterial.get(item.getMaterialId());
+                String warehouse = (String) map.getOrDefault("default_warehouse_code", "WH001"); // 코드 표기 일관!
+                Number unitPrice = (Number) map.getOrDefault("unit_price", 0);
+
+                Map<String, Object> row = new HashMap<>();
+                // ✅ 전부 camelCase로!
+                row.put("orderId", orderId);
+                row.put("materialId", item.getMaterialId());
+                row.put("orderQuantity", item.getLackQty());
+                row.put("unitPrice", unitPrice);
+                row.put("totalPrice", unitPrice.doubleValue() * item.getLackQty());
+                row.put("warehouseCode", warehouse);
+
+                mOrderDAO.insertOrderItem(row);           // 매퍼가 #{orderId} 등 camelCase로 받음
+            }
+
+            lastOrderId = orderId;
+        }
+        result.setOrderId(lastOrderId);
+        return result;
+    }
+
+    
 }
