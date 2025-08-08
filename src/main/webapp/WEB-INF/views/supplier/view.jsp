@@ -92,7 +92,6 @@
           <div class="col-12 mt-4 text-center">
             <a href="list" class="btn btn-outline-secondary">목록</a>
             <a href="edit?supplierId=${supplierVO.supplierId}" class="btn btn-primary text-white">수정</a>
-            <button class="btn btn-danger">삭제</button>
           </div>	
 
             </div> <!-- class="row" -->

@@ -132,7 +132,12 @@ public class SupplierServiceImpl implements SupplierService{
 	}
 	
 	
-	
+	// 협력사 비활성화 처리 (소프트 삭제)
+	@Override
+	public void deactivateSupplier(String supplierId) throws Exception {
+	    sDAO.updateSupplierStatus(supplierId, "비활성");
+	}
+
 	
 	
 	

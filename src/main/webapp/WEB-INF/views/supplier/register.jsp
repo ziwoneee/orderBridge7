@@ -92,18 +92,11 @@
         <div class="card-section">
           <h5 class="section-title">정산 정보</h5>
           <div class="row">
-            <div class="col-md-4 mb-3">
+            <div class="col-md-6 mb-3">
               <label>정산방식</label>
               <input type="text" class="form-control" name="settlementMethod" value="${supplierVO.settlementMethod}">
             </div>
-            <div class="col-md-4 mb-3">
-              <label>상태</label>
-              <select class="form-control" name="status">
-                <option value="활성" ${supplierVO.status == '활성' ? 'selected' : ''}>활성</option>
-                <option value="비활성" ${supplierVO.status == '비활성' ? 'selected' : ''}>비활성</option>
-              </select>
-            </div>
-            <div class="col-md-4 mb-3">
+            <div class="col-md-6 mb-3">
               <label>예금주</label>
               <input type="text" class="form-control" name="accountHolder" value="${supplierVO.accountHolder}">
             </div>
@@ -139,6 +132,14 @@
               <textarea class="form-control" rows="3" name="note">${supplierVO.note}</textarea>
             </div>
           </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+          <label>상태</label>
+          <select class="form-control" name="status">
+            <option value="활성" ${supplierVO.status == '활성' ? 'selected' : ''}>활성</option>
+            <option value="비활성" ${supplierVO.status == '비활성' ? 'selected' : ''}>비활성</option>
+          </select>
         </div>
 
         <!-- 버튼 -->

@@ -95,4 +95,15 @@ public class SupplierDAOImpl implements SupplierDAO {
 
 	
 	
+	// 협력사 비활성화 처리 (소프트 삭제)
+	@Override
+	public void updateSupplierStatus(String supplierId, String status) throws Exception {
+	    Map<String, String> paramMap = new HashMap<>();
+	    paramMap.put("supplierId", supplierId);
+	    paramMap.put("status", status);
+	    sqlSession.update(NAMESPACE + "updateSupplierStatus", paramMap);
+	}
+
+	
+	
 }

@@ -44,5 +44,9 @@ public interface SupplierDAO {
  	// 거래처 ID로 공급 자재 목록 조회 (자재 발주관리)
  	List<MaterialVO> getMaterialsBySupplier(String supplierId, String keyword) throws Exception;
 
+ 	
+ 	// 협력사 비활성화 처리 (소프트 삭제)
+ 	void updateSupplierStatus(String supplierId, String status) throws Exception;
+
 
 }

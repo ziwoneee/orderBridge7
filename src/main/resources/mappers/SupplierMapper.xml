@@ -179,26 +179,26 @@
 	<update id="updateSupplier" parameterType="com.itwillbs.domain.SupplierVO">
        UPDATE supplier
 	   SET 
-	       supplier_name = #{supplier_name},
-	       business_number = #{business_number},
-	       supplier_type = #{supplier_type},
-	       representative_name = #{representative_name},
+	       supplier_name = #{supplierName},
+	       business_number = #{businessNumber},
+	       supplier_type = #{supplierType},
+	       representative_name = #{representativeName},
 	       phone = #{phone},
 	       email = #{email},
 	       address = #{address},
-	       address_detail = #{address_detail},
+	       address_detail = #{addressDetail},
 	       zipcode = #{zipcode},
 	       status = #{status},
-	       settlement_method = #{settlement_method},
-	       bank_name = #{bank_name},
-	       account_holder = #{account_holder},
-	       account_number = #{account_number},
-	       contact_name = #{contact_name},
-	       contact_phone = #{contact_phone},
-	       contact_email = #{contact_email},
+	       settlement_method = #{settlementMethod},
+	       bank_name = #{bankName},
+	       account_holder = #{accountHolder},
+	       account_number = #{accountNumber},
+	       contact_name = #{contactName},
+	       contact_phone = #{contactPhone},
+	       contact_email = #{contactEmail},
 	       note = #{note},
 	       updated_at = NOW()
-	   WHERE supplier_id = #{supplier_id}
+	   WHERE supplier_id = #{supplierId}
     </update>
     
     
@@ -222,6 +222,12 @@
 	    
     
     
+    <!-- 협력사 상태 업데이트 (활성/비활성) -->
+	<update id="updateSupplierStatus" parameterType="map">
+	  UPDATE supplier
+	  SET status = #{status}, updated_at = NOW()
+	  WHERE supplier_id = #{supplierId}
+	</update>
     
     
     

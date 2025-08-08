@@ -65,7 +65,7 @@
 			  <h3 class="font-weight-bold">협력사 정보 수정</h3>
 			</div>
     
-      <form action="/supplier/update" method="post">
+      <form action="/supplier/edit" method="post">
       	<input type="hidden" name="supplierId" value="${supplierVO.supplierId}">
         
         <!-- 기본 정보 -->
@@ -74,18 +74,18 @@
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label required">거래처명</label>
-              <input type="text" class="form-control" name="supplierName" required value="${supplierVO.supplierName}">
+              <input type="text" class="form-control" name="supplierName" required value="${supplierVO.supplierName}" readonly>
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label required">사업자등록번호</label>
                 <div class="input-group">
-			    	<input type="text" class="form-control" name="businessNumber" id="businessNumber" placeholder="ex) 123-45-67890" required
+			    	<input type="text" class="form-control" name="businessNumber" id="businessNumber" readonly
 			    		   value="${supplierVO.businessNumber}">
 			    	<div class="input-group-append">
 			      		<button type="button" class="btn btn-outline-primary" id="checkBizBtn">중복확인</button>
 			   		 </div>
 			  	</div>
-			  <small id="bizCheckMsg" class="form-text text-muted"></small>
+			  <small class="form-text text-muted text-danger">* 사업자등록번호는 수정할 수 없습니다.</small>
             </div>
             <div class="col-md-6 mb-3">
               <label>협력사 분류</label>
@@ -137,18 +137,11 @@
         <div class="card-section">
           <h5 class="section-title">정산 정보</h5>
           <div class="row">
-            <div class="col-md-4 mb-3">
+            <div class="col-md-6 mb-3">
               <label>정산방식</label>
               <input type="text" class="form-control" name="settlementMethod" value="${supplierVO.settlementMethod}">
             </div>
-            <div class="col-md-4 mb-3">
-              <label>상태</label>
-              <select class="form-control" name="status">
-                <option value="활성" ${supplierVO.status == '활성' ? 'selected' : ''}>활성</option>
-                <option value="비활성" ${supplierVO.status == '비활성' ? 'selected' : ''}>비활성</option>
-              </select>
-            </div>
-            <div class="col-md-4 mb-3">
+            <div class="col-md-6 mb-3">
               <label>예금주</label>
               <input type="text" class="form-control" name="accountHolder" value="${supplierVO.accountHolder}">
             </div>
@@ -185,6 +178,14 @@
             </div>
           </div>
         </div>
+        
+        <div class="col-md-4 mb-3">
+           <label for="status">거래상태</label>
+           <select class="form-control" name="status" id="status">
+             <option value="활성" ${supplierVO.status == '활성' ? 'selected' : ''}>활성</option>
+             <option value="비활성" ${supplierVO.status == '비활성' ? 'selected' : ''}>비활성</option>
+           </select>
+         </div>
 
         <!-- 버튼 -->
         <div class="text-right">
