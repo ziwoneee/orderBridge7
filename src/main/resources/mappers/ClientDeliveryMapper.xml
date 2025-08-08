@@ -326,6 +326,12 @@
   WHERE delivery_id = #{deliveryId}
 </update>
 
+<!-- 주문 수량 합계 조회 -->
+<select id="getTotalOrderQtyByOrderId" parameterType="string" resultType="int">
+    SELECT SUM(order_qty)
+    FROM client_order_detail
+    WHERE cl_order_id = #{clOrderId}
+</select>
 
 
 

@@ -40,6 +40,21 @@ public class MaterialInventoryDAOImpl implements MaterialInventoryDAO {
 		 return sqlSession.selectList(NAMESPACE + "selectLotListByMaterialId", materialId);
 	}
 	
+	// 자재 재고 조회(박스용)
+	@Override
+    public List<MaterialInventoryVO> selectAvailableLotsForMaterial(String materialId) {
+        return sqlSession.selectList(NAMESPACE + "selectAvailableLotsForMaterial", materialId);
+    }
+	
+	// 자재 재고 차감(박스용)
+    @Override
+    public void decreaseLotQuantity(String inventoryId, int deductQty) {
+        java.util.Map<String, Object> param = new java.util.HashMap<>();
+        param.put("inventoryId", inventoryId);
+        param.put("deductQty", deductQty);
+        sqlSession.update(NAMESPACE + "decreaseLotQuantity", param);
+    }
+	
 
 	
 	

@@ -174,29 +174,37 @@
   <!-- ✅ 5. 입출고 내역 모달 조회 -->
 <!-- 입고 + 출고 내역을 하나로 조회하는 쿼리 -->
 <select id="getStockDetail" resultMap="StockDetailMap">
-  SELECT '입고' AS type,
+  SELECT 
+         '입고' AS type,
          pi.inbound_qty AS qty,
          pi.reg_date AS reg_date,
          NULL AS client_name,
-         '' AS memo
+         '' AS memo,
+         NULL AS cl_order_id        
   FROM product_inbound pi
   WHERE pi.product_id = #{productId}
     AND pi.lot_no = #{lotNo}
 
   UNION ALL
 
-  SELECT '출고' AS type,
+  SELECT 
+         '출고' AS type,
          po.outbound_qty AS qty,
          po.outbound_date AS reg_date,
          c.client_name AS client_name,
-         '' AS memo
+         '' AS memo,
+         cd.cl_order_id AS cl_order_id  
   FROM product_outbound po
-  LEFT JOIN client c ON po.client_id = c.client_id
+  LEFT JOIN client c 
+         ON po.client_id = c.client_id
+  LEFT JOIN client_delivery cd       
+          ON cd.tracking_number = po.tracking_number
   WHERE po.product_id = #{productId}
     AND po.lot_no = #{lotNo}
   
   ORDER BY reg_date ASC
 </select>
+
 
 
  <!-- ✅ 6. resultMap (VO 전용) -->
@@ -205,6 +213,7 @@
   <result property="qty" column="qty" />
   <result property="regDate" column="reg_date" />
   <result property="clientName" column="client_name" />
+  <result property="clOrderId" column="cl_order_id"/>  
   <result property="memo" column="memo" />
 </resultMap>
 
@@ -381,7 +390,8 @@
     </if>
     <if test="clOrderId != null and clOrderId != ''">
       AND cl_order_id = #{clOrderId}
-    </if>
+    </if>    
+   
 </select>
 
 

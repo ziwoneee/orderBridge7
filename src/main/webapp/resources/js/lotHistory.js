@@ -113,8 +113,9 @@ function openLotHistoryModal(lotNo, productId) {
     	        ${formatDate(entry.regDate)}
     	        <i class="bi bi-clock text-muted mx-1"></i>
     	        <span class="text-muted" style="font-size: 0.9em;">${formatTime(entry.regDate)}</span>
-    	      </td>
+    	      </td>    	     
     	      <td>${entry.clientName || '-'}</td>
+    	       <td>${entry.clOrderId || '-'}</td>
     	      <td>${entry.qty}</td>
     	      <td>${badgeHtml}</td>
     	    </tr>

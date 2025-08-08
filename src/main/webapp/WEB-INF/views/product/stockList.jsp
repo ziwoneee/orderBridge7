@@ -188,8 +188,9 @@
 		  </colgroup>
           <thead class="thead bg-primary">
             <tr>
-      <th>처리일자</th>      
-      <th>거래처</th>
+      <th>처리일자</th>  
+      <th>거래처</th>            
+      <th>수주번호</th>
       <th>수량</th>
       <th>구분</th>
     </tr>

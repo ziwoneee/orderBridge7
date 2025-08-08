@@ -77,7 +77,8 @@ public interface ClientDeliveryDAO {
     //출하 상태 변경
     void updateDeliveryStatus(@Param("deliveryId") String deliveryId, @Param("status") String status);
 
-
+    //주문 수량 합계(박스 계산용)
+    int getTotalOrderQtyByOrderId(String clOrderId);
 
 	
     

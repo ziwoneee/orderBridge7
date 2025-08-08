@@ -146,34 +146,34 @@
 					  <c:set var="rowCount" value="${fn:length(group.productList)}"/>
 					
 					  <c:forEach var="item" items="${group.productList}" varStatus="status">
-					    <tr>
-					      <!-- ✅ 체크박스 및 출하 여부: 첫 행에만 출력 -->
-					      <c:if test="${status.first}">
-					        <td class="text-center" rowspan="${rowCount}">
-					          <div class="d-flex justify-content-center align-items-center">
-					            <input type="checkbox"
-					                   name="clOrderIds"
-					                   value="${group.clOrderId}"
-					                   class="highlight-checkbox"
-					                   <c:if test="${not shippable}">disabled</c:if> />
-					            <c:if test="${shippable}">
-					              <span class="badge border border-success text-success ml-2 d-flex align-items-center" style="gap: 5px;">
-					                <i class="fas fa-shipping-fast"></i> 출하
-					              </span>
-					            </c:if>
-					          </div>
-					        </td>
-					
-					        <!-- ✅ 수주번호: 첫 행에만 rowspan -->
-					        <td class="font-weight-medium" rowspan="${rowCount}">
-					          ${group.clOrderId}
-					        </td>
-					        
-					         <!-- ✅ 고객사명: 첫 행에만 rowspan -->
-					        <td class="font-weight-medium" rowspan="${rowCount}">
-					          ${group.clientName}
-					        </td>
-					      </c:if>
+					     <tr>
+						      <c:if test="${status.first}">
+						        <%-- ✅ 여기서 orderId/isReserved를 매 그룹마다 다시 계산 --%>
+						        <c:set var="orderId" value="${fn:trim(group.clOrderId)}" />
+						        <c:set var="isReserved" value="${reservedMap[orderId] eq true}" />
+						
+						        <%-- 실패 플래그가 있으면 강제로 false --%>
+						        <c:if test="${not empty reserveFailedId and orderId eq reserveFailedId}">
+						          <c:set var="isReserved" value="false" />
+						        </c:if>
+						
+						        <td class="text-center" rowspan="${rowCount}">
+						          <div class="d-flex justify-content-center align-items-center">
+						            <input type="checkbox"
+						                   name="clOrderIds"
+						                   value="${orderId}"
+						                   class="highlight-checkbox"
+						                   <c:if test="${not isReserved or not shippable}">disabled</c:if> />
+						            <c:if test="${shippable}">
+						              <span class="badge border border-success text-success ml-2 d-flex align-items-center" style="gap:5px;">
+						                <i class="fas fa-shipping-fast"></i> 출하
+						              </span>
+						            </c:if>
+						          </div>
+						        </td>
+						        <td rowspan="${rowCount}">${group.clOrderId}</td>
+						        <td rowspan="${rowCount}">${group.clientName}</td>
+						      </c:if>
 					
 					      <!-- ✅ 나머지 칼럼은 반복 -->     
 					      <td>${item.productName}</td>
@@ -190,7 +190,7 @@
 					     <td>
 					     
 					     <!-- ✅ 예약 실패 시 해당 ID를 예약 목록에서 제외 -->
-					<c:set var="isReserved" value="${fn:contains(reservedOrderIds, group.clOrderId)}"/>
+					<c:set var="isReserved" value="${reservedMap[group.clOrderId] == true}"/>
 					<c:if test="${not empty reserveFailedId and reserveFailedId eq group.clOrderId}">
 					  <c:set var="isReserved" value="false"/>
 					</c:if>
@@ -414,7 +414,7 @@
 <!-- 출하일이 오늘이고 현재 시간이 14시 이전이면 취소 가능 -->
   <c:choose>
     
-    <c:when test="${createdDate == todayStr and currentHour lt 14}">
+    <c:when test="${createdDate == todayStr and currentHour lt 16}">
       <form method="post" action="/shipment/cancel" onsubmit="return confirm('정말로 출하를 취소하시겠습니까?');">
         <input type="hidden" name="deliveryId" value="${group.productList[0].deliveryId}" />
         <button type="submit" class="btn btn-sm btn-outline-danger">출하 취소</button>

@@ -178,6 +178,13 @@ public class ClientDeliveryDAOImpl implements ClientDeliveryDAO {
     		));
 
     }
+    
+    //총 주문 수량 합계(박스계산용)
+    @Override
+    public int getTotalOrderQtyByOrderId(String clOrderId) {
+        return sqlSession.selectOne(NAMESPACE + ".getTotalOrderQtyByOrderId", clOrderId);
+    }
+
 
 
     
