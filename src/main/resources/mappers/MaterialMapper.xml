@@ -154,7 +154,7 @@
   		SELECT * 
 		FROM material 
 	    WHERE use_yn = 'Y'
-		ORDER BY material_name
+		ORDER BY material_id ASC
 	</select>
 	
 	
