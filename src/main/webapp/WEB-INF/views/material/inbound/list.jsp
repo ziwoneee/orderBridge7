@@ -357,7 +357,7 @@
 			  <div class="modal-dialog modal-lg" role="document">
 			    <div class="modal-content">
 			
-			      <div class="modal-header">
+			      <div class="modal-header" style="background-color: #1c355e; color: #ffffff;">
 			        <h5 class="modal-title">입고관리 상세</h5>
 			        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
 			          <span aria-hidden="true">&times;</span>
@@ -369,32 +369,28 @@
 			        <table class="table table-bordered">
 			          <tbody>
 			            <tr>
-			              <th>발주관리번호</th>
+			              <th class="bg-light">발주관리번호</th>
 			              <td id="orderId"></td>
-			              <th>예상입고일</th>
+			              <th class="bg-light">예상입고일</th>
 			              <td id="expectedArrivedDate"></td>
 			            </tr>
 			            <tr>
-			              <th>발주일자</th>
+			              <th class="bg-light">발주일자</th>
 			              <td id="orderDate"></td>
-			              <th>거래처</th>
+			              <th class="bg-light">거래처</th>
   			              <td id="supplierId"></td>
 			            </tr>
 			            <tr>
-			              <th>입고관리번호</th>
+			              <th class="bg-light">입고관리번호</th>
 			              <td id="inboundId"></td>
-			              <th>입고진행현황</th>
+			              <th class="bg-light">입고진행현황</th>
 			              <td id="modalStatus"></td>
 			            </tr>
 			            <tr>
-			              <th>입고일자</th>
+			              <th class="bg-light">입고일자</th>
 			              <td id="inboundDate"></td>
-			              <th>입고담당자</th>
+			              <th class="bg-light">입고담당자</th>
 			              <td id="handledBy"></td>
-			            </tr>
-			            <tr>
-			              <th>품명</th>
-			              <td colspan="3" id="materialName"></td>
 			            </tr>
 			          </tbody>
 			        </table>
