@@ -61,7 +61,7 @@ public class ProductStockServiceImpl implements ProductStockService {
     //입출고 모달
     @Override
     public List<ProductStockTransactionVO> getStockDetailByLot(String lotNo) {
-        return productStockDAO.getLotHistoryByLot(lotNo);
+    	return productStockDAO.getStockDetail(lotNo);
     }
     
     //재고저장
@@ -69,6 +69,7 @@ public class ProductStockServiceImpl implements ProductStockService {
     public void insertTransaction(String type, String lotNo, int qty, String productId,
             String clientId, String manager,
             String inboundId, String outboundId, String clOrderId) {
+    	System.out.println("@@@@@@@@"+outboundId);
 
         // ✅ 중복 방지: Map에 파라미터 세팅
     	Map<String, Object> param = new HashMap<>();
@@ -104,7 +105,6 @@ public class ProductStockServiceImpl implements ProductStockService {
     	productStockDAO.insertTransaction(tx);
 
     }
-
 
 
     //

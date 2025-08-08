@@ -118,6 +118,8 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
 
             outboundService.registerOutbound(outbound);
 
+            
+            
             // ✅ 상세 상태 SHIPPED 처리
             deliveryDAO.updateOrderDetailStatus(r.getDetailId(), "SHIPPED");
         }

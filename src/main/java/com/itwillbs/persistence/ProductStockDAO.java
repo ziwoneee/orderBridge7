@@ -30,6 +30,7 @@ public interface ProductStockDAO {
     List<ProductStockTransactionVO> getStockDetail(@Param("productId") String productId,
                                                    @Param("lotNo") String lotNo);
     List<ProductStockTransactionVO> getLotHistoryByLot(String lotNo);
+   
     ProductStockVO getLotSummary(String lotNo);
 
     // ✅ LOT 재고 조회
@@ -43,4 +44,7 @@ public interface ProductStockDAO {
 
     // ✅ 출하 취소 재고 복원
     void increaseLotStock(String productId, String lotNo, int qty);
+    
+ // 모달용: 입·출고 이력 (입고번호/출고번호/수주번호 포함)
+	List<ProductStockTransactionVO> getStockDetail(String lotNo);
 }

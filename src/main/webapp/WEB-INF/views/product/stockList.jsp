@@ -181,16 +181,17 @@
         <!-- 하단 테이블 -->
         <table class="table table-bordered text-center">
          <colgroup>
-		    <col style="width: 25%;">
-		    <col style="width: 25%;">
-		    <col style="width: 25%;">
-		    <col style="width: 25%;">
+		    <col style="width: 20%;">
+		    <col style="width: 20%;">
+		    <col style="width: 20%;">
+		    <col style="width: 20%;">
+		    <col style="width: 20%;">
 		  </colgroup>
           <thead class="thead bg-primary">
             <tr>
       <th>처리일자</th>  
       <th>거래처</th>            
-      <th>수주번호</th>
+      <th>관리번호</th>
       <th>수량</th>
       <th>구분</th>
     </tr>

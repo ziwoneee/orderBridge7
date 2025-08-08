@@ -171,51 +171,64 @@
 </update>
 
 
-  <!-- ✅ 5. 입출고 내역 모달 조회 -->
-<!-- 입고 + 출고 내역을 하나로 조회하는 쿼리 -->
-<select id="getStockDetail" resultMap="StockDetailMap">
+<!-- LOT 입·출고·취소 이력: 입고=INBOUND, 출고=OUTBOUND, 취소=TRANSACTION -->
+<select id="getStockDetail" resultType="com.itwillbs.domain.ProductStockTransactionVO">
+  
   SELECT 
          '입고' AS type,
-         pi.inbound_qty AS qty,
-         pi.reg_date AS reg_date,
-         NULL AS client_name,
-         '' AS memo,
-         NULL AS cl_order_id        
+         pi.inbound_qty      AS qty,
+         pi.reg_date         AS regDate,
+         '오더브릿지'        AS clientName,
+         ''                  AS memo,
+         pi.inbound_id       AS inboundId,
+         NULL                AS outboundId,
+         NULL                AS clOrderId
   FROM product_inbound pi
-  WHERE pi.product_id = #{productId}
-    AND pi.lot_no = #{lotNo}
+  WHERE pi.lot_no = #{lotNo}
 
   UNION ALL
 
-  SELECT 
-         '출고' AS type,
-         po.outbound_qty AS qty,
-         po.outbound_date AS reg_date,
-         c.client_name AS client_name,
-         '' AS memo,
-         cd.cl_order_id AS cl_order_id  
-  FROM product_outbound po
-  LEFT JOIN client c 
-         ON po.client_id = c.client_id
-  LEFT JOIN client_delivery cd       
-          ON cd.tracking_number = po.tracking_number
-  WHERE po.product_id = #{productId}
-    AND po.lot_no = #{lotNo}
   
-  ORDER BY reg_date ASC
+  SELECT DISTINCT
+       '출고' AS type,
+       po.outbound_qty     AS qty,
+       po.outbound_date    AS regDate,
+       c.client_name       AS clientName,
+       ''                  AS memo,
+       NULL                AS inboundId,
+       po.outbound_id      AS outboundId,
+       (
+         SELECT MIN(cd.cl_order_id)
+         FROM client_delivery cd
+         WHERE cd.tracking_number = po.tracking_number
+       )                   AS clOrderId
+FROM product_outbound po
+LEFT JOIN client c ON po.client_id = c.client_id
+WHERE po.lot_no = #{lotNo}
+
+  UNION ALL
+
+  
+  SELECT
+         '취소' AS type,
+         pt.qty              AS qty,
+         pt.reg_date         AS regDate,
+         c2.client_name      AS clientName,
+         ''                  AS memo,
+         NULL                AS inboundId,
+         pt.outbound_id      AS outboundId,
+         COALESCE(pt.cl_order_id, cd2.cl_order_id) AS clOrderId
+  FROM product_transaction pt
+  LEFT JOIN product_outbound po2 ON pt.outbound_id = po2.outbound_id
+  LEFT JOIN client_delivery cd2  ON cd2.tracking_number = po2.tracking_number
+  LEFT JOIN client c2            ON COALESCE(pt.client_id, po2.client_id) = c2.client_id
+  WHERE pt.lot_no = #{lotNo}
+    AND pt.type = '취소'
+
+  ORDER BY regDate ASC
 </select>
 
 
-
- <!-- ✅ 6. resultMap (VO 전용) -->
-<resultMap id="StockDetailMap" type="com.itwillbs.domain.ProductStockTransactionVO">
-  <result property="type" column="type" />
-  <result property="qty" column="qty" />
-  <result property="regDate" column="reg_date" />
-  <result property="clientName" column="client_name" />
-  <result property="clOrderId" column="cl_order_id"/>  
-  <result property="memo" column="memo" />
-</resultMap>
 
   
  <!-- ✅ 유통기한 빠른 순 LOT별 가용 재고 조회 (출고 + 예약 반영) -->
@@ -253,16 +266,29 @@
 </select>
   
   <!-- 입출고 모달창 -->
-<select id="getLotHistoryByLot" parameterType="String" resultType="com.itwillbs.domain.ProductStockTransactionVO">
+<select id="getLotHistoryByLot"
+        parameterType="String"
+        resultType="com.itwillbs.domain.ProductStockTransactionVO">
   SELECT
-    pt.*,
-    c.client_name
+    pt.type,
+    pt.qty,
+    pt.reg_date        AS regDate,
+    pt.lot_no          AS lotNo,
+    pt.client_id       AS clientId,
+    c.client_name      AS clientName,
+    COALESCE(pt.cl_order_id, cd.cl_order_id) AS clOrderId
   FROM product_transaction pt
-  LEFT JOIN client c ON pt.client_id = c.client_id
+  LEFT JOIN client c
+         ON pt.client_id = c.client_id
+  LEFT JOIN product_outbound po
+         ON pt.outbound_id = po.outbound_id
+  LEFT JOIN client_delivery cd
+         ON cd.tracking_number = po.tracking_number
   WHERE pt.lot_no = #{lotNo}
-    AND pt.type NOT IN ('RESERVE', 'CANCEL_RESERVE')  <!-- 예약 관련 이력 제외 -->
+    AND pt.type NOT IN ('RESERVE', 'CANCEL_RESERVE')
   ORDER BY pt.reg_date ASC
 </select>
+
 
 
   
@@ -298,48 +324,94 @@
 </update>
 
 
-<resultMap id="LotSummaryMap" type="com.itwillbs.domain.ProductStockVO">
-  <result property="productId" column="product_id"/>
-  <result property="productName" column="product_name"/>
-  <result property="lotNo" column="lot_no"/>
-  <result property="regDate" column="reg_date"/>
-  <result property="expireDate" column="expire_date"/>
-  <result property="stockQty" column="stock_qty"/>
-  <result property="reservedQty" column="reserved_qty"/>
-  <result property="availableQty" column="available_qty"/>
-
-  <collection property="transactions" ofType="com.itwillbs.domain.ProductStockTransactionVO">
-    <result property="type" column="type"/>
-    <result property="qty" column="qty"/>
-    <result property="regDate" column="transaction_date"/>
-    <result property="remark" column="remark"/>
-    <result property="clientName" column="client_name"/>
-  </collection>
-</resultMap>
-
 
 <!-- LOT별 수치 요약 + 입출고 이력 포함 -->
 <select id="getLotSummary" parameterType="String" resultMap="LotSummaryMap">
-  SELECT 
-    ps.product_id,
-    p.product_name,                     <!-- ✅ 조인해서 가져오기 -->
-    ps.lot_no,
-    ps.reg_date,
-    ps.expire_date,
-    ps.stock_qty,
-    ps.reserved_qty,
-    ps.available_qty,
-    pt.type,
-    pt.qty,
-    pt.reg_date AS transaction_date,
-    pt.remark,
-    c.client_name
-  FROM product_stock ps
-  LEFT JOIN product_transaction pt ON ps.lot_no = pt.lot_no
-  LEFT JOIN client c ON pt.client_id = c.client_id
-  LEFT JOIN product p ON ps.product_id = p.product_id   <!-- ✅ product_name 조인 -->
-  WHERE ps.lot_no = #{lotNo}
+  SELECT
+    S.product_id,
+    P.product_name,
+    S.lot_no,
+    S.first_reg_date      AS reg_date,
+    S.expire_date         AS expire_date,
+    (S.inbound_qty - IFNULL(O.outbound_qty, 0))                       AS stock_qty,
+    IFNULL(R.reserved_qty, 0)                                         AS reserved_qty,
+    (S.inbound_qty - IFNULL(O.outbound_qty, 0) - IFNULL(R.reserved_qty, 0)) AS available_qty,
+  S.inbound_qty         AS inbound_qty,
+    IFNULL(O.outbound_qty, 0) AS outbound_qty,
+  PT.type,
+    PT.qty,
+    PT.reg_date           AS transaction_date,
+    PT.remark,
+    C.client_name,
+    PT.inbound_id,
+    PT.outbound_id
+  FROM
+     (
+      SELECT
+        pi.product_id,
+        pi.lot_no,
+        SUM(pi.inbound_qty)        AS inbound_qty,
+        MIN(pi.reg_date)           AS first_reg_date,
+        MAX(pi.expire_date)        AS expire_date
+      FROM product_inbound pi
+      WHERE pi.lot_no = #{lotNo}
+      GROUP BY pi.product_id, pi.lot_no
+    ) S
+  LEFT JOIN (
+      SELECT po.product_id, po.lot_no, SUM(po.outbound_qty) AS outbound_qty
+      FROM product_outbound po
+      WHERE po.lot_no = #{lotNo}
+      GROUP BY po.product_id, po.lot_no
+    ) O ON O.product_id = S.product_id AND O.lot_no = S.lot_no
+
+    
+    LEFT JOIN (
+      SELECT sr.product_id, sr.lot_no, SUM(sr.reserved_qty) AS reserved_qty
+      FROM stock_reservation sr
+      WHERE sr.lot_no = #{lotNo}
+      GROUP BY sr.product_id, sr.lot_no
+    ) R ON R.product_id = S.product_id AND R.lot_no = S.lot_no
+
+   
+    LEFT JOIN product P ON P.product_id = S.product_id
+
+    
+    LEFT JOIN product_transaction PT
+      ON PT.lot_no = S.lot_no
+     AND PT.type NOT IN ('RESERVE','CANCEL_RESERVE')
+
+   
+    LEFT JOIN client C ON C.client_id = PT.client_id
 </select>
+
+
+<resultMap id="LotSummaryMap" type="com.itwillbs.domain.ProductStockVO">
+  <result property="productId"     column="product_id"/>
+  <result property="productName"   column="product_name"/>
+  <result property="lotNo"         column="lot_no"/>
+  <result property="regDate"       column="reg_date"/>
+  <result property="expireDate"    column="expire_date"/>
+
+  <!-- 요약 수치 -->
+  <result property="stockQty"      column="stock_qty"/>
+  <result property="reservedQty"   column="reserved_qty"/>
+  <result property="availableQty"  column="available_qty"/>
+
+  <!-- 상단 요약값(컨트롤러에서 세팅) -->
+  <result property="inboundQty"    column="inbound_qty"/>
+  <result property="outboundQty"   column="outbound_qty"/>
+
+  <!-- 이력 컬렉션 -->
+  <collection property="transactions" ofType="com.itwillbs.domain.ProductStockTransactionVO">
+    <result property="type"        column="type"/>
+    <result property="qty"         column="qty"/>
+    <result property="regDate"     column="transaction_date"/>
+    <result property="remark"      column="remark"/>
+    <result property="clientName"  column="client_name"/>
+    <result property="inboundId"   column="inbound_id"/>
+    <result property="outboundId"  column="outbound_id"/>    
+  </collection>
+</resultMap> 
 
 
 

@@ -70,6 +70,7 @@ public class ProductStockController {
     @ResponseBody
     public Map<String, Object> getStockDetail(@RequestParam("lot") String lotNo) {
         Map<String, Object> result = new HashMap<>();
+         System.out.println(lotNo);
 
         // 1. 입출고/예약 이력
         List<ProductStockTransactionVO> history = productStockService.getStockDetailByLot(lotNo);
@@ -77,6 +78,7 @@ public class ProductStockController {
 
         // 2. 상단에 표시할 LOT별 수치 정보
         ProductStockVO summary = productStockService.getLotSummary(lotNo);
+        System.out.println(summary);
         if (summary != null) {
             result.put("inboundQty", summary.getInboundQty());
             result.put("totalOutboundQty", summary.getOutboundQty());
