@@ -51,7 +51,7 @@
 	  FROM supplier_item si
 	  JOIN material m ON si.material_id = m.material_id
 	  WHERE si.supplier_id = #{supplierId}
-	  ORDER BY si.id ASC
+	  ORDER BY si.supply_available DESC, m.material_name ASC
 	  LIMIT #{perPageNum} OFFSET #{pageStart}
 	</select>
   

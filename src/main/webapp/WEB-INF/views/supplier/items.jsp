@@ -82,6 +82,12 @@
               </div>
             </div>
             
+            <div class="d-flex justify-content-end mt-4">
+			  <a href="/supplier/list" class="btn btn-outline-secondary">
+			    ← 목록
+			  </a>
+			</div>
+			
             <!-- 페이징 처리 -->
 			<div class="d-flex justify-content-center mt-4">
 			  <nav>
@@ -118,6 +124,9 @@
 			  </nav>
 			</div>
 			<!-- 페이징 끝 -->
+			
+			
+			
 			            
             
           </div>
@@ -140,7 +149,7 @@
       <form id="itemForm">
       	<input type="hidden" name="id" id="itemId" value="">
       	
-        <div class="modal-header">
+        <div class="modal-header" style="background-color: #1c355e; color: #ffffff;">
           <h5 class="modal-title">공급 품목 등록</h5>
           <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
         </div>
@@ -185,8 +194,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">목록</button>
-          <button type="submit" id="btnAddItemSubmit" class="btn btn-primary">저장</button>
+          <button type="submit" id="btnAddItemSubmit" class="btn btn-primary">등록</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
         </div>
       </form>
     </div>
