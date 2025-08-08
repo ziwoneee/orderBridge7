@@ -107,9 +107,18 @@ public class SupplierItemController {
      */
     @PostMapping("/update")
     @ResponseBody
-    public String updateItem(SupplierItemVO vo) throws Exception {
-    	siService.updateItem(vo);
+    public String updateItem(SupplierItemVO item) throws Exception {
+    	siService.updateItem(item);
         return "success";
+    }
+
+    /**
+     * 공급 품목 단건 조회 (수정폼용)
+     */
+    @GetMapping("/get")
+    @ResponseBody
+    public SupplierItemVO getItem(@RequestParam("id") String itemId) throws Exception {
+        return siService.getItemById(itemId);
     }
 
     

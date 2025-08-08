@@ -25,5 +25,10 @@ public interface SupplierItemDAO {
     
     // 공급 품목 수정
     void updateItem(SupplierItemVO item) throws Exception;
+   
+    
+    // 공급 품목 단건 조회 (수정폼용)
+    SupplierItemVO getItemById(String itemId) throws Exception;
+    
 
 }

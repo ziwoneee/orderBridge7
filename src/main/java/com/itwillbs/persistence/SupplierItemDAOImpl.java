@@ -43,6 +43,12 @@ public class SupplierItemDAOImpl implements SupplierItemDAO {
     public void updateItem(SupplierItemVO item) throws Exception {
         sqlSession.update(NAMESPACE + "updateItem", item);
     }
+    
+    // 공급 품목 단건 조회 (수정폼용)
+    @Override
+    public SupplierItemVO getItemById(String itemId) throws Exception {
+        return sqlSession.selectOne(NAMESPACE + "getItemById", itemId);
+    }
 
 
 

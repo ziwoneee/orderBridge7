@@ -77,6 +77,15 @@
   </update>
   
   
+  <!-- 공급 품목 단건 조회 (수정폼용) -->
+  <select id="getItemById" resultType="com.itwillbs.domain.SupplierItemVO">
+	  SELECT si.*, m.material_name, m.material_type
+	  FROM supplier_item si
+	  JOIN material m ON si.material_id = m.material_id
+	  WHERE si.id = #{itemId}
+  </select>
+  
+  
   
   
   
