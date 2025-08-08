@@ -1,5 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
 
@@ -29,11 +31,11 @@
           
           <!-- 등록 버튼 -->
           <div class="col-12 mb-3 text-right">
-            <button class="btn btn-success mb-2" id="btnAddItem">공급 품목 등록</button>
+            <button class="btn btn-success mb-2" id="btnAddItem" data-supplier-id="${supplier.supplierId}">공급 품목 등록</button>
           </div>
                     
-          <!-- 공급 품목 테이블 -->
-          <div class="col-12">
+	          <!-- 공급 품목 테이블 -->
+	          <div class="col-12">
                 <div class="table-responsive">
                   <table class="table table-hover" id="itemTable">
                     <thead>
@@ -48,8 +50,33 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <!-- JavaScript로 동적 로딩 -->
-                    </tbody>
+				    <c:choose>
+				      <c:when test="${empty itemList}">
+				        <tr>
+				          <td colspan="7" class="text-center text-muted">등록된 공급 품목이 없습니다.</td>
+				        </tr>22-9999	2025-07-23	
+				      </c:when>
+				      <c:otherwise>
+				        <c:forEach var="item" items="${itemList}">
+				          <tr class="${item.supplyAvailable eq 'N' ? 'inactive-row' : ''}" data-item-id="${item.id}">
+				            <td>${item.materialName}</td>
+				            <td>${item.materialType}</td>
+				            <td><fmt:formatNumber value="${item.unitPrice}" pattern="#,##0" /></td>
+				            <td>${item.unit}</td>
+				            <td>
+				              <span class="badge ${item.supplyAvailable eq 'Y' ? 'badge-success' : 'badge-secondary'}">
+				                ${item.supplyAvailable eq 'Y' ? '활성' : '비활성'}
+				              </span>
+				            </td>
+				            <td>${item.note}</td>
+				            <td>
+				              <button class="btn btn-sm btn-outline-warning btn-edit">수정</button>
+				            </td>
+				          </tr>
+				        </c:forEach>
+				      </c:otherwise>
+				    </c:choose>
+				  </tbody>
                   </table>
                 </div>
               </div>
@@ -111,15 +138,15 @@
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <form id="itemForm">
-      	<input type="hidden" name="id" id="itemId">
+      	<input type="hidden" name="itemId" id="itemId">
       	
         <div class="modal-header">
           <h5 class="modal-title">공급 품목 등록</h5>
           <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
         </div>
-        
+       
         <div class="modal-body">
-          <input type="hidden" name="supplierId" value="<%= sid %>">
+          <input type="hidden" id="supplierId" name="supplierId" value="<%= sid %>">
 
 		<div class="form-group invisible-select2-wrapper" id="materialIdWrapper">
 		  <label>자재 선택</label>
@@ -159,7 +186,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">목록</button>
-          <button type="submit" class="btn btn-primary">저장</button>
+          <button type="submit" id="btnAddItemSubmit" class="btn btn-primary">저장</button>
         </div>
       </form>
     </div>

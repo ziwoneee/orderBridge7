@@ -56,8 +56,6 @@
 	</select>
   
   
-  
-  
   <!-- 공급 품목 등록 쿼리 -->
   <insert id="insertItem" parameterType="com.itwillbs.domain.SupplierItemVO">
     INSERT INTO supplier_item (
@@ -67,6 +65,16 @@
       #{supplierId}, #{materialId}, #{unitPrice}, #{unit}, #{supplyAvailable}, #{note}
     )
   </insert>
+  
+  
+  <!-- 중복 확인용 쿼리 -->
+	<select id="countBySupplierAndMaterial" parameterType="map" resultType="int">
+	  SELECT COUNT(*) 
+	  FROM supplier_item 
+	  WHERE supplier_id = #{supplierId} 
+	    AND material_id = #{materialId}
+	</select>
+  
   
   
   <!-- 공급 품목 수정 쿼리 -->

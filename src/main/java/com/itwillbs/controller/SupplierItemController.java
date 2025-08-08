@@ -26,7 +26,7 @@ import com.itwillbs.service.SupplierService;
  * 공급 품목 컨트롤러 - Ajax 기반 공급 품목 조회 등 처리
  */
 @Controller
-@RequestMapping("/supplierItem/*")
+@RequestMapping("/supplierItem")
 public class SupplierItemController {
 
 	@Inject
@@ -112,6 +112,22 @@ public class SupplierItemController {
 			return ResponseEntity.status(500).body("등록 실패: " + e.getMessage());
 		}
 	}
+	
+	
+	/**
+	 * 공급 품목 중복 확인
+	 * @param supplierId 거래처 ID
+	 * @param materialId 자재 ID
+	 * @return true: 중복 있음 / false: 중복 없음
+	 */
+	@GetMapping("/check")
+	@ResponseBody
+	public boolean checkDuplicate(@RequestParam("supplierId") String supplierId,
+	                              @RequestParam("materialId") String materialId) throws Exception {
+		 System.out.println("🔥 중복 검사 쿼리 - supplierId: " + supplierId + ", materialId: " + materialId);
+	    return siService.isDuplicateItem(supplierId, materialId);
+	}
+	
 
 	/**
 	 * 공급 품목 수정
@@ -131,5 +147,8 @@ public class SupplierItemController {
 	public SupplierItemVO getItem(@RequestParam("id") String itemId) throws Exception {
 		return siService.getItemById(itemId);
 	}
+	
+	
+	
 
 } // SupplierItemController 끝

@@ -1,6 +1,7 @@
 package com.itwillbs.persistence;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -53,6 +54,15 @@ public class SupplierItemDAOImpl implements SupplierItemDAO {
     public void insertItem(SupplierItemVO item) throws Exception {
         sqlSession.insert(NAMESPACE + "insertItem", item);
     }
+    
+    // 공급 품목 중복 확인
+    @Override
+    public int countBySupplierAndMaterial(String supplierId, String materialId) {
+        return sqlSession.selectOne(NAMESPACE + "countBySupplierAndMaterial",
+                                    Map.of("supplierId", supplierId, "materialId", materialId));
+    }
+
+    
     
     // 공급 품목 수정
     @Override

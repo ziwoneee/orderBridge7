@@ -1,4 +1,34 @@
 $(document).ready(function () {
+	
+	// 공급 품목 중복 검사
+	$("#btnAddItemSubmit").on("click", function (e) {
+		  e.preventDefault();
+
+		  const supplierId = $("#supplierId").val();
+		  const materialId = $("#materialId").val();
+
+		  const params = new URLSearchParams({
+		    supplierId: supplierId,
+		    materialId: materialId
+		  }).toString();
+
+		  $.ajax({
+		    type: "GET",
+		    url: "/supplierItem/check?" + params,
+		    success: function (isDuplicate) {
+		    	console.log("✅ 중복 검사 응답:", isDuplicate, typeof isDuplicate);
+		      if (isDuplicate === true || isDuplicate === 'true') {
+		        alert("⚠ 이미 등록된 자재입니다");
+		        return;
+		      }
+		      $("#itemForm").submit(); // ✅ 중복 아닐 때만 실행돼야 함!
+		    },
+		    error: function () {
+		      alert("중복 확인 중 오류 발생!");
+		    }
+		  });
+		});
+
 
 	// ✅ [1] 등록 버튼 → 모달 열기 - 더 깔끔한 버전
 	$("#btnAddItem").on("click", function () {
@@ -29,6 +59,10 @@ $(document).ready(function () {
 	    }
 	  });
 	  
+	  const supplierId = $(this).data("supplier-id");
+	  console.log("📌 등록 대상 supplierId:", supplierId);
+	  $("#supplierId").val(supplierId);
+	  
 	  $("#itemModal").modal("show");
 	});
 
@@ -53,7 +87,11 @@ $('#itemModal').on('shown.bs.modal', function () {
     e.preventDefault();
 
     const mode = $(this).attr('data-mode');
+    console.log("💬 폼 제출 모드 확인:", mode);
     const formData = $(this).serialize();
+    
+    console.log("전송 데이터:", formData);
+
 
     const url = (mode === 'edit') 
       ? "/supplierItem/update" 
@@ -66,7 +104,8 @@ $('#itemModal').on('shown.bs.modal', function () {
       success: function () {
         alert(mode === 'edit' ? "자재 정보 수정 완료" : "자재 정보 등록 완료");
         $("#itemModal").modal("hide");
-        loadItemList();
+        
+        location.reload();
       },
       error: function (xhr) {
         alert("처리 실패: " + xhr.responseText);
@@ -74,64 +113,11 @@ $('#itemModal').on('shown.bs.modal', function () {
     });
   });
 
-  // ✅ [3] 공급 품목 목록 로딩 함수
-  function loadItemList() {
-    $.ajax({
-      url: "/supplierItem/list?supplierId=" + supplierIdFromJsp(),
-      method: "GET",
-      success: function (data) {
-        const tbody = $("#itemTable tbody");
-        tbody.empty();
-
-        if (!data || data.length === 0) {
-          tbody.append(`<tr><td colspan="7" class="text-center text-muted">등록된 공급 품목이 없습니다.</td></tr>`);
-          return;
-        }
-
-        data.forEach(function (item) {
-          const tr = $("<tr>")
-            .attr("data-item-id", item.id)
-            .attr("data-material-id", item.materialId)
-        	.addClass(item.supplyAvailable === "N" ? "inactive-row" : "")
-        	.attr("id", "display-" + item.id);
-        	
-          tr.append($("<td>").text(item.materialName || "-"));
-          tr.append($("<td>").text(item.materialType || "-"));
-          tr.append($("<td>").text(item.unitPrice || "-"));
-          tr.append($("<td>").text(item.unit || "-"));
-
-          
-          const statusBadge = $("<span>")
-          	.addClass("badge")
-          	.addClass(item.supplyAvailable === "Y" ? "badge-success" : "badge-secondary")
-          	.text(item.supplyAvailable === "Y" ? "활성" : "비활성");
-          
-          tr.append($("<td>").append(statusBadge));
-          tr.append($("<td>").text(item.note ? item.note : "-"));
-
-          const td = $("<td>");
-          const editBtn = $("<button>")
-          	.addClass("btn btn-sm btn-outline-warning btn-edit")
-          	.text("수정");
-          td.append(editBtn);
-          tr.append(td);
-
-          tbody.append(tr);
-        });
-      },
-      error: function (xhr) {
-        console.error("목록 조회 실패:", xhr);
-      }
-    });
-  }
-
   // ✅ [4] supplierId 추출 함수
   function supplierIdFromJsp() {
     return $("input[name='supplierId']").val();
   }
 
-  // ✅ [5] 페이지 진입 시 목록 자동 로딩
-  loadItemList();
 });
 
 // ✅ 자재 선택 시 단가, 단위 자동 입력 - 수정 모드 보호 기능 추가
