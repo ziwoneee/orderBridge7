@@ -144,17 +144,15 @@
 	<!-- 작업지시 자재 목록 (필요수량) -->
 	<select id="selectWorkOrderMaterials" parameterType="string" resultType="map">
 	  SELECT
-	    m.material_id    AS materialId,
-	    m.material_name  AS materialName,
-	    wom.required_qty AS requiredQty,
-	    COALESCE(m.default_warehouse_code,
-	             CASE 
-	               WHEN m.storage_method = '냉동' THEN 'WH001'
-	               WHEN m.storage_method = '냉장' THEN 'WH002'
-	               ELSE 'WH003'
-	             END)        AS defaultWarehouseCode
+	    m.material_id      AS materialId,
+	    m.material_name    AS materialName,
+	    wom.required_qty   AS requiredQty,
+	    m.warehouse_code   AS defaultWarehouseCode  <!-- material 테이블 창고코드 바로 사용 -->
+	
 	  FROM work_order_material wom
-	  JOIN material m ON m.material_id = woi.material_id
+	  JOIN material m 
+	    ON m.material_id = wom.material_id
+	
 	  WHERE wom.work_order_id = #{workOrderId}
 	  ORDER BY m.material_id
 	</select>

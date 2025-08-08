@@ -80,25 +80,32 @@
 	    mi.inventory_id,
 	    mi.material_id,
 	    mi.quantity,
-	    mi.lot_no AS lotNo, 
-	    mi.expiration_date AS expirationDate,
-	    mi.received_date AS receivedDate,
-	    mi.warehouse_code AS warehouseCode,
+	    mi.lot_no           AS lotNo,
+	    mi.expiration_date  AS expirationDate,
+	    mi.received_date    AS receivedDate,
+	    mi.warehouse_code   AS warehouseCode,
 	    mi.status,
 	    mi.inventory_status AS inventoryStatus,
-	    mi.last_updated AS lastUpdated,
+	    mi.last_updated     AS lastUpdated,
 	    mi.last_movement_date AS lastMovementDate,
-	    mi.is_discarded AS isDiscarded,
-	    mi.discarded_date AS discardedDate,
-	    mi.discard_reason AS discardReason,
-	    m.material_name AS materialName,
+	    mi.is_discarded     AS isDiscarded,
+	    mi.discarded_date   AS discardedDate,
+	    mi.discard_reason   AS discardReason,
+	    m.material_name     AS materialName,
 	    m.unit,
-	    m.safety_stock AS safetyStock,
-	    m.material_type AS materialType
+	    m.safety_stock      AS safetyStock,
+	    m.material_type     AS materialType
 	  FROM material_inventory mi
 	  LEFT JOIN material m ON mi.material_id = m.material_id
 	  WHERE mi.material_id = #{materialId}
-	  ORDER BY mi.expiration_date ASC
+	    AND COALESCE(mi.quantity,0) > 0          
+	    AND (mi.is_discarded = 0 OR mi.is_discarded IS NULL)  
+	    AND mi.lot_no LIKE 'LOT-%'              
+	    AND (mi.status = '정상' OR mi.status IS NULL)         
+	  ORDER BY
+	    CASE WHEN mi.expiration_date IS NULL THEN 1 ELSE 0 END,
+	    mi.expiration_date ASC,
+	    mi.lot_no ASC
 	</select>
 	
 	<!-- 출하시 박스 차감 시작-->	
