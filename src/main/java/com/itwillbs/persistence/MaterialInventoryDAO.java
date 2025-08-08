@@ -19,6 +19,10 @@ public interface MaterialInventoryDAO {
 	// material_id로 LOT 목록 조회
 	List<MaterialInventoryVO> selectLotListByMaterialId(String materialId) throws Exception;
 
-
+	//자재 재고 조회 (박스용)
+	List<MaterialInventoryVO> selectAvailableLotsForMaterial(String materialId);
+    
+	//자재 재고 차감 (박스용)
+	void decreaseLotQuantity(String inventoryId, int deductQty);
 	
 }

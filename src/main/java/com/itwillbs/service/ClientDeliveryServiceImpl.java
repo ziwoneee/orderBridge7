@@ -1,6 +1,7 @@
 package com.itwillbs.service;
 
 import com.itwillbs.domain.ClientDeliveryVO;
+import com.itwillbs.domain.MaterialInventoryVO;
 import com.itwillbs.domain.ProductOutboundVO;
 import com.itwillbs.domain.ProductStockTransactionVO;
 import com.itwillbs.domain.SearchCriteria;
@@ -12,6 +13,7 @@ import com.itwillbs.dto.ShipmentCompletedGroupDTO;
 import com.itwillbs.dto.ShipmentPendingDTO;
 import com.itwillbs.dto.ShipmentPendingGroupDTO;
 import com.itwillbs.persistence.ClientDeliveryDAO;
+import com.itwillbs.persistence.MaterialInventoryDAO;
 import com.itwillbs.persistence.ProductStockDAO;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,12 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
     
     @Autowired
     private ProductStockDAO productStockDAO;
+    
+    
+    @Autowired
+    private MaterialInventoryDAO materialInventoryDAO;    
+    
+
 
  // 출하대기 목록 (그룹형) - 검색 + 페이징 지원
     @Override
@@ -71,6 +79,9 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
 
         boolean allShipped = true;
         String trackingNumber = generateTrackingNumber();
+        
+        // ✅ 주문수량 합계 조회
+        int totalOrderQty = deliveryDAO.getTotalOrderQtyByOrderId(clOrderId);
 
         for (StockReservationVO r : reservations) {
             int reservedQty = r.getReservedQty();
@@ -107,9 +118,39 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
 
             outboundService.registerOutbound(outbound);
 
+            
+            
             // ✅ 상세 상태 SHIPPED 처리
             deliveryDAO.updateOrderDetailStatus(r.getDetailId(), "SHIPPED");
         }
+        
+        // ✅ 자재 소진 규칙 적용
+        int rm0018Qty = 0; // 100단위 박스
+        int rm0017Qty = 0; // 소박스(≤30)
+
+        // 1) 30개 이하 → RM-0017 1개만
+        if (totalOrderQty <= 30) {
+            rm0017Qty = 1;
+        } else {
+            // 2) 100개 단위마다 RM-0018 1개
+            rm0018Qty = totalOrderQty / 100;
+
+            // 3) 나머지 처리
+            int remainder = totalOrderQty % 100;
+            if (remainder > 0) {
+                if (remainder <= 30) {
+                    rm0017Qty = 1;     // 나머지 ≤ 30 → RM-0017 1개 추가
+                } else {
+                    rm0018Qty += 1;    // 나머지 > 30 → RM-0018 1개 추가
+                }
+            }
+        }
+
+        // ✅ 실제 차감 (FEFO)
+        if (rm0018Qty > 0) consumeMaterialFefo("RM-0018", rm0018Qty);
+        if (rm0017Qty > 0) consumeMaterialFefo("RM-0017", rm0017Qty);
+
+        
 
         // ✅ 마스터 상태도 SHIPPED 처리
         deliveryDAO.updateClientOrderStatus(clOrderId, "SHIPPED");
@@ -210,7 +251,7 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
         tx.setManager(vo.getManager());
         tx.setRemark("출하 취소");
         tx.setClientId(vo.getClientId());
-        tx.setClOrderId(vo.getClOrderId()); // 👈 추가
+        tx.setClOrderId(vo.getClOrderId()); 
         tx.setRegDate(new Date());
 
         productStockDAO.insertTransaction(tx);
@@ -235,7 +276,28 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
         deliveryDAO.updateDeliveryStatus(deliveryId, status);
     }
 
-    
+   
+    //자재 박스 선입선출
+    private void consumeMaterialFefo(String materialId, int needQty) {
+        List<MaterialInventoryVO> lots = materialInventoryDAO.selectAvailableLotsForMaterial(materialId);
+        int remain = needQty;
+
+        for (MaterialInventoryVO lot : lots) {
+            if (remain <= 0) break;
+            int available = lot.getQuantity();
+            if (available <= 0) continue;
+
+            int deduct = Math.min(available, remain);
+            materialInventoryDAO.decreaseLotQuantity(lot.getInventoryId(), deduct);
+            remain -= deduct;
+        }
+
+        if (remain > 0) {
+            throw new IllegalStateException("자재 부족: " + materialId + ", 부족=" + remain);
+        }
+    }
+
+
     
   
 

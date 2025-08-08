@@ -17,6 +17,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 
 @Controller
 @RequestMapping("/shipment")
@@ -28,19 +32,26 @@ public class ClientDeliveryController {
     @Autowired
     private StockReservationService reservationService;
 
-//    // ✅ 출하대기 그룹형 목록 조회
-//    @GetMapping("/pending")
-//    public String getGroupedPendingList(Model model) {
-//        List<ShipmentPendingGroupDTO> groupedList = deliveryService.getPendingShipmentGroupedList();
-//        model.addAttribute("groupedList", groupedList);
-//        return "clientDelivery/list";
-//    }
 
     // ✅ 수주번호 단위 출하 처리
     @PostMapping("/process")
     public String processShipment(@RequestParam("clOrderIds") List<String> clOrderIds,
                                    RedirectAttributes rttr) {
-        // 각 수주번호에 대해 출하 처리 로직 호출
+
+        // 예약되지 않은 수주번호 목록 필터링
+        List<String> notReserved = clOrderIds.stream()
+                .filter(id -> !reservationService.isReserved(id)) // 예약 여부 확인
+                .collect(Collectors.toList());
+
+        // 예약 안된 건이 있으면 출하 중단
+        if (!notReserved.isEmpty()) {
+            rttr.addFlashAttribute("message",
+                    "다음 수주번호는 예약되지 않아 출하할 수 없습니다: " + notReserved);
+            rttr.addFlashAttribute("messageType", "danger");
+            return "redirect:/shipment/list?tab=pending";
+        }
+
+        // 예약된 건만 출하 처리
         for (String clOrderId : clOrderIds) {
             deliveryService.processShipmentByOrderId(clOrderId);
         }
@@ -49,6 +60,7 @@ public class ClientDeliveryController {
         rttr.addFlashAttribute("messageType", "success");
         return "redirect:/shipment/list";
     }
+
     
     
 //출하관리 전체 목록보기
@@ -81,10 +93,15 @@ public class ClientDeliveryController {
         model.addAttribute("groupedList", groupedList);
         model.addAttribute("pendingPage", pendingPage);
 
-        // ✅ 예약된 수주번호 목록 전달 (출하대기 탭에서 "예약중" 여부 체크용)
+     // ✅ 예약된 수주번호 목록
         List<String> reservedOrderIds = reservationService.getReservedOrderIds();
-        model.addAttribute("reservedOrderIds", reservedOrderIds);
+        Map<String, Boolean> reservedMap = reservedOrderIds.stream()
+            .filter(Objects::nonNull)
+            .map(String::trim)
+            .collect(Collectors.toMap(id -> id, id -> Boolean.TRUE, (a,b)->a));
 
+        model.addAttribute("reservedMap", reservedMap);
+        
         // ✅ 출하완료 목록
         List<String> allowed = Arrays.asList("deliveryId", "clOrderId", "deliveryDate", "productName", "clientName", "lotNo", "trackingNumber");
 

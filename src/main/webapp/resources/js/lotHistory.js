@@ -82,14 +82,13 @@ function openLotHistoryModal(lotNo, productId) {
       $('#lotHistoryEmpty').addClass('d-none');
       // 테이블에 입출고 이력 추가
       history.forEach(entry => {
-    	  // ✅ 예약 / 예약취소는 무시
+    	  // 예약/예약취소는 무시
     	  if (entry.type === 'RESERVE' || entry.type === '예약' ||
     	      entry.type === 'CANCEL_RESERVE' || entry.type === '예약취소') {
-    	    return;  // 이 항목은 건너뛰기
+    	    return;
     	  }
 
     	  let badgeHtml = '';
-
     	  switch (entry.type) {
     	    case 'INBOUND':
     	    case '입고':
@@ -107,21 +106,31 @@ function openLotHistoryModal(lotNo, productId) {
     	      badgeHtml = entry.type;
     	  }
 
+    	  // ✅ 구분(type)에 따라 표 중간 열(수주번호 칸)에 다른 번호 표시
+    	  let idText = '-';
+    	  if (entry.type === 'OUTBOUND' || entry.type === '출고') {
+    	    idText = entry.outboundId || '-';
+    	  } else if (entry.type === 'INBOUND' || entry.type === '입고') {
+    	    idText = entry.inboundId || '-';
+    	  } else if (entry.type === 'CANCEL' || entry.type === '취소') {
+    	    idText = entry.clOrderId || '-';
+    	  }
+
     	  const row = `
     	    <tr>
     	      <td>
     	        ${formatDate(entry.regDate)}
     	        <i class="bi bi-clock text-muted mx-1"></i>
-    	        <span class="text-muted" style="font-size: 0.9em;">${formatTime(entry.regDate)}</span>
+    	        <span class="text-muted" style="font-size:0.9em;">${formatTime(entry.regDate)}</span>
     	      </td>
     	      <td>${entry.clientName || '-'}</td>
+    	      <td>${idText}</td>        
     	      <td>${entry.qty}</td>
     	      <td>${badgeHtml}</td>
     	    </tr>
     	  `;
     	  $('#lotHistoryTableBody').append(row);
     	});
-
 
 
       $('#lotHistoryModal').modal('show');

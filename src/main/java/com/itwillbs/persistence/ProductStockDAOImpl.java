@@ -147,4 +147,14 @@ public class ProductStockDAOImpl implements ProductStockDAO {
         param.put("qty", qty);
         sqlSession.update(NAMESPACE + ".increaseLotStock", param);
     }
+    
+    
+ // 모달용: 입·출고 이력 (입고번호/출고번호/수주번호 포함)
+    @Override
+    public List<ProductStockTransactionVO> getStockDetail(String lotNo) {
+        return sqlSession.selectList(NAMESPACE + ".getStockDetail", lotNo);
+    }
+
+    
+    
 }

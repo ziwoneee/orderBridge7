@@ -100,6 +100,30 @@
 	  WHERE mi.material_id = #{materialId}
 	  ORDER BY mi.expiration_date ASC
 	</select>
+	
+	<!-- 출하시 박스 차감 시작-->	
+	<!-- 자재 재고 조회 (박스용, FEFO) -->
+    <select id="selectAvailableLotsForMaterial" parameterType="string"
+            resultType="com.itwillbs.domain.MaterialInventoryVO">
+        SELECT inventory_id, material_id, lot_no, quantity, expiration_date, received_date
+        FROM material_inventory
+        WHERE material_id = #{materialId}
+          AND COALESCE(quantity,0) > 0
+        ORDER BY expiration_date ASC, received_date ASC
+        FOR UPDATE
+    </select>
+
+    <!-- 자재 재고 차감 -->
+    <update id="decreaseLotQuantity">
+        UPDATE material_inventory
+        SET quantity = quantity - #{deductQty},
+            last_updated = NOW(),
+            last_movement_date = NOW()
+        WHERE inventory_id = #{inventoryId}
+    </update>
+
+	<!-- 출하시 박스 차감 끝-->	
+	
 
 	
 
