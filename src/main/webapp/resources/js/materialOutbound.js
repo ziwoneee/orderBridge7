@@ -4,7 +4,10 @@ window.validateAll = function () {
   $('#materialLotBody tr').each(function () {
     const req = +($(this).find('.req').data('req') || 0);
     const sum = +($(this).find('.sum').text() || 0);
-    if (req !== sum) { ok = false; return false; }
+    if (req !== sum) { 
+      ok = false; 
+      return false; 
+    }
   });
   $('#btnSubmit').prop('disabled', !ok);
   return ok;
@@ -12,36 +15,44 @@ window.validateAll = function () {
 
 // 부족분 발주 생성
 window.collectShortages = function () {
-  const s = [];
+  const shortages = [];
   $('#materialLotBody tr').each(function(){
-    const mid  = $(this).data('material');
-    const name = $(this).find('.font-weight-bold').text().trim();
-    const req  = +($(this).find('.req').data('req')||0);
-    const sum  = +($(this).find('.sum').text()||0);
-    if (sum < req) s.push({ materialId: mid, lackQty: req - sum, materialName: name });
+    const materialId = $(this).data('material');
+    const materialName = $(this).find('.font-weight-bold').text().trim();
+    const required = +($(this).find('.req').data('req') || 0);
+    const sum = +($(this).find('.sum').text() || 0);
+    
+    if (sum < required) {
+      shortages.push({ 
+        materialId: materialId, 
+        lackQty: required - sum, 
+        materialName: materialName 
+      });
+    }
   });
-  return s;
+  return shortages;
 };
 
 /* ---------- 공통 유틸 ---------- */
-function toYmd(d){
-	  if (!d) return '';
-	  const dt = (d instanceof Date) ? d : new Date(d);
-	  if (isNaN(dt.getTime())) return '';        // 파싱 실패 방지
-	  const y = dt.getFullYear();
-	  const m = ('0' + (dt.getMonth() + 1)).slice(-2);
-	  const dd = ('0' + dt.getDate()).slice(-2);
-	  return `${y}-${m}-${dd}`;
-	}
-	function fmtDate(val){ return toYmd(val); }
+function toYmd(dateValue) {
+  if (!dateValue) return '';
+  const date = (dateValue instanceof Date) ? dateValue : new Date(dateValue);
+  if (isNaN(date.getTime())) return '';        // 파싱 실패 방지
+  
+  const year = date.getFullYear();
+  const month = ('0' + (date.getMonth() + 1)).slice(-2);
+  const day = ('0' + date.getDate()).slice(-2);
+  return `${year}-${month}-${day}`;
+}
 
-
-/* ---------- list.jsp 로직 (그대로) ---------- */
-// ... loadWaitingOrders, 선택 이동 등 기존 코드 유지 ...
+function fmtDate(value) { 
+  return toYmd(value); 
+}
 
 /* ---------- register.jsp: 초기 로드 ---------- */
 $(function(){
   if (!$('#outboundForm').length) return;
+  
   const params = new URLSearchParams(location.search);
   const workOrderId = params.get('workOrderId');
   if (!workOrderId) return;
@@ -55,215 +66,376 @@ $(function(){
   });
 });
 
-/* ---------- 자재 행 렌더 (행 만들기만) ---------- */
-function renderMaterialRows(items){
-  const $body = $('#materialLotBody').empty();
+/* ---------- 자재 행 렌더링 ---------- */
+function renderMaterialRows(items) {
+  const $tbody = $('#materialLotBody').empty();
 
-  const reqs = (items || []).map(function(it){
-    return $.get(ctx + '/material/inventory/lot-details', { materialId: it.materialId })
-      .then(function(lots){
+  const promises = (items || []).map(function(item) {
+    return $.get(ctx + '/material/inventory/lot-details', { materialId: item.materialId })
+      .then(function(lots) {
         lots = lots || [];
-        lots.sort((a,b) => new Date(a.expirationDate) - new Date(b.expirationDate));
+        // FEFO (First Expired, First Out) 순으로 정렬
+        lots.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
 
-        const $tr = $('<tr>').attr('data-material', it.materialId);
+        const $row = $('<tr>').attr('data-material', item.materialId);
 
-        // 1) 자재
-        $tr.append(
+        // 1) 자재 정보 컬럼
+        $row.append(
           $('<td>').append(
-            $('<div>').addClass('font-weight-bold').text(it.materialName || it.materialId),
-            $('<div>').addClass('text-muted').append($('<small>').text(it.materialId))
+            $('<div>').addClass('font-weight-bold').text(item.materialName || item.materialId),
+            $('<div>').addClass('text-muted').append(
+              $('<small>').text(item.materialId)
+            )
           )
         );
 
-        // 2) 필요수량
-        $tr.append(
-          $('<td>').addClass('text-right align-middle')
-                   .append($('<span>').addClass('req').attr('data-req', it.requiredQty).text(it.requiredQty))
+        // 2) 필요수량 컬럼
+        $row.append(
+          $('<td>').addClass('text-right align-middle').append(
+            $('<span>')
+              .addClass('req')
+              .attr('data-req', item.requiredQty)
+              .text(item.requiredQty)
+          )
         );
 
-        // 3) LOT 입력
+        // 3) LOT 입력 컬럼
         const $lotCell = $('<td>');
         if (!lots.length) {
-          $lotCell.append($('<span>').addClass('text-danger').text('사용 가능한 LOT 없음'));
+          $lotCell.append(
+            $('<span>').addClass('text-danger').text('사용 가능한 LOT 없음')
+          );
         } else {
-          lots.forEach(function(l){
-            const wh   = l.warehouseCode || it.defaultWarehouseCode || '';
-            const qty0 = (l.quantity != null ? l.quantity : 0);
+          lots.forEach(function(lot) {
+            const warehouseCode = lot.warehouseCode || item.defaultWarehouseCode || '';
+            const availableQty = lot.quantity != null ? lot.quantity : 0;
 
-            const $row = $('<div>').addClass('form-row align-items-center lot-row mb-1')
-                                   .attr('data-lot', l.lotNo);
+            const $lotRow = $('<div>')
+              .addClass('form-row align-items-center lot-row mb-1')
+              .attr('data-lot', lot.lotNo);
 
-            const $info = $('<div>').addClass('col-md-5')
-              .append($('<small>').addClass('text-muted').text(l.lotNo || '-'))
+            const $infoCol = $('<div>').addClass('col-md-5')
+              .append($('<small>').addClass('text-muted').text(lot.lotNo || '-'))
               .append('<br>')
-              .append($('<small>').text('유통기한: ' + fmtDate(l.expirationDate) + ' / 재고: ' + qty0));
+              .append($('<small>').text(
+                `유통기한: ${fmtDate(lot.expirationDate)} / 재고: ${availableQty}`
+              ));
 
-            const $qtyCol = $('<div>').addClass('col-md-4')
-              .append($('<input>', {
-                type:'number', min:0, max: qty0, step:1, value:0, 'aria-label':'수량 입력'
-              }).addClass('form-control form-control-sm lot-qty')
-                .data({ material: it.materialId, lot: l.lotNo, wh: wh }));
+            const $qtyCol = $('<div>').addClass('col-md-4').append(
+              $('<input>', {
+                type: 'number', 
+                min: 0, 
+                max: availableQty, 
+                step: 1, 
+                value: 0, 
+                'aria-label': '수량 입력'
+              })
+              .addClass('form-control form-control-sm lot-qty')
+              .data({ 
+                material: item.materialId, 
+                lot: lot.lotNo, 
+                warehouse: warehouseCode 
+              })
+            );
 
-            const $whCol = $('<div>').addClass('col-md-3')
-              .append($('<span>').addClass('badge badge-secondary').text(wh));
+            const $warehouseCol = $('<div>').addClass('col-md-3').append(
+              $('<span>').addClass('badge badge-secondary').text(warehouseCode)
+            );
 
-            $row.append($info, $qtyCol, $whCol);
-            $lotCell.append($row);
+            $lotRow.append($infoCol, $qtyCol, $warehouseCol);
+            $lotCell.append($lotRow);
           });
         }
-        $tr.append($lotCell);
+        $row.append($lotCell);
 
-        // 4) 합계
-        $tr.append($('<td>').addClass('text-right align-middle')
-                            .append($('<span>').addClass('sum').text('0')));
+        // 4) 합계 컬럼
+        $row.append(
+          $('<td>').addClass('text-right align-middle').append(
+            $('<span>').addClass('sum').text('0')
+          )
+        );
 
-        $('#materialLotBody').append($tr);
-        updateRowSumAndValidate($tr);
+        $tbody.append($row);
+        updateRowSumAndValidate($row);
       });
   });
 
-  // LOT 로드 끝난 뒤 전체 검증
-  $.when.apply($, reqs).then(function(){ 
-	  // 페이지 진입 시: 재고가 '충분한' 자재만 자동 배정
-	  autoAllocateAll(false);     // true = 충분한 경우에만 꽉 채움
-	  window.validateAll(); });
-} // ← 여기서 renderMaterialRows 끝!
-
-/* ---------- 전역: 행 합계/상태 ---------- */
-function updateRowSumAndValidate($row){
-  const req = +($row.find('.req').data('req') || 0);
-  let sum = 0;
-  $row.find('.lot-qty').each(function(){ sum += +(this.value || 0); });
-  $row.find('.sum').text(sum);
-
-  $row.removeClass('table-success table-warning table-danger');
-  if (sum === req) $row.addClass('table-success');
-  else if (sum > 0 && sum !== req) $row.addClass('table-warning');
-  else $row.addClass('table-danger');
+  // 모든 LOT 정보 로드 완료 후 처리
+  $.when.apply($, promises).then(function() { 
+    // 페이지 진입 시: 재고가 충분한 자재만 자동 배정
+    autoAllocateAll(false);     
+    window.validateAll(); 
+  });
 }
 
-/* ---------- 전역: 입력 제한 + 합계/검증 ---------- */
-$(document).on('wheel', '.lot-qty', function(e){ e.preventDefault(); });
-$(document).on('input change blur', '.lot-qty', function(){
+/* ---------- 행별 합계 계산 및 상태 업데이트 ---------- */
+function updateRowSumAndValidate($row) {
+  const required = +($row.find('.req').data('req') || 0);
+  let sum = 0;
+  
+  $row.find('.lot-qty').each(function() { 
+    sum += +(this.value || 0); 
+  });
+  
+  $row.find('.sum').text(sum);
+
+  // 상태별 스타일 적용
+  $row.removeClass('table-success table-warning table-danger');
+  if (sum === required) {
+    $row.addClass('table-success');
+  } else if (sum > 0 && sum !== required) {
+    $row.addClass('table-warning');
+  } else {
+    $row.addClass('table-danger');
+  }
+}
+
+/* ---------- 입력 제한 및 실시간 검증 ---------- */
+$(document).on('wheel', '.lot-qty', function(e) { 
+  e.preventDefault(); 
+});
+
+$(document).on('input change blur', '.lot-qty', function() {
   const $input = $(this);
-  const $row   = $input.closest('tr');
+  const $row = $input.closest('tr');
 
-  const maxLot = Number($input.attr('max')) || 0;
-  let v        = Number($input.val()) || 0;
-  if (v < 0) v = 0;
-  if (v > maxLot) v = maxLot;
+  const maxLotQty = Number($input.attr('max')) || 0;
+  let inputValue = Number($input.val()) || 0;
+  
+  // 음수 방지
+  if (inputValue < 0) inputValue = 0;
+  // LOT 재고량 초과 방지
+  if (inputValue > maxLotQty) inputValue = maxLotQty;
 
-  const req = Number($row.find('.req').data('req')) || 0;
-  const others = $row.find('.lot-qty').not($input).toArray()
-    .reduce((s, el) => s + (Number(el.value)||0), 0);
-  const remain = Math.max(req - others, 0);
-  if (v > remain) v = remain;
+  const required = Number($row.find('.req').data('req')) || 0;
+  const othersSum = $row.find('.lot-qty').not($input).toArray()
+    .reduce((sum, el) => sum + (Number(el.value) || 0), 0);
+  const remaining = Math.max(required - othersSum, 0);
+  
+  // 필요수량 초과 방지
+  if (inputValue > remaining) inputValue = remaining;
 
-  $input.val(v);
+  $input.val(inputValue);
   updateRowSumAndValidate($row);
   window.validateAll();
 });
 
-/* ---------- 전역: 제출시 hidden 생성 ---------- */
-$(document).off('submit', '#outboundForm').on('submit', '#outboundForm', function(e){
-  const $f = $(this);
-  $f.find('input[name=materialIdList],input[name=reqQtyList],input[name=lotMaterialIdList],input[name=lotNoList],input[name=qtyList],input[name=lotWarehouseList]').remove();
+/* ---------- 폼 제출 시 hidden 필드 생성 ---------- */
+$(document).off('submit', '#outboundForm').on('submit', '#outboundForm', function(e) {
+  const $form = $(this);
+  
+  // 기존 hidden 필드 제거
+  $form.find('input[name=materialIdList],input[name=reqQtyList],input[name=lotMaterialIdList],input[name=lotNoList],input[name=qtyList],input[name=lotWarehouseList]').remove();
 
-  $('#materialLotBody tr').each(function(){
-    const mid = $(this).data('material');
-    const req = +($(this).find('.req').data('req') || 0);
-    $f.append($('<input>', { type:'hidden', name:'materialIdList', value: mid }));
-    $f.append($('<input>', { type:'hidden', name:'reqQtyList',     value: req }));
+  // 자재별 정보 추가
+  $('#materialLotBody tr').each(function() {
+    const materialId = $(this).data('material');
+    const required = +($(this).find('.req').data('req') || 0);
+    
+    $form.append($('<input>', { 
+      type: 'hidden', 
+      name: 'materialIdList', 
+      value: materialId 
+    }));
+    $form.append($('<input>', { 
+      type: 'hidden', 
+      name: 'reqQtyList', 
+      value: required 
+    }));
   });
 
-  $('.lot-qty').each(function(){
-    const v = +(this.value || 0);
-    if (v > 0) {
-      const $el = $(this);
-      $f.append($('<input>', { type:'hidden', name:'lotMaterialIdList', value: $el.data('material') }));
-      $f.append($('<input>', { type:'hidden', name:'lotNoList',         value: $el.data('lot') }));
-      $f.append($('<input>', { type:'hidden', name:'qtyList',           value: v }));
-      $f.append($('<input>', { type:'hidden', name:'lotWarehouseList',  value: ($el.data('wh') || '') }));
+  // LOT별 출고 정보 추가
+  $('.lot-qty').each(function() {
+    const quantity = +(this.value || 0);
+    if (quantity > 0) {
+      const $element = $(this);
+      
+      $form.append($('<input>', { 
+        type: 'hidden', 
+        name: 'lotMaterialIdList', 
+        value: $element.data('material') 
+      }));
+      $form.append($('<input>', { 
+        type: 'hidden', 
+        name: 'lotNoList', 
+        value: $element.data('lot') 
+      }));
+      $form.append($('<input>', { 
+        type: 'hidden', 
+        name: 'qtyList', 
+        value: quantity 
+      }));
+      $form.append($('<input>', { 
+        type: 'hidden', 
+        name: 'lotWarehouseList', 
+        value: ($element.data('warehouse') || '') 
+      }));
     }
   });
 
   return true;
 });
 
-
-//==================== 부족분 발주 초안 생성 ====================
-//부족분 발주 버튼 → 초안 생성 → 모달 오픈
+/* ---------- 부족분 발주 초안 생성 ---------- */
 $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
-	  e.preventDefault();
+  e.preventDefault();
 
-	  const workOrderId = $('#workOrderNo').val();
-	  if (!workOrderId) { alert('작업지시서를 먼저 선택하세요.'); return; }
+  const workOrderId = $('#workOrderNo').val();
+  if (!workOrderId) { 
+    alert('작업지시서를 먼저 선택하세요.'); 
+    return; 
+  }
 
-	  const shortages = collectShortages();
-	  if (!shortages.length) { alert('부족분이 없습니다.'); return; }
+  const shortages = collectShortages();
+  if (!shortages.length) { 
+    alert('부족분이 없습니다.'); 
+    return; 
+  }
 
-	  const payload = {
-	    workOrderId,
-	    items: shortages.map(x => ({ materialId: x.materialId, lackQty: x.lackQty }))
-	  };
+  const payload = {
+    workOrderId: workOrderId,
+    items: shortages.map(shortage => ({ 
+      materialId: shortage.materialId, 
+      lackQty: shortage.lackQty 
+    }))
+  };
 
-	  $.ajax({
-	    url: ctx + '/material/order/draft',
-	    method: 'POST',
-	    contentType: 'application/json',
-	    data: JSON.stringify(payload),
-	    // beforeSend: (xhr)=>xhr.setRequestHeader('X-CSRF-TOKEN', token) // CSRF 쓰면
-	  })
-	  .done(res => {
-	    // ➊ 서비스가 '초안 미리보기'로 주는 경우
-	    if (res.suppliers) {
-	      renderDraftModal(res);                        // 모달 본문 채우기
-	      $('#draftModal').appendTo('body').modal('show');
-	      return;
-	    }
-	    // ➋ 서비스가 바로 임시 주문을 만들고 orderId를 주는 경우
-	    if (res.orderId) {
-	      location.href = ctx + '/material/order/register?orderId=' + encodeURIComponent(res.orderId);
-	      return;
-	    }
-	    alert('생성할 초안이 없습니다.');
-	  })
-	  .fail(() => alert('발주 초안 생성 실패'));
-	});
+  // 로딩 상태 표시
+  const $btn = $(this);
+  $btn.prop('disabled', true).text('생성 중...');
 
+  $.ajax({
+    url: ctx + '/material/order/draft',
+    method: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify(payload)
+  })
+  .done(function(response) {
+    if (response.orderId) {
+      alert('발주 초안이 생성되었습니다.\n발주번호: ' + response.orderId);
+      
+      if (response.unmappedMaterials && response.unmappedMaterials.length > 0) {
+        alert('일부 자재는 거래처 매핑이 없어 발주에서 제외되었습니다:\n' + 
+              response.unmappedMaterials.join(', '));
+      }
+      
+      // 발주 등록 페이지로 이동할지 확인
+      if (confirm('생성된 발주 초안을 확인하시겠습니까?')) {
+        window.open(ctx + '/material/order/list', '_blank');
+      }
+    } else {
+      alert('발주 초안 생성에 실패했습니다.');
+    }
+  })
+	  .fail(function(xhr) {
+	  console.error('발주 초안 생성 실패:', xhr.responseText);
+	  alert('발주 초안 생성에 실패했습니다.\n' + 
+	        (xhr.responseJSON && xhr.responseJSON.message 
+	          ? xhr.responseJSON.message 
+	          : '서버 오류'));
+	})
+  .always(function() {
+    // 버튼 상태 복원
+    $btn.prop('disabled', false).text('부족분 발주');
+  });
+});
 
-//행 단위 자동 배정 (FEFO 순: 너가 이미 expiration_date로 정렬함)
-function autoAllocateForRow($tr, onlyIfEnough) {
-  const req = +($tr.find('.req').data('req') || 0);
-  const $lots = $tr.find('.lot-qty');
+/* ---------- 출고 처리 ---------- */
+window.processOutbound = function(outboundId) {
+  if (!confirm('출고 처리하시겠습니까?')) return;
+  
+  $.post(ctx + '/material/outbound/process', { outboundId: outboundId })
+    .done(function(response) {
+      if (response.success) {
+        alert(response.message);
+        location.reload(); // 목록 새로고침
+      } else {
+        alert(response.message);
+      }
+    })
+    .fail(function() {
+      alert('출고 처리에 실패했습니다.');
+    });
+};
 
-  // 총 가능 수량
-  const totalAvail = $lots.toArray().reduce((s, el) => {
-    const m = Number($(el).attr('max')) || 0;
-    return s + m;
+/* ---------- 출고 상세 조회 ---------- */
+window.loadOutboundDetail = function(outboundId) {
+  $.get(ctx + '/material/outbound/detail', { outboundId: outboundId })
+    .done(function(data) {
+      let html = '<div class="row">';
+      html += '<div class="col-12"><h6>출고 정보</h6>';
+      html += '<table class="table table-sm">';
+      html += '<tr><th>출고번호</th><td>' + data.outboundId + '</td>';
+      html += '<th>작업지시</th><td>' + data.workOrderNo + '</td></tr>';
+      html += '<tr><th>출고일자</th><td>' + (data.outboundDate || '-') + '</td>';
+      html += '<th>담당자</th><td>' + data.handledBy + '</td></tr>';
+      html += '</table></div>';
+      
+      if (data.items && data.items.length > 0) {
+        html += '<div class="col-12 mt-3"><h6>출고 항목</h6>';
+        html += '<table class="table table-sm table-bordered">';
+        html += '<thead><tr><th>자재</th><th>LOT</th><th>출고수량</th><th>창고</th></tr></thead><tbody>';
+        
+        data.items.forEach(function(item) {
+          html += '<tr>';
+          html += '<td>' + item.materialName + '<br><small class="text-muted">' + item.materialId + '</small></td>';
+          html += '<td>' + item.lotNo + '</td>';
+          html += '<td class="text-right">' + item.quantity + '</td>';
+          html += '<td>' + item.warehouseCode + '</td>';
+          html += '</tr>';
+        });
+        
+        html += '</tbody></table></div>';
+      }
+      html += '</div>';
+      
+      $('#outboundDetailBody').html(html);
+      $('#outboundDetailModal').modal('show');
+    })
+    .fail(function() {
+      alert('상세 정보를 불러올 수 없습니다.');
+    });
+};
+
+/* ---------- 자동 배정 기능 ---------- */
+// 행 단위 자동 배정 (FEFO 순서로 배정)
+function autoAllocateForRow($row, onlyIfEnough) {
+  const required = +($row.find('.req').data('req') || 0);
+  const $lotInputs = $row.find('.lot-qty');
+
+  // 총 가능 수량 계산
+  const totalAvailable = $lotInputs.toArray().reduce((sum, element) => {
+    const maxQty = Number($(element).attr('max')) || 0;
+    return sum + maxQty;
   }, 0);
 
-  if (onlyIfEnough && totalAvail < req) {
-    // 충분하지 않으면 손대지 않음
+  // 충분하지 않으면 배정하지 않음 (옵션에 따라)
+  if (onlyIfEnough && totalAvailable < required) {
     return false;
   }
 
-  let sum = 0;
-  $lots.each(function () {
-    const $inp = $(this);
-    const max = Number($inp.attr('max')) || 0;
-    if (sum >= req) { $inp.val(0); return; }
-    const need = req - sum;
-    const v = Math.min(max, need);
-    $inp.val(v);
-    sum += v;
+  // FEFO 순으로 배정
+  let allocatedSum = 0;
+  $lotInputs.each(function () {
+    const $input = $(this);
+    const maxQty = Number($input.attr('max')) || 0;
+    
+    if (allocatedSum >= required) { 
+      $input.val(0); 
+      return; 
+    }
+    
+    const needed = required - allocatedSum;
+    const allocateQty = Math.min(maxQty, needed);
+    $input.val(allocateQty);
+    allocatedSum += allocateQty;
   });
 
-  updateRowSumAndValidate($tr);
-  return sum >= req;
+  updateRowSumAndValidate($row);
+  return allocatedSum >= required;
 }
 
-// 전체 자동 배정
+// 전체 자재 자동 배정
 function autoAllocateAll(onlyIfEnough) {
   $('#materialLotBody tr').each(function () {
     autoAllocateForRow($(this), onlyIfEnough);

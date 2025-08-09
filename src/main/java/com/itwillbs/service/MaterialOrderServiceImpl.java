@@ -3,15 +3,20 @@ package com.itwillbs.service;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +36,8 @@ import com.itwillbs.persistence.MaterialOrderDAO;
  */
 @Service
 public class MaterialOrderServiceImpl implements MaterialOrderService {
+	
+	private static final Logger logger = LoggerFactory.getLogger(MaterialOrderServiceImpl.class);
 	
 	@Inject
 	private MaterialOrderDAO mOrderDAO;
@@ -93,100 +100,153 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
 	
 	
 	
-    @Transactional(rollbackFor = Exception.class)
     @Override
-    public PurchaseDraftResult createDraftFromShortages(PurchaseDraftRequest req) throws Exception {
+    public PurchaseDraftResult createDraftFromShortages(PurchaseDraftRequest request) throws Exception {
+        logger.info("발주 초안 생성 시작 - workOrderId: {}", request.getWorkOrderId());
+
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new IllegalArgumentException("부족 자재 목록이 없습니다.");
+        }
+
+        // [1] 부족 자재 Map
+        Map<String, Integer> shortageMap = request.getItems().stream()
+            .collect(Collectors.toMap(
+                PurchaseDraftRequest.ShortageItem::getMaterialId,
+                PurchaseDraftRequest.ShortageItem::getLackQty,
+                Integer::sum));
+
+        List<String> materialIds = new ArrayList<>(shortageMap.keySet());
+
+        // ✅ [1-1] 내부사용(N) 먼저 분리
+        List<Map<String, Object>> nonPurchList = mOrderDAO.selectNonPurchasableFromList(materialIds);
+        Set<String> internalIds = nonPurchList.stream()
+            .map(m -> (String) m.get("materialId"))
+            .collect(Collectors.toSet());
+
+        // 구매대상(Y)만 남김
+        List<String> purchOnlyIds = materialIds.stream()
+            .filter(id -> !internalIds.contains(id))
+            .collect(Collectors.toList());
+
         PurchaseDraftResult result = new PurchaseDraftResult();
+        // (선택) 결과에 내부사용 사유로 별도 전달
+        if (!internalIds.isEmpty() && result.getSkippedInternal() != null) {
+            result.setSkippedInternal(new ArrayList<>(internalIds));
+        }
 
-        if (req.getItems() == null || req.getItems().isEmpty()) {
-            result.setOrderId(null);
+        // ✅ 구매대상 아이디가 하나도 없으면 여기서 조용히 종료(예: 전부 내부사용일 때)
+        if (purchOnlyIds.isEmpty()) {
             result.setUnmappedMaterials(Collections.emptyList());
+            result.setOrderId(null); // 필요시 null 허용, 호출부에서 "생성할 항목 없음" 처리
+            logger.info("구매대상(Y) 자재가 없어 발주 생성을 건너뜀. 내부사용 제외: {}", internalIds);
             return result;
         }
 
-        // 1) 자재→거래처/단가 매핑
-        List<String> materialIds = req.getItems().stream()
-                .map(ShortageItem::getMaterialId).distinct().collect(Collectors.toList());
+        // [2] 매핑 조회 (⚠️ 기존 materialIds -> purchOnlyIds 로 변경)
+        List<Map<String, Object>> rawMappings = mOrderDAO.selectSupplierItemMappings(purchOnlyIds);
+        logger.info("매핑 조회 결과: {}", rawMappings.size());
 
-        List<Map<String, Object>> mappings = mOrderDAO.selectSupplierItemMappings(materialIds);
-
-        Map<String, Map<String, Object>> byMaterial = new HashMap<>();
-        for (Map<String, Object> m : mappings) {
-            byMaterial.put((String)m.get("material_id"), m);
+        // ⚠️ 전부 내부사용이 아니고, 구매대상인데 매핑이 0이면 그때만 오류/스킵 처리
+        if (rawMappings.isEmpty()) {
+            // unmapped = 구매대상인데 거래처 없는 자재 전체
+            result.setUnmappedMaterials(new ArrayList<>(purchOnlyIds));
+            // 필요 시 예외 대신 결과만 반환하고 프론트에서 안내
+            return result;
         }
 
-        // 매핑 없는 자재
-        List<String> unmapped = new ArrayList<>();
-        for (String mid : materialIds) {
-            if (!byMaterial.containsKey(mid)) unmapped.add(mid);
+        // [3] 자재별 최저단가 선택
+        Map<String, Map<String, Object>> chosenByMaterial = rawMappings.stream()
+            .filter(m -> m.get("materialId") != null && m.get("supplierId") != null)
+            .collect(Collectors.groupingBy(m -> (String) m.get("materialId")))
+            .entrySet().stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                e -> {
+                    Map<String, Object> best = e.getValue().stream()
+                        .min(Comparator.comparingInt(m ->
+                            ((Number) (m.get("unitPrice") != null ? m.get("unitPrice") : 0)).intValue()
+                        ))
+                        .orElse(null);
+                    if (best == null) return null;
+                    if (best.get("unitPrice") == null) best.put("unitPrice", 0);
+                    if (best.get("warehouseCode") == null) best.put("warehouseCode", "WH001");
+                    return best;
+                }
+            ));
+
+        // ✅ [4] unmapped 계산도 구매대상 집합만 기준
+        List<String> unmapped = purchOnlyIds.stream()
+            .filter(mid -> !chosenByMaterial.containsKey(mid) || chosenByMaterial.get(mid) == null)
+            .collect(Collectors.toList());
+
+        // [5] 거래처별 그룹핑
+        Map<String, List<Map<String, Object>>> bySupplier = chosenByMaterial.values().stream()
+            .filter(Objects::nonNull)
+            .collect(Collectors.groupingBy(m -> (String) m.get("supplierId")));
+
+        // [6] 거래처별 헤더+아이템 생성 (기존 그대로)
+        for (Map.Entry<String, List<Map<String, Object>>> entry : bySupplier.entrySet()) {
+            String supplierId = entry.getKey();
+            List<Map<String, Object>> supplierMappings = entry.getValue();
+
+            try {
+                Map<String, Object> orderParams = new HashMap<>();
+                orderParams.put("supplierId", supplierId);
+                orderParams.put("orderStatus", "초안");
+                java.time.LocalDate eta = java.time.LocalDate.now().plusDays(7);
+                orderParams.put("expectedArrivedDate", java.sql.Date.valueOf(eta));
+                orderParams.put("createdBy", "system");
+                orderParams.put("note", "작업지시 " + request.getWorkOrderId() + " 부족분 자동 생성");
+
+                mOrderDAO.insertOrderHeaderDraft(orderParams);
+                String orderId = (String) orderParams.get("orderId");
+                if (orderId == null || orderId.isEmpty()) throw new IllegalStateException("orderId 생성 실패");
+                if (result.getOrderId() == null) result.setOrderId(orderId);
+
+                List<Map<String, Object>> batch = new ArrayList<>();
+                int idx = mOrderDAO.selectNextOrderItemIndex(orderId);
+
+                for (Map<String, Object> m : supplierMappings) {
+                    String materialId = (String) m.get("materialId");
+                    Integer lack = shortageMap.get(materialId);
+                    if (lack == null || lack <= 0) continue;
+
+                    int unitPrice = ((Number) m.get("unitPrice")).intValue();
+                    String warehouseCode = (String) m.get("warehouseCode");
+
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("orderItemId", orderId + "-" + String.format("%03d", idx++));
+                    item.put("orderId", orderId);
+                    item.put("materialId", materialId);
+                    item.put("orderQuantity", lack);
+                    item.put("unitPrice", unitPrice);
+                    item.put("totalPrice", unitPrice * lack);
+                    item.put("warehouseCode", warehouseCode);
+                    batch.add(item);
+                }
+
+                if (!batch.isEmpty()) {
+                    mOrderDAO.insertOrderItemsBatch(batch);
+                    logger.info("발주 초안 생성 완료 - orderId: {}, items: {}", orderId, batch.size());
+                } else {
+                    logger.warn("거래처 {} 에 대해 생성할 아이템이 없습니다.", supplierId);
+                }
+
+            } catch (Exception e) {
+                logger.error("거래처 {} 발주 초안 생성 실패", supplierId, e);
+                entry.getValue().forEach(m -> unmapped.add((String) m.get("materialId")));
+            }
         }
+
+        // [7] 결과 정리
         result.setUnmappedMaterials(unmapped);
-
-        // 발주 대상만
-        List<ShortageItem> mappable = req.getItems().stream()
-                .filter(it -> byMaterial.containsKey(it.getMaterialId()) && it.getLackQty() > 0)
-                .collect(Collectors.toList());
-        if (mappable.isEmpty()) {
-            result.setOrderId(null);
-            return result;
+        if (result.getOrderId() == null && unmapped.isEmpty() && internalIds.isEmpty()) {
+            throw new RuntimeException("발주 초안 생성에 실패했습니다.");
         }
-
-        // 3) 거래처별 그룹
-        Map<String, List<ShortageItem>> bySupplier = new LinkedHashMap<>();
-        for (ShortageItem it : mappable) {
-            String sup = (String) byMaterial.get(it.getMaterialId()).get("supplier_id");
-            bySupplier.computeIfAbsent(sup, k -> new ArrayList<>()).add(it);
-        }
-
-        // 4) 거래처별 초안 생성
-        String lastOrderId = null;
-        for (Map.Entry<String, List<ShortageItem>> e : bySupplier.entrySet()) {
-            String supplierId = e.getKey();
-            Date now = new Date();
-
-            Map<String, Object> header = new HashMap<>();
-            // ⚠️ orderId는 넣지 마! selectKey가 채움
-            header.put("supplierId", supplierId);          // ✅ camelCase
-            header.put("orderStatus", "DRAFT");
-            header.put("expectedArrivedDate", null);
-            header.put("createdBy", "SYSTEM");
-            header.put("note", "[AUTO] 작업지시 " + req.getWorkOrderId() + " 부족분 초안");
-
-            mOrderDAO.insertOrderHeaderDraft(header);      // 여기서 selectKey가 header.orderId 세팅
-
-            String orderId = (String) header.get("orderId");
-
-	         // ✅ 이 주문의 시작 인덱스를 한 번만 조회
-	         int idx = mOrderDAO.selectNextOrderItemIndex(orderId);
-	
-	         for (ShortageItem item : e.getValue()) {
-	             Map<String, Object> map = byMaterial.get(item.getMaterialId());
-	
-	             String warehouse = (String) map.getOrDefault("warehouse_code", "WH001");
-	             int unit  = ((Number) map.getOrDefault("unit_price", 0)).intValue();
-	             int qty   = item.getLackQty();
-	             int total = unit * qty;
-	
-	             String orderItemId = orderId + "-" + (idx++); // ✅ 계속 증가
-	
-	             Map<String, Object> row = new HashMap<>();
-	             row.put("orderItemId", orderItemId);
-	             row.put("orderId", orderId);
-	             row.put("materialId", item.getMaterialId());
-	             row.put("orderQuantity", qty);
-	             row.put("unitPrice", unit);
-	             row.put("totalPrice", total);
-	             row.put("warehouseCode", warehouse);
-	
-	             mOrderDAO.insertOrderItem(row);
-	         }
-
-
-            lastOrderId = orderId;
-        }
-        result.setOrderId(lastOrderId);
         return result;
     }
+
+
 
     
 }

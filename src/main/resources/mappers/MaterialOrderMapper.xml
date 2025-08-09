@@ -8,222 +8,296 @@
 
 	<!-- 1. 발주 목록 조회 -->
 	<select id="selectOrderList" parameterType="com.itwillbs.domain.SearchCriteria" resultType="com.itwillbs.domain.MaterialOrderVO">
-	  SELECT 
-	    mo.order_id AS orderId,
-	    mo.supplier_id AS supplierId,
-	    s.supplier_name AS supplierName, 
-	    mo.order_date AS orderDate,
-	    mo.order_status AS orderStatus,
-	    mo.expected_arrived_date AS expectedArrivedDate,
-	    mo.created_by AS createdBy,
-	    mo.note,
-	    <!--  대표 품명: 자재가 1건이면 그대로, 2건 이상이면 "외 N건" -->
-	    CASE 
-	      WHEN COUNT(moi.material_id) = 1 THEN MAX(m.material_name)
-	      ELSE CONCAT(MAX(m.material_name), ' 외 ', COUNT(moi.material_id) - 1, '건')
-	    END AS materialName,
-	    SUM(moi.order_quantity) AS totalQuantity,
-	    SUM(moi.total_price) AS totalPrice,
-	    MAX(moi.warehouse_code) AS warehouseCode
-	  FROM material_order mo
-	  JOIN material_order_item moi ON mo.order_id = moi.order_id
-	  JOIN material m ON moi.material_id = m.material_id
-	  JOIN supplier s ON mo.supplier_id = s.supplier_id 
-	  <where>
-	    <!-- 검색 조건 -->
-	    <if test="keyword != null and keyword != ''">
-	      (mo.order_id LIKE CONCAT('%', #{keyword}, '%')
-	      OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
-	      OR s.supplier_name LIKE CONCAT('%', #{keyword}, '%'))
-	    </if>
-	    <if test="startDate != null and startDate != ''">
-	      AND mo.order_date &gt;= #{startDate}
-	    </if>
-	    <if test="endDate != null and endDate != ''">
-	      AND mo.order_date &lt;= #{endDate}
-	    </if>
-	    <if test="status != null and status != ''">
-	      AND mo.order_status = #{status}
-	    </if>
-	  </where>
-	  GROUP BY mo.order_id, s.supplier_name
-	  
-	  <choose>
-	  <when test="sortColumn == 'order_id'">
-	    ORDER BY
-	      CASE mo.order_status
-	        WHEN '요청' THEN 1
-	        WHEN '승인' THEN 2
-	        WHEN '입고완료' THEN 3
-	        ELSE 4
-	      END,
-	      mo.order_id ${sortOrder}
-	  </when>
-	  <when test="sortColumn == 'order_date'">
-	    ORDER BY
-	      CASE mo.order_status
-	        WHEN '요청' THEN 1
-	        WHEN '승인' THEN 2
-	        WHEN '입고완료' THEN 3
-	        ELSE 4
-	      END,
-	      mo.order_date ${sortOrder}
-	  </when>
-	  <when test="sortColumn == 'expected_arrived_date'">
-	    ORDER BY
-	      CASE mo.order_status
-	        WHEN '요청' THEN 1
-	        WHEN '승인' THEN 2
-	        WHEN '입고완료' THEN 3
-	        ELSE 4
-	      END,
-	      mo.expected_arrived_date ${sortOrder}
-	  </when>
-	  <otherwise>
-	    ORDER BY
-	      CASE mo.order_status
-	        WHEN '요청' THEN 1
-	        WHEN '승인' THEN 2
-	        WHEN '입고완료' THEN 3
-	        ELSE 4
-	      END,
-	      mo.order_date DESC
-	  </otherwise>
-	</choose>
+		SELECT 
+			mo.order_id AS orderId,
+			mo.supplier_id AS supplierId,
+			s.supplier_name AS supplierName, 
+			mo.order_date AS orderDate,
+			mo.order_status AS orderStatus,
+			mo.expected_arrived_date AS expectedArrivedDate,
+			mo.created_by AS createdBy,
+			mo.note,
+			<!-- 대표 품명: 자재가 1건이면 그대로, 2건 이상이면 "외 N건" -->
+			CASE 
+				WHEN COUNT(moi.material_id) = 1 THEN MAX(m.material_name)
+				ELSE CONCAT(MAX(m.material_name), ' 외 ', COUNT(moi.material_id) - 1, '건')
+			END AS materialName,
+			SUM(moi.order_quantity) AS totalQuantity,
+			SUM(moi.total_price) AS totalPrice,
+			MAX(moi.warehouse_code) AS warehouseCode
+		FROM material_order mo
+		JOIN material_order_item moi ON mo.order_id = moi.order_id
+		JOIN material m ON moi.material_id = m.material_id
+		JOIN supplier s ON mo.supplier_id = s.supplier_id 
+		<where>
+			<!-- 검색 조건 -->
+			<if test="keyword != null and keyword != ''">
+				(mo.order_id LIKE CONCAT('%', #{keyword}, '%')
+				OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
+				OR s.supplier_name LIKE CONCAT('%', #{keyword}, '%'))
+			</if>
+			<if test="startDate != null and startDate != ''">
+				AND mo.order_date &gt;= #{startDate}
+			</if>
+			<if test="endDate != null and endDate != ''">
+				AND mo.order_date &lt;= #{endDate}
+			</if>
+			<if test="status != null and status != ''">
+				AND mo.order_status = #{status}
+			</if>
+		</where>
+		GROUP BY mo.order_id, mo.supplier_id, s.supplier_name, mo.order_date, 
+				 mo.order_status, mo.expected_arrived_date, mo.created_by, mo.note
+		
+		<choose>
+			<when test="sortColumn == 'order_id'">
+				ORDER BY
+					CASE mo.order_status
+						WHEN '요청' THEN 1
+						WHEN '승인' THEN 2
+						WHEN '입고완료' THEN 3
+						ELSE 4
+					END,
+					mo.order_id ${sortOrder}
+			</when>
+			<when test="sortColumn == 'order_date'">
+				ORDER BY
+					CASE mo.order_status
+						WHEN '요청' THEN 1
+						WHEN '승인' THEN 2
+						WHEN '입고완료' THEN 3
+						ELSE 4
+					END,
+					mo.order_date ${sortOrder}
+			</when>
+			<when test="sortColumn == 'expected_arrived_date'">
+				ORDER BY
+					CASE mo.order_status
+						WHEN '요청' THEN 1
+						WHEN '승인' THEN 2
+						WHEN '입고완료' THEN 3
+						ELSE 4
+					END,
+					mo.expected_arrived_date ${sortOrder}
+			</when>
+			<otherwise>
+				ORDER BY
+					CASE mo.order_status
+						WHEN '요청' THEN 1
+						WHEN '승인' THEN 2
+						WHEN '입고완료' THEN 3
+						ELSE 4
+					END,
+					mo.order_date DESC
+			</otherwise>
+		</choose>
 
-	  LIMIT #{pageStart}, #{perPageNum}
+		LIMIT #{pageStart}, #{perPageNum}
 	</select>
 	
-	<!-- 2. 총 건수 -->
+	<!-- 2. 총 건수 조회 -->
 	<select id="getTotalCount" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
-	  SELECT COUNT(DISTINCT mo.order_id)
-	  FROM material_order mo
-	  JOIN material_order_item moi ON mo.order_id = moi.order_id
-	  JOIN material m ON moi.material_id = m.material_id
-	  <where>
-	    <if test="keyword != null and keyword != ''">
-	      (mo.order_id LIKE CONCAT('%', #{keyword}, '%')
-	      OR m.material_name LIKE CONCAT('%', #{keyword}, '%'))
-	    </if>
-	    <if test="startDate != null and startDate != ''">
-	      AND mo.order_date &gt;= #{startDate}
-	    </if>
-	    <if test="endDate != null and endDate != ''">
-	      AND mo.order_date &lt;= #{endDate}
-	    </if>
-	    <if test="status != null and status != ''">
-	      AND mo.order_status = #{status}
-	    </if>
-	  </where>
+		SELECT COUNT(DISTINCT mo.order_id)
+		FROM material_order mo
+		JOIN material_order_item moi ON mo.order_id = moi.order_id
+		JOIN material m ON moi.material_id = m.material_id
+		JOIN supplier s ON mo.supplier_id = s.supplier_id
+		<where>
+			<if test="keyword != null and keyword != ''">
+				(mo.order_id LIKE CONCAT('%', #{keyword}, '%')
+				OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
+				OR s.supplier_name LIKE CONCAT('%', #{keyword}, '%'))
+			</if>
+			<if test="startDate != null and startDate != ''">
+				AND mo.order_date &gt;= #{startDate}
+			</if>
+			<if test="endDate != null and endDate != ''">
+				AND mo.order_date &lt;= #{endDate}
+			</if>
+			<if test="status != null and status != ''">
+				AND mo.order_status = #{status}
+			</if>
+		</where>
 	</select>
 	
 	<!-- 발주번호 생성 -->
 	<select id="generateOrderId" resultType="String">
-	    SELECT CONCAT('PO-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-', LPAD(IFNULL(MAX(SUBSTRING(order_id, -3)), 0) + 1, 3, '0'))
-	    FROM material_order
-	    WHERE order_id LIKE CONCAT('PO-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '%')
+		SELECT CONCAT(
+			'PO-RM-', 
+			DATE_FORMAT(NOW(), '%Y%m%d'), 
+			'-', 
+			LPAD(
+				IFNULL(MAX(CAST(SUBSTRING(order_id, 16, 3) AS UNSIGNED)), 0) + 1, 
+				3, 
+				'0'
+			)
+		)
+		FROM material_order
+		WHERE order_id LIKE CONCAT('PO-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-%')
 	</select>
 	
-	<!-- 발주 등록 - Date 처리 수정 -->
+	<!-- 발주 등록 -->
 	<insert id="insertOrder" parameterType="com.itwillbs.domain.MaterialOrderVO">
-	    INSERT INTO material_order (
-	        order_id, supplier_id, order_date, order_status,
-	        expected_arrived_date, created_by, note
-	    ) VALUES (
-	        #{orderId}, 
-	        #{supplierId}, 
-	        #{orderDate, jdbcType=DATE}, 
-	        #{orderStatus},
-	        #{expectedArrivedDate, jdbcType=DATE}, 
-	        #{createdBy}, 
-	        #{note}
-	    )
+		INSERT INTO material_order (
+			order_id, supplier_id, order_date, order_status,
+			expected_arrived_date, created_by, note
+		) VALUES (
+			#{orderId}, 
+			#{supplierId}, 
+			#{orderDate, jdbcType=DATE}, 
+			#{orderStatus},
+			#{expectedArrivedDate, jdbcType=DATE}, 
+			#{createdBy}, 
+			#{note}
+		)
 	</insert>
 	
-	<!-- 발주 항목 등록 -->
+	<!-- 발주 항목 등록 (VO 타입) -->
 	<insert id="insertOrderItem" parameterType="com.itwillbs.domain.MaterialOrderItemVO">
-	    INSERT INTO material_order_item (
-	        order_item_id, order_id, material_id, order_quantity,
-	        unit_price, total_price, warehouse_code
-	    ) VALUES (
-	        #{orderItemId},
-	        #{orderId}, 
-	        #{materialId}, 
-	        #{orderQuantity, 	jdbcType=INTEGER},
-	        #{unitPrice, 		jdbcType=INTEGER},
-	        #{totalPrice, 		jdbcType=INTEGER}, 
-	        #{warehouseCode}
-	    )
+		INSERT INTO material_order_item (
+			order_item_id, order_id, material_id, order_quantity,
+			unit_price, total_price, warehouse_code
+		) VALUES (
+			#{orderItemId},
+			#{orderId}, 
+			#{materialId}, 
+			#{orderQuantity, jdbcType=INTEGER},
+			#{unitPrice, jdbcType=INTEGER},
+			#{totalPrice, jdbcType=INTEGER}, 
+			#{warehouseCode}
+		)
 	</insert>
 	
+	<!-- 발주 항목 등록 (Map 타입) -->
+	<insert id="insertOrderItemMap" parameterType="map">
+		INSERT INTO material_order_item (
+			order_item_id, order_id, material_id, order_quantity,
+			unit_price, total_price, warehouse_code
+		) VALUES (
+			#{orderItemId},
+			#{orderId}, 
+			#{materialId}, 
+			#{orderQuantity, jdbcType=INTEGER},
+			#{unitPrice, jdbcType=INTEGER},
+			#{totalPrice, jdbcType=INTEGER}, 
+			#{warehouseCode}
+		)
+	</insert>
 	
 	<!-- 자재명 키워드로 거래처 + 자재 단가 정보 조회 -->
 	<select id="searchSuppliersByMaterial" parameterType="string" resultType="com.itwillbs.dto.SupplierItemDTO">
-	  SELECT
-	    m.material_name AS materialName,
-	    s.supplier_id AS supplierId,
-	    s.supplier_name AS supplierName,
-	    si.unit_price AS unitPrice,
-	    m.warehouse_code AS warehouseCode
-	  FROM supplier_item si
-	  JOIN material m ON si.material_id = m.material_id
-	  JOIN supplier s ON si.supplier_id = s.supplier_id
-	  WHERE m.material_name LIKE CONCAT('%', #{keyword}, '%')
-	  ORDER BY s.supplier_name ASC
+		SELECT
+			m.material_name AS materialName,
+			s.supplier_id AS supplierId,
+			s.supplier_name AS supplierName,
+			si.unit_price AS unitPrice,
+			m.warehouse_code AS warehouseCode
+		FROM supplier_item si
+		JOIN material m ON si.material_id = m.material_id
+		JOIN supplier s ON si.supplier_id = s.supplier_id
+		WHERE m.material_name LIKE CONCAT('%', #{keyword}, '%')
+			AND si.supply_available = 'Y'
+			AND m.use_yn = 'Y'
+			AND m.purchasable_flag = 'Y'
+		ORDER BY s.supplier_name ASC
 	</select>
 	
+	<!-- 부족분 발주 자동 생성 관련 쿼리 -->
 	
+	<!-- 자재ID 목록으로 거래처-자재 매핑 정보 조회 -->
+	<select id="selectSupplierItemMappings" parameterType="list" resultType="map">
+		SELECT
+			si.supplier_id AS supplierId,
+			si.material_id AS materialId,
+			si.unit_price AS unitPrice,
+			COALESCE(m.warehouse_code, 'WH001') AS warehouseCode,
+			s.supplier_name AS supplierName,
+			m.material_name AS materialName
+		FROM supplier_item si
+		JOIN material m ON m.material_id = si.material_id
+		JOIN supplier s ON s.supplier_id = si.supplier_id
+		WHERE si.supply_available = 'Y'
+			AND m.use_yn = 'Y'
+			AND m.purchasable_flag = 'Y'
+			AND si.material_id IN
+			<foreach collection="list" item="materialId" open="(" separator="," close=")">
+				#{materialId}
+			</foreach>
+		ORDER BY si.supplier_id, m.material_name
+	</select>
 	
-	<!-- 부족분 발주 자동 생성 (출고관리) 시작 -->
-	<!-- 자재→거래처/단가/기본창고 매핑 조회 -->
-	  <select id="selectSupplierItemMappings" parameterType="list" resultType="map">
-	    SELECT
-	      si.supplier_id,
-	      si.material_id,
-	      si.unit_price,
-	      COALESCE(m.warehouse_code, 'WH001')
-	    FROM supplier_item si
-	    JOIN material m ON m.material_id = si.material_id
-	    WHERE si.supply_available = 'Y'
-	      AND si.material_id IN
-	      <foreach collection="list" item="mid" open="(" separator="," close=")">
-	        #{mid}
-	      </foreach>
-	  </select>
+	<!-- 발주 초안 헤더 등록 -->
+	<insert id="insertOrderHeaderDraft" parameterType="map">
+		<selectKey keyProperty="orderId" resultType="string" order="BEFORE">
+			SELECT CONCAT(
+				'PO-RM-',
+				DATE_FORMAT(NOW(), '%Y%m%d'),
+				'-',
+				LPAD(
+					IFNULL(MAX(CAST(SUBSTRING(order_id, 16, 3) AS UNSIGNED)), 0) + 1,
+					3, 
+					'0'
+				)
+			)
+			FROM material_order
+			WHERE order_id LIKE CONCAT('PO-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-%')
+		</selectKey>
+		
+		INSERT INTO material_order (
+			order_id, supplier_id, order_date, order_status,
+			expected_arrived_date, created_by, note
+		) VALUES (
+			#{orderId}, 
+			#{supplierId}, 
+			NOW(), 
+			COALESCE(#{orderStatus}, '요청'),
+			#{expectedArrivedDate, jdbcType=DATE}, 
+			#{createdBy}, 
+			#{note}
+		)
+	</insert>
 	
-	  <!-- 발주 헤더(초안) -->
-	  <insert id="insertOrderHeaderDraft" parameterType="map">
-		  <selectKey keyProperty="orderId" resultType="string" order="BEFORE">
-		    SELECT CONCAT(
-		      'PO-RM-',
-		      DATE_FORMAT(NOW(), '%Y%m%d'),
-		      '-',
-		      LPAD(
-		        IFNULL(MAX(CAST(SUBSTRING(order_id, 16, 3) AS UNSIGNED)), 0) + 1,
-		        3, '0'
-		      )
-		    )
-		    FROM material_order
-		    WHERE order_id LIKE CONCAT('PO-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-%')
-		  </selectKey>
-		
-		  INSERT INTO material_order (
-		    order_id, supplier_id, order_date, order_status,
-		    expected_arrived_date, created_by, note
-		  ) VALUES (
-		    #{orderId}, #{supplierId}, NOW(), #{orderStatus},
-		    #{expectedArrivedDate}, #{createdBy}, #{note}
-		  )
-		</insert>
-		
-		
-		<select id="selectNextOrderItemIndex" parameterType="string" resultType="int">
-		  SELECT IFNULL(
-		           MAX(CAST(SUBSTRING_INDEX(order_item_id, '-', -1) AS UNSIGNED)), 0
-		         ) + 1
-		  FROM material_order_item
-		  WHERE order_id = #{orderId}
-		</select>
-	  <!-- 부족분 발주 자동 생성 (출고관리) 끝 -->
+	<!-- 발주 항목의 다음 순번 조회 -->
+	<select id="selectNextOrderItemIndex" parameterType="string" resultType="int">
+		SELECT COALESCE(
+			MAX(CAST(SUBSTRING_INDEX(order_item_id, '-', -1) AS UNSIGNED)), 
+			0
+		) + 1
+		FROM material_order_item
+		WHERE order_id = #{orderId}
+	</select>
+	
+	<!-- 발주 항목 배치 등록 -->
+	<insert id="insertOrderItemsBatch" parameterType="list">
+		<if test="list != null and list.size() > 0">
+			INSERT INTO material_order_item (
+				order_item_id, order_id, material_id, order_quantity,
+				unit_price, total_price, warehouse_code
+			) VALUES
+			<foreach collection="list" item="item" separator=",">
+				(
+					#{item.orderItemId},
+					#{item.orderId},
+					#{item.materialId},
+					#{item.orderQuantity, jdbcType=INTEGER},
+					#{item.unitPrice, jdbcType=INTEGER},
+					#{item.totalPrice, jdbcType=INTEGER},
+					#{item.warehouseCode}
+				)
+			</foreach>
+		</if>
+	</insert>
+
+	<!-- 내부사용(N) 자재 조회 -->
+	<select id="selectNonPurchasableFromList" parameterType="list" resultType="map">
+	  SELECT m.material_id AS materialId, m.material_name AS materialName
+	  FROM material m
+	  WHERE m.purchasable_flag = 'N'
+	    AND m.material_id IN
+	    <foreach collection="list" item="id" open="(" separator="," close=")">
+	      #{id}
+	    </foreach>
+	</select>
+
 
 </mapper>

@@ -29,10 +29,27 @@ public interface MaterialOrderDAO {
     public List<SupplierItemDTO> searchSuppliersByMaterial(String keyword);
     
     
-    // 부족분으로 발주 자동 생성
-    List<Map<String,Object>> selectSupplierItemMappings(List<String> materialIds) throws Exception;
-    int insertOrderHeaderDraft(Map<String, Object> header) throws Exception;
+	/* 부족분으로 발주 자동 생성 */
+    // 1) 발주 항목의 다음 순번 조회
+    public int selectNextOrderItemIndex(String orderId) throws Exception;
+    
+    // 2) 자재 ID 목록으로 거래처-자재 매핑 정보 조회
+    public List<Map<String, Object>> selectSupplierItemMappings(List<String> materialIds) throws Exception;
+    
+    // 3) 발주 초안 헤더 등록
+    public void insertOrderHeaderDraft(Map<String, Object> params) throws Exception;
+    
+    // 4) 발주 초안 항목 등록 (배치)
+    public void insertOrderItemsBatch(List<Map<String, Object>> items) throws Exception;
+    
     int insertOrderItem(Map<String, Object> item) throws Exception;
+    
+    // 내부사용(N) 자재 조회
+    List<Map<String, Object>> selectNonPurchasableFromList(List<String> materialIds) throws Exception;
+
+    
+    
+    
 
     
 }
