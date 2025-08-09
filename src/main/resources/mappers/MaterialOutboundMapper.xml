@@ -14,9 +14,12 @@
 	    o.work_order_no AS workOrderNo,
 	    o.outbound_date AS outboundDate,
 	    o.due_date      AS dueDate,
-	    o.status        AS status,
-	    o.handled_by    AS handledBy,
-	    1               AS rowNum   -- 아래 #2 참고
+	    o.status        AS statusCode,           
+	    CASE 
+	      WHEN o.status = 'ISSUED' THEN '출고완료'
+	      ELSE '미출고'
+	    END               AS statusDisplay,      
+	    1                 AS rowNum
 	  FROM material_outbound o
 	  ORDER BY o.outbound_date DESC
 	  LIMIT #{perPageNum} OFFSET #{pageStart}

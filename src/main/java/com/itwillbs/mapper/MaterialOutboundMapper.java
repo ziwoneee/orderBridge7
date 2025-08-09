@@ -11,4 +11,9 @@ public interface MaterialOutboundMapper {
 	// 작업지시에 포함된 자재 목록
     List<Map<String,Object>> selectWorkOrderMaterials(String workOrderId);
 
+    int updateWorkOrderShortageStatus(
+            @org.apache.ibatis.annotations.Param("workOrderId") String workOrderId,
+            @org.apache.ibatis.annotations.Param("status") String status
+        );
+    
 }

@@ -167,16 +167,16 @@
 					     </td>
   
 				         <!-- 출고상태 -->
-				         <td>
-				           <c:choose>
-				             <c:when test="${item.status eq '출고완료'}">
-				               <span class="badge badge-success">출고완료</span>
-				             </c:when>
-				             <c:otherwise>
-				               <span class="badge badge-danger">미출고</span>
-				             </c:otherwise>
-				           </c:choose>
-				         </td>
+						<td>
+						  <c:choose>
+						    <c:when test="${item.statusCode eq 'ISSUED'}">
+						      <span class="badge badge-success">${item.statusDisplay}</span>
+						    </c:when>
+						    <c:otherwise>
+						      <span class="badge badge-danger">${item.statusDisplay}</span>
+						    </c:otherwise>
+						  </c:choose>
+						</td>
   
 			 	         <!-- 작업지시번호 -->
 			 	         <td>${item.workOrderNo}</td>
@@ -198,13 +198,16 @@
 				         <td>${item.handledBy}</td>
                         
 						<td class="text-right">
-						  <button type="button" class="btn btn-xs btn-info" onclick="loadOutboundDetail('${item.outboundId}')">상세</button>
+						  <button type="button" class="btn btn-sm btn-outline-info" onclick="loadOutboundDetail('${item.outboundId}')">상세</button>
 						</td>
- 						<td>
-						  <c:if test="${item.status ne '출고완료'}">
-						    <button type="button" class="btn btn-xs btn-primary" onclick="processOutbound('${item.outboundId}')">출고처리</button>
+						
+						<td>
+						  <c:if test="${item.statusCode ne 'ISSUED'}">
+						    <button type="button" class="btn btn-xs btn-primary"
+						            onclick="processOutbound('${item.outboundId}', this)">출고처리</button>
 						  </c:if>
-                        </td>  
+						</td>
+                        
                        </tr>
                       </c:if>
                     </c:forEach>

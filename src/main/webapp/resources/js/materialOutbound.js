@@ -281,7 +281,9 @@ $(document).off('submit', '#outboundForm').on('submit', '#outboundForm', functio
 $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
   e.preventDefault();
 
-  const workOrderId = $('#workOrderNo').val();
+  const workOrderId = $('#workOrderNoHidden').val() 
+  || new URLSearchParams(location.search).get('workOrderId');
+
   if (!workOrderId) { 
     alert('작업지시서를 먼저 선택하세요.'); 
     return; 
@@ -342,22 +344,33 @@ $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
 });
 
 /* ---------- 출고 처리 ---------- */
-window.processOutbound = function(outboundId) {
-  if (!confirm('출고 처리하시겠습니까?')) return;
-  
-  $.post(ctx + '/material/outbound/process', { outboundId: outboundId })
-    .done(function(response) {
-      if (response.success) {
-        alert(response.message);
-        location.reload(); // 목록 새로고침
-      } else {
-        alert(response.message);
-      }
-    })
-    .fail(function() {
-      alert('출고 처리에 실패했습니다.');
-    });
-};
+window.processOutbound = function(outboundId, btnEl){
+	  if (!confirm('이 출고건을 처리하시겠습니까?')) return;
+
+	  $.ajax({
+	    type: 'POST',
+	    url: ctx + '/material/outbound/process',
+	    data: { outboundId: outboundId },
+	    success: function(res){
+	      // 성공 시: 상태 뱃지 변경 + 버튼 제거
+	      // 버튼(td) -> 같은 행(tr) 찾기
+	      var $tr = $(btnEl).closest('tr');
+
+	      // 상태 셀은 현재 구조 기준으로 3번째 <td> (출고상태)
+	      var $statusTd = $tr.find('td').eq(2);
+	      $statusTd.html('<span class="badge badge-success">출고완료</span>');
+
+	      // 버튼 셀 비우기
+	      $(btnEl).closest('td').empty();
+
+	      // 선택적으로 토스트/알림
+	      // alert('출고처리 완료되었습니다.');
+	    },
+	    error: function(xhr){
+	      alert('출고처리 중 오류가 발생했습니다.\n' + (xhr.responseText || ''));
+	    }
+	  });
+	};
 
 /* ---------- 출고 상세 조회 ---------- */
 window.loadOutboundDetail = function(outboundId) {

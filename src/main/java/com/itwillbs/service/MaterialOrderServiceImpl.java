@@ -28,6 +28,7 @@ import com.itwillbs.dto.PurchaseDraftRequest;
 import com.itwillbs.dto.PurchaseDraftRequest.ShortageItem;
 import com.itwillbs.dto.PurchaseDraftResult;
 import com.itwillbs.dto.SupplierItemDTO;
+import com.itwillbs.mapper.MaterialOutboundMapper;
 import com.itwillbs.persistence.MaterialOrderDAO;
 
 /**
@@ -41,6 +42,11 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
 	
 	@Inject
 	private MaterialOrderDAO mOrderDAO;
+	
+	// MaterialOrderServiceImpl.java 상단
+	@Inject
+	private MaterialOutboundMapper outboundMapper;
+
 
 	// 발주 목록 조회
 	@Override
@@ -243,6 +249,8 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
         if (result.getOrderId() == null && unmapped.isEmpty() && internalIds.isEmpty()) {
             throw new RuntimeException("발주 초안 생성에 실패했습니다.");
         }
+        
+        outboundMapper.updateWorkOrderShortageStatus(request.getWorkOrderId(), "CHECKED");
         return result;
     }
 
