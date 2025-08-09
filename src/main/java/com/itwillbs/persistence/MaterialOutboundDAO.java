@@ -1,5 +1,6 @@
 package com.itwillbs.persistence;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -39,5 +40,11 @@ public interface MaterialOutboundDAO {
 	List<Map<String,Object>> getLotsByMaterial(String materialId);
 	
 	int countByStatus(String status);
+	
+	// MaterialOutboundDAO.java
+	Date selectWorkOrderDueDate(String workOrderNo);
+
+	
+	
 
 }

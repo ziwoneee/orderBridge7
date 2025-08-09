@@ -74,19 +74,48 @@
 	
 	<!-- 헤더 INSERT -->
 	<insert id="insertMaterialOutbound" parameterType="map">
-	  INSERT INTO material_outbound(outbound_id, work_order_no, status, handled_by, due_date)
-	  VALUES(#{outbound_id}, #{work_order_no}, '미출고', #{handled_by},
-	         (SELECT due_date FROM work_order WHERE order_id=#{work_order_no}))
+	  INSERT INTO material_outbound(
+	      outbound_id,
+	      work_order_no,
+	      work_order_date,                             
+	      status,
+	      handled_by,
+	      due_date
+	  )
+	  VALUES(
+	      #{outbound_id},
+	      #{work_order_no},
+	      (SELECT DATE(created_at)                    
+	         FROM work_order
+	        WHERE order_id = #{work_order_no}),
+	      #{status},
+	      #{handled_by},
+	      #{due_date}
+	  )
 	</insert>
+
+	
+	<!-- due_date 단건 조회 -->
+	<select id="selectWorkOrderDueDate" parameterType="string" resultType="date">
+	  SELECT due_date FROM work_order WHERE order_id = #{_parameter}
+	</select>
 	
 	<!-- 항목 INSERT (list of map) -->
-	<insert id="insertMaterialOutboundItems" parameterType="java.util.List">
-	  INSERT INTO material_outbound_item(outbound_id, material_id, quantity, lot_no)
+	<!-- MaterialOutboundMapper.xml -->
+	<insert id="insertMaterialOutboundItems">
+	  INSERT INTO material_outbound_item
+	  (outbound_item_id, outbound_id, material_id, quantity, lot_no, required_qty)
 	  VALUES
 	  <foreach collection="list" item="it" separator=",">
-	    (#{it.outbound_id}, #{it.material_id}, #{it.quantity}, #{it.lot_no})
+	    (#{it.outboundItemId},
+	     #{it.outboundId},
+	     #{it.materialId},
+	     #{it.quantity},
+	     #{it.lotNo,jdbcType=VARCHAR},
+	     #{it.requiredQty})
 	  </foreach>
 	</insert>
+
 	
 	<!-- 상세 헤더/항목 -->
 	<select id="getOutboundDetailFull" parameterType="string" resultType="map">
@@ -118,7 +147,7 @@
 	
 	<update id="updateOutboundAsCompleted" parameterType="string">
 	  UPDATE material_outbound
-	  SET status='출고완료', outbound_date=NOW()
+	  SET status='ISSUED', outbound_date=NOW()
 	  WHERE outbound_id = #{_parameter}
 	</update>
 	
@@ -138,7 +167,7 @@
 	    wo.line_id     AS lineId,
 	    wo.due_date    AS dueDate
 	  FROM work_order wo
-	  WHERE wo.order_id = #{workOrderId}
+	  WHERE wo.order_id = #{_parameter}
 	</select>
 	
 	<!-- 작업지시 자재 목록 (필요수량) -->
@@ -153,7 +182,7 @@
 	  JOIN material m 
 	    ON m.material_id = wom.material_id
 	
-	  WHERE wom.work_order_id = #{workOrderId}
+	  WHERE wom.work_order_id = #{_parameter}
 	  ORDER BY m.material_id
 	</select>
 	

@@ -55,8 +55,8 @@ public class MaterialOutboundController {
     	
         model.addAttribute("list", moService.getOutboundList(cri));
         model.addAttribute("totalCount", moService.getOutboundCount(cri));
-        model.addAttribute("pendingCount", moService.getOutboundCountByStatus("미출고"));
-        model.addAttribute("completedCount", moService.getOutboundCountByStatus("출고완료"));
+        model.addAttribute("pendingCount", moService.getOutboundCountByStatus("DRAFT"));
+        model.addAttribute("completedCount", moService.getOutboundCountByStatus("ISSUED"));
 
         model.addAttribute("waitingOrders", moService.getWaitingOrders());
         
@@ -84,7 +84,11 @@ public class MaterialOutboundController {
     // 등록 저장(VO 한 방에 받기: List로 바인딩)
     @RequestMapping(value="/register", method=RequestMethod.POST)
     public String register(MaterialOutboundVO vo) throws Exception {
+    	logger.info("register workOrderNo={}", vo.getWorkOrderNo()); // null이면 바인딩 문제
+    	
+    	vo.setStatus("DRAFT");	// 미출고
         moService.registerOutbound(vo);
+        
         return "redirect:/material/out/list";
     }
 

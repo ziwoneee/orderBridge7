@@ -138,10 +138,33 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 
 	        // ── 4) ID 발급 + 헤더 저장
 	        String outboundId = moDAO.nextOutboundId();
-	        Map<String,Object> header = new HashMap<String,Object>();
+	        logger.info("nextOutboundId={}", outboundId);
+	        
+	        // 2-1) 폼에서 넘어온 dueDate 우선 사용
+	        Date dueDate = vo.getDueDate();
+	        
+	        // 2-2) 폼에 없으면 DB에서 조회
+	        if (dueDate == null) {
+	            if (vo.getWorkOrderNo() == null || vo.getWorkOrderNo().isEmpty()) {
+	                throw new IllegalStateException("workOrderNo가 없습니다.(폼 바인딩 확인)");
+	            }
+	            dueDate = moDAO.selectWorkOrderDueDate(vo.getWorkOrderNo());
+	        }
+	        if (dueDate == null) {
+	            throw new IllegalStateException("작업지시 due_date 없음: " + vo.getWorkOrderNo());
+	        }
+	        
+	        if (outboundId == null || outboundId.isEmpty()) {
+	            throw new IllegalStateException("nextOutboundId()가 null입니다.");
+	        }
+	        
+	        Map<String,Object> header = new HashMap<>();
 	        header.put("outbound_id", outboundId);
 	        header.put("work_order_no", vo.getWorkOrderNo());
 	        header.put("handled_by",   vo.getHandledBy());
+	        header.put("status",        vo.getStatus());
+	        header.put("due_date",      dueDate);
+	        
 	        moDAO.insertOutboundHeader(header);
 
 	        // ── 5) 항목 저장(LOT별)

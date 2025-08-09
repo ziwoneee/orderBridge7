@@ -1,5 +1,6 @@
 package com.itwillbs.persistence;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,4 +103,9 @@ public class MaterialOutboundDAOImpl implements MaterialOutboundDAO {
 	        return sqlSession.selectOne(NAMESPACE + "countByStatus", status);
 	    }
 
+	    
+	    @Override
+	    public Date selectWorkOrderDueDate(String workOrderNo) {
+	        return sqlSession.selectOne(NAMESPACE + "selectWorkOrderDueDate", workOrderNo);
+	    }
 }

@@ -3,6 +3,8 @@ package com.itwillbs.domain;
 import java.util.Date;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
+
 import lombok.Data;
 
 @Data
@@ -14,6 +16,8 @@ public class MaterialOutboundVO {
     private String status;            // 출고 상태 (출고 대기 / 완료 여부 등)
     private String workOrderNo;       // 작업지시 ID
     private Date workOrderDate;       // 작업지시일자 (지시가 생성된 날짜)
+    
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date dueDate;             // 납기일자 (출고 대상 예정 납기일)
     private String note;              // 비고 (출고 비고 또는 특이사항)
     

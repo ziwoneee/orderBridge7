@@ -58,19 +58,31 @@ function fmtDate(value) {
 /* ---------- register.jsp: 초기 로드 ---------- */
 $(function(){
   if (!$('#outboundForm').length) return;
-  
+
   const params = new URLSearchParams(location.search);
   const workOrderId = params.get('workOrderId');
   if (!workOrderId) return;
 
   $.get(ctx + '/material/outbound/work-order', { workOrderId }, function(dto){
-    $('#workOrderNo').val(dto.workOrderNo || '');
+    const no  = dto.workOrderNo || '';
+    const due = toYmd(dto.dueDate) || '';
+
+    // 화면 표시(뷰용)
+    $('#workOrderNoView').val(no);
+    $('#dueDateView').val(due);
+
+    // 폼 전송용(hidden)
+    $('#workOrderNoHidden').val(no);
+    $('#dueDateHidden').val(due);
+
+    // 나머지 표시용 필드
     $('#productId').val(dto.productId || '');
     $('#lineId').val(dto.lineId || '');
-    $('#dueDate').val(toYmd(dto.dueDate));
+
     renderMaterialRows(dto.materialList || []);
   });
 });
+
 
 /* ---------- 자재 행 렌더링 ---------- */
 function renderMaterialRows(items) {
@@ -434,3 +446,6 @@ function autoAllocateAll(onlyIfEnough) {
   });
   window.validateAll();
 }
+
+const STATUS_LABEL = { DRAFT:'미출고', PARTIAL:'부분출고', ISSUED:'출고완료', CANCELED:'취소' };
+

@@ -18,11 +18,11 @@
 		    <div class="row">
 		      <div class="col-sm-3">
 		        <label for="workOrderNo">작업지시번호</label>
-		        <input type="text" class="form-control input-sm" name="workOrderNo" id="workOrderNo" readonly>
+		        <input type="text" class="form-control input-sm" id="workOrderNoView" readonly>
 		      </div>
 		      <div class="col-sm-3">
 		        <label for="productId">제품ID</label>
-		        <input type="text" class="form-control input-sm" name="productId" id="productId" readonly>
+		        <input type="text" class="form-control input-sm" id="dueDateView" readonly>
 		      </div>
 		      <div class="col-sm-3">
 		        <label for="lineId">라인ID</label>
@@ -50,7 +50,10 @@
         <!-- 출고 항목 (추후 작업지시서 기반 자재 불러오기 구현 예정) -->
 		<form id="outboundForm" method="post" action="/material/outbound/register">
 		  <%-- CSRF 쓰면 hidden 추가 --%>
-		
+		  <input type="hidden" name="workOrderNo" id="workOrderNoHidden">
+		  <input type="hidden" name="dueDate"     id="dueDateHidden">
+
+		  
 		  <div class="card">
 		    <div class="card-header bg-light"><b>자재별 필요수량 & LOT 선택 (FEFO)</b></div>
 		    <div class="card-body" style="padding:0;">
