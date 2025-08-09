@@ -7,29 +7,18 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.itwillbs.domain.MaterialOutboundVO;
-import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.WorkOrderVO;
-import com.itwillbs.dto.MaterialOutboundDetailDTO;
-import com.itwillbs.dto.MaterialOutboundSummaryDTO;
-import com.itwillbs.dto.WorkOrderDTO;
 import com.itwillbs.service.MaterialOutboundService;
-import com.itwillbs.service.WorkOrderService;
 
 /**
  * [출고 관리 컨트롤러]
@@ -83,13 +72,15 @@ public class MaterialOutboundController {
 
     // 등록 저장(VO 한 방에 받기: List로 바인딩)
     @RequestMapping(value="/register", method=RequestMethod.POST)
-    public String register(MaterialOutboundVO vo) throws Exception {
+    public String register(MaterialOutboundVO vo, RedirectAttributes rttr) throws Exception {
     	logger.info("register workOrderNo={}", vo.getWorkOrderNo()); // null이면 바인딩 문제
     	
     	vo.setStatus("DRAFT");	// 미출고
         moService.registerOutbound(vo);
         
-        return "redirect:/material/out/list";
+        rttr.addFlashAttribute("successMessage", "등록이 완료되었습니다.");
+        
+        return "redirect:/material/outbound/list";
     }
 
     // [AJAX] 출고 상세

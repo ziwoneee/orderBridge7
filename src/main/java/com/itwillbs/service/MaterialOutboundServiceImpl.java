@@ -14,13 +14,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.itwillbs.domain.MaterialOutboundItemVO;
 import com.itwillbs.domain.MaterialOutboundVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.WorkOrderVO;
-import com.itwillbs.dto.MaterialOutboundDetailDTO;
-import com.itwillbs.dto.MaterialOutboundItemDTO;
-import com.itwillbs.dto.MaterialOutboundSummaryDTO;
 import com.itwillbs.mapper.MaterialOutboundMapper;
 import com.itwillbs.persistence.MaterialOutboundDAO;
 
@@ -167,24 +163,36 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	        
 	        moDAO.insertOutboundHeader(header);
 
-	        // ── 5) 항목 저장(LOT별)
-	        List<Map<String,Object>> rows = new ArrayList<Map<String,Object>>();
+	     // ── 5) 항목 저장(LOT별)
+	        List<Map<String,Object>> rows = new ArrayList<>();
+	        int idx = 1; // ★ 아이템 일련번호
+
 	        for (String mid : picks.keySet()) {
 	            List<Map<String,Object>> list = picks.get(mid);
 	            if (list == null) continue;
+
 	            for (Map<String,Object> p : list) {
-	                Map<String,Object> row = new HashMap<String,Object>();
+	                Map<String,Object> row = new HashMap<>();
+	                row.put("outbound_item_id", String.format("%s-%03d", outboundId, idx++)); // ★ 필수
 	                row.put("outbound_id", outboundId);
 	                row.put("material_id", mid);
 	                row.put("quantity",   p.get("qty"));
 	                row.put("lot_no",     p.get("lot_no"));
+
+	                // required_qty NOT NULL이면 하나 넣어줘야 함
+	                // - LOT 라인 기준으로 필요수량을 qty와 동일하게 두는 게 자연스러움(DRAFT에선 = 실제 선택 수량)
+	                //   아니면 자재별 총 필요수량 reqMap.get(mid)를 넣어도 무방(스키마 의도에 따라).
+	                row.put("required_qty", p.get("qty")); // ★ 필수
 	                rows.add(row);
 	            }
 	        }
 	        if (!rows.isEmpty()) {
 	            moDAO.insertOutboundItems(rows);
 	        }
+	        
+	        moDAO.updateWorkOrderShortageStatus(vo.getWorkOrderNo(), "CHECKED");
 	    }
+
 
 
 	    @Override

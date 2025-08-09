@@ -53,9 +53,6 @@
 					  <button type="button" class="btn btn-primary mr-2" id="btnLoadOrder">
 					    작업지시 불러오기
 					  </button>
-					  <a href="${ctx}/material/outbound/register" class="btn btn-success">
-					    수동 출고 등록
-					  </a>
 					</div>
 
 
@@ -133,9 +130,6 @@
                         </a>
                       </th>
                       <th>출고상태</th>
-                      <th>품명</th>
-                      <th>출고수량</th>
-                      <th>재고상태</th>
                       <th>작업지시번호</th>
                       <th>
                         <a href="/material/outbound/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=due_date&sortOrder=${cri.sortColumn == 'due_date' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
@@ -183,32 +177,7 @@
 				             </c:otherwise>
 				           </c:choose>
 				         </td>
-				        
-				         <!-- 대표 품명 -->
-				         <td>${item.materialSummary}</td>
-				  
   
-				   
-				     	 <!-- 출고수량 -->
-				         <td class="text-end">
-				          <fmt:formatNumber value="${item.requiredQty}" pattern="#,###"/>
-				         </td>
-				
-				         <!-- 재고상태 -->
-				         <td>
-				           <c:choose>
-				             <c:when test="${item.stockStatus eq '부족'}">
-				               <span class="badge badge-danger">부족</span>
-				             </c:when>
-				             <c:when test="${item.stockStatus eq '정상'}">
-				               <span class="badge badge-success">정상</span>
-				             </c:when>
-				             <c:otherwise>
-				               <span class="badge badge-secondary">${item.stockStatus}</span>
-				             </c:otherwise>
-				           </c:choose>
-				         </td>
-				
 			 	         <!-- 작업지시번호 -->
 			 	         <td>${item.workOrderNo}</td>
 				
@@ -230,19 +199,19 @@
                         
 						<td class="text-right">
 						  <button type="button" class="btn btn-xs btn-info" onclick="loadOutboundDetail('${item.outboundId}')">상세</button>
+						</td>
+ 						<td>
 						  <c:if test="${item.status ne '출고완료'}">
 						    <button type="button" class="btn btn-xs btn-primary" onclick="processOutbound('${item.outboundId}')">출고처리</button>
 						  </c:if>
-						</td>
-
-                         
+                        </td>  
                        </tr>
                       </c:if>
                     </c:forEach>
                     
                     
                     <!-- 데이터가 없을 때 -->
-                    <c:if test="${empty outList}">
+                    <c:if test="${empty list}">
                       <tr>
                         <td colspan="11" class="text-center py-4">
                           <div class="text-muted">

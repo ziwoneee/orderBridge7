@@ -108,4 +108,20 @@ public class MaterialOutboundDAOImpl implements MaterialOutboundDAO {
 	    public Date selectWorkOrderDueDate(String workOrderNo) {
 	        return sqlSession.selectOne(NAMESPACE + "selectWorkOrderDueDate", workOrderNo);
 	    }
+
+	    @Override
+	    public int updateWorkOrderShortageStatus(String workOrderId, String status) {
+	        Map<String, Object> p = new HashMap<>();
+	        p.put("workOrderId", workOrderId);
+	        p.put("status", status);
+	        return sqlSession.update(
+	        		NAMESPACE + "updateWorkOrderShortageStatus", p);
+	    }
+
+
+
+
+
+
+
 }

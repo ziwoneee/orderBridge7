@@ -43,6 +43,7 @@ public interface MaterialOutboundDAO {
 	
 	// MaterialOutboundDAO.java
 	Date selectWorkOrderDueDate(String workOrderNo);
+	int updateWorkOrderShortageStatus(String workOrderId, String status);
 
 	
 	
