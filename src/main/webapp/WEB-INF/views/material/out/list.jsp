@@ -49,14 +49,6 @@
                       <i class="ti-search"></i> 검색
                     </button>
                     
-                    <div class="d-flex justify-content-end mb-3">
-					  <button type="button" class="btn btn-primary mr-2" id="btnLoadOrder">
-					    작업지시 불러오기
-					  </button>
-					</div>
-
-
-                    
                     <a href="/material/outbound/list" class="btn btn-light">
                       <i class="ti-reload"></i> 초기화
                     </a>
@@ -70,8 +62,16 @@
               </form>
             </div>
             
+            
             <!-- 자재 출고 목록 -->
             <div class="col-12">
+            
+	        <div class="d-flex justify-content-end align-items-center mb-3">
+			  <a type="button" class="btn btn-success mr-2" id="btnLoadOrder">
+			    작업지시 불러오기
+			  </a>
+			</div>
+			
               <!-- 탭 -->
               <div class="d-flex justify-content-between align-items-center mb-0">
                 <ul class="nav nav-underline-custom" id="statusTab" role="tablist">
@@ -197,13 +197,13 @@
 				         <!-- 담당자 -->
 				         <td>${item.handledBy}</td>
                         
-						<td class="text-right">
+						<td>
 						  <button type="button" class="btn btn-sm btn-outline-info" onclick="loadOutboundDetail('${item.outboundId}')">상세</button>
 						</td>
 						
 						<td>
 						  <c:if test="${item.statusCode ne 'ISSUED'}">
-						    <button type="button" class="btn btn-xs btn-primary"
+						    <button type="button" class="btn btn-outline-success"
 						            onclick="processOutbound('${item.outboundId}', this)">출고처리</button>
 						  </c:if>
 						</td>

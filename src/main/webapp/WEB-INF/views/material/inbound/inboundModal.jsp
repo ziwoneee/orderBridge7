@@ -2,62 +2,47 @@
     pageEncoding="UTF-8"%>
     
 <!-- 입고처리 모달 -->
-<div class="modal fade" id="inboundModal" tabindex="-1" role="dialog" aria-labelledby="inboundModalLabel">
-  <div class="modal-dialog modal-lg" role="document">
+<!-- 미입고 발주 모달 -->
+<div class="modal fade" id="unreceivedOrdersModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
     <div class="modal-content">
-      <form id="inboundForm">
-        <div class="modal-header" style="background-color: #1c355e; color: #ffffff;">
-          <h5 class="modal-title">입고처리</h5>
-        </div>
-        
-        <div class="modal-body">
-          <!-- 숨은 필드 -->
-          <input type="hidden" id="materialId">
-          <input type="hidden" id="inboundId">
-          <input type="hidden" id="orderItemId" />
-          <input type="hidden" id="inboundItemId" />
-        
-          <!-- 자재명 -->
-          <div class="form-group">
-            <label>자재명</label>
-            <input type="text" class="form-control" id="materialName" readonly>
-          </div>
+      <div class="modal-header" style="background:#1c355e;color:#fff;">
+        <h5 class="modal-title">미입고 발주 목록</h5>
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+      </div>
 
-          <!-- LOT 번호 -->
-          <div class="form-group">
-            <label>LOT 번호 <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" id="lotNo" name="lotNo" required>
-          </div>
-
-          <!-- 유통기한 -->
-          <div class="form-group">
-            <label>유통기한 <span class="text-danger">*</span></label>
-            <input type="date" class="form-control" id="expirationDate" name="expirationDate" required>
-          </div>
-
-          <!-- 입고 수량 -->
-          <div class="form-group">
-            <label>입고 수량 <span class="text-danger">*</span></label>
-            <input type="number" class="form-control" id="quantity" name="quantity" min="1" required>
-          </div>
-
-          <!-- 창고 선택 -->
-          <div class="form-group">
-            <label>창고 선택 <span class="text-danger">*</span></label>
-            <select class="form-control" id="warehouseCode" name="warehouseCode" required>
-              <option value="">-- 창고 선택 --</option>
-              <option value="WH001">WH001</option>
-              <option value="WH002">WH002</option>
-              <option value="WH003">WH003</option>
-            </select>
-          </div>
+      <div class="modal-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <small class="text-muted">체크 후 “입고등록” 클릭</small>
+          <button id="btn-insert-unreceived-modal" class="btn btn-outline-success btn-sm">
+            <i class="ti-upload"></i> 선택된 발주 입고등록
+          </button>
         </div>
 
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">취소</button>
-          <button type="button" class="btn btn-primary" id="btnSaveInbound">입고처리</button>
+        <div class="table-responsive">
+          <table class="table table-hover" id="unreceivedOrderTableModal">
+            <thead style="background:#f8f9fa;">
+              <tr>
+                <th width="40"><input type="checkbox" id="checkAllModal"></th>
+                <th>발주관리번호</th>
+                <th>품명</th>
+                <th>발주수량</th>
+                <th>예상입고일</th>
+                <th>발주담당자</th>
+                <th>상세</th>
+              </tr>
+            </thead>
+            <tbody><!-- JS 로우 주입 --></tbody>
+          </table>
         </div>
-      </form>
+
+        <div class="mt-3 d-flex justify-content-center" id="unreceivedPaginationModal"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-dismiss="modal">닫기</button>
+      </div>
     </div>
   </div>
 </div>
+
