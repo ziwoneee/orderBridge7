@@ -3,12 +3,14 @@ package com.itwillbs.controller;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.propertyeditors.CustomDateEditor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.WebDataBinder;
@@ -192,6 +194,29 @@ public class MaterialOrderController {
 	    return supplierService.getMaterialsBySupplier(supplierId, keyword);
 	}
 
+	
+	/**
+	 * 발주 초안에서 요청
+	 */
+	@PostMapping("/submit")
+    @ResponseBody
+    public ResponseEntity<?> submit(@RequestParam("orderId") String orderId) {
+        try {
+        	mOrderService.submitOrderRequest(orderId);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "orderId", orderId,
+                "newStatus", "요청",
+                "message", "발주요청으로 전환되었습니다."
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        }
+    }
+	
 	
 
 } 

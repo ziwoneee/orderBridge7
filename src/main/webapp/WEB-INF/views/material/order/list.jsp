@@ -120,6 +120,7 @@
                       </th>
                       <th>담당자</th>
                       <th>발주상태</th>
+                      <th>동작</th>
                     </tr>
                   </thead>
                   
@@ -180,6 +181,22 @@
                             </c:otherwise>
                           </c:choose>
                         </td>
+                        
+                        <td>
+						  <c:choose>
+						    <c:when test="${order.orderStatus eq '초안'}">
+						      <button class="btn btn-primary btn-sm btnSubmitOrder" data-id="${order.orderId}">
+						        발주요청
+						      </button>
+						    </c:when>
+						    <c:otherwise>
+						      <a href="${pageContext.request.contextPath}/material/order/view?orderId=${order.orderId}"
+						         class="btn btn-outline-secondary btn-sm">상세</a>
+						    </c:otherwise>
+						  </c:choose>
+						</td>
+                        
+                        
                       </tr>
                     </c:forEach>
                     
@@ -315,3 +332,6 @@
   <!-- container-fluid page-body-wrapper 끝 -->
 </div>
 <!-- container-scroller 끝-->   
+
+<script>var ctx='${pageContext.request.contextPath}';</script>
+<script src="${pageContext.request.contextPath}/resources/js/materialOrderList.js"></script>

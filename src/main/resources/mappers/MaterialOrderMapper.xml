@@ -250,7 +250,7 @@
 			#{orderId}, 
 			#{supplierId}, 
 			NOW(), 
-			COALESCE(#{orderStatus}, '요청'),
+			COALESCE(#{orderStatus}, '초안'),
 			#{expectedArrivedDate, jdbcType=DATE}, 
 			#{createdBy}, 
 			#{note}
@@ -298,6 +298,64 @@
 	      #{id}
 	    </foreach>
 	</select>
+	
+	
+<!-- ===================================================================== -->
+<!-- 발주 초안에서 요청 쿼리 -->	
+<!-- ===================================================================== -->
+
+	<!-- 0) 초안 + 항목 로드 (검증용) -->
+	<select id="selectDraftWithItems" parameterType="string" resultType="map">
+	  SELECT 
+	    mo.order_id       AS orderId,
+	    mo.order_status   AS orderStatus,
+	    mo.supplier_id    AS supplierId,
+	    mo.order_date     AS orderDate,
+	    mo.expected_arrived_date AS expectedArrivedDate,
+	    mo.created_by     AS createdBy,
+	    mo.note,
+	    moi.order_item_id AS orderItemId,
+	    moi.material_id   AS materialId,
+	    moi.order_quantity AS orderQuantity,
+	    moi.unit_price    AS unitPrice,
+	    moi.total_price   AS totalPrice,
+	    moi.warehouse_code AS warehouseCode
+	  FROM material_order mo
+	  JOIN material_order_item moi ON moi.order_id = mo.order_id
+	  WHERE mo.order_id = #{orderId}
+	</select>
+	
+	<!-- 0-1) 항목 총액 합계 (있으면 보여주기/로그용) -->
+	<select id="selectItemsTotal" parameterType="string" resultType="int">
+	  SELECT COALESCE(SUM(total_price),0)
+	  FROM material_order_item
+	  WHERE order_id = #{orderId}
+	</select>
+	
+	<!-- 1) 상태 전이: 초안 -> 요청 (동시성 보호: 초안일 때만) -->
+	<update id="updateOrderToRequested" parameterType="string">
+	  UPDATE material_order
+	     SET order_status = '요청'
+	   WHERE order_id = #{orderId}
+	     AND order_status = '초안'
+	</update>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 </mapper>

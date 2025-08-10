@@ -254,6 +254,45 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
         return result;
     }
 
+    
+    
+    /* 발주 초안에서 요청 */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void submitOrderRequest(String orderId) throws Exception {
+        // 1) 로드 & 기본 검증
+        List<Map<String,Object>> rows = mOrderDAO.selectDraftWithItems(orderId);
+        if (rows == null || rows.isEmpty()) {
+            throw new IllegalStateException("발주가 존재하지 않거나 항목이 없습니다.");
+        }
+        String status = String.valueOf(rows.get(0).get("orderStatus"));
+        if (!"초안".equals(status)) {
+            throw new IllegalStateException("현재 상태(" + status + ")에서는 발주요청으로 전환할 수 없습니다.");
+        }
+        String supplierId = String.valueOf(rows.get(0).get("supplierId"));
+        if (supplierId == null || supplierId.isEmpty()) {
+            throw new IllegalStateException("공급처가 지정되어 있지 않습니다.");
+        }
+
+        // 항목 유효성 (수량/단가)
+        for (Map<String,Object> r : rows) {
+            int qty  = ((Number)r.get("orderQuantity")).intValue();
+            int unit = ((Number)r.get("unitPrice")).intValue();
+            if (qty <= 0)  throw new IllegalStateException("수량이 0 이하인 항목이 있습니다.");
+            if (unit < 0)  throw new IllegalStateException("단가가 음수인 항목이 있습니다.");
+        }
+
+        // 2) (선택) 합계 조회해서 로깅/표시용
+        mOrderDAO.selectItemsTotal(orderId); // 필요 시 반환값 사용
+
+        // 3) 상태 전이
+        int updated = mOrderDAO.updateOrderToRequested(orderId);
+        if (updated == 0) {
+            throw new IllegalStateException("상태가 변경되어 처리할 수 없습니다. 새로고침 후 다시 시도하세요.");
+        }
+    }
+    
+    
 
 
     

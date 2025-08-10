@@ -366,4 +366,3 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("orderDate").value = today;
   });
 
-

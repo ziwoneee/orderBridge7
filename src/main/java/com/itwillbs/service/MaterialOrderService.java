@@ -31,5 +31,7 @@ public interface MaterialOrderService {
     // 부족분으로 발주 초안 생성	
     PurchaseDraftResult createDraftFromShortages(PurchaseDraftRequest req) throws Exception;
 
+    /* 발주 초안에서 요청 */
+    void submitOrderRequest(String orderId) throws Exception;
 
 }

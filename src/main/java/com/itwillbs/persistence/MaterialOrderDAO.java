@@ -48,7 +48,15 @@ public interface MaterialOrderDAO {
     List<Map<String, Object>> selectNonPurchasableFromList(List<String> materialIds) throws Exception;
 
     
+	/* 발주 초안에서 요청 */
+    // 0) 초안 + 항목 로드 (검증용)
+    List<Map<String,Object>> selectDraftWithItems(String orderId) throws Exception;
     
+    // 0-1) 항목 총액 합계 (있으면 보여주기/로그용)
+    Integer selectItemsTotal(String orderId) throws Exception;
+    
+    // 1) 상태 전이: 초안 -> 요청 (동시성 보호: 초안일 때만)
+    int updateOrderToRequested(String orderId) throws Exception;
     
 
     
