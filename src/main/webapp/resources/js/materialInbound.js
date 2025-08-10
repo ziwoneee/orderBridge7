@@ -267,7 +267,7 @@ function renderUnreceivedOrdersModal(orderList) {
       <td class="text-end">${(order.totalOrderQuantity || order.totalQuantity || 0).toLocaleString()}</td>
       <td>${fmt(order.expectedArrivedDate)} ${dday(order.expectedArrivedDate)}</td>
       <td>${order.handledBy || order.createdBy || '-'}</td>
-      <td><button class="btn btn-sm btn-outline-info" onclick="viewOrderDetail('${order.orderId}')">상세보기</button></td>
+      <td><button class="btn btn-sm btn-outline-info" onclick="viewOrderDetail('${order.orderId}')">상세</button></td>
     `;
     tbody.appendChild(tr);
   });
@@ -347,8 +347,41 @@ function renderPagination(pageMaker) {
 
 /* [7] 발주 상세 보기 */
 function viewOrderDetail(orderId) {
-  alert(`발주 상세보기 기능 구현 필요: ${orderId}`);
-}
+	  const fmt = d => !d ? '-' : new Date(d).toISOString().slice(0,10);
+
+	  $.get('/material/order/detail', { orderId: orderId })
+	   .done(res => {
+	     const h = res.header || {};
+	     $('#modalOrderId').text(h.orderId || '-');
+	     $('#modalSupplierId').text(h.supplierName || h.supplierId || '-');
+	     $('#modalOrderDate').text(fmt(h.orderDate));
+	     $('#modalExpectedDate').text(fmt(h.expectedArrivedDate));
+	     $('#modalOrderStatus').text(h.orderStatus || '-');
+	     $('#modalCreatedBy').text(h.createdBy || '-');
+	     $('#modalNote').text(h.note || '');
+
+	     const $tbody = $('#orderItemsInfo').empty();
+	     (res.items || []).forEach(it => {
+	       $tbody.append(
+	         `<tr>
+	            <td>${it.materialId}</td>
+	            <td>${it.materialName || ''}</td>
+	            <td class="text-right">${it.orderQuantity}</td>
+	            <td class="text-right">${it.unitPrice}</td>
+	            <td class="text-right">${it.totalPrice}</td>
+	            <td>${it.warehouseCode || '-'}</td>
+	          </tr>`
+	       );
+	     });
+
+	     // 상세 모달 오픈 (미입고 모달은 그대로 둔 채 위에 겹쳐서 띄움)
+	     $('#orderDetailModal').modal('show');
+	   })
+	   .fail(xhr => {
+	     alert('상세 조회 실패: ' + ((xhr.responseJSON && xhr.responseJSON.message) || xhr.statusText));
+	   });
+	}
+
 
 /* [8] 전체 선택/해제 */
 function toggleAllCheckboxes(checkAllBox) {
@@ -424,3 +457,16 @@ function showInboundDetail(inboundId) {
   console.log('입고 상세보기 호출:', inboundId);
   loadInboundDetail(inboundId);
 }
+
+
+
+//여러 모달 겹칠 때 z-index 자동 조정 (Bootstrap 4)
+$(document).on('show.bs.modal', '.modal', function () {
+  const z = 1040 + (10 * $('.modal:visible').length);
+  $(this).css('z-index', z);
+  setTimeout(() => {
+    $('.modal-backdrop').not('.modal-stack')
+      .css('z-index', z - 1)
+      .addClass('modal-stack');
+  }, 0);
+});
