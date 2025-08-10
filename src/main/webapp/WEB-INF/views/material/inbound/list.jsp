@@ -60,11 +60,15 @@
                 <input type="hidden" name="perPageNum" value="${cri.perPageNum}">
               </form>
             </div>
-                          
+            
+			<div class="col-12">             
 			<!-- 미입고 발주 목록 불러오기 버튼 -->
-			<button onclick="loadUnreceivedOrders()" class="btn btn-outline-info mb-3">
-			  <i class="ti-list"></i> 미입고 발주 목록 보기
-			</button>
+			<div class="d-flex justify-content-end align-items-center mb-3">
+				<a onclick="loadUnreceivedOrders()" class="btn btn-success mb-3">
+				  미입고 발주 목록 보기
+				</a>
+			</div>
+			</div>
 			
 			<!-- 그리고 바로 아래에 미입고 발주 테이블 섹션 추가 -->
 			<!-- 미입고 발주 목록 섹션 -->
@@ -145,7 +149,7 @@
                   
               <!-- 테이블 -->
               <div class="table-responsive">
-                <table class="table table-hover" id="unreceivedOrderTable">
+                <table class="table table-hover" id="inboundTable">
                   <thead>
                     <tr>
                       <th>
@@ -378,7 +382,7 @@
 			              <th class="bg-light">발주일자</th>
 			              <td id="orderDate"></td>
 			              <th class="bg-light">거래처</th>
-  			              <td id="supplierId"></td>
+  			              <td id="supplierName"></td>
 			            </tr>
 			            <tr>
 			              <th class="bg-light">입고관리번호</th>

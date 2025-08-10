@@ -3,12 +3,14 @@ package com.itwillbs.controller;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.propertyeditors.CustomDateEditor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.WebDataBinder;
@@ -87,6 +89,14 @@ public class MaterialOrderController {
         model.addAttribute("pageMaker", pageMaker);
         model.addAttribute("cri", cri);
 	    model.addAttribute("menu", "material");
+	    
+	    // 각 상태별 카운트를 계산하여 Model에 추가
+	    Map<String, Integer> statusCounts = mOrderService.getStatusCounts();
+	    model.addAttribute("draftCount", statusCounts.getOrDefault("초안", 0)); // 1
+	    model.addAttribute("requestCount", statusCounts.getOrDefault("요청", 0)); // 4  
+	    model.addAttribute("approvedCount", statusCounts.getOrDefault("승인", 0)); // 7
+	    model.addAttribute("completedCount", statusCounts.getOrDefault("입고완료", 0)); // 4
+	    model.addAttribute("canceledCount", statusCounts.getOrDefault("취소", 0)); // 0
 	    
 	    return "material/order/list";
 	}
@@ -190,6 +200,42 @@ public class MaterialOrderController {
 											 @RequestParam(value = "keyword", required = false) String keyword)
 											 throws Exception {
 	    return supplierService.getMaterialsBySupplier(supplierId, keyword);
+	}
+
+	
+	/**
+	 * 발주 초안에서 요청
+	 */
+	@PostMapping("/submit")
+    @ResponseBody
+    public ResponseEntity<?> submit(@RequestParam("orderId") String orderId) {
+        try {
+        	mOrderService.submitOrderRequest(orderId);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "orderId", orderId,
+                "newStatus", "요청",
+                "message", "발주요청으로 전환되었습니다."
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        }
+    }
+	
+	
+	/**
+	 * 발주 상세
+	 */
+	@GetMapping("/detail")
+	@ResponseBody
+	public Map<String,Object> detail(@RequestParam String orderId) throws Exception {
+	    return Map.of(
+	        "header", mOrderService.getOrderHeader(orderId),
+	        "items",  mOrderService.getOrderItems(orderId)
+	    );
 	}
 
 	

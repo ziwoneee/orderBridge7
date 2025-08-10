@@ -482,7 +482,7 @@
 		resultType="com.itwillbs.dto.WorkOrderDTO">
 		SELECT *
 		FROM work_order
-		WHERE status = 'WAITING'
+		WHERE shortage_status = 'NONE'
 		ORDER BY created_at DESC
 	</select>
 

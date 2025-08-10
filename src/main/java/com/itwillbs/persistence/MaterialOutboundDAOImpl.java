@@ -1,5 +1,6 @@
 package com.itwillbs.persistence;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +18,10 @@ import com.itwillbs.dto.MaterialOutboundDetailDTO;
 import com.itwillbs.dto.MaterialOutboundItemDTO;
 import com.itwillbs.dto.MaterialOutboundSummaryDTO;
 
-// 자재 출고 DAO 구현채
+/**
+ * 출고 관리 DAO 구현체
+ * - Mapper XML의 id와 매핑
+ */
 @Repository
 public class MaterialOutboundDAOImpl implements MaterialOutboundDAO {
 	
@@ -26,115 +30,127 @@ public class MaterialOutboundDAOImpl implements MaterialOutboundDAO {
 	
 	private static final String NAMESPACE = "com.itwillbs.mapper.MaterialOutboundMapper.";
 
-	
-	// 출고 목록 조회 (페이징, 검색 포함)
-	@Override
-	public List<MaterialOutboundSummaryDTO> getOutboundList(SearchCriteria cri) throws Exception {
+	 	@Override
+	    public List<?> selectOutboundList(SearchCriteria cri) { 
+	 		return sqlSession.selectList(NAMESPACE + "getOutboundList", cri);
+	 		}
+	 	
+	    @Override
+	    public int selectOutboundCount(SearchCriteria cri) { 
+	    	return sqlSession.selectOne(NAMESPACE + "getMaterialOutboundCount", cri);
+	    	}
 
-		return sqlSession.selectList(NAMESPACE + "getOutboundList", cri);
-	}
+	    @Override
+	    public List<com.itwillbs.domain.WorkOrderVO> selectWaitingOrders() { 
+	    	return sqlSession.selectList(NAMESPACE + "getWaitingOrders");
+	    	}
 
-	// 전체 출고 건수 조회 (페이징 계산용)
-	@Override
-	public int getMaterialOutboundCount(SearchCriteria cri) throws Exception {
+	    @Override
+	    public Map<String, Object> selectWorkOrderHeader(String id) { 
+	    	return sqlSession.selectOne(NAMESPACE + "getWorkOrderWithStock", id);
+	    	}
+	    
+	    @Override
+	    public List<Map<String, Object>> selectWorkOrderItemsWithStock(String id) { 
+	    	return sqlSession.selectList(NAMESPACE + "getWorkOrderItemsWithStock", id);
+	    	}
 
-		return  sqlSession.selectOne(NAMESPACE + "getMaterialOutboundCount", cri);
-	}
-	
-	
-	// 출고 기본 정보 조회 (상세 Ajax)
-    @Override
-    public MaterialOutboundDetailDTO getOutboundDetail(String outboundId) throws Exception {
-        return sqlSession.selectOne(NAMESPACE + "getOutboundDetail", outboundId);
-    }
+	    @Override
+	    public void insertOutboundHeader(Map<String,Object> header) {
+	    	sqlSession.insert(NAMESPACE + "insertMaterialOutboundHeader", header);
+	    	}
+	   
+	    @Override
+	    public void insertOutboundItems(List<Map<String,Object>> items) {
+	    	sqlSession.insert(NAMESPACE + "insertMaterialOutboundItems", items);
+	    	}
 
-    // 출고 자재 항목 리스트 조회 (상세 Ajax)
-    @Override
-    public List<MaterialOutboundItemDTO> getOutboundItemList(String outboundId) throws Exception {
-        return sqlSession.selectList(NAMESPACE + "getOutboundItemList", outboundId);
-    }
+	   
+	    @Override
+	    public Map<String, Object> selectOutboundHeader(String outboundId) {
+	    	return sqlSession.selectOne(NAMESPACE + "getOutboundDetailFull", outboundId);
+	    	}
+	   
+	    @Override
+	    public List<Map<String, Object>> selectOutboundItems(String outboundId) {
+	    	return sqlSession.selectList(NAMESPACE + "getOutboundItems", outboundId);
+	    	}
 
-    // 출고 자재 목록 조회
-    @Override
-    public List<MaterialOutboundItemVO> getOutboundItems(String outboundId) throws Exception {
-        return sqlSession.selectList(NAMESPACE + "getOutboundItemListRaw", outboundId);
-    }
+	    @Override
+	    public int decreaseInventoryByOutbound(String outboundId) {
+	    	return sqlSession.update(NAMESPACE + "decreaseInventoryByOutbound", outboundId);
+	    	}
+	   
+	    @Override
+	    public void updateOutboundCompleted(String outboundId) {
+	    	sqlSession.update(NAMESPACE + "updateOutboundAsCompleted", outboundId);
+	    	}
+	
+	
+	    @Override
+	    public List<Map<String,Object>> getLotsByMaterial(String materialId) {
+	        return sqlSession.selectList(NAMESPACE + "getLotsByMaterial", materialId);
+	    }
+	
+	
+	    @Override
+	    public int countByStatus(String status) {
+	        return sqlSession.selectOne(NAMESPACE + "countByStatus", status);
+	    }
 
-    // 출고 완료 처리 (출고일자 + 상태 변경)
-    @Override
-    public void updateOutboundAsCompleted(String outboundId) throws Exception {
-        sqlSession.update(NAMESPACE + "updateOutboundAsCompleted", outboundId);
-    }
+	    
+	    @Override
+	    public Date selectWorkOrderDueDate(String workOrderNo) {
+	        return sqlSession.selectOne(NAMESPACE + "selectWorkOrderDueDate", workOrderNo);
+	    }
 
-    // 자재 재고 차감
-    @Override
-    public void decreaseMaterialStock(String materialId, int qty) throws Exception {
-        Map<String, Object> paramMap = new HashMap<>();
-        paramMap.put("materialId", materialId);
-        paramMap.put("qty", qty);
+	    @Override
+	    public int updateWorkOrderShortageStatus(String workOrderId, String status) {
+	        Map<String, Object> p = new HashMap<>();
+	        p.put("workOrderId", workOrderId);
+	        p.put("status", status);
+	        return sqlSession.update(
+	        		NAMESPACE + "updateWorkOrderShortageStatus", p);
+	    }
 
-        sqlSession.update(NAMESPACE + "decreaseMaterialStock", paramMap);
-    }
-    @Override
-    public void updateOutboundItemStock(String outboundId, String materialId, int qty) throws Exception {
-        Map<String, Object> paramMap = new HashMap<>();
-        paramMap.put("outboundId", outboundId);
-        paramMap.put("materialId", materialId);
-        paramMap.put("qty", qty);
 
-        sqlSession.update(NAMESPACE + "updateOutboundItemStock", paramMap);
-    }
+	    // 해당 작업지시서가 출고 가능한 상태인지 여부 (1=가능, 0=불가능)
+	    @Override
+	    public int isWorkOrderReady(String workOrderId) throws Exception {
+	        return sqlSession.selectOne(NAMESPACE + "isWorkOrderReady", workOrderId);
+	    }
 
-	
-	
-    // 작업지시서 목록 DAO 인터페이스
-    @Override
-    public List<WorkOrderVO> getWaitingOrders() throws Exception {
-    	
-        return sqlSession.selectList(NAMESPACE + "getWaitingOrders");
-    }
+	    // 해당 작업지시서의 출고 레코드 존재 여부
+	    @Override
+	    public int existsOutboundByWorkOrder(String workOrderId) throws Exception {
+	        return sqlSession.selectOne(NAMESPACE + "existsOutboundByWorkOrder", workOrderId);
+	    }
+	    
+	    // 신규 출고 ID 생성
+	    @Override
+	    public String nextOutboundId() throws Exception {
+	        return sqlSession.selectOne(NAMESPACE + "nextOutboundId");
+	    }
 
-    // 작업지시 기본 정보 조회
-    @Override
-    public MaterialOutboundDetailDTO getWorkOrderInfo(String workOrderNo) {
-        return sqlSession.selectOne(NAMESPACE + "getWorkOrderInfo", workOrderNo);
-    }
+	    // 출고 마스터 INSERT
+	    @Override
+	    public void insertMaterialOutbound(String outboundId, String workOrderId) throws Exception {
+	        Map<String,Object> p = new HashMap<>();
+	        p.put("outboundId", outboundId);
+	        p.put("workOrderId", workOrderId);
+	        sqlSession.insert(NAMESPACE + "insertMaterialOutbound", p);
+	    }
 
-    // 작업지시 기반 필요 자재 목록 조회
-    @Override
-    public List<MaterialOutboundItemDTO> getRequiredMaterialsByWorkOrder(String workOrderNo) {
-        return sqlSession.selectList(NAMESPACE + "getRequiredMaterialsByWorkOrder", workOrderNo);
-    }
+	    // 출고 아이템 INSERT (작업지시서 자재 목록 복사)
+	    @Override
+	    public void insertOutboundItemsFromWOM(String outboundId, String workOrderId) throws Exception {
+	        Map<String,Object> p = new HashMap<>();
+	        p.put("outboundId", outboundId);
+	        p.put("workOrderId", workOrderId);
+	        sqlSession.insert(NAMESPACE + "insertOutboundItemsFromWOM", p);
+	    }
 
-    // 출고 마스터 저장
-    @Override
-    public void insertMaterialOutbound(MaterialOutboundDetailDTO dto) {
-        sqlSession.insert(NAMESPACE + "insertMaterialOutbound", dto);
-    }
 
-    // 출고 자재 항목 저장
-    @Override
-    public void insertMaterialOutboundItem(MaterialOutboundItemDTO item) {
-        sqlSession.insert(NAMESPACE + "insertMaterialOutboundItem", item);
-    }
 
-    // 출고 ID 중 가장 마지막 값 조회
-    @Override
-    public String getLastOutboundId(String prefix) {
-        return sqlSession.selectOne(NAMESPACE + "getLastOutboundId", prefix);
-    }
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 
 }

@@ -22,7 +22,7 @@ import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.service.MaterialInventoryService;
 
 @Controller
-@RequestMapping("/material/inventory/*") // 자재관리 > 재고현황
+@RequestMapping("/material/inventory") // 자재관리 > 재고현황
 public class MaterialInventoryController {
 	
 	// mylog
@@ -83,7 +83,6 @@ public class MaterialInventoryController {
 	}
 
 
-	
 	
 	
 	

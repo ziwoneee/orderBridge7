@@ -222,6 +222,17 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
 	    return sqlSession.selectOne(NAMESPACE + "getReceivedQtyByInboundItemId", inboundItemId);
 	}
 
-	
+	// 입고완료시 발주쪽 상태값 업데이트
+	// inboundId로 orderId 조회
+	@Override
+    public String selectOrderIdByInboundId(String inboundId) throws Exception {
+        return sqlSession.selectOne(NAMESPACE + "selectOrderIdByInboundId", inboundId);
+    }
+
+	// 모든 입고건이 '입고완료'일 때만 발주 상태 '입고완료'로 업데이트
+    @Override
+    public void updateOrderStatusToCompletedIfAllInboundDone(String orderId) throws Exception {
+        sqlSession.update(NAMESPACE + "updateOrderStatusToCompletedIfAllInboundDone", orderId);
+    }
 	
 }

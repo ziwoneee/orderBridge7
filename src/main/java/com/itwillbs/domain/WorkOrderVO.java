@@ -23,4 +23,8 @@ public class WorkOrderVO {
     private Date dueDate;           // 납기일 (수주 병합용)
     private String orderManager;    // 작업지시자 (로그인한 관리자 이름)
     
+    
+    // 자재 출고관리에 필요
+    private String productName;
+    
 }

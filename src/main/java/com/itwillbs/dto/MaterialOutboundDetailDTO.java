@@ -14,25 +14,13 @@ import lombok.Data;
 @Data
 public class MaterialOutboundDetailDTO {
 	
-	// 출고 기본 정보
-    private String outboundId;
-    private String workOrderNo;
-    
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss", timezone = "Asia/Seoul")
-    private Date workOrderDate;
-    
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss", timezone = "Asia/Seoul")
-    private Date dueDate;
-    
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss", timezone = "Asia/Seoul")
-    private Date outboundDate;
-    
-    private String handledBy;
-    private String status;
-    private String workOrderManager; // 작업지시 담당자
-    private String materialName;
+	private String outboundId; // 등록 시 생성
+	private String workOrderNo;
+	private String productId;
+	private String lineId;
+	private Date dueDate;
+	private String handledBy;
+	private List<MaterialOutboundItemDTO> materialList;
 
-    // 출고 자재 상세 목록
-    private List<MaterialOutboundItemDTO> materialList;
-
+	// 상세 응답 시 items(헤더+항목) 용도로 재사용 가능
 }

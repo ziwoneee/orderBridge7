@@ -16,13 +16,13 @@
           <div class="row">
          
          <!-- 페이지 헤더 -->
-         <div class="col-md-12 grid-margin">
-              <div class="row">
-                <div class="col-12 col-xl-8 mb-4 mb-xl-0">
-                  <h3 class="font-weight-bold">자재 출고 관리</h3>
-                </div>
+  		 <div class="col-md-12 grid-margin">
+            <div class="row">
+              <div class="col-12 col-xl-8 mb-4 mb-xl-0">
+                <h3 class="font-weight-bold">자재 출고 관리</h3>
               </div>
             </div>
+          </div>
             
             <!-- 검색 영역 -->
             <div class="col-12 mb-3">
@@ -49,11 +49,6 @@
                       <i class="ti-search"></i> 검색
                     </button>
                     
-                    <!-- 출고등록 버튼 -->
-				  <a href="/material/outbound/register" class="btn btn-primary ml-2">
-				    + 출고 등록
-				  </a>
-                    
                     <a href="/material/outbound/list" class="btn btn-light">
                       <i class="ti-reload"></i> 초기화
                     </a>
@@ -67,31 +62,39 @@
               </form>
             </div>
             
+            
             <!-- 자재 출고 목록 -->
             <div class="col-12">
+            
+	        <div class="d-flex justify-content-end align-items-center mb-3">
+			  <a type="button" class="btn btn-success mr-2" id="btnLoadOrder">
+			    작업지시 불러오기
+			  </a>
+			</div>
+			
               <!-- 탭 -->
-              <div class="d-flex justify-content-between align-items-center mb-0">
-                <ul class="nav nav-underline-custom" id="statusTab" role="tablist">
-                  <li class="nav-item">
-                    <a class="nav-link ${empty param.status ? 'active' : ''}" 
-                       href="/material/outbound/list?keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
-                      전체 <span class="badge badge-light ms-1"></span>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a class="nav-link ${param.status eq '미출고' ? 'active' : ''}" 
-                       href="/material/outbound/list?status=미출고&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
-                      미출고 <span class="badge badge-light ms-1">${pendingCount}</span>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a class="nav-link ${param.status eq '출고완료' ? 'active' : ''}" 
-                       href="/material/outbound/list?status=출고완료&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
-                      출고완료 <span class="badge badge-light ms-1">${completedCount}</span>
-                    </a>
-                  </li>
-                </ul>
-              </div>
+			<div class="d-flex justify-content-between align-items-center mb-0">
+			  <ul class="nav nav-underline-custom" id="statusTab" role="tablist">
+			    <li class="nav-item">
+			      <a class="nav-link ${empty param.status ? 'active' : ''}" 
+			         href="/material/outbound/list?keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+			        전체 <span class="badge badge-light ms-1">${totalCount}</span>
+			      </a>
+			    </li>
+			    <li class="nav-item">
+			      <a class="nav-link ${param.status eq 'DRAFT' ? 'active' : ''}" 
+			         href="/material/outbound/list?status=DRAFT&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+			        미출고 <span class="badge badge-light ms-1">${pendingCount}</span>
+			      </a>
+			    </li>
+			    <li class="nav-item">
+			      <a class="nav-link ${param.status eq 'ISSUED' ? 'active' : ''}" 
+			         href="/material/outbound/list?status=ISSUED&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+			        출고완료 <span class="badge badge-light ms-1">${completedCount}</span>
+			      </a>
+			    </li>
+			  </ul>
+			</div>
                   
               <!-- 테이블 -->
               <div class="table-responsive">
@@ -127,9 +130,6 @@
                         </a>
                       </th>
                       <th>출고상태</th>
-                      <th>품명</th>
-                      <th>출고수량</th>
-                      <th>재고상태</th>
                       <th>작업지시번호</th>
                       <th>
                         <a href="/material/outbound/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=due_date&sortOrder=${cri.sortColumn == 'due_date' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
@@ -153,8 +153,7 @@
                   
                   <!-- 테이블 내용! -->
                   <tbody>
-                    <c:forEach var="item" items="${outList}">
-                      <c:if test="${item.rowNum == 1}">
+                    <c:forEach var="item" items="${list}">
                       	<tr>
                  		 <!-- 출고관리번호: rowNum == 1일 때만 표시 -->
    						  <td class="font-weight-medium">${item.outboundId}</td>
@@ -167,42 +166,17 @@
 					     </td>
   
 				         <!-- 출고상태 -->
-				         <td>
-				           <c:choose>
-				             <c:when test="${item.status eq '출고완료'}">
-				               <span class="badge badge-success">출고완료</span>
-				             </c:when>
-				             <c:otherwise>
-				               <span class="badge badge-danger">미출고</span>
-				             </c:otherwise>
-				           </c:choose>
-				         </td>
-				        
-				         <!-- 대표 품명 -->
-				         <td>${item.materialSummary}</td>
-				  
+						<td>
+						  <c:choose>
+						    <c:when test="${item.statusCode eq 'ISSUED'}">
+						      <span class="badge badge-success">${item.statusDisplay}</span>
+						    </c:when>
+						    <c:otherwise>
+						      <span class="badge badge-danger">${item.statusDisplay}</span>
+						    </c:otherwise>
+						  </c:choose>
+						</td>
   
-				   
-				     	 <!-- 출고수량 -->
-				         <td class="text-end">
-				          <fmt:formatNumber value="${item.requiredQty}" pattern="#,###"/>
-				         </td>
-				
-				         <!-- 재고상태 -->
-				         <td>
-				           <c:choose>
-				             <c:when test="${item.stockStatus eq '부족'}">
-				               <span class="badge badge-danger">부족</span>
-				             </c:when>
-				             <c:when test="${item.stockStatus eq '정상'}">
-				               <span class="badge badge-success">정상</span>
-				             </c:when>
-				             <c:otherwise>
-				               <span class="badge badge-secondary">${item.stockStatus}</span>
-				             </c:otherwise>
-				           </c:choose>
-				         </td>
-				
 			 	         <!-- 작업지시번호 -->
 			 	         <td>${item.workOrderNo}</td>
 				
@@ -222,29 +196,23 @@
 				         <!-- 담당자 -->
 				         <td>${item.handledBy}</td>
                         
-  
-                         <td>
-                           <button class="btn btn-sm btn-outline-info" 
-                                   onclick="loadOutboundDetail('${item.outboundId}')">
-                             상세
-                           </button>
-                         </td>
+						<td>
+						  <button type="button" class="btn btn-sm btn-outline-info" onclick="loadOutboundDetail('${item.outboundId}')">상세</button>
+						</td>
+						
+						<td>
+						  <c:if test="${item.statusCode ne 'ISSUED'}">
+						    <button type="button" class="btn btn-outline-success"
+						            onclick="processOutbound('${item.outboundId}', this)">출고처리</button>
+						  </c:if>
+						</td>
                         
-                         <td>
-                           <c:if test="${item.status ne '출고완료' and item.rowNum == 1}">
-                             <button class="btn btn-outline-success btn-sm"
-                                     onclick="processOutbound('${item.outboundId}', ${item.requiredQty}, ${item.stockQty}, this)">
-                               출고처리
-                             </button>
-                           </c:if>
-                         </td>
                        </tr>
-                      </c:if>
                     </c:forEach>
                     
                     
                     <!-- 데이터가 없을 때 -->
-                    <c:if test="${empty outList}">
+                    <c:if test="${empty list}">
                       <tr>
                         <td colspan="11" class="text-center py-4">
                           <div class="text-muted">
@@ -299,74 +267,21 @@
           <!-- 페이징 처리 끝 -->
           
 		    <!-- 출고관리 상세 모달 -->
-			<div class="modal fade" id="outboundDetailModal" tabindex="-1" role="dialog" aria-labelledby="modalTitle" aria-hidden="true">
+			<div class="modal fade" id="outboundDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
 			  <div class="modal-dialog modal-lg" role="document">
 			    <div class="modal-content">
-			
-			      <div class="modal-header" style="background-color: #1c355e; color: #ffffff;">
+			      <div class="modal-header" style="background-color:#1c355e;color:#fff;">
 			        <h5 class="modal-title">출고관리 상세</h5>
-			        <button type="button" class="close" data-dismiss="modal" aria-label="Close" >
-			          <span aria-hidden="true">&times;</span>
-			        </button>
+			        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
 			      </div>
-			
-			      <div class="modal-body">
-			        <!-- 기본 정보 -->
-			        <table class="table table-bordered">
-			          <tbody>
-			            <tr>
-			              <th class="bg-light">작업지시번호</th>
-			              <td id="workOrderNo"></td>
-			              <th class="bg-light">납기일</th>
-			              <td id="dueDate"></td>
-			            </tr>
-			            <tr>
-			              <th class="bg-light">작업지시일자</th>
-			              <td id="workOrderDate"></td>
-			              <th class="bg-light">생산라인</th>
-			              <td id="lineId"></td>
-			            </tr>
-			            <tr>
-			              <th class="bg-light">출고관리번호</th>
-			              <td id="outboundId"></td>
-			              <th class="bg-light">출고진행현황</th>
-			              <td id="modalStatus"></td>
-			            </tr>
-			            <tr>
-			              <th class="bg-light">출고일자</th>
-			              <td id="outboundDate"></td>
-			              <th class="bg-light">출고담당자</th>
-			              <td id="handledBy"></td>
-			            </tr>
-			          </tbody>
-			        </table>
-			
-			        <!-- 자재 재고 정보 -->
-			        <h6 class="mt-4">자재 재고 정보</h6>
-			         <table class="table table-bordered text-center">
-			          <thead style="background-color: #1C355E; color: white;">
-			            <tr>
-			              <th>품목코드</th>
-			              <th>품명</th>
-			              <th>필요수량</th>
-			              <th>재고수량</th>
-			              <th>재고상태</th>
-			            </tr>
-			          </thead>
-			          <tbody id="stockInfo">
-			            <!-- JS로 추가 -->
-			          </tbody>
-			        </table>
-			      </div>
-			
+			      <div class="modal-body" id="outboundDetailBody"><!-- JS 렌더링 자리 --></div>
 			      <div class="modal-footer">
 			        <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
 			      </div>
-			
 			    </div>
 			  </div>
 			</div>
-          
+
         </div>
         <!-- content-wrapper 끝 -->
      <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
@@ -376,5 +291,6 @@
   <!-- container-fluid page-body-wrapper 끝 -->
 </div>
 <!-- container-scroller 끝-->
-
+<jsp:include page="orderModal.jsp"/>
+<script>var ctx='${pageContext.request.contextPath}';</script>
 <script src="${pageContext.request.contextPath}/resources/js/materialOutbound.js"></script>

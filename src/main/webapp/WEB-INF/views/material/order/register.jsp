@@ -203,4 +203,4 @@
 </div>
 <!-- container-scroller 끝-->
 
-<script src="${pageContext.request.contextPath}/resources/js/materialOrder.js"></script>
+<script src="${pageContext.request.contextPath}/resources/js/materialOrderRegister.js"></script>
