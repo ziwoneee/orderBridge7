@@ -63,6 +63,7 @@ public class MaterialOutboundController {
     	        model.addAttribute("completedCount", moService.getOutboundCountByStatus("ISSUED"));
     	        model.addAttribute("waitingOrders", moService.getWaitingOrders());
     	        model.addAttribute("cri", cri);
+    	        model.addAttribute("menu", "material");
     	        
     	        logger.info("list() completed successfully");
     	        

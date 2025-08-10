@@ -91,6 +91,12 @@ public interface MaterialInboundDAO {
 	
 	int getReceivedQtyByInboundItemId(String inboundItemId) throws Exception;
 
+	// 입고완료시 발주쪽 상태값 업데이트
+	// inboundId로 orderId 조회
+	String selectOrderIdByInboundId(String inboundId) throws Exception;
+
+	// 모든 입고건이 '입고완료'일 때만 발주 상태 '입고완료'로 업데이트
+	void updateOrderStatusToCompletedIfAllInboundDone(String orderId) throws Exception;
 
 
 

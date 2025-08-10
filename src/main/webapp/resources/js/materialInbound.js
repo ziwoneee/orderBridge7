@@ -25,7 +25,7 @@ function loadInboundDetail(inboundId) {
       $('#orderId').text(data.inbound.orderId || '-');
       $('#expectedArrivedDate').text(formatDateString(data.inbound.expectedArrivedDate));
       $('#orderDate').text(formatDateString(data.inbound.orderDate));
-      $('#supplierId').text(data.inbound.supplierId || '-');
+      $('#supplierName').text(data.inbound.supplierName || data.inbound.supplierId || '-');
       $('#inboundDate').text(formatDateString(data.inbound.inboundDate));
       $('#handledBy').text(data.inbound.handledBy || '-');
       $('#modalStatus').text(data.inbound.inboundStatus || '-');

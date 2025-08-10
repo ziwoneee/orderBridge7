@@ -382,7 +382,7 @@
 			              <th class="bg-light">발주일자</th>
 			              <td id="orderDate"></td>
 			              <th class="bg-light">거래처</th>
-  			              <td id="supplierId"></td>
+  			              <td id="supplierName"></td>
 			            </tr>
 			            <tr>
 			              <th class="bg-light">입고관리번호</th>

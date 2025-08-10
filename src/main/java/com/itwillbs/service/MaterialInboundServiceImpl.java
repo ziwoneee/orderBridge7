@@ -279,6 +279,9 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
 
         // 8) 마스터 상태 갱신
         miDAO.updateInboundMasterStatus(dto.getInboundId());
+        
+        String orderId = miDAO.selectOrderIdByInboundId(dto.getInboundId());
+        miDAO.updateOrderStatusToCompletedIfAllInboundDone(orderId);
     }
 
 

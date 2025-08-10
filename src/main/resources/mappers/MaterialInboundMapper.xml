@@ -336,16 +336,18 @@
 	<!-- 입고 마스터 조회 -->
 	<select id="getInboundMaster" parameterType="string" resultType="com.itwillbs.domain.MaterialInboundVO">
 	  SELECT 
-	     i.inbound_id,
-	     i.order_id,
-	     i.inbound_status,
-	     i.handled_by,
-	     i.inbound_date,
-	     o.expected_arrived_date AS supply_due_date,
-	     o.order_date,
-	     o.supplier_id
+	     i.inbound_id				AS inboundId,
+	     i.order_id              	AS orderId,
+	     i.inbound_status       	AS inboundStatus,
+	     i.handled_by         		AS handledBy,
+	     i.inbound_date         	AS inboundDate,
+	     o.expected_arrived_date 	AS supply_due_date,
+	     o.order_date            	AS orderDate,
+	     s.supplier_id            	AS supplierId,
+	     s.supplier_name            AS supplierName
 	  FROM material_inbound i
 	  LEFT JOIN material_order o ON i.order_id = o.order_id
+	  LEFT JOIN supplier s       ON o.supplier_id = s.supplier_id
 	  WHERE i.inbound_id = #{inboundId}
 	</select>
 	
@@ -416,6 +418,36 @@
 	    FROM material_inbound_item
 	    WHERE inbound_item_id = #{inboundItemId}
 	</select>
+	
+	<!-- inboundId -> orderId 조회 -->
+	<select id="selectOrderIdByInboundId" parameterType="string" resultType="string">
+	  SELECT order_id
+	    FROM material_inbound
+	   WHERE inbound_id = #{inboundId}
+	</select>
+	
+	
+	<!-- 모든 입고건이 '입고완료'일 때 발주 상태를 '입고완료'로 변경 -->
+	<update id="updateOrderStatusToCompletedIfAllInboundDone" parameterType="string">
+	  UPDATE material_order mo
+	     SET mo.order_status = '입고완료',
+	         mo.updated_at   = NOW()
+	   WHERE mo.order_id = #{orderId}
+	     <!-- 적어도 한 건의 입고기록이 있고 -->
+	     AND EXISTS (
+	           SELECT 1
+	             FROM material_inbound mi
+	            WHERE mi.order_id = mo.order_id
+	         )
+	     <!-- '입고완료'가 아닌 입고건이 더 이상 없을 때만 -->
+	     AND NOT EXISTS (
+	           SELECT 1
+	             FROM material_inbound mi
+	            WHERE mi.order_id = mo.order_id
+	              AND (mi.inbound_status IS NULL OR mi.inbound_status &lt;&gt; '입고완료')
+	         );
+	</update>
+	
 		
 	
 	

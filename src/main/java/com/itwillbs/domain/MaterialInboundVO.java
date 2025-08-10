@@ -19,6 +19,6 @@ public class MaterialInboundVO {
     private Date expectedArrivedDate;  // 예상입고일
     private Date orderDate;            // 발주일자
     private String supplierId;         // 거래처 ID
-
+    private String supplierName;
 
 }
