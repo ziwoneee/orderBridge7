@@ -149,7 +149,7 @@
                   
               <!-- 테이블 -->
               <div class="table-responsive">
-                <table class="table table-hover" id="unreceivedOrderTable">
+                <table class="table table-hover" id="inboundTable">
                   <thead>
                     <tr>
                       <th>
