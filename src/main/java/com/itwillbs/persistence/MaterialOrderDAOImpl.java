@@ -1,5 +1,6 @@
 package com.itwillbs.persistence;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -110,5 +111,43 @@ public class MaterialOrderDAOImpl implements MaterialOrderDAO {
         return sqlSession.update(NAMESPACE + "updateOrderToRequested", orderId);
     }
 
+    
+    /**
+     * 발주 상세
+     */
+    // 주문 헤더
+    @Override
+    public Map<String, Object> selectOrderHeader(String orderId){
+        return sqlSession.selectOne(NAMESPACE + "selectOrderHeader", orderId);
+    }
+    
+    // 주문 아이템 목록
+    @Override
+    public List<Map<String, Object>> selectOrderItems(String orderId){
+        return sqlSession.selectList(NAMESPACE + "selectOrderItems", orderId);
+    }
+    
+    
+    /**
+     * 발주 상태별 탭기능 카운트
+     */
+    @Override
+    public int getCountByStatus(String status) {
+        return sqlSession.selectOne(NAMESPACE + "getCountByStatus", status);
+    }
+    
+    @Override
+    public Map<String, Integer> getStatusCounts() {
+        // selectMap 대신 selectList 사용
+        List<Map<String, Object>> result = sqlSession.selectList(NAMESPACE + "getStatusCounts");
+        
+        Map<String, Integer> statusMap = new HashMap<>();
+        for(Map<String, Object> row : result) {
+            String status = (String) row.get("status");
+            Integer count = ((Number) row.get("count")).intValue(); // Number로 캐스팅 후 int 변환
+            statusMap.put(status, count);
+        }
+        return statusMap;
+    }
     
 }

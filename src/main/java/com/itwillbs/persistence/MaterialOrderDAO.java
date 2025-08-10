@@ -58,6 +58,22 @@ public interface MaterialOrderDAO {
     // 1) 상태 전이: 초안 -> 요청 (동시성 보호: 초안일 때만)
     int updateOrderToRequested(String orderId) throws Exception;
     
+    
+    /**
+     * 발주 상세
+     */
+    // 주문 헤더
+    Map<String,Object> selectOrderHeader(String orderId) throws Exception;
+    
+    // 주문 아이템 목록
+    List<Map<String,Object>> selectOrderItems(String orderId) throws Exception;
+    
+    
+    /**
+     * 발주 상태별 탭기능 카운트
+     */
+    int getCountByStatus(String status);
+    Map<String, Integer> getStatusCounts();
 
     
 }

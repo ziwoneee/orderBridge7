@@ -293,7 +293,36 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
     }
     
     
+    /**
+     * 발주 상세
+     */
+    // 주문 헤더
+    @Override
+    public Map<String, Object> getOrderHeader(String orderId) throws Exception {
+        Map<String,Object> h = mOrderDAO.selectOrderHeader(orderId);
+        if (h == null) throw new IllegalStateException("발주가 존재하지 않습니다.");
+        return h;
+    }
+    
+    // 주문 아이템 목록
+    @Override
+    public List<Map<String, Object>> getOrderItems(String orderId) throws Exception {
+        return mOrderDAO.selectOrderItems(orderId);
+    }
 
 
+    /**
+     * 발주 상태별 탭기능 카운트
+     */
+    @Override
+    public int getCountByStatus(String status) {
+        return mOrderDAO.getCountByStatus(status);
+    }
+    
+    @Override
+    public Map<String, Integer> getStatusCounts() {
+        return mOrderDAO.getStatusCounts(); // DAO에서 이미 처리된 Map<String, Integer> 반환
+    }    
+    
     
 }

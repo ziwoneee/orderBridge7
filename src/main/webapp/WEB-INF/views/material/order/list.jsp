@@ -17,7 +17,6 @@
         <div class="content-wrapper">
           <div class="row">
 			
-			<!-- 해당 jsp 본문을 넣으세요 -->
 			<!-- 제목 -->
 			<div class="col-12 mb-4">
 			  <h3 class="font-weight-bold">발주 관리</h3>
@@ -70,6 +69,48 @@
 			  </a>
 			</div>
 
+              <!-- 탭 -->
+              <div class="d-flex justify-content-between align-items-center mb-0">
+                <ul class="nav nav-underline-custom" id="statusTab" role="tablist">
+                  <li class="nav-item">
+                    <a class="nav-link ${empty param.status ? 'active' : ''}" 
+                       href="/material/order/list?keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+                      전체 <span class="badge badge-light ms-1"></span>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link ${param.status eq '초안' ? 'active' : ''}" 
+                       href="/material/order/list?status=초안&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+                      초안 <span class="badge badge-light ms-1">${draftCount}</span>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link ${param.status eq '요청' ? 'active' : ''}" 
+                       href="/material/order/list?status=요청&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+                      요청 <span class="badge badge-light ms-1">${requestCount}</span>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link ${param.status eq '승인' ? 'active' : ''}" 
+                       href="/material/order/list?status=승인&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+                      승인 <span class="badge badge-light ms-1">${approvedCount}</span>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link ${param.status eq '입고완료' ? 'active' : ''}" 
+                       href="/material/order/list?status=입고완료&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+                      입고완료 <span class="badge badge-light ms-1">${completedCount}</span>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link ${param.status eq '취소' ? 'active' : ''}" 
+                       href="/material/order/list?status=취소&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+                      취소 <span class="badge badge-light ms-1">${canceledCount}</span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
               <!-- 테이블 -->
               <div class="table-responsive">
                 <table class="table table-hover">
@@ -120,7 +161,8 @@
                       </th>
                       <th>담당자</th>
                       <th>발주상태</th>
-                      <th>동작</th>
+                      <th>상세</th>
+                      <th>발주요청</th>
                     </tr>
                   </thead>
                   
@@ -161,49 +203,41 @@
                         <!-- 담당자 -->
                         <td>${order.createdBy}</td>
                         
-                        <!-- 발주상태 -->
-                        <td>
-                          <c:choose>
-                            <c:when test="${order.orderStatus eq '요청'}">
-                              <span class="badge badge-warning">요청</span>
-                            </c:when>
-                            <c:when test="${order.orderStatus eq '승인'}">
-                              <span class="badge badge-primary">승인</span>
-                            </c:when>
-                            <c:when test="${order.orderStatus eq '입고완료'}">
-                              <span class="badge badge-success">입고완료</span>
-                            </c:when>
-                            <c:when test="${order.orderStatus eq '취소'}">
-                              <span class="badge badge-danger">취소</span>
-                            </c:when>
-                            <c:otherwise>
-                              <span class="badge badge-secondary">${order.orderStatus}</span>
-                            </c:otherwise>
-                          </c:choose>
-                        </td>
-                        
-                        <td>
+						<!-- 상태 -->
+						<td>
 						  <c:choose>
-						    <c:when test="${order.orderStatus eq '초안'}">
-						      <button class="btn btn-primary btn-sm btnSubmitOrder" data-id="${order.orderId}">
-						        발주요청
-						      </button>
-						    </c:when>
-						    <c:otherwise>
-						      <a href="${pageContext.request.contextPath}/material/order/view?orderId=${order.orderId}"
-						         class="btn btn-outline-secondary btn-sm">상세</a>
-						    </c:otherwise>
+						    <c:when test="${order.orderStatus eq '요청'}"><span class="badge badge-warning">요청</span></c:when>
+						    <c:when test="${order.orderStatus eq '승인'}"><span class="badge badge-primary">승인</span></c:when>
+						    <c:when test="${order.orderStatus eq '입고완료'}"><span class="badge badge-success">입고완료</span></c:when>
+						    <c:when test="${order.orderStatus eq '취소'}"><span class="badge badge-danger">취소</span></c:when>
+						    <c:when test="${order.orderStatus eq '초안'}"><span class="badge badge-secondary">초안</span></c:when>
+						    <c:otherwise><span class="badge badge-secondary">${order.orderStatus}</span></c:otherwise>
 						  </c:choose>
 						</td>
-                        
-                        
+						
+						<!-- 상세 -->
+						<td>
+						  <button type="button" class="btn btn-outline-secondary btn-sm btnOrderDetail"
+						          data-id="${order.orderId}">상세</button>
+						</td>
+						
+						<!-- 발주요청 -->
+						<td>
+						  <c:choose>
+						    <c:when test="${order.orderStatus eq '초안'}">
+						      <button type="button" class="btn btn-primary btn-sm btnSubmitOrder"
+						              data-id="${order.orderId}">발주요청</button>
+						    </c:when>
+						    <c:otherwise></c:otherwise>
+						  </c:choose>
+						</td>
                       </tr>
                     </c:forEach>
                     
                     <!-- 데이터가 없을 때 -->
                     <c:if test="${empty orderList}">
                       <tr>
-                        <td colspan="10" class="text-center py-4">
+                        <td colspan="8" class="text-center py-4">
                           <div class="text-muted">
                             <i class="ti-info-alt" style="font-size: 24px;"></i>
                             <p class="mt-2">조회된 발주 건이 없습니다.</p>
@@ -260,7 +294,7 @@
 			  <div class="modal-dialog modal-lg" role="document">
 			    <div class="modal-content">
 			
-			      <div class="modal-header">
+			      <div class="modal-header" style="background-color: #1c355e; color: #ffffff; ">
 			        <h5 class="modal-title">발주 상세</h5>
 			        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
 			          <span aria-hidden="true">&times;</span>
@@ -272,25 +306,25 @@
 			        <table class="table table-bordered">
 			          <tbody>
 			            <tr>
-			              <th>발주번호</th>
+			              <th class="bg-light">발주번호</th>
 			              <td id="modalOrderId"></td>
-			              <th>거래처</th>
+			              <th class="bg-light">거래처</th>
 			              <td id="modalSupplierId"></td>
 			            </tr>
 			            <tr>
-			              <th>발주일</th>
+			              <th class="bg-light">발주일</th>
 			              <td id="modalOrderDate"></td>
-			              <th>예상입고일</th>
+			              <th class="bg-light">예상입고일</th>
 			              <td id="modalExpectedDate"></td>
 			            </tr>
 			            <tr>
-			              <th>발주상태</th>
+			              <th class="bg-light">발주상태</th>
 			              <td id="modalOrderStatus"></td>
-			              <th>담당자</th>
+			              <th class="bg-light">담당자</th>
 			              <td id="modalCreatedBy"></td>
 			            </tr>
 			            <tr>
-			              <th>비고</th>
+			              <th class="bg-light">비고</th>
 			              <td colspan="3" id="modalNote"></td>
 			            </tr>
 			          </tbody>

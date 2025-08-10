@@ -342,14 +342,60 @@
 
 
 
+<!-- ===================================================================== -->
+<!-- 발주 상세 -->	
+<!-- ===================================================================== -->
+	<!-- A. 주문 헤더 -->
+	<select id="selectOrderHeader" parameterType="string" resultType="map">
+	  SELECT 
+	    mo.order_id               AS orderId,
+	    mo.supplier_id            AS supplierId,
+	    s.supplier_name           AS supplierName,
+	    mo.order_date             AS orderDate,
+	    mo.expected_arrived_date  AS expectedArrivedDate,
+	    mo.order_status           AS orderStatus,
+	    mo.created_by             AS createdBy,
+	    mo.note                   AS note
+	  FROM material_order mo
+	  JOIN supplier s ON s.supplier_id = mo.supplier_id
+	  WHERE mo.order_id = #{orderId}
+	</select>
+	
+	<!-- B. 주문 아이템 목록 -->
+	<select id="selectOrderItems" parameterType="string" resultType="map">
+	  SELECT
+	    moi.order_item_id   AS orderItemId,
+	    moi.material_id     AS materialId,
+	    m.material_name     AS materialName,
+	    moi.order_quantity  AS orderQuantity,
+	    moi.unit_price      AS unitPrice,
+	    moi.total_price     AS totalPrice,
+	    moi.warehouse_code  AS warehouseCode
+	  FROM material_order_item moi
+	  JOIN material m ON m.material_id = moi.material_id
+	  WHERE moi.order_id = #{orderId}
+	  ORDER BY moi.order_item_id
+	</select>
 
 
 
 
 
-
-
-
+<!-- ===================================================================== -->
+<!-- 발주 상태별 탭기능 카운트 -->	
+<!-- ===================================================================== -->
+	<select id="getCountByStatus" parameterType="string" resultType="int">
+	    SELECT COUNT(*) 
+	    FROM material_order 
+	    WHERE order_status = #{status}
+	</select>
+	
+	<!-- 또는 한 번에 모든 상태 카운트 조회 -->
+	<select id="getStatusCounts" resultType="map">
+	    SELECT order_status as status, COUNT(*) as count
+	    FROM material_order 
+	    GROUP BY order_status
+	</select>
 
 
 

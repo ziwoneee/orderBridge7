@@ -1,6 +1,7 @@
 package com.itwillbs.service;
 
 import java.util.List;
+import java.util.Map;
 
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
@@ -33,5 +34,22 @@ public interface MaterialOrderService {
 
     /* 발주 초안에서 요청 */
     void submitOrderRequest(String orderId) throws Exception;
-
+    
+    
+    /**
+     * 발주 상세
+     */
+    // 주문 헤더
+    Map<String,Object> getOrderHeader(String orderId) throws Exception;
+    
+    // 주문 아이템 목록
+    List<Map<String,Object>> getOrderItems(String orderId) throws Exception;
+    
+    
+    /**
+     * 발주 상태별 탭기능 카운트
+     */
+    int getCountByStatus(String status);
+    Map<String, Integer> getStatusCounts();
+    
 }

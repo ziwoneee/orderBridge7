@@ -90,6 +90,14 @@ public class MaterialOrderController {
         model.addAttribute("cri", cri);
 	    model.addAttribute("menu", "material");
 	    
+	    // 각 상태별 카운트를 계산하여 Model에 추가
+	    Map<String, Integer> statusCounts = mOrderService.getStatusCounts();
+	    model.addAttribute("draftCount", statusCounts.getOrDefault("초안", 0)); // 1
+	    model.addAttribute("requestCount", statusCounts.getOrDefault("요청", 0)); // 4  
+	    model.addAttribute("approvedCount", statusCounts.getOrDefault("승인", 0)); // 7
+	    model.addAttribute("completedCount", statusCounts.getOrDefault("입고완료", 0)); // 4
+	    model.addAttribute("canceledCount", statusCounts.getOrDefault("취소", 0)); // 0
+	    
 	    return "material/order/list";
 	}
 
@@ -217,6 +225,19 @@ public class MaterialOrderController {
         }
     }
 	
+	
+	/**
+	 * 발주 상세
+	 */
+	@GetMapping("/detail")
+	@ResponseBody
+	public Map<String,Object> detail(@RequestParam String orderId) throws Exception {
+	    return Map.of(
+	        "header", mOrderService.getOrderHeader(orderId),
+	        "items",  mOrderService.getOrderItems(orderId)
+	    );
+	}
+
 	
 
 } 
