@@ -42,14 +42,36 @@ public class MaterialOutboundController {
     @RequestMapping(value="/list", method=RequestMethod.GET)
     public String list(SearchCriteria cri, Model model) throws Exception {
     	
-        model.addAttribute("list", moService.getOutboundList(cri));
-        model.addAttribute("totalCount", moService.getOutboundCount(cri));
-        model.addAttribute("pendingCount", moService.getOutboundCountByStatus("DRAFT"));
-        model.addAttribute("completedCount", moService.getOutboundCountByStatus("ISSUED"));
-
-        model.addAttribute("waitingOrders", moService.getWaitingOrders());
-        
-        return "material/out/list"; // /WEB-INF/views/material/out/list.jsp
+    	 logger.info("list() called - SearchCriteria: {}", cri);
+    	    
+    	    // SearchCriteria 기본값 설정
+    	    if (cri == null) {
+    	        cri = new SearchCriteria();
+    	    }
+    	    
+    	    // 기본 정렬 설정
+    	    if (cri.getSortColumn() == null || cri.getSortColumn().isEmpty()) {
+    	        cri.setSortColumn("outbound_date");
+    	        cri.setSortOrder("desc");
+    	    }
+    	    
+    	    try {
+    	        // 서비스 호출
+    	        model.addAttribute("list", moService.getOutboundList(cri));
+    	        model.addAttribute("totalCount", moService.getOutboundCount(cri));
+    	        model.addAttribute("pendingCount", moService.getOutboundCountByStatus("DRAFT"));
+    	        model.addAttribute("completedCount", moService.getOutboundCountByStatus("ISSUED"));
+    	        model.addAttribute("waitingOrders", moService.getWaitingOrders());
+    	        model.addAttribute("cri", cri);
+    	        
+    	        logger.info("list() completed successfully");
+    	        
+    	    } catch (Exception e) {
+    	        logger.error("list() error: ", e);
+    	        throw e;
+    	    }
+    	    
+    	    return "material/out/list";
     }
 
     // [AJAX] 대기 작업지시 목록

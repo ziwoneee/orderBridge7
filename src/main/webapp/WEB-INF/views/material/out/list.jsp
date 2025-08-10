@@ -73,28 +73,28 @@
 			</div>
 			
               <!-- 탭 -->
-              <div class="d-flex justify-content-between align-items-center mb-0">
-                <ul class="nav nav-underline-custom" id="statusTab" role="tablist">
-                  <li class="nav-item">
-                    <a class="nav-link ${empty param.status ? 'active' : ''}" 
-                       href="/material/outbound/list?keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
-                      전체 <span class="badge badge-light ms-1"></span>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a class="nav-link ${param.status eq '미출고' ? 'active' : ''}" 
-                       href="/material/outbound/list?status=미출고&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
-                      미출고 <span class="badge badge-light ms-1">${pendingCount}</span>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a class="nav-link ${param.status eq '출고완료' ? 'active' : ''}" 
-                       href="/material/outbound/list?status=출고완료&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
-                      출고완료 <span class="badge badge-light ms-1">${completedCount}</span>
-                    </a>
-                  </li>
-                </ul>
-              </div>
+			<div class="d-flex justify-content-between align-items-center mb-0">
+			  <ul class="nav nav-underline-custom" id="statusTab" role="tablist">
+			    <li class="nav-item">
+			      <a class="nav-link ${empty param.status ? 'active' : ''}" 
+			         href="/material/outbound/list?keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+			        전체 <span class="badge badge-light ms-1">${totalCount}</span>
+			      </a>
+			    </li>
+			    <li class="nav-item">
+			      <a class="nav-link ${param.status eq 'DRAFT' ? 'active' : ''}" 
+			         href="/material/outbound/list?status=DRAFT&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+			        미출고 <span class="badge badge-light ms-1">${pendingCount}</span>
+			      </a>
+			    </li>
+			    <li class="nav-item">
+			      <a class="nav-link ${param.status eq 'ISSUED' ? 'active' : ''}" 
+			         href="/material/outbound/list?status=ISSUED&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+			        출고완료 <span class="badge badge-light ms-1">${completedCount}</span>
+			      </a>
+			    </li>
+			  </ul>
+			</div>
                   
               <!-- 테이블 -->
               <div class="table-responsive">
@@ -154,7 +154,6 @@
                   <!-- 테이블 내용! -->
                   <tbody>
                     <c:forEach var="item" items="${list}">
-                      <c:if test="${item.rowNum == 1}">
                       	<tr>
                  		 <!-- 출고관리번호: rowNum == 1일 때만 표시 -->
    						  <td class="font-weight-medium">${item.outboundId}</td>
@@ -209,7 +208,6 @@
 						</td>
                         
                        </tr>
-                      </c:if>
                     </c:forEach>
                     
                     

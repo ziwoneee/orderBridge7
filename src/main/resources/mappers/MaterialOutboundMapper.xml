@@ -18,15 +18,65 @@
 	    CASE 
 	      WHEN o.status = 'ISSUED' THEN '출고완료'
 	      ELSE '미출고'
-	    END               AS statusDisplay,      
-	    1                 AS rowNum
+	    END               AS statusDisplay,
+	    o.handled_by      AS handledBy
 	  FROM material_outbound o
-	  ORDER BY o.outbound_date DESC
+	  <where>
+	    <if test="status != null and status != ''">
+	      AND o.status = #{status}
+	    </if>
+	    <if test="keyword != null and keyword != ''">
+	      AND (o.outbound_id LIKE CONCAT('%', #{keyword}, '%') 
+	           OR o.work_order_no LIKE CONCAT('%', #{keyword}, '%'))
+	    </if>
+	    <if test="startDate != null and startDate != ''">
+	      AND DATE(o.outbound_date) &gt;= #{startDate}
+	    </if>
+	    <if test="endDate != null and endDate != ''">
+	      AND DATE(o.outbound_date) &lt;= #{endDate}
+	    </if>
+	  </where>
+	  <choose>
+	    <when test="sortColumn != null and sortColumn != ''">
+	      ORDER BY 
+	      <choose>
+	        <when test="sortColumn == 'outbound_id'">o.outbound_id</when>
+	        <when test="sortColumn == 'work_order_no'">o.work_order_no</when>
+	        <when test="sortColumn == 'outbound_date'">o.outbound_date</when>
+	        <when test="sortColumn == 'due_date'">o.due_date</when>
+	        <when test="sortColumn == 'status'">o.status</when>
+	        <otherwise>o.outbound_date</otherwise>
+	      </choose>
+	      <choose>
+	        <when test="sortOrder != null and sortOrder.toLowerCase() == 'asc'">ASC</when>
+	        <otherwise>DESC</otherwise>
+	      </choose>
+	    </when>
+	    <otherwise>
+	      ORDER BY o.outbound_date DESC
+	    </otherwise>
+	  </choose>
 	  LIMIT #{perPageNum} OFFSET #{pageStart}
 	</select>
 	
 	<select id="getMaterialOutboundCount" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
-	  SELECT COUNT(*) FROM material_outbound
+	  SELECT COUNT(*) 
+	  FROM material_outbound o
+	  <where>
+	    <if test="status != null and status != ''">
+	      AND o.status = #{status}
+	    </if>
+	    <if test="keyword != null and keyword != ''">
+	      AND (o.outbound_id LIKE CONCAT('%', #{keyword}, '%') 
+	           OR o.work_order_no LIKE CONCAT('%', #{keyword}, '%'))
+	    </if>
+	    <if test="startDate != null and startDate != ''">
+	      AND DATE(o.outbound_date) &gt;= #{startDate}
+	    </if>
+	    <if test="endDate != null and endDate != ''">
+	      AND DATE(o.outbound_date) &lt;= #{endDate}
+	    </if>
+	  </where>
 	</select>
 	
 	<!-- WAITING 작업지시 -->
