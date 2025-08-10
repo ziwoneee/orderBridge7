@@ -356,7 +356,7 @@
 	    moi.order_item_id,
 	    moi.order_id,
 	    moi.material_id,
-	    moi.order_quantity AS quantity,
+	    moi.order_quantity,
 	    moi.unit_price,
 	    moi.warehouse_code
 	  FROM material_order_item moi
