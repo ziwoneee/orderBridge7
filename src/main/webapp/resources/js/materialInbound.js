@@ -480,11 +480,6 @@ $(document).ready(function () {
       openInboundModal(item);
     });
 
-  // 입고처리 모달의 저장 버튼
-  $('#btnSaveInbound').on('click', function () {
-    processInboundItem();
-  });
-
   console.log('materialInbound.js 로드 완료');
 });
 
