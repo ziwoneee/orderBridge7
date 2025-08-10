@@ -75,7 +75,7 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 
 	    @Transactional
 	    @Override
-	    public void registerOutbound(MaterialOutboundVO vo) {
+	    public void registerOutbound(MaterialOutboundVO vo) throws Exception {
 
 	        // ── 0) NPE 방지: 리스트 null이면 빈 리스트로
 	        List<String> mIds    = (vo.getMaterialIdList()    != null) ? vo.getMaterialIdList()    : java.util.Collections.<String>emptyList();
@@ -223,4 +223,46 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	    public int getOutboundCountByStatus(String status) throws Exception {
 	        return moDAO.countByStatus(status);
 	    }
+	    
+	    
+	    
+	    @Override
+	    @Transactional
+	    public CreateOutboundResult createOutboundIfReady(String workOrderId) throws Exception {
+	        CreateOutboundResult r = new CreateOutboundResult();
+
+	        // 1. 이미 생성돼 있으면 스킵
+	        if (moDAO.existsOutboundByWorkOrder(workOrderId) > 0) {
+	            r.created = false;
+	            r.reason = "already-exists";
+	            return r;
+	        }
+
+	        // 2. 출고 가능 여부 확인
+	        if (moDAO.isWorkOrderReady(workOrderId) != 1) {
+	            r.created = false;
+	            r.reason = "not-ready";
+	            return r;
+	        }
+
+	        // 3. 출고 생성
+	        String outboundId = moDAO.nextOutboundId();
+	        moDAO.insertMaterialOutbound(outboundId, workOrderId);
+	        moDAO.insertOutboundItemsFromWOM(outboundId, workOrderId);
+
+	        r.created = true;
+	        r.outboundId = outboundId;
+	        r.reason = "created";
+	        return r;
+	    }
+	    
+	    
+	    
+	    
+	    
+	    
+	    
+	    
+	    
+	    
 }

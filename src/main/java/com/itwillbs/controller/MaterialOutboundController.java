@@ -7,8 +7,10 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -126,6 +128,24 @@ public class MaterialOutboundController {
     @RequestMapping(value="/work-order", method=RequestMethod.GET)
     public Map<String, Object> workOrder(@RequestParam("workOrderId") String workOrderId) throws Exception {
         return moService.getWorkOrderWithStockMap(workOrderId);
+    }
+    
+    /**
+     * 작업지시서 출고등록 요청
+     * @param workOrderId 작업지시서 ID
+     * @return JSON 형태 결과 (생성여부, 출고ID, 사유)
+     */
+    @PostMapping("/create")
+    @ResponseBody
+    public ResponseEntity<?> create(@RequestParam("workOrderId") String workOrderId) {
+        try {
+            MaterialOutboundService.CreateOutboundResult r = moService.createOutboundIfReady(workOrderId);
+            return ResponseEntity.ok(r);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(
+                java.util.Map.of("created", false, "reason", "error", "message", e.getMessage())
+            );
+        }
     }
 	
 	

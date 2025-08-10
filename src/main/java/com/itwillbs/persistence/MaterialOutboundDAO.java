@@ -27,7 +27,6 @@ public interface MaterialOutboundDAO {
 	Map<String,Object> selectWorkOrderHeader(String workOrderId);
 	List<Map<String,Object>> selectWorkOrderItemsWithStock(String workOrderId);
 	
-	String nextOutboundId();
 	void insertOutboundHeader(Map<String,Object> header);
 	void insertOutboundItems(List<Map<String,Object>> items);
 	
@@ -45,6 +44,21 @@ public interface MaterialOutboundDAO {
 	Date selectWorkOrderDueDate(String workOrderNo);
 	int updateWorkOrderShortageStatus(String workOrderId, String status);
 
+	
+	// 해당 작업지시서가 출고 가능한 상태인지 여부 (1=가능, 0=불가능)
+    int isWorkOrderReady(String workOrderId) throws Exception;
+
+    // 해당 작업지시서의 출고 레코드 존재 여부
+    int existsOutboundByWorkOrder(String workOrderId) throws Exception;
+
+    // 신규 출고 ID 생성
+    String nextOutboundId() throws Exception;
+
+    // 출고 마스터 INSERT
+    void insertMaterialOutbound(String outboundId, String workOrderId) throws Exception;
+
+    // 출고 아이템 INSERT (작업지시서 자재 목록 복사)
+    void insertOutboundItemsFromWOM(String outboundId, String workOrderId) throws Exception;
 	
 	
 

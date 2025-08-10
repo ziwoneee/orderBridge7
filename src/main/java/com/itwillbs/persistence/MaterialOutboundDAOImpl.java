@@ -56,13 +56,8 @@ public class MaterialOutboundDAOImpl implements MaterialOutboundDAO {
 	    	}
 
 	    @Override
-	    public String nextOutboundId() { 
-	    	return sqlSession.selectOne(NAMESPACE + "getNextOutboundId");
-	    	}
-	    
-	    @Override
 	    public void insertOutboundHeader(Map<String,Object> header) {
-	    	sqlSession.insert(NAMESPACE + "insertMaterialOutbound", header);
+	    	sqlSession.insert(NAMESPACE + "insertMaterialOutboundHeader", header);
 	    	}
 	   
 	    @Override
@@ -119,7 +114,41 @@ public class MaterialOutboundDAOImpl implements MaterialOutboundDAO {
 	    }
 
 
+	    // 해당 작업지시서가 출고 가능한 상태인지 여부 (1=가능, 0=불가능)
+	    @Override
+	    public int isWorkOrderReady(String workOrderId) throws Exception {
+	        return sqlSession.selectOne(NAMESPACE + "isWorkOrderReady", workOrderId);
+	    }
 
+	    // 해당 작업지시서의 출고 레코드 존재 여부
+	    @Override
+	    public int existsOutboundByWorkOrder(String workOrderId) throws Exception {
+	        return sqlSession.selectOne(NAMESPACE + "existsOutboundByWorkOrder", workOrderId);
+	    }
+	    
+	    // 신규 출고 ID 생성
+	    @Override
+	    public String nextOutboundId() throws Exception {
+	        return sqlSession.selectOne(NAMESPACE + "nextOutboundId");
+	    }
+
+	    // 출고 마스터 INSERT
+	    @Override
+	    public void insertMaterialOutbound(String outboundId, String workOrderId) throws Exception {
+	        Map<String,Object> p = new HashMap<>();
+	        p.put("outboundId", outboundId);
+	        p.put("workOrderId", workOrderId);
+	        sqlSession.insert(NAMESPACE + "insertMaterialOutbound", p);
+	    }
+
+	    // 출고 아이템 INSERT (작업지시서 자재 목록 복사)
+	    @Override
+	    public void insertOutboundItemsFromWOM(String outboundId, String workOrderId) throws Exception {
+	        Map<String,Object> p = new HashMap<>();
+	        p.put("outboundId", outboundId);
+	        p.put("workOrderId", workOrderId);
+	        sqlSession.insert(NAMESPACE + "insertOutboundItemsFromWOM", p);
+	    }
 
 
 

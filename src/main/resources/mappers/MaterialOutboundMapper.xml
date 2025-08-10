@@ -124,16 +124,8 @@
 	  ORDER BY expiration_date ASC, received_date ASC
 	</select>
 	
-	<!-- 출고 ID -->
-	<select id="getNextOutboundId" resultType="string">
-	  SELECT CONCAT('OUT-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-',
-	    LPAD(COALESCE(MAX(CAST(SUBSTRING_INDEX(outbound_id, '-', -1) AS UNSIGNED)),0)+1,3,'0'))
-	  FROM material_outbound
-	  WHERE outbound_id LIKE CONCAT('OUT-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-%')
-	</select>
-	
 	<!-- 헤더 INSERT -->
-	<insert id="insertMaterialOutbound" parameterType="map">
+	<insert id="insertMaterialOutboundHeader" parameterType="map">
 	  INSERT INTO material_outbound(
 	      outbound_id,
 	      work_order_no,
@@ -254,6 +246,59 @@
 	  WHERE order_id = #{workOrderId}
 	</update>
 	
+
+
+		<!-- [A] 특정 작업지시서가 출고 가능한 상태인지 체크 -->
+	  <!-- 조건: 자재별 재고 수량 >= 지시 필요 수량  → 모든 자재가 충족되어야 함 -->
+	  <select id="isWorkOrderReady" parameterType="string" resultType="int">
+	    SELECT CASE
+	             WHEN COUNT(*) = SUM(CASE WHEN IFNULL(inv.qty,0) >= wom.required_qty THEN 1 ELSE 0 END)
+	             THEN 1 ELSE 0
+	           END AS ready
+	    FROM work_order_material wom
+	    LEFT JOIN (
+	       SELECT material_id, SUM(quantity) AS qty
+	       FROM material_inventory
+	       GROUP BY material_id
+	    ) inv ON inv.material_id = wom.material_id
+	    WHERE wom.work_order_id = #{workOrderId}
+	  </select>
+	
+	  <!-- [B] 해당 작업지시서에 이미 출고 레코드가 있는지 여부 -->
+	  <select id="existsOutboundByWorkOrder" parameterType="string" resultType="int">
+	    SELECT COUNT(*) FROM material_outbound WHERE work_order_id = #{workOrderId}
+	  </select>
+	
+	  <!-- [C] 신규 출고ID 생성 -->
+	  <!-- 형식: OUT-RM-YYYYMMDD-001 -->
+	  <select id="nextOutboundId" resultType="string">
+	    SELECT CONCAT('OUT-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-',
+	           LPAD(COALESCE(MAX(CAST(SUBSTRING_INDEX(outbound_id,'-',-1) AS UNSIGNED)),0)+1,3,'0'))
+	    FROM material_outbound
+	    WHERE outbound_id LIKE CONCAT('OUT-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-%')
+	  </select>
+	
+	  <!-- [D] 출고 마스터 테이블에 INSERT -->
+	  <insert id="insertMaterialOutbound">
+	    INSERT INTO material_outbound(outbound_id, work_order_id, status, created_at, updated_at)
+	    VALUES(#{outboundId}, #{workOrderId}, '미출고', NOW(), NOW())
+	  </insert>
+	
+	  <!-- [E] 출고 아이템 테이블에 INSERT -->
+	  <!-- 작업지시서의 자재 목록을 그대로 복사해 미출고 상태로 생성 -->
+	  <insert id="insertOutboundItemsFromWOM">
+	    SET @row := 0;
+	    INSERT INTO material_outbound_item(outbound_item_id, outbound_id, material_id, quantity, status, created_at, updated_at)
+	    SELECT CONCAT(#{outboundId}, '-', LPAD(@row:=@row+1,3,'0')),
+	           #{outboundId},
+	           wom.material_id,
+	           wom.required_qty,
+	           '미출고',
+	           NOW(),
+	           NOW()
+	    FROM work_order_material wom
+	    WHERE wom.work_order_id = #{workOrderId}
+	  </insert>
 
 
 

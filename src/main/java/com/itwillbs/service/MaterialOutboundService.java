@@ -31,4 +31,20 @@ public interface MaterialOutboundService {
     List<Map<String,Object>> getLotsByMaterial(String materialId) throws Exception;
     
     int getOutboundCountByStatus(String status) throws Exception;
+    
+    
+    
+    /**
+     * 작업지시서가 전 자재 충족 시 출고(미출고) 생성
+     * @param workOrderId 작업지시서 ID
+     * @return 결과 객체 (생성여부, 출고ID, 사유)
+     */
+    CreateOutboundResult createOutboundIfReady(String workOrderId) throws Exception;
+
+    class CreateOutboundResult {
+        public boolean created;     // 생성 여부
+        public String outboundId;   // 생성된 OUT ID
+        public String reason;       // 생성 안한 이유
+    }
+    
 }
