@@ -392,13 +392,20 @@ public class WorkOrderController {
             "order_qty",  "w.order_qty"
         );
 
+        // ✅ null 체크 추가
         String raw = cri.getSortColumn();
-        String col = map.getOrDefault(raw, "w.created_at"); // 기본값
-
+        if (raw == null || raw.trim().isEmpty()) {
+            raw = "created_at"; // 기본값 설정
+        }
+        
+        String col = map.getOrDefault(raw, "w.created_at"); // 이제 안전함
         cri.setSortColumn(col);
 
+        // ✅ sortOrder도 null 체크 추가
         String order = cri.getSortOrder();
-        if (!"asc".equalsIgnoreCase(order) && !"desc".equalsIgnoreCase(order)) {
+        if (order == null || order.trim().isEmpty()) {
+            cri.setSortOrder("desc");
+        } else if (!"asc".equalsIgnoreCase(order) && !"desc".equalsIgnoreCase(order)) {
             cri.setSortOrder("desc");
         } else {
             cri.setSortOrder(order.toLowerCase());

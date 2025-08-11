@@ -42,7 +42,8 @@
 					            data-product="${order.productName}" 
 					            data-product-id="${order.productId}"
 					            data-qty="${order.orderQty}" 
-					            data-line="${order.lineName}">
+					            data-line="${order.lineName}"
+					            data-produced-qty="${order.producedQty != null ? order.producedQty : 0}">
 					      ${order.orderId} - ${order.productName} (${order.status})
 					    </option>
 					  </c:forEach>
@@ -88,23 +89,49 @@
               <div class="col-md-4">
                 <div class="form-group">
                   <label class="form-label">계획수량</label>
-                  <input type="number" id="orderQtyDisplay" class="form-control" readonly style="background-color: #f8f9fa;">
+                  <input type="text" id="totalOrderQty" class="form-control" readonly style="background-color: #f8f9fa; text-align: right; font-weight: 500;">
                 </div>
               </div>
               
               <div class="col-md-4">
+                <div class="form-group">
+                  <label class="form-label">누적실적</label>
+                  <input type="text" id="producedQtyDisplay" class="form-control" readonly style="background-color: #f8f9fa; text-align: right; font-weight: 500;">
+                </div>
+              </div>
+              
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label class="form-label" style="color: #007bff;">잔여수량</label>
+                  <input type="text" id="remainingQty" class="form-control" readonly style="background-color: #e3f2fd; text-align: right; font-weight: bold; color: #1976d2;">
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
                 <div class="form-group">
                   <label class="form-label required">생산수량</label>
-                  <input type="number" name="actualQty" id="actualQty" class="form-control" placeholder="생산수량" min="0" required>
-                  <small class="form-text text-danger" id="qtyWarning" style="display: none;">계획수량을 초과할 수 없습니다.</small>
+                  <div class="input-group">
+                    <input type="text" name="actualQty" id="actualQty" class="form-control" placeholder="생산수량 입력" required style="text-align: right; font-weight: 500;" pattern="[0-9]*" inputmode="numeric">
+                    <div class="input-group-append">
+                      <span class="input-group-text">개</span>
+                    </div>
+                  </div>
+                  <small class="form-text" id="qtyMessage" style="display: none;"></small>
                 </div>
               </div>
               
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <div class="form-group">
-                  <label class="form-label">불량품수량</label>
-                  <input type="number" name="defectQty" id="defectQty" class="form-control" placeholder="불량품수량" min="0" value="0">
-                  <small class="form-text text-danger" id="defectWarning" style="display: none;">불량품수량이 생산수량을 초과할 수 없습니다.</small>
+                  <label class="form-label">불량수량</label>
+                  <div class="input-group">
+                    <input type="number" name="defectQty" id="defectQty" class="form-control" placeholder="불량수량" min="0" value="0" style="text-align: right;">
+                    <div class="input-group-append">
+                      <span class="input-group-text">개</span>
+                    </div>
+                  </div>
+                  <small class="form-text text-danger" id="defectWarning" style="display: none;">불량수량이 생산수량을 초과할 수 없습니다.</small>
                 </div>
               </div>
             </div>
@@ -155,12 +182,14 @@ document.addEventListener('DOMContentLoaded', function () {
   const form = document.getElementById('productionForm');
   const orderSelect = document.getElementById('orderId');
   const productDisplay = document.getElementById('productDisplay');
-  const orderQtyDisplay = document.getElementById('orderQtyDisplay');
+  const totalOrderQty = document.getElementById('totalOrderQty');
+  const producedQtyDisplay = document.getElementById('producedQtyDisplay');
+  const remainingQty = document.getElementById('remainingQty');
   const lineDisplay = document.getElementById('lineDisplay');
   const actualQtyInput = document.getElementById('actualQty');
   const defectQtyInput = document.getElementById('defectQty');
-  const qtyWarning = document.getElementById('qtyWarning');
   const defectWarning = document.getElementById('defectWarning');
+  const qtyMessage = document.getElementById('qtyMessage');
   const startedAtInput = document.querySelector('input[name="startedAt"]');
   const endedAtInput = document.querySelector('input[name="endedAt"]');
   const productIdHidden = document.getElementById('productId');
@@ -174,54 +203,71 @@ document.addEventListener('DOMContentLoaded', function () {
   // 초기 로딩 시 종료시간 = 현재 로컬시각
   endedAtInput.value = getLocalDatetimeForInput(new Date());
 
-  // 작업지시 선택 시 표시값/hidden 세팅
+  // 작업지시 선택 시
   orderSelect.addEventListener('change', function () {
     const opt = this.options[this.selectedIndex];
 
     if (opt && opt.value) {
+      const totalQty = parseInt(opt.dataset.qty) || 0;
+      const producedQty = parseInt(opt.dataset.producedQty) || 0;
+      const remaining = Math.max(0, totalQty - producedQty);
+
       productDisplay.value = opt.dataset.product || '';
-      orderQtyDisplay.value = opt.dataset.qty || '';
       lineDisplay.value = opt.dataset.line || '';
-      productIdHidden.value = opt.dataset.productId || ''; // ★ hidden 설정
+      productIdHidden.value = opt.dataset.productId || '';
+      
+      // 숫자 포맷팅 (천 단위 콤마)
+      totalOrderQty.value = totalQty.toLocaleString() + '개';
+      producedQtyDisplay.value = producedQty.toLocaleString() + '개';
+      remainingQty.value = remaining.toLocaleString() + '개';
     } else {
+      // 초기화
       productDisplay.value = '';
-      orderQtyDisplay.value = '';
       lineDisplay.value = '';
       productIdHidden.value = '';
+      totalOrderQty.value = '';
+      producedQtyDisplay.value = '';
+      remainingQty.value = '';
     }
 
-    // 경고 초기화
-    actualQtyInput.classList.remove('is-invalid');
-    defectQtyInput.classList.remove('is-invalid');
-    qtyWarning.style.display = 'none';
+    // 메시지 초기화
+    qtyMessage.style.display = 'none';
     defectWarning.style.display = 'none';
   });
 
-  // 페이지가 열렸을 때 이미 선택된 값이 있다면 hidden도 세팅
-  (function initSelected() {
-    const opt = orderSelect.options[orderSelect.selectedIndex];
-    if (opt && opt.value) {
-      productIdHidden.value = opt.dataset.productId || '';
-    }
-  })();
+  // ✅ 생산수량 입력 완료 시 처리 (잔여수량 초과 불가)
+  actualQtyInput.addEventListener('blur', function () {
+    const input = parseInt(this.value) || 0;
+    const remainingText = remainingQty.value.replace(/[^0-9]/g, '');
+    const remaining = parseInt(remainingText) || 0;
 
-  // 생산수량 실시간 검증
-  actualQtyInput.addEventListener('input', function () {
-    const actual = parseInt(this.value) || 0;
-    const plan = parseInt(orderQtyDisplay.value) || 0;
-
-    if (plan > 0 && actual > plan) {
-      qtyWarning.style.display = 'block';
-      this.classList.add('is-invalid');
+    if (input > 0) {
+      if (remaining > 0 && input > remaining) {
+        // 잔여수량 초과 시 잔여수량으로 제한
+        this.value = remaining;
+        qtyMessage.style.display = 'block';
+        qtyMessage.textContent = `입력값 ${input}개는 잔여수량을 초과합니다.`;
+        qtyMessage.className = 'form-text text-danger'; // 빨간색 클래스 설정
+        // setTimeout 제거 - 메시지가 계속 떠있게 함
+      } else {
+        qtyMessage.style.display = 'none';
+      }
     } else {
-      qtyWarning.style.display = 'none';
-      this.classList.remove('is-invalid');
+      qtyMessage.style.display = 'none';
     }
+    
     validateDefectQty();
   });
 
-  // 불량수량 실시간 검증
+  // 입력 중에는 숫자만 허용
+  actualQtyInput.addEventListener('input', function () {
+    this.value = this.value.replace(/[^0-9]/g, '');
+    validateDefectQty();
+  });
+
+  // 불량수량 검증
   defectQtyInput.addEventListener('input', validateDefectQty);
+  
   function validateDefectQty() {
     const actual = parseInt(actualQtyInput.value) || 0;
     const defect = parseInt(defectQtyInput.value) || 0;
@@ -235,18 +281,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // 제출 최종 검증
+  // 제출 시 검증
   form.addEventListener('submit', function (e) {
     const orderId = orderSelect.value;
     const actual = parseInt(actualQtyInput.value) || 0;
     const defect = parseInt(defectQtyInput.value) || 0;
-    const plan = parseInt(orderQtyDisplay.value) || 0;
 
     if (!orderId) { alert('작업지시를 선택하세요.'); e.preventDefault(); return; }
     if (actual <= 0) { alert('생산수량은 0보다 커야 합니다.'); e.preventDefault(); return; }
     if (defect < 0) { alert('불량수량은 0 이상이어야 합니다.'); e.preventDefault(); return; }
     if (defect > actual) { alert('불량수량이 생산수량을 초과할 수 없습니다.'); e.preventDefault(); return; }
-    if (plan > 0 && actual > plan) { alert('생산수량이 계획수량을 초과했습니다.'); e.preventDefault(); return; }
 
     const startedVal = startedAtInput.value;
     const endedVal = endedAtInput.value;
