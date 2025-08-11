@@ -246,101 +246,100 @@ $(document).on('input change blur', '.lot-qty', function() {
   window.validateAll();
 });
 
-/* ---------- 폼 제출 시 hidden 필드 생성 ---------- */
-$(document).off('submit', '#outboundForm').on('submit', '#outboundForm', function(e) {
-  const $form = $(this);
-  
-  // 기존 hidden 필드 제거
+/* ---------- 폼 제출 시 hidden 필드 생성 + 예약 선처리 ---------- */
+$(document).off('submit.resv', '#outboundForm')
+.on('submit.resv', '#outboundForm', function(e) {
+  e.preventDefault();                 // 1) 기본 submit 막기
+  const formEl = this;                // 네이티브 form 엘리먼트
+  const $form  = $(formEl);
+
+  // 작업지시서 번호
+  const workOrderNo = $('#workOrderNoHidden').val()
+                   || new URLSearchParams(location.search).get('workOrderId');
+  if (!workOrderNo) { alert('작업지시서를 먼저 선택하세요.'); return; }
+
+  // (선택) 다중 클릭 방지
+  if ($form.data('reserving') === true) return;
+  $form.data('reserving', true);
+  $('#btnSubmit').prop('disabled', true).text('등록 중...');
+
+  // 기존 hidden 초기화
   $form.find('input[name=materialIdList],input[name=reqQtyList],input[name=lotMaterialIdList],input[name=lotNoList],input[name=qtyList],input[name=lotWarehouseList]').remove();
 
-  // 자재별 정보 추가
+  // 자재별 정보 hidden 생성
   $('#materialLotBody tr').each(function() {
     const materialId = $(this).data('material');
-    const required = +($(this).find('.req').data('req') || 0);
-    
+    const required   = +($(this).find('.req').data('req') || 0);
     $form.append($('<input>', { type:'hidden', name:'materialIdList', value: materialId }));
     $form.append($('<input>', { type:'hidden', name:'reqQtyList',    value: required   }));
   });
 
-  // LOT별 출고 정보 추가
+  // LOT별 hidden 생성
   $('.lot-qty').each(function() {
     const quantity = +(this.value || 0);
     if (quantity > 0) {
-      const $element = $(this);
-      $form.append($('<input>', { type:'hidden', name:'lotMaterialIdList', value: $element.data('material') }));
-      $form.append($('<input>', { type:'hidden', name:'lotNoList',         value: $element.data('lot')       }));
-      $form.append($('<input>', { type:'hidden', name:'qtyList',           value: quantity                    }));
-      $form.append($('<input>', { type:'hidden', name:'lotWarehouseList',  value: ($element.data('warehouse') || '') }));
+      const $el = $(this);
+      $form.append($('<input>', { type:'hidden', name:'lotMaterialIdList', value: $el.data('material') }));
+      $form.append($('<input>', { type:'hidden', name:'lotNoList',         value: $el.data('lot')       }));
+      $form.append($('<input>', { type:'hidden', name:'qtyList',           value: quantity              }));
+      $form.append($('<input>', { type:'hidden', name:'lotWarehouseList',  value: ($el.data('warehouse') || '') }));
     }
   });
 
-  return true;
+  // ✅ 예약만 선처리
+  $.post(ctx + '/material/reservation/reserve-only', { workOrderNo: workOrderNo })
+    .done(function(res){
+      if (!res || res.ok !== true) {
+        alert(res && res.message ? res.message : '예약 실패');
+        $form.data('reserving', false);
+        $('#btnSubmit').prop('disabled', false).text('등록');
+        return;
+      }
+      // ✅ jQuery가 아닌 "네이티브 submit" 호출 → 이벤트 재진입 없음
+      formEl.submit();
+    })
+    .fail(function(){
+      alert('예약 처리 중 서버 오류');
+      $form.data('reserving', false);
+      $('#btnSubmit').prop('disabled', false).text('등록');
+    });
 });
+
 
 /* ---------- 부족분 발주 초안 생성 ---------- */
 $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
   e.preventDefault();
 
-  const workOrderId = $('#workOrderNoHidden').val() 
-  || new URLSearchParams(location.search).get('workOrderId');
-
-  if (!workOrderId) { 
-    alert('작업지시서를 먼저 선택하세요.'); 
-    return; 
+  const workOrderId = $('#workOrderNoHidden').val()
+                   || new URLSearchParams(location.search).get('workOrderId');
+  if (!workOrderId) {
+    alert('작업지시서를 먼저 선택하세요.');
+    return;
   }
 
-  const shortages = collectShortages();
-  if (!shortages.length) { 
-    alert('부족분이 없습니다.'); 
-    return; 
-  }
-
-  const payload = {
-    workOrderId: workOrderId,
-    items: shortages.map(shortage => ({ 
-      materialId: shortage.materialId, 
-      lackQty: shortage.lackQty 
-    }))
-  };
-
-  // 로딩 상태 표시
   const $btn = $(this);
   $btn.prop('disabled', true).text('생성 중...');
 
-  $.ajax({
-    url: ctx + '/material/order/draft',
-    method: 'POST',
-    contentType: 'application/json',
-    data: JSON.stringify(payload)
-  })
-  .done(function(response) {
-    if (response.orderId) {
-      alert('발주 초안이 생성되었습니다.\n발주번호: ' + response.orderId);
-      
-      if (response.unmappedMaterials && response.unmappedMaterials.length > 0) {
-        alert('일부 자재는 거래처 매핑이 없어 발주에서 제외되었습니다:\n' + 
-              response.unmappedMaterials.join(', '));
+  $.post(ctx + '/material/reservation/create-shortage-po', { workOrderNo: workOrderId })
+    .done(function(res) {
+      if (res && res.ok === true) {
+        if (res.orderId) {
+          alert('부족분 발주 초안 생성됨: ' + res.orderId);
+          // 필요시 발주 목록 새창/새로고침
+          // window.open(ctx + '/material/order/list', '_blank');
+        } else {
+          alert('부족분이 없어 발주를 생성하지 않았습니다.');
+        }
+      } else {
+        alert((res && res.message) ? res.message : '부족분 발주 실패');
       }
-      
-      // 발주 등록 페이지로 이동할지 확인
-      if (confirm('생성된 발주 초안을 확인하시겠습니까?')) {
-        window.open(ctx + '/material/order/list', '_blank');
-      }
-    } else {
-      alert('발주 초안 생성에 실패했습니다.');
-    }
-  })
-  .fail(function(xhr) {
-    console.error('발주 초안 생성 실패:', xhr.responseText);
-    alert('발주 초안 생성에 실패했습니다.\n' + 
-          (xhr.responseJSON && xhr.responseJSON.message 
-            ? xhr.responseJSON.message 
-            : '서버 오류'));
-  })
-  .always(function() {
-    // 버튼 상태 복원
-    $btn.prop('disabled', false).text('부족분 발주');
-  });
+    })
+    .fail(function(xhr) {
+      alert('부족분 발주 실패\n' + (xhr.responseText || ''));
+    })
+    .always(function() {
+      $btn.prop('disabled', false).text('부족분 발주');
+    });
 });
 
 /* ---------- 출고 처리 ---------- */
