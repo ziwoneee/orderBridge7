@@ -67,8 +67,8 @@
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link ${cri.status == 'DONE' ? 'active' : ''}" 
-                 href="/production/result/list?status=DONE&startDate=${cri.startDate}&endDate=${cri.endDate}&keyword=${cri.keyword}&perPageNum=${cri.perPageNum}">
+              <a class="nav-link ${cri.status == 'COMPLETED' ? 'active' : ''}" 
+                 href="/production/result/list?status=COMPLETED&startDate=${cri.startDate}&endDate=${cri.endDate}&keyword=${cri.keyword}&perPageNum=${cri.perPageNum}">
                 생산완료
               </a>
             </li>
@@ -121,8 +121,8 @@
                       <c:when test="${row.status == 'IN_PROGRESS'}">
                         <span class="badge badge-warning">생산중</span>
                       </c:when>
-                      <c:when test="${row.status == 'DONE'}">
-                        <span class="badge badge-success">완료</span>
+                      <c:when test="${row.status == 'COMPLETED'}">
+                        <span class="badge badge-success">생산 완료</span>
                       </c:when>
                       <c:when test="${empty row.status}">
                         <span class="badge badge-secondary">미등록</span>
