@@ -198,17 +198,4 @@ public interface WorkOrderMapper {
      */
     int deleteWorkOrder(@Param("orderId") String orderId);
     
-    // ========================================================================
-    // 자재 출고관리에 필요
-    // ========================================================================
-
-    /**
-     * 상태가 WAITING인 작업지시 목록 조회
-     * - 출고 등록 시 사용
-     * - 아직 출고되지 않은 대기 작업지시서만 조회
-     * @return 대기 작업지시 목록
-     */
-    List<WorkOrderDTO> selectWaitingWorkOrders();
-
-    
 }

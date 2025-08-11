@@ -90,7 +90,7 @@
 	    wo.due_date   AS dueDate
 	  FROM work_order wo
 	  LEFT JOIN product p ON p.product_id = wo.product_id 
-	  WHERE wo.shortage_status = 'NONE'
+	  WHERE wo.status = 'WAITING'
 	  ORDER BY wo.due_date ASC, wo.order_id ASC
 	</select>
 	
