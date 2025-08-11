@@ -16,4 +16,8 @@ public interface MaterialOutboundMapper {
             @org.apache.ibatis.annotations.Param("status") String status
         );
     
+    // 입고 모달 목록
+    List<Map<String,Object>> getInboundDoneList();
+    
+    String findWorkOrderIdByInbound(String inboundId);
 }

@@ -234,5 +234,13 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
     public void updateOrderStatusToCompletedIfAllInboundDone(String orderId) throws Exception {
         sqlSession.update(NAMESPACE + "updateOrderStatusToCompletedIfAllInboundDone", orderId);
     }
+    
+    
+    // 창고 자동 매칭
+    @Override
+    public String getDefaultWarehouseByMaterialId(String materialId) throws Exception {
+        return sqlSession.selectOne(NAMESPACE + "getDefaultWarehouseByMaterialId", materialId);
+    }
+
 	
 }

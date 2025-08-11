@@ -70,6 +70,7 @@
 			  <a type="button" class="btn btn-success mr-2" id="btnLoadOrder">
 			    작업지시 불러오기
 			  </a>
+			  <button id="btnPickInbound"   class="btn btn-outline-primary btn-sm ml-2">입고완료건 불러오기</button>
 			</div>
 			
               <!-- 탭 -->
@@ -178,7 +179,7 @@
 						</td>
   
 			 	         <!-- 작업지시번호 -->
-			 	         <td>${item.workOrderNo}</td>
+			 	         <td>${item.workOrderId}</td>
 				
 				         <!-- 납기일자 + D-Day -->
 				         <td>
@@ -202,7 +203,7 @@
 						
 						<td>
 						  <c:if test="${item.statusCode ne 'ISSUED'}">
-						    <button type="button" class="btn btn-outline-success"
+						    <button type="button" class="btn btn-outline-success btn-sm"
 						            onclick="processOutbound('${item.outboundId}', this)">출고처리</button>
 						  </c:if>
 						</td>
@@ -281,6 +282,8 @@
 			    </div>
 			  </div>
 			</div>
+			
+			
 
         </div>
         <!-- content-wrapper 끝 -->
@@ -291,6 +294,7 @@
   <!-- container-fluid page-body-wrapper 끝 -->
 </div>
 <!-- container-scroller 끝-->
+<jsp:include page="inboundModal.jsp"/>
 <jsp:include page="orderModal.jsp"/>
 <script>var ctx='${pageContext.request.contextPath}';</script>
 <script src="${pageContext.request.contextPath}/resources/js/materialOutbound.js"></script>

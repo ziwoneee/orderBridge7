@@ -17,8 +17,8 @@
 		  <div class="card-body">
 		    <div class="row">
 		      <div class="col-sm-3">
-		        <label for="workOrderNo">작업지시번호</label>
-		        <input type="text" class="form-control input-sm" id="workOrderNoView" readonly>
+		        <label for="workOrderId">작업지시번호</label>
+		        <input type="text" class="form-control input-sm" id="workOrderIdView" readonly>
 		      </div>
 		      <div class="col-sm-3">
 		        <label for="productId">제품ID</label>
@@ -50,7 +50,7 @@
         <!-- 출고 항목 (추후 작업지시서 기반 자재 불러오기 구현 예정) -->
 		<form id="outboundForm" method="post" action="/material/outbound/register">
 		  <%-- CSRF 쓰면 hidden 추가 --%>
-		  <input type="hidden" name="workOrderNo" id="workOrderNoHidden">
+		  <input type="hidden" name="workOrderId" id="workOrderIdHidden">
 		  <input type="hidden" name="dueDate"     id="dueDateHidden">
 
 		  
@@ -63,7 +63,9 @@
 		            <th style="width:200px;">자재</th>
 		            <th style="width:110px;">필요수량</th>
 		            <th>LOT 선택 (유통기한 빠른 순)</th>
+		            <th>가용(이 WO)</th>
 		            <th style="width:110px;">선택합계</th>
+		            <th>부족</th>
 		          </tr>
 		        </thead>
 		        <tbody id="materialLotBody"><!-- JS 로드 --></tbody>

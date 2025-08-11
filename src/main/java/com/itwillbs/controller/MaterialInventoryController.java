@@ -1,12 +1,15 @@
 package com.itwillbs.controller;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,6 +23,7 @@ import com.itwillbs.domain.MaterialInventoryVO;
 import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.service.MaterialInventoryService;
+import com.itwillbs.service.MaterialReservationService;
 
 @Controller
 @RequestMapping("/material/inventory") // 자재관리 > 재고현황
@@ -32,6 +36,9 @@ public class MaterialInventoryController {
 	// 서비스 객체 주입
 	@Inject
 	private MaterialInventoryService miService;
+	
+	@Inject
+    private MaterialReservationService reservationService;
 	
 	
 	/**
@@ -83,6 +90,28 @@ public class MaterialInventoryController {
 	}
 
 
+	
+	@GetMapping(value="/availability", produces=MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public Map<String,Object> availability(
+            @RequestParam String materialId,
+            @RequestParam(required=false) String workOrderId) throws Exception {
+
+        int onhand        = reservationService.selectOnhand(materialId);
+        int reservedTotal = reservationService.sumReservedByMaterial(materialId);
+        int woReserved    = (workOrderId == null || workOrderId.isEmpty())
+                ? 0 : reservationService.selectWoReserved(workOrderId, materialId);
+
+        // 이번 WO가 쓸 수 있는 가용 = onhand - (전체예약 - 이 WO가 이미 잡아둔 예약)
+        int availableForThisWO = Math.max(0, onhand - (reservedTotal - woReserved));
+
+        Map<String,Object> res = new HashMap<>();
+        res.put("onhandTotal", onhand);
+        res.put("reservedTotal", reservedTotal);
+        res.put("woReserved", woReserved);
+        res.put("availableForThisWO", availableForThisWO);
+        return res;
+    }
 	
 	
 	

@@ -301,14 +301,6 @@ public class WorkOrderServiceImpl implements WorkOrderService {
     }
     
     
-    // 자재 출고관리에 필요
-    /**
-     * 대기(WAITING) 상태의 작업지시 목록 조회
-     */
-    @Override
-    public List<WorkOrderDTO> getWaitingWorkOrders() {
-        return workOrderMapper.selectWaitingWorkOrders();
-    }
 
 
     /**

@@ -19,6 +19,7 @@ import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.WorkOrderVO;
 import com.itwillbs.mapper.MaterialOutboundMapper;
 import com.itwillbs.persistence.MaterialOutboundDAO;
+import com.itwillbs.persistence.MaterialReservationDAO;
 
 /**
  * 출고 관리 서비스 구현체
@@ -33,6 +34,9 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	
 	@Inject
 	private MaterialOutboundMapper mapper;
+	
+	@Inject
+	private MaterialReservationDAO reservationDAO;
 	
 	
 	private static final Logger logger = LoggerFactory.getLogger(MaterialOutboundServiceImpl.class);
@@ -116,21 +120,44 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	            list.add(one);
 	        }
 
-	        // ── 3) 검증: ΣLOT == 필요수량
-	        for (String mid : reqMap.keySet()) {
-	            int req = reqMap.get(mid) != null ? reqMap.get(mid).intValue() : 0;
-	            int sum = 0;
-	            List<Map<String,Object>> list = picks.get(mid);
-	            if (list != null) {
-	                for (Map<String,Object> p : list) {
-	                    Object v = p.get("qty");
-	                    if (v instanceof Number) sum += ((Number) v).intValue();
-	                }
-	            }
-	            if (req != sum) {
-	                throw new IllegalArgumentException("필요수량 불일치: " + mid + " (필요:" + req + ", 선택:" + sum + ")");
-	            }
-	        }
+		     // ── 3) 검증: ΣLOT == target(= min(required, cap))
+		     // cap = min(required, a4wo)
+		     // a4wo = max(0, onhand - reservedOthers) + reservedThis
+		     for (String mid : reqMap.keySet()) {
+		         if ("RM-0015".equals(mid)) {
+		             // 물은 LOT 불필요/직접출고 → 검증 패스
+		             continue;
+		         }
+	
+		         int required = reqMap.get(mid) != null ? reqMap.get(mid) : 0;
+	
+		         // LOT 선택합계
+		         int sum = 0;
+		         List<Map<String,Object>> list = picks.get(mid);
+		         if (list != null) {
+		             for (Map<String,Object> p : list) {
+		                 Object v = p.get("qty");
+		                 if (v instanceof Number) sum += ((Number) v).intValue();
+		             }
+		         }
+	
+		         // a4wo 계산
+		         int onhand       = reservationDAO.selectOnhand(mid);
+		         int reservedAll  = reservationDAO.sumReservedByMaterial(mid);
+		         int reservedThis = reservationDAO.selectWoReserved(vo.getWorkOrderId(), mid);
+		         int reservedOthers = Math.max(reservedAll - reservedThis, 0);
+		         int a4wo = Math.max(0, onhand - reservedOthers) + reservedThis;
+	
+		         int cap    = Math.min(required, a4wo);
+		         int target = Math.min(required, cap); // (= cap)
+	
+		         if (sum != target) {
+		             throw new IllegalArgumentException(
+		                 "필요수량 불일치: " + mid + " (필요:" + required + ", target:" + target + ", 선택:" + sum + ")"
+		             );
+		         }
+		     }
+
 
 	        // ── 4) ID 발급 + 헤더 저장
 	        String outboundId = moDAO.nextOutboundId();
@@ -141,13 +168,13 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	        
 	        // 2-2) 폼에 없으면 DB에서 조회
 	        if (dueDate == null) {
-	            if (vo.getWorkOrderNo() == null || vo.getWorkOrderNo().isEmpty()) {
-	                throw new IllegalStateException("workOrderNo가 없습니다.(폼 바인딩 확인)");
+	            if (vo.getWorkOrderId() == null || vo.getWorkOrderId().isEmpty()) {
+	                throw new IllegalStateException("workOrderId가 없습니다.(폼 바인딩 확인)");
 	            }
-	            dueDate = moDAO.selectWorkOrderDueDate(vo.getWorkOrderNo());
+	            dueDate = moDAO.selectWorkOrderDueDate(vo.getWorkOrderId());
 	        }
 	        if (dueDate == null) {
-	            throw new IllegalStateException("작업지시 due_date 없음: " + vo.getWorkOrderNo());
+	            throw new IllegalStateException("작업지시 due_date 없음: " + vo.getWorkOrderId());
 	        }
 	        
 	        if (outboundId == null || outboundId.isEmpty()) {
@@ -156,14 +183,14 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	        
 	        Map<String,Object> header = new HashMap<>();
 	        header.put("outbound_id", outboundId);
-	        header.put("work_order_no", vo.getWorkOrderNo());
+	        header.put("work_order_id", vo.getWorkOrderId());
 	        header.put("handled_by",   vo.getHandledBy());
 	        header.put("status",        vo.getStatus());
 	        header.put("due_date",      dueDate);
 	        
 	        moDAO.insertOutboundHeader(header);
 
-	     // ── 5) 항목 저장(LOT별)
+	        // ── 5) 항목 저장(LOT별)
 	        List<Map<String,Object>> rows = new ArrayList<>();
 	        int idx = 1; // ★ 아이템 일련번호
 
@@ -190,7 +217,15 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	            moDAO.insertOutboundItems(rows);
 	        }
 	        
-	        moDAO.updateWorkOrderShortageStatus(vo.getWorkOrderNo(), "CHECKED");
+	        // 여기서 남은 필요수량 체크 → 상태 갱신
+	        int remain = moDAO.countRemainByWorkOrder(vo.getWorkOrderId()); // 0이면 모두 충족
+	        if (remain == 0) {
+	            moDAO.updateWorkOrderShortageResolved(vo.getWorkOrderId()); // shortage_status = RESOLVED
+	            // (선택) 전부 충족시 지시 상태도 완료 처리
+	            // moDAO.updateWorkOrderIssuedCompleted(vo.getWorkOrderId());
+	        } else {
+	            moDAO.updateWorkOrderShortageStatus(vo.getWorkOrderId(), "CHECKED"); // 아직 모자람
+	        }
 	    }
 
 
@@ -207,9 +242,16 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 
 	    @Transactional
 	    @Override
-	    public void processOutbound(String outboundId) {
+	    public void processOutbound(String outboundId) throws Exception {
+	        // 1) 재고 차감
 	        int affected = moDAO.decreaseInventoryByOutbound(outboundId);
 	        if (affected <= 0) throw new IllegalStateException("재고 차감 실패");
+
+	        // 2) 예약 차감 + 0행 정리 (같은 트랜잭션)
+	        reservationDAO.consumeReservationByOutbound(outboundId);
+	        reservationDAO.deleteZeroReservationsByOutbound(outboundId);
+
+	        // 3) 출고 완료
 	        moDAO.updateOutboundCompleted(outboundId);
 	    }
     

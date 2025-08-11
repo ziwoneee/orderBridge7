@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.itwillbs.mapper.MaterialReservationMapper">
+
+	  <!-- [예약 upsert]
+	       - 같은 (wo, material)면 수량 누적
+	       - updated_at 자동 갱신 -->
+	  <insert id="upsertReservation">
+	    INSERT INTO material_reservation (work_order_id, material_id, reserved_qty)
+	    VALUES (#{workOrderId}, #{materialId}, #{qty})
+	    ON DUPLICATE KEY UPDATE
+	      reserved_qty = reserved_qty + VALUES(reserved_qty),
+	      updated_at   = CURRENT_TIMESTAMP
+	  </insert>
+	
+	  <!-- [자재별 총 예약합] -->
+	  <select id="sumReservedByMaterial" parameterType="string" resultType="int">
+	    SELECT COALESCE(SUM(reserved_qty),0)
+	    FROM material_reservation
+	    WHERE material_id = #{materialId}
+	  </select>
+	
+	  <!-- [해당 WO의 예약 수량] -->
+	  <select id="selectWoReserved" resultType="int">
+	    SELECT COALESCE(reserved_qty,0)
+	    FROM material_reservation
+	    WHERE work_order_id = #{workOrderId}
+	      AND material_id   = #{materialId}
+	  </select>
+	
+	 <!-- 현재고: 폐기 제외, 창고 제한 없음(고정 창고는 material 테이블에서 사용) -->
+	  <select id="selectOnhand" parameterType="string" resultType="int">
+	    SELECT COALESCE(SUM(COALESCE(mi.actual_quantity, mi.quantity)), 0)
+	    FROM material_inventory mi
+	    WHERE mi.material_id = #{materialId}
+	      AND (mi.is_discarded IS NULL OR mi.is_discarded = 0)
+	  </select>
+
+	
+	  <!-- [WO 필요자재 목록]
+	       - work_order_material 테이블에서 required_qty 가져옴 -->
+	  <select id="selectWoMaterials" parameterType="string" resultType="map">
+	    SELECT
+	      wom.material_id  AS materialId,
+	      wom.required_qty AS requiredQty
+	    FROM work_order_material wom
+	    WHERE wom.work_order_id = #{workOrderId}
+	  </select>
+	
+	  <!-- [모든 자재 예약 충족 시 RESOLVED 전환]
+	       - 예약이 하나라도 부족하면 업데이트 안 됨 -->
+	  <update id="resolveIfAllReserved" parameterType="string">
+	    UPDATE work_order w
+	    SET w.shortage_status = 'RESOLVED'
+	    WHERE w.order_id = #{workOrderId}
+	      AND NOT EXISTS (
+	        SELECT 1
+	        FROM work_order_material wom
+	        LEFT JOIN material_reservation r
+	          ON r.work_order_id = wom.work_order_id
+	         AND r.material_id   = wom.material_id
+	        WHERE wom.work_order_id = w.order_id
+	          AND COALESCE(r.reserved_qty,0) &lt; wom.required_qty
+	      )
+	  </update>
+	
+	  <!-- [예약 해제] 출고 확정(ISSUED) 시 호출 -->
+	  <update id="releaseReservation">
+	    UPDATE material_reservation
+	    SET reserved_qty = GREATEST(reserved_qty - #{qty}, 0),
+	        updated_at   = CURRENT_TIMESTAMP
+	    WHERE work_order_id = #{workOrderId}
+	      AND material_id   = #{materialId}
+	  </update>
+	  
+	  <!-- 상태 단순 변경 -->
+		<update id="markWorkOrderShortageStatus" parameterType="map">
+		  UPDATE work_order
+		     SET shortage_status     = #{status},
+		         shortage_checked_at = NOW(),
+		         shortage_checked_by = #{userId}
+		   WHERE order_id = #{workOrderId}
+		</update>
+		
+		<!-- (옵션) 안전 전이: 현재 상태가 기대값일 때만 변경 -->
+		<update id="transitionShortageStatus" parameterType="map">
+		  UPDATE work_order
+		     SET shortage_status     = #{to},
+		         shortage_checked_at = NOW()
+		   WHERE order_id = #{workOrderId}
+		     AND shortage_status = #{from}
+		</update>
+		
+		
+		<!-- 이번 출고(outboundId)로 사용된 수량만큼 예약 차감 -->
+		<update id="consumeReservationByOutbound" parameterType="string">
+		  UPDATE material_reservation r
+		  JOIN (
+		    SELECT o.work_order_id, i.material_id, SUM(i.quantity) AS used_qty
+		    FROM material_outbound_item i
+		    JOIN material_outbound o ON o.outbound_id = i.outbound_id
+		    WHERE i.outbound_id = #{_parameter}
+		    GROUP BY o.work_order_id, i.material_id
+		  ) u ON u.work_order_id = r.work_order_id
+		     AND u.material_id   = r.material_id
+		  SET r.reserved_qty = GREATEST(r.reserved_qty - u.used_qty, 0),
+		      r.updated_at   = NOW()
+		</update>
+		
+		<!-- 0이 된 예약행 정리 -->
+		<delete id="deleteZeroReservationsByOutbound" parameterType="string">
+		  DELETE r
+		  FROM material_reservation r
+		  JOIN material_outbound o ON o.work_order_id = r.work_order_id
+		  WHERE o.outbound_id = #{_parameter}
+		    AND r.reserved_qty = 0
+		</delete>
+				
+	  
+
+</mapper>

@@ -408,8 +408,6 @@
 			              <th>품명</th>
 			              <th>발주수량</th>
 			              <th>입고수량</th>
-			              <th>단가</th>
-			              <th>총금액</th>
 			              <th>처리</th>
 			            </tr>
 			          </thead>

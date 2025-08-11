@@ -14,7 +14,7 @@ public class MaterialOutboundVO {
     private Date outboundDate;        // 출고일자 (출고 처리된 날짜)
     private String handledBy;         // 출고 담당자 (출고 처리자 이름 또는 ID)
     private String status;            // 출고 상태 (출고 대기 / 완료 여부 등)
-    private String workOrderNo;       // 작업지시 ID
+    private String workOrderId;       // 작업지시 ID
     private Date workOrderDate;       // 작업지시일자 (지시가 생성된 날짜)
     
     @DateTimeFormat(pattern = "yyyy-MM-dd")
