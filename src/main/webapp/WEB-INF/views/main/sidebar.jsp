@@ -59,7 +59,7 @@
 	            <div class="collapse ${menu eq 'production' ? 'show' : ''}" id="menu-production">
 	              <ul class="nav flex-column sub-menu">
 	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/workorder/list">작업 지시</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/plan/list">실적 관리</a></li>
+	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/production/result/list">실적 관리</a></li>
 	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/mps/production/write">품질 관리</a></li>
 	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/mps/quality/list">라인 관리</a></li>
 	              </ul>
