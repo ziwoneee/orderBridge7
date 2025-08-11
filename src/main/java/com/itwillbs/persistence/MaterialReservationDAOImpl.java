@@ -93,5 +93,29 @@ public class MaterialReservationDAOImpl implements MaterialReservationDAO {
     }
     
     
+    @Override
+    public int markWorkOrderShortageStatus(String wo, String status, String uid) throws Exception {
+        Map<String,Object> p = new HashMap<>();
+        p.put("workOrderNo", wo);
+        p.put("status", status);
+        p.put("userId", uid);
+        return sqlSession.update(NAMESPACE + "markWorkOrderShortageStatus", p);
+    }
+
+
+    @Override
+    public int transitionShortageStatus(String workOrderNo, String from, String to, String userId) throws Exception {
+        Map<String, Object> params = new HashMap<>();
+        params.put("workOrderNo", workOrderNo);
+        params.put("from", from);
+        params.put("to", to);
+        params.put("userId", userId);
+        return sqlSession.update(NAMESPACE + "transitionShortageStatus", params);
+    }
+
+
+    
+    
+    
 
 }

@@ -98,6 +98,14 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
 
         // 모든 자재 예약 충족 → RESOLVED 갱신 시도
         reservationDAO.resolveIfAllReserved(workOrderNo);
+        
+        int upd = reservationDAO.transitionShortageStatus(workOrderNo, "DRAFTED", "ALLOCATED", userId);
+        if (upd == 0) {
+            upd = reservationDAO.transitionShortageStatus(workOrderNo, "CHECKED", "ALLOCATED", userId);
+            if (upd == 0) {
+                reservationDAO.transitionShortageStatus(workOrderNo, "NONE", "ALLOCATED", userId);
+            }
+        }
 
         return outboundId;
     }
@@ -170,7 +178,10 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
         // 1-1) 우선협력사 선정: unitPrice ASC (is_preferred 컬럼 없으므로 가격 기준)
         Map<String, Map<String,Object>> chosen = new HashMap<>();
         for (String mid : mids) {
-            List<Map<String,Object>> cands = candByMat.getOrDefault(mid, List.of());
+        	List<Map<String,Object>> cands = candByMat.containsKey(mid)
+        		    ? candByMat.get(mid)
+        		    : java.util.Collections.<Map<String,Object>>emptyList();
+            
             if (cands.isEmpty()) continue;
             cands.sort((a,b) -> {
                 int au = ((Number)a.getOrDefault("unitPrice", 0)).intValue();
@@ -239,6 +250,12 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
             }
 
             orderDAO.insertOrderItemsBatch(batch);
+            
+        }
+        
+        int upd = reservationDAO.transitionShortageStatus(workOrderNo, "NONE", "DRAFTED", userId);
+        if (upd == 0) {
+            reservationDAO.transitionShortageStatus(workOrderNo, "CHECKED", "DRAFTED", userId);
         }
 
         return firstOrderId; // 필요하면 List<String>으로 바꿔서 전부 반환
@@ -251,11 +268,18 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
      */
     @Override
     @Transactional
-    public void releaseReservationOnIssue(String workOrderNo, List<Map<String,Object>> items) throws Exception {
+    public void releaseReservationOnIssue(String workOrderNo, List<Map<String,Object>> items, String userId) throws Exception {
         for (Map<String,Object> it : items) {
             String materialId = (String) it.get("materialId");
             int qty           = ((Number) it.get("qty")).intValue();
             reservationDAO.releaseReservation(workOrderNo, materialId, qty);
+        }
+        
+        // 재고/예약 해제 성공 후 상태 갱신
+        // [STATE] ALLOCATED → RESOLVED (직접 발행 케이스 대비 DRAFTED도 허용)
+        int upd = reservationDAO.transitionShortageStatus(workOrderNo, "ALLOCATED", "RESOLVED", userId);
+        if (upd == 0) {
+            reservationDAO.transitionShortageStatus(workOrderNo, "DRAFTED", "RESOLVED", userId);
         }
     }
     
@@ -282,7 +306,6 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
             if (stillNeed > 0) allOk = false; // 부족 남음
         }
 
-        if (allOk) reservationDAO.resolveIfAllReserved(workOrderNo); // 전량 예약되면 상태 갱신
         return allOk;
     }
     

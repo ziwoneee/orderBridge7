@@ -31,7 +31,7 @@ public interface MaterialReservationService {
      * - 예약 수량은 여기서 해제(차감)
      * - items: materialId, qty 리스트
      */
-    void releaseReservationOnIssue(String workOrderNo, List<Map<String,Object>> items) throws Exception;
+    void releaseReservationOnIssue(String workOrderNo, List<Map<String,Object>> items, String userId) throws Exception;
     
     // 등록 직전 "예약만" 선처리: 전표/PO 생성 안 함	
     boolean reserveOnlyForWo(String workOrderNo) throws Exception;
@@ -39,5 +39,6 @@ public interface MaterialReservationService {
     int selectOnhand(String materialId) throws Exception;
     int sumReservedByMaterial(String materialId) throws Exception;
     int selectWoReserved(String workOrderNo, String materialId) throws Exception;
+
     
 }

@@ -76,5 +76,24 @@
 	    WHERE work_order_no = #{workOrderNo}
 	      AND material_id   = #{materialId}
 	  </update>
+	  
+	  <!-- 상태 단순 변경 -->
+		<update id="markWorkOrderShortageStatus" parameterType="map">
+		  UPDATE work_order
+		     SET shortage_status     = #{status},
+		         shortage_checked_at = NOW(),
+		         shortage_checked_by = #{userId}
+		   WHERE order_id = #{workOrderNo}
+		</update>
+		
+		<!-- (옵션) 안전 전이: 현재 상태가 기대값일 때만 변경 -->
+		<update id="transitionShortageStatus" parameterType="map">
+		  UPDATE work_order
+		     SET shortage_status     = #{to},
+		         shortage_checked_at = NOW()
+		   WHERE order_id = #{workOrderNo}
+		     AND shortage_status = #{from}
+		</update>
+	  
 
 </mapper>

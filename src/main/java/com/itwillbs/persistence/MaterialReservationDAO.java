@@ -30,5 +30,11 @@ public interface MaterialReservationDAO {
     // 출고 확정(ISSUED) 시 예약 수량 차감
     int releaseReservation(String workOrderNo, String materialId, int qty) throws Exception;
     
+    // 상태 단순 변경
+    int markWorkOrderShortageStatus(String workOrderNo, String status, String userId) throws Exception;
+	// (옵션) 안전 전이
+	int transitionShortageStatus(String workOrderNo, String from, String to, String userId) throws Exception;
+
+    
 
 }
