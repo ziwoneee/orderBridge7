@@ -202,7 +202,7 @@
 						
 						<td>
 						  <c:if test="${item.statusCode ne 'ISSUED'}">
-						    <button type="button" class="btn btn-outline-success"
+						    <button type="button" class="btn btn-outline-success btn-sm"
 						            onclick="processOutbound('${item.outboundId}', this)">출고처리</button>
 						  </c:if>
 						</td>
