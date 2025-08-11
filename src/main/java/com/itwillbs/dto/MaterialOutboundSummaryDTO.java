@@ -8,7 +8,7 @@ import lombok.Data;
 public class MaterialOutboundSummaryDTO {
 	
     private String outboundId;
-    private String workOrderNo;
+    private String workOrderId;
     private Date workOrderDate;
     private Date dueDate;
     private Date outboundDate;

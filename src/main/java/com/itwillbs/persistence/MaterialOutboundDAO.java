@@ -41,7 +41,7 @@ public interface MaterialOutboundDAO {
 	int countByStatus(String status);
 	
 	// MaterialOutboundDAO.java
-	Date selectWorkOrderDueDate(String workOrderNo);
+	Date selectWorkOrderDueDate(String workOrderId);
 	int updateWorkOrderShortageStatus(String workOrderId, String status);
 
 	

@@ -67,36 +67,56 @@ function fmtDate(value) {
   return toYmd(value); 
 }
 
-/* ---------- register.jsp: 초기 로드 ---------- */
+//* ---------- register.jsp: 초기 로드 ---------- */
 $(function(){
   if (!$('#outboundForm').length) return;
 
   const params = new URLSearchParams(location.search);
   const workOrderId = params.get('workOrderId');
-  if (!workOrderId) return;
+  const inboundId   = params.get('inboundId');
 
-  $.get(ctx + '/material/outbound/work-order', { workOrderId }, function(dto){
-    const no  = dto.workOrderNo || '';
-    const due = toYmd(dto.dueDate) || '';
+  // 둘 다 없으면 대기
+  if (!workOrderId && !inboundId) return;
 
-    // 화면 표시(뷰용)
-    $('#workOrderNoView').val(no);
-    $('#dueDateView').val(due);
+  // 1) workOrderId 있으면: 기존대로 로드
+  if (workOrderId) {
+    $.get(ctx + '/material/outbound/work-order', { workOrderId }, function(dto){
+      const no  = dto.workOrderId || '';
+      const due = toYmd(dto.dueDate) || '';
+      $('#workOrderIdView').val(no);
+      $('#dueDateView').val(due);
+      $('#workOrderIdHidden').val(no);
+      $('#dueDateHidden').val(due);
+      $('#productId').val(dto.productId || '');
+      $('#lineId').val(dto.lineId || '');
+      renderMaterialRows(dto.materialList || []);
+    }).fail(function(xhr) {
+      console.error('작업지시서 정보 로드 실패:', xhr);
+      alert('작업지시서 정보를 불러올 수 없습니다.');
+    });
+    return;
+  }
 
-    // 폼 전송용(hidden)
-    $('#workOrderNoHidden').val(no);
-    $('#dueDateHidden').val(due);
-
-    // 나머지 표시용 필드
-    $('#productId').val(dto.productId || '');
-    $('#lineId').val(dto.lineId || '');
-
-    renderMaterialRows(dto.materialList || []);
-  }).fail(function(xhr) {
-    console.error('작업지시서 정보 로드 실패:', xhr);
-    alert('작업지시서 정보를 불러올 수 없습니다.');
-  });
+  // 2) inboundId만 있으면: 서버에 매핑 질의 → 성공시 리다이렉트
+  if (inboundId) {
+    $.get(ctx + '/material/outbound/resolve-workorder', { inboundId })
+      .done(function(res){
+        if (res && res.workOrderId) {
+          window.location.replace(
+            ctx + '/material/outbound/register?workOrderId=' 
+            + encodeURIComponent(res.workOrderId)
+            + '&inboundId=' + encodeURIComponent(inboundId)
+          );
+        } else {
+          alert('이 입고건에 연결된 작업지시를 찾지 못했습니다. 상단 "작업지시 불러오기"로 선택해주세요.');
+        }
+      })
+      .fail(function(){
+        alert('작업지시 매핑을 찾지 못했습니다. 상단 "작업지시 불러오기"로 선택해주세요.');
+      });
+  }
 });
+
 
 /* ---------- 자재 행 렌더링 ---------- */
 function renderMaterialRows(items) {
@@ -108,7 +128,7 @@ function renderMaterialRows(items) {
   }
 
   const promises = (items || []).map(function(item) {
-	  const workOrderNo = $('#workOrderNoHidden').val()
+	  const workOrderId = $('#workOrderIdHidden').val()
 	                   || new URLSearchParams(location.search).get('workOrderId');
 	  const required = Number(item.requiredQty) || 0;
 
@@ -119,7 +139,7 @@ function renderMaterialRows(items) {
 
 	    // availability 실패도 '성공 payload'로 변환해서 넘김
 	    return $.get(ctx + '/material/inventory/availability',
-	                 { materialId: item.materialId, workOrderNo: workOrderNo })
+	                 { materialId: item.materialId, workOrderId: workOrderId })
 	      .then(
 	        function(avail) {
 	          return { lots: lots, avail: (avail || {}) };
@@ -406,9 +426,9 @@ $(document).off('submit.resv', '#outboundForm')
   const $form  = $(formEl);
 
   // 작업지시서 번호
-  const workOrderNo = $('#workOrderNoHidden').val()
+  const workOrderId = $('#workOrderIdHidden').val()
                    || new URLSearchParams(location.search).get('workOrderId');
-  if (!workOrderNo) { 
+  if (!workOrderId) { 
     alert('작업지시서를 먼저 선택하세요.'); 
     return; 
   }
@@ -444,7 +464,7 @@ $(document).off('submit.resv', '#outboundForm')
   });
 
   // ✅ 예약만 선처리
-  $.post(ctx + '/material/reservation/reserve-only', { workOrderNo: workOrderNo })
+  $.post(ctx + '/material/reservation/reserve-only', { workOrderId: workOrderId })
     .done(function(res){
       if (!res || res.ok !== true) {
         alert(res && res.message ? res.message : '예약 실패');
@@ -467,7 +487,7 @@ $(document).off('submit.resv', '#outboundForm')
 $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
   e.preventDefault();
 
-  const workOrderId = $('#workOrderNoHidden').val()
+  const workOrderId = $('#workOrderIdHidden').val()
                    || new URLSearchParams(location.search).get('workOrderId');
   if (!workOrderId) {
     alert('작업지시서를 먼저 선택하세요.');
@@ -479,7 +499,7 @@ $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
   
   $btn.prop('disabled', true).text('생성 중...');
 
-  $.post(ctx + '/material/reservation/create-shortage-po', { workOrderNo: workOrderId })
+  $.post(ctx + '/material/reservation/create-shortage-po', { workOrderId: workOrderId })
     .done(function(res) {
       console.log('부족분 발주 응답:', res);
       if (res && res.ok === true) {
@@ -534,7 +554,7 @@ window.loadOutboundDetail = function(outboundId) {
       html += '<div class="col-12"><h6>출고 정보</h6>';
       html += '<table class="table table-sm">';
       html += '<tr><th>출고번호</th><td>' + (data.outboundId || '') + '</td>';
-      html += '<th>작업지시</th><td>' + (data.workOrderNo || '') + '</td></tr>';
+      html += '<th>작업지시</th><td>' + (data.workOrderId || '') + '</td></tr>';
       html += '<tr><th>출고일자</th><td>' + (data.outboundDate || '-') + '</td>';
       html += '<th>담당자</th><td>' + (data.handledBy || '') + '</td></tr>';
       html += '</table></div>';

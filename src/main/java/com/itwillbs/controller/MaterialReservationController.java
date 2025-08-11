@@ -49,12 +49,12 @@ public class MaterialReservationController {
     )
     @ResponseBody
     public Map<String, Object> registerOrDraft(
-            @RequestParam("workOrderNo") String workOrderNo,
+            @RequestParam("workOrderId") String workOrderId,
             HttpSession session) {
         Map<String,Object> res = new HashMap<>();
         try {
             String userId = getUserId(session);
-            String outboundId = reservationService.registerOrDraftOutbound(workOrderNo, userId);
+            String outboundId = reservationService.registerOrDraftOutbound(workOrderId, userId);
 
             res.put("ok", true);
             res.put("outboundId", outboundId); // null이면 “부족 있음”
@@ -82,12 +82,12 @@ public class MaterialReservationController {
     )
     @ResponseBody
     public Map<String, Object> createShortagePO(
-            @RequestParam("workOrderNo") String workOrderNo,
+            @RequestParam("workOrderId") String workOrderId,
             HttpSession session) {
         Map<String,Object> res = new HashMap<>();
         try {
             String userId = getUserId(session);
-            String orderId = reservationService.createShortageDraftPO(workOrderNo, userId);
+            String orderId = reservationService.createShortageDraftPO(workOrderId, userId);
 
             res.put("ok", true);
             res.put("orderId", orderId); // null이면 “부족 없음”
@@ -106,10 +106,10 @@ public class MaterialReservationController {
     // 등록 직전 "예약만" 선처리: 전표/PO 생성 안 함
     @PostMapping(value="/reserve-only", produces="application/json")
     @ResponseBody
-    public Map<String,Object> reserveOnly(@RequestParam("workOrderNo") String workOrderNo) {
+    public Map<String,Object> reserveOnly(@RequestParam("workOrderId") String workOrderId) {
         Map<String,Object> res = new HashMap<>();
         try {
-            boolean allOk = reservationService.reserveOnlyForWo(workOrderNo); // 아래 B) 참고
+            boolean allOk = reservationService.reserveOnlyForWo(workOrderId); // 아래 B) 참고
             res.put("ok", true);
             res.put("reservedAll", allOk); // 전량 예약 여부 (정보용)
             res.put("message", allOk ? "예약 완료(전량)" : "예약 완료(일부). 부족분 존재");

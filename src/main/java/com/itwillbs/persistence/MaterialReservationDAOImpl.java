@@ -25,9 +25,9 @@ public class MaterialReservationDAOImpl implements MaterialReservationDAO {
 	
 	// 예약 upsert: 같은 (WO, 자재)이면 수량 누적
 	@Override
-    public int upsertReservation(String workOrderNo, String materialId, int qty) throws Exception {
+    public int upsertReservation(String workOrderId, String materialId, int qty) throws Exception {
         Map<String,Object> p = new HashMap<>();
-        p.put("workOrderNo", workOrderNo);
+        p.put("workOrderId", workOrderId);
         p.put("materialId",  materialId);
         p.put("qty",         qty);
         // <insert id="upsertReservation">
@@ -46,9 +46,9 @@ public class MaterialReservationDAOImpl implements MaterialReservationDAO {
     
     // 해당 작업지시서가 이미 예약한 수량(없으면 0)
     @Override
-    public int selectWoReserved(String workOrderNo, String materialId) throws Exception {
+    public int selectWoReserved(String workOrderId, String materialId) throws Exception {
         Map<String,Object> p = new HashMap<>();
-        p.put("workOrderNo", workOrderNo);
+        p.put("workOrderId", workOrderId);
         p.put("materialId",  materialId);
         // <select id="selectWoReserved">
         Integer n = sqlSession.selectOne(NAMESPACE + "selectWoReserved", p);
@@ -67,25 +67,25 @@ public class MaterialReservationDAOImpl implements MaterialReservationDAO {
     
     // 작업지시서 필요자재 목록(materialId, requiredQty)
     @Override
-    public List<Map<String, Object>> selectWoMaterials(String workOrderNo) throws Exception {
+    public List<Map<String, Object>> selectWoMaterials(String workOrderId) throws Exception {
         // <select id="selectWoMaterials">
-        return sqlSession.selectList(NAMESPACE + "selectWoMaterials", workOrderNo);
+        return sqlSession.selectList(NAMESPACE + "selectWoMaterials", workOrderId);
     }
 
     
     // 모든 자재 예약 충족 시 work_order.shortage_status = RESOLVED
     @Override
-    public int resolveIfAllReserved(String workOrderNo) throws Exception {
+    public int resolveIfAllReserved(String workOrderId) throws Exception {
         // <update id="resolveIfAllReserved">
-        return sqlSession.update(NAMESPACE + "resolveIfAllReserved", workOrderNo);
+        return sqlSession.update(NAMESPACE + "resolveIfAllReserved", workOrderId);
     }
 
     
     // 출고 확정(ISSUED) 시 예약 수량 차감
     @Override
-    public int releaseReservation(String workOrderNo, String materialId, int qty) throws Exception {
+    public int releaseReservation(String workOrderId, String materialId, int qty) throws Exception {
         Map<String,Object> p = new HashMap<>();
-        p.put("workOrderNo", workOrderNo);
+        p.put("workOrderId", workOrderId);
         p.put("materialId",  materialId);
         p.put("qty",         qty);
         // <update id="releaseReservation">
@@ -96,7 +96,7 @@ public class MaterialReservationDAOImpl implements MaterialReservationDAO {
     @Override
     public int markWorkOrderShortageStatus(String wo, String status, String uid) throws Exception {
         Map<String,Object> p = new HashMap<>();
-        p.put("workOrderNo", wo);
+        p.put("workOrderId", wo);
         p.put("status", status);
         p.put("userId", uid);
         return sqlSession.update(NAMESPACE + "markWorkOrderShortageStatus", p);
@@ -104,9 +104,9 @@ public class MaterialReservationDAOImpl implements MaterialReservationDAO {
 
 
     @Override
-    public int transitionShortageStatus(String workOrderNo, String from, String to, String userId) throws Exception {
+    public int transitionShortageStatus(String workOrderId, String from, String to, String userId) throws Exception {
         Map<String, Object> params = new HashMap<>();
-        params.put("workOrderNo", workOrderNo);
+        params.put("workOrderId", workOrderId);
         params.put("from", from);
         params.put("to", to);
         params.put("userId", userId);

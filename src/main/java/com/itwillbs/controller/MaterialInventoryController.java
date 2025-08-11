@@ -95,12 +95,12 @@ public class MaterialInventoryController {
     @ResponseBody
     public Map<String,Object> availability(
             @RequestParam String materialId,
-            @RequestParam(required=false) String workOrderNo) throws Exception {
+            @RequestParam(required=false) String workOrderId) throws Exception {
 
         int onhand        = reservationService.selectOnhand(materialId);
         int reservedTotal = reservationService.sumReservedByMaterial(materialId);
-        int woReserved    = (workOrderNo == null || workOrderNo.isEmpty())
-                ? 0 : reservationService.selectWoReserved(workOrderNo, materialId);
+        int woReserved    = (workOrderId == null || workOrderId.isEmpty())
+                ? 0 : reservationService.selectWoReserved(workOrderId, materialId);
 
         // 이번 WO가 쓸 수 있는 가용 = onhand - (전체예약 - 이 WO가 이미 잡아둔 예약)
         int availableForThisWO = Math.max(0, onhand - (reservedTotal - woReserved));

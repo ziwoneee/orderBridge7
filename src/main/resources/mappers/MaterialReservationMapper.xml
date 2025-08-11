@@ -10,8 +10,8 @@
 	       - 같은 (wo, material)면 수량 누적
 	       - updated_at 자동 갱신 -->
 	  <insert id="upsertReservation">
-	    INSERT INTO material_reservation (work_order_no, material_id, reserved_qty)
-	    VALUES (#{workOrderNo}, #{materialId}, #{qty})
+	    INSERT INTO material_reservation (work_order_id, material_id, reserved_qty)
+	    VALUES (#{workOrderId}, #{materialId}, #{qty})
 	    ON DUPLICATE KEY UPDATE
 	      reserved_qty = reserved_qty + VALUES(reserved_qty),
 	      updated_at   = CURRENT_TIMESTAMP
@@ -28,7 +28,7 @@
 	  <select id="selectWoReserved" resultType="int">
 	    SELECT COALESCE(reserved_qty,0)
 	    FROM material_reservation
-	    WHERE work_order_no = #{workOrderNo}
+	    WHERE work_order_id = #{workOrderId}
 	      AND material_id   = #{materialId}
 	  </select>
 	
@@ -48,7 +48,7 @@
 	      wom.material_id  AS materialId,
 	      wom.required_qty AS requiredQty
 	    FROM work_order_material wom
-	    WHERE wom.work_order_id = #{workOrderNo}
+	    WHERE wom.work_order_id = #{workOrderId}
 	  </select>
 	
 	  <!-- [모든 자재 예약 충족 시 RESOLVED 전환]
@@ -56,12 +56,12 @@
 	  <update id="resolveIfAllReserved" parameterType="string">
 	    UPDATE work_order w
 	    SET w.shortage_status = 'RESOLVED'
-	    WHERE w.order_id = #{workOrderNo}
+	    WHERE w.order_id = #{workOrderId}
 	      AND NOT EXISTS (
 	        SELECT 1
 	        FROM work_order_material wom
 	        LEFT JOIN material_reservation r
-	          ON r.work_order_no = wom.work_order_id
+	          ON r.work_order_id = wom.work_order_id
 	         AND r.material_id   = wom.material_id
 	        WHERE wom.work_order_id = w.order_id
 	          AND COALESCE(r.reserved_qty,0) &lt; wom.required_qty
@@ -73,7 +73,7 @@
 	    UPDATE material_reservation
 	    SET reserved_qty = GREATEST(reserved_qty - #{qty}, 0),
 	        updated_at   = CURRENT_TIMESTAMP
-	    WHERE work_order_no = #{workOrderNo}
+	    WHERE work_order_id = #{workOrderId}
 	      AND material_id   = #{materialId}
 	  </update>
 	  
@@ -83,7 +83,7 @@
 		     SET shortage_status     = #{status},
 		         shortage_checked_at = NOW(),
 		         shortage_checked_by = #{userId}
-		   WHERE order_id = #{workOrderNo}
+		   WHERE order_id = #{workOrderId}
 		</update>
 		
 		<!-- (옵션) 안전 전이: 현재 상태가 기대값일 때만 변경 -->
@@ -91,7 +91,7 @@
 		  UPDATE work_order
 		     SET shortage_status     = #{to},
 		         shortage_checked_at = NOW()
-		   WHERE order_id = #{workOrderNo}
+		   WHERE order_id = #{workOrderId}
 		     AND shortage_status = #{from}
 		</update>
 	  

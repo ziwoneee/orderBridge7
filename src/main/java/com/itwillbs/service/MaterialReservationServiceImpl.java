@@ -35,8 +35,8 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
     /**
      * [도우미] WO의 필요자재 목록 조회 (materialId, requiredQty)
      */
-    private List<Map<String,Object>> getWoMaterials(String workOrderNo) throws Exception {
-        return reservationDAO.selectWoMaterials(workOrderNo);
+    private List<Map<String,Object>> getWoMaterials(String workOrderId) throws Exception {
+        return reservationDAO.selectWoMaterials(workOrderId);
     }
 
     /**
@@ -51,8 +51,8 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
     /**
      * [도우미] 이번 WO가 아직 예약해야 할 잔여량 = required - (이미 예약된 양)
      */
-    private int getStillNeed(String workOrderNo, String materialId, int requiredQty) throws Exception {
-        int woReserved = reservationDAO.selectWoReserved(workOrderNo, materialId);
+    private int getStillNeed(String workOrderId, String materialId, int requiredQty) throws Exception {
+        int woReserved = reservationDAO.selectWoReserved(workOrderId, materialId);
         int stillNeed  = requiredQty - woReserved;
         return Math.max(stillNeed, 0);
     }
@@ -65,22 +65,22 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
      */
     @Override
     @Transactional
-    public String registerOrDraftOutbound(String workOrderNo, String userId) throws Exception {
-        List<Map<String,Object>> mats = getWoMaterials(workOrderNo);
+    public String registerOrDraftOutbound(String workOrderId, String userId) throws Exception {
+        List<Map<String,Object>> mats = getWoMaterials(workOrderId);
 
         boolean allOk = true;
         for (Map<String,Object> row : mats) {
             String matId = (String) row.get("materialId");
             int required = ((Number) row.get("requiredQty")).intValue();
 
-            int stillNeed   = getStillNeed(workOrderNo, matId, required);
+            int stillNeed   = getStillNeed(workOrderId, matId, required);
             if (stillNeed <= 0) continue;
 
             int available   = Math.max(getAvailable(matId), 0);
             int willReserve = Math.min(stillNeed, available);
 
             if (willReserve > 0) {
-                reservationDAO.upsertReservation(workOrderNo, matId, willReserve);
+                reservationDAO.upsertReservation(workOrderId, matId, willReserve);
                 stillNeed -= willReserve;
             }
             if (stillNeed > 0) allOk = false;
@@ -93,17 +93,17 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
 
         // === 출고 전표 DRAFT 생성 (네 DAO 방식) ===
         String outboundId = outboundDAO.nextOutboundId();                 // 신규 ID
-        outboundDAO.insertMaterialOutbound(outboundId, workOrderNo);      // 헤더(기본값/DRAFT로 들어가도록 Mapper 설계되어 있다고 가정)
-        outboundDAO.insertOutboundItemsFromWOM(outboundId, workOrderNo);  // WOM에서 자재 목록 복사
+        outboundDAO.insertMaterialOutbound(outboundId, workOrderId);      // 헤더(기본값/DRAFT로 들어가도록 Mapper 설계되어 있다고 가정)
+        outboundDAO.insertOutboundItemsFromWOM(outboundId, workOrderId);  // WOM에서 자재 목록 복사
 
         // 모든 자재 예약 충족 → RESOLVED 갱신 시도
-        reservationDAO.resolveIfAllReserved(workOrderNo);
+        reservationDAO.resolveIfAllReserved(workOrderId);
         
-        int upd = reservationDAO.transitionShortageStatus(workOrderNo, "DRAFTED", "ALLOCATED", userId);
+        int upd = reservationDAO.transitionShortageStatus(workOrderId, "DRAFTED", "ALLOCATED", userId);
         if (upd == 0) {
-            upd = reservationDAO.transitionShortageStatus(workOrderNo, "CHECKED", "ALLOCATED", userId);
+            upd = reservationDAO.transitionShortageStatus(workOrderId, "CHECKED", "ALLOCATED", userId);
             if (upd == 0) {
-                reservationDAO.transitionShortageStatus(workOrderNo, "NONE", "ALLOCATED", userId);
+                reservationDAO.transitionShortageStatus(workOrderId, "NONE", "ALLOCATED", userId);
             }
         }
 
@@ -118,9 +118,9 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
      */
     @Override
     @Transactional
-    public String createShortageDraftPO(String workOrderNo, String userId) throws Exception {
+    public String createShortageDraftPO(String workOrderId, String userId) throws Exception {
     	// 0) 기존 로직: 부족 자재 산출 (+ 물 제외)
-        List<Map<String,Object>> mats = getWoMaterials(workOrderNo);
+        List<Map<String,Object>> mats = getWoMaterials(workOrderId);
         List<Map<String,Object>> shortages = new ArrayList<>();
 
         for (Map<String,Object> row : mats) {
@@ -129,14 +129,14 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
 
             if ("RM-0015".equals(mid)) continue; // 물은 PO 제외
 
-            int stillNeed = getStillNeed(workOrderNo, mid, required);
+            int stillNeed = getStillNeed(workOrderId, mid, required);
             if (stillNeed <= 0) continue;
 
             int available = Math.max(getAvailable(mid), 0);
             int willReserve = Math.min(stillNeed, available);
 
             if (willReserve > 0) {
-                reservationDAO.upsertReservation(workOrderNo, mid, willReserve);
+                reservationDAO.upsertReservation(workOrderId, mid, willReserve);
                 stillNeed -= willReserve;
             }
             if (stillNeed > 0) {
@@ -148,7 +148,7 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
         }
 
         if (shortages.isEmpty()) {
-            reservationDAO.resolveIfAllReserved(workOrderNo);
+            reservationDAO.resolveIfAllReserved(workOrderId);
             return null;
         }
 
@@ -253,9 +253,9 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
             
         }
         
-        int upd = reservationDAO.transitionShortageStatus(workOrderNo, "NONE", "DRAFTED", userId);
+        int upd = reservationDAO.transitionShortageStatus(workOrderId, "NONE", "DRAFTED", userId);
         if (upd == 0) {
-            reservationDAO.transitionShortageStatus(workOrderNo, "CHECKED", "DRAFTED", userId);
+            reservationDAO.transitionShortageStatus(workOrderId, "CHECKED", "DRAFTED", userId);
         }
 
         return firstOrderId; // 필요하면 List<String>으로 바꿔서 전부 반환
@@ -268,39 +268,39 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
      */
     @Override
     @Transactional
-    public void releaseReservationOnIssue(String workOrderNo, List<Map<String,Object>> items, String userId) throws Exception {
+    public void releaseReservationOnIssue(String workOrderId, List<Map<String,Object>> items, String userId) throws Exception {
         for (Map<String,Object> it : items) {
             String materialId = (String) it.get("materialId");
             int qty           = ((Number) it.get("qty")).intValue();
-            reservationDAO.releaseReservation(workOrderNo, materialId, qty);
+            reservationDAO.releaseReservation(workOrderId, materialId, qty);
         }
         
         // 재고/예약 해제 성공 후 상태 갱신
         // [STATE] ALLOCATED → RESOLVED (직접 발행 케이스 대비 DRAFTED도 허용)
-        int upd = reservationDAO.transitionShortageStatus(workOrderNo, "ALLOCATED", "RESOLVED", userId);
+        int upd = reservationDAO.transitionShortageStatus(workOrderId, "ALLOCATED", "RESOLVED", userId);
         if (upd == 0) {
-            reservationDAO.transitionShortageStatus(workOrderNo, "DRAFTED", "RESOLVED", userId);
+            reservationDAO.transitionShortageStatus(workOrderId, "DRAFTED", "RESOLVED", userId);
         }
     }
     
     
     @Override
     @Transactional
-    public boolean reserveOnlyForWo(String workOrderNo) throws Exception {
-        List<Map<String,Object>> mats = reservationDAO.selectWoMaterials(workOrderNo);
+    public boolean reserveOnlyForWo(String workOrderId) throws Exception {
+        List<Map<String,Object>> mats = reservationDAO.selectWoMaterials(workOrderId);
         boolean allOk = true;
 
         for (Map<String,Object> row : mats) {
             String matId   = (String) row.get("materialId");
             int required   = ((Number) row.get("requiredQty")).intValue();
-            int stillNeed  = getStillNeed(workOrderNo, matId, required);
+            int stillNeed  = getStillNeed(workOrderId, matId, required);
             if (stillNeed <= 0) continue;
 
             int available   = Math.max(getAvailable(matId), 0);
             int willReserve = Math.min(stillNeed, available);
 
             if (willReserve > 0) {
-                reservationDAO.upsertReservation(workOrderNo, matId, willReserve);
+                reservationDAO.upsertReservation(workOrderId, matId, willReserve);
                 stillNeed -= willReserve;
             }
             if (stillNeed > 0) allOk = false; // 부족 남음
@@ -316,8 +316,8 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
     @Override public int sumReservedByMaterial(String materialId) throws Exception {
         return reservationDAO.sumReservedByMaterial(materialId);
     }
-    @Override public int selectWoReserved(String workOrderNo, String materialId) throws Exception {
-        return reservationDAO.selectWoReserved(workOrderNo, materialId);
+    @Override public int selectWoReserved(String workOrderId, String materialId) throws Exception {
+        return reservationDAO.selectWoReserved(workOrderId, materialId);
     }
 
 

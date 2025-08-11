@@ -1,12 +1,35 @@
-/************************************************************
- * materialInbound.js - 자재 입고 관리 관련 JavaScript 기능 모음 (수정본)
- ************************************************************/
+/**
+ * materialInbound.js 
+ */
 
-// 날짜 포맷 함수
-function formatDateString(timestamp) {
-  if (!timestamp) return '-';
-  const date = new Date(timestamp);
-  return date.toISOString().substring(0, 10); // 'yyyy-MM-dd'
+// 수정된 날짜 포맷 함수 (timezone 이슈 해결)
+function formatDateString(v) {
+  if (!v) return '-';
+
+  // 문자열이면서 YYYY-MM-DD 형식이면 그대로 반환
+  if (typeof v === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    
+    // ISO 형식 문자열인 경우 (예: "2024-08-11T00:00:00.000Z")
+    if (/^\d{4}-\d{2}-\d{2}T/.test(v)) {
+      return v.substring(0, 10); // YYYY-MM-DD 부분만 추출
+    }
+  }
+
+  // Date 객체로 변환 후 UTC 기준으로 날짜 추출 (timezone 이슈 방지)
+  const d = new Date(v);
+  
+  // Invalid Date 체크
+  if (isNaN(d.getTime())) {
+    console.warn('Invalid date:', v);
+    return '-';
+  }
+  
+  // UTC 기준으로 날짜 추출하여 timezone 이슈 방지
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 /* [1] 입고 상세 모달 불러오기 */
@@ -64,8 +87,6 @@ function loadInboundDetail(inboundId) {
               '<td>' + (item.materialName || '') + '</td>' +
               '<td class="text-end">' + ((item.orderQuantity || 0).toLocaleString()) + '</td>' +
               '<td class="text-end">' + ((item.quantity      || 0).toLocaleString()) + '</td>' +
-              '<td class="text-end">' + ((item.unitPrice     || 0).toLocaleString()) + '</td>' +
-              '<td class="text-end">' + ((item.totalPrice    || 0).toLocaleString()) + '</td>' +
               '<td class="text-center">' + actionBtn + '</td>' +
             '</tr>';
 
@@ -129,7 +150,7 @@ function openInboundModal(itemOrId) {
 	    })
 	    .fail(function(xhr){
 	      console.error('LOT 생성 실패:', xhr.responseText);
-	      $('#lotNo').val('');
+	      $('#inboundModal #lotNo').val('');
 	    });
 
 	  // 4) ★ 창고 자동 매칭 (서버 보정값이 없을 때만)
@@ -139,13 +160,12 @@ function openInboundModal(itemOrId) {
 	      orderItemId: item.orderItemId || ''
 	    }).done(function(wh){
 	      if ($('#inboundModal').is(':visible')) {
-	        $('#warehouseCode').val(wh || 'WH001');
+	    	  $('#inboundModal #warehouseCode').val(wh || 'WH001');
 	        validateInboundInputs && validateInboundInputs();
 	      }
 	    });
 	  }
 	}
-
 
 /* [3] 미입고 발주 목록 불러오기 - 모달 버전 */
 function loadUnreceivedOrders(page = 1) {
@@ -245,10 +265,18 @@ function renderUnreceivedOrdersModal(orderList) {
     return;
   }
 
-  const fmt = ts => ts ? new Date(ts).toLocaleDateString('ko-KR') : '-';
+  // 수정된 날짜 포맷 함수 사용
+  const fmt = ts => ts ? formatDateString(ts) : '-';
   const dday = ts => {
     if (!ts) return '';
-    const diff = Math.ceil((new Date(ts) - new Date())/86400000);
+    const targetDate = new Date(ts);
+    const today = new Date();
+    
+    // 시간 부분을 제거하고 날짜만 비교
+    targetDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    
+    const diff = Math.ceil((targetDate - today) / 86400000);
     if (diff < 0) return '<span class="badge badge-danger badge-pill ml-1">지연</span>';
     if (diff <= 2) return `<span class="badge badge-warning badge-pill ml-1">D-${diff}</span>`;
     return '';
@@ -341,9 +369,9 @@ function renderPagination(pageMaker) {
   container.appendChild(ul);
 }
 
-/* [7] 발주 상세 보기 */
+/* [7] 발주 상세 보기 - 날짜 포맷 함수 적용 */
 function viewOrderDetail(orderId) {
-  const fmt = d => !d ? '-' : new Date(d).toISOString().slice(0,10);
+  const fmt = d => !d ? '-' : formatDateString(d);
 
   $.get('/material/order/detail', { orderId })
     .done(res => {
@@ -363,8 +391,6 @@ function viewOrderDetail(orderId) {
             <td>${it.materialId}</td>
             <td>${it.materialName || ''}</td>
             <td class="text-right">${it.orderQuantity}</td>
-            <td class="text-right">${it.unitPrice}</td>
-            <td class="text-right">${it.totalPrice}</td>
             <td>${it.warehouseCode || '-'}</td>
           </tr>`
         );

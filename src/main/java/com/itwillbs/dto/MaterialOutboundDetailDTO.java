@@ -15,7 +15,7 @@ import lombok.Data;
 public class MaterialOutboundDetailDTO {
 	
 	private String outboundId; // 등록 시 생성
-	private String workOrderNo;
+	private String workOrderId;
 	private String productId;
 	private String lineId;
 	private Date dueDate;

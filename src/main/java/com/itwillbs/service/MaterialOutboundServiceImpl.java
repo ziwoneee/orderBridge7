@@ -144,7 +144,7 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 		         // a4wo 계산
 		         int onhand       = reservationDAO.selectOnhand(mid);
 		         int reservedAll  = reservationDAO.sumReservedByMaterial(mid);
-		         int reservedThis = reservationDAO.selectWoReserved(vo.getWorkOrderNo(), mid);
+		         int reservedThis = reservationDAO.selectWoReserved(vo.getWorkOrderId(), mid);
 		         int reservedOthers = Math.max(reservedAll - reservedThis, 0);
 		         int a4wo = Math.max(0, onhand - reservedOthers) + reservedThis;
 	
@@ -168,13 +168,13 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	        
 	        // 2-2) 폼에 없으면 DB에서 조회
 	        if (dueDate == null) {
-	            if (vo.getWorkOrderNo() == null || vo.getWorkOrderNo().isEmpty()) {
-	                throw new IllegalStateException("workOrderNo가 없습니다.(폼 바인딩 확인)");
+	            if (vo.getWorkOrderId() == null || vo.getWorkOrderId().isEmpty()) {
+	                throw new IllegalStateException("workOrderId가 없습니다.(폼 바인딩 확인)");
 	            }
-	            dueDate = moDAO.selectWorkOrderDueDate(vo.getWorkOrderNo());
+	            dueDate = moDAO.selectWorkOrderDueDate(vo.getWorkOrderId());
 	        }
 	        if (dueDate == null) {
-	            throw new IllegalStateException("작업지시 due_date 없음: " + vo.getWorkOrderNo());
+	            throw new IllegalStateException("작업지시 due_date 없음: " + vo.getWorkOrderId());
 	        }
 	        
 	        if (outboundId == null || outboundId.isEmpty()) {
@@ -183,7 +183,7 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	        
 	        Map<String,Object> header = new HashMap<>();
 	        header.put("outbound_id", outboundId);
-	        header.put("work_order_no", vo.getWorkOrderNo());
+	        header.put("work_order_id", vo.getWorkOrderId());
 	        header.put("handled_by",   vo.getHandledBy());
 	        header.put("status",        vo.getStatus());
 	        header.put("due_date",      dueDate);
@@ -217,7 +217,7 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	            moDAO.insertOutboundItems(rows);
 	        }
 	        
-	        moDAO.updateWorkOrderShortageStatus(vo.getWorkOrderNo(), "CHECKED");
+	        moDAO.updateWorkOrderShortageStatus(vo.getWorkOrderId(), "CHECKED");
 	    }
 
 

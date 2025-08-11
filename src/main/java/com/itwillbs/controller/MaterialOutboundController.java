@@ -1,5 +1,9 @@
 package com.itwillbs.controller;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -7,9 +11,12 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -20,6 +27,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.itwillbs.domain.MaterialOutboundVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.WorkOrderVO;
+import com.itwillbs.mapper.MaterialOutboundMapper;
 import com.itwillbs.service.MaterialOutboundService;
 
 /**
@@ -36,6 +44,9 @@ public class MaterialOutboundController {
 	
 	@Inject
 	private MaterialOutboundService moService;
+	
+	@Inject
+	private MaterialOutboundMapper outboundMapper;
 	
 	// mylog
 	private static final Logger logger = LoggerFactory.getLogger(MaterialOutboundController.class);
@@ -88,17 +99,43 @@ public class MaterialOutboundController {
         return moService.getWaitingOrders();
     }
 
-    // 등록 화면 진입(작업지시 선택 후)
-    @RequestMapping(value="/register", method=RequestMethod.GET)
-    public String registerPage(@RequestParam("workOrderId") String workOrderId, Model model) throws Exception {
-        model.addAttribute("wo", moService.getWorkOrderWithStockMap(workOrderId));
+    @GetMapping("/register")
+    public String register(
+            @RequestParam(value = "workOrderId", required = false) String workOrderId,
+            @RequestParam(value = "inboundId",   required = false) String inboundId,
+            Model model
+    ) throws Exception {
+
+        // 1) workOrderId가 있으면 화면 데이터 세팅
+        if (workOrderId != null && !workOrderId.isEmpty()) {
+            model.addAttribute("wo", moService.getWorkOrderWithStockMap(workOrderId));
+            model.addAttribute("workOrderId", workOrderId);
+            model.addAttribute("inboundId", inboundId);
+            return "material/out/register";
+        }
+
+        // 2) inboundId만 있으면 서버에서 매핑 시도
+        if (inboundId != null && !inboundId.isEmpty()) {
+            String resolved = outboundMapper.findWorkOrderIdByInbound(inboundId);
+            if (resolved != null && !resolved.isEmpty()) {
+                return "redirect:/material/outbound/register?workOrderId="
+                        + URLEncoder.encode(resolved, StandardCharsets.UTF_8)
+                        + "&inboundId=" + URLEncoder.encode(inboundId, StandardCharsets.UTF_8);
+            }
+            // 매핑 실패 → 화면에서 수동 선택 유도
+            model.addAttribute("inboundId", inboundId);
+            model.addAttribute("workOrderResolveFail", true);
+            return "material/out/register";
+        }
+
+        // 3) 둘 다 없음 → 빈 화면(작업지시 선택 유도)
         return "material/out/register";
     }
-
+    
     // 등록 저장(VO 한 방에 받기: List로 바인딩)
     @RequestMapping(value="/register", method=RequestMethod.POST)
     public String register(MaterialOutboundVO vo, RedirectAttributes rttr) throws Exception {
-    	logger.info("register workOrderNo={}", vo.getWorkOrderNo()); // null이면 바인딩 문제
+    	logger.info("register workOrderNo={}", vo.getWorkOrderId()); // null이면 바인딩 문제
     	
     	vo.setStatus("DRAFT");	// 미출고
         moService.registerOutbound(vo);
@@ -107,6 +144,7 @@ public class MaterialOutboundController {
         
         return "redirect:/material/outbound/list";
     }
+
 
     // [AJAX] 출고 상세
     @ResponseBody
@@ -147,6 +185,33 @@ public class MaterialOutboundController {
             );
         }
     }
+    
+    
+    /**
+     * 입고 모달 불러오기
+     */
+    @GetMapping("/inbounds")
+    @ResponseBody
+    public ResponseEntity<?> getInboundDoneList(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String processed) {
+        try {
+            // 지금은 status/processed 파라미터는 무시하고 목록만 리턴
+            List<Map<String,Object>> list = outboundMapper.getInboundDoneList();
+            return ResponseEntity.ok(list);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("목록 로드 실패");
+        }
+    }
+    
+    @GetMapping("/resolve-workorder")
+    @ResponseBody
+    public ResponseEntity<Map<String,String>> resolveWorkOrder(@RequestParam("inboundId") String inboundId){
+        String wo = outboundMapper.findWorkOrderIdByInbound(inboundId);
+        if (wo == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        return ResponseEntity.ok(Collections.singletonMap("workOrderId", wo));
+    }
+
 	
 	
 } // MaterialOutboundController 끝

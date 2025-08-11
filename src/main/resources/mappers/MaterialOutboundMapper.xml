@@ -11,7 +11,7 @@
 	<select id="getOutboundList" parameterType="com.itwillbs.domain.SearchCriteria" resultType="map">
 	  SELECT
 	    o.outbound_id   AS outboundId,
-	    o.work_order_no AS workOrderNo,
+	    o.work_order_id AS workOrderId,
 	    o.outbound_date AS outboundDate,
 	    o.due_date      AS dueDate,
 	    o.status        AS statusCode,           
@@ -27,7 +27,7 @@
 	    </if>
 	    <if test="keyword != null and keyword != ''">
 	      AND (o.outbound_id LIKE CONCAT('%', #{keyword}, '%') 
-	           OR o.work_order_no LIKE CONCAT('%', #{keyword}, '%'))
+	           OR o.work_order_id LIKE CONCAT('%', #{keyword}, '%'))
 	    </if>
 	    <if test="startDate != null and startDate != ''">
 	      AND DATE(o.outbound_date) &gt;= #{startDate}
@@ -41,7 +41,7 @@
 	      ORDER BY 
 	      <choose>
 	        <when test="sortColumn == 'outbound_id'">o.outbound_id</when>
-	        <when test="sortColumn == 'work_order_no'">o.work_order_no</when>
+	        <when test="sortColumn == 'work_order_id'">o.work_order_id</when>
 	        <when test="sortColumn == 'outbound_date'">o.outbound_date</when>
 	        <when test="sortColumn == 'due_date'">o.due_date</when>
 	        <when test="sortColumn == 'status'">o.status</when>
@@ -68,7 +68,7 @@
 	    </if>
 	    <if test="keyword != null and keyword != ''">
 	      AND (o.outbound_id LIKE CONCAT('%', #{keyword}, '%') 
-	           OR o.work_order_no LIKE CONCAT('%', #{keyword}, '%'))
+	           OR o.work_order_id LIKE CONCAT('%', #{keyword}, '%'))
 	    </if>
 	    <if test="startDate != null and startDate != ''">
 	      AND DATE(o.outbound_date) &gt;= #{startDate}
@@ -97,7 +97,7 @@
 	
 	<!-- 등록 화면: 헤더 -->
 	<select id="getWorkOrderWithStock" parameterType="string" resultType="map">
-	  SELECT wo.order_id AS workOrderNo, wo.product_id, wo.line_id, wo.due_date
+	  SELECT wo.order_id AS workOrderId, wo.product_id, wo.line_id, wo.due_date
 	  FROM work_order wo WHERE wo.order_id = #{_parameter}
 	</select>
 	
@@ -129,7 +129,7 @@
 	<insert id="insertMaterialOutboundHeader" parameterType="map">
 	  INSERT INTO material_outbound(
 	      outbound_id,
-	      work_order_no,
+	      work_order_id,
 	      work_order_date,                             
 	      status,
 	      handled_by,
@@ -137,10 +137,10 @@
 	  )
 	  VALUES(
 	      #{outbound_id},
-	      #{work_order_no},
+	      #{work_order_id},
 	      (SELECT DATE(created_at)                    
 	         FROM work_order
-	        WHERE order_id = #{work_order_no}),
+	        WHERE order_id = #{work_order_id}),
 	      #{status},
 	      #{handled_by},
 	      #{due_date}
@@ -173,7 +173,7 @@
 	
 	<!-- 상세 헤더/항목 -->
 	<select id="getOutboundDetailFull" parameterType="string" resultType="map">
-	  SELECT outbound_id AS outboundId, work_order_no AS workOrderNo,
+	  SELECT outbound_id AS outboundId, work_order_id AS workOrderId,
 	         outbound_date AS outboundDate, due_date AS dueDate,
 	         status, handled_by AS handledBy
 	  FROM material_outbound
@@ -216,7 +216,7 @@
 	<!-- 작업지시 헤더 1건 -->
 	<select id="selectWorkOrderHeader" parameterType="string" resultType="map">
 	  SELECT
-	    wo.order_id    AS workOrderNo,
+	    wo.order_id    AS workOrderId,
 	    wo.product_id  AS productId,
 	    wo.line_id     AS lineId,
 	    wo.due_date    AS dueDate
@@ -252,18 +252,36 @@
 		<!-- [A] 특정 작업지시서가 출고 가능한 상태인지 체크 -->
 	  <!-- 조건: 자재별 재고 수량 >= 지시 필요 수량  → 모든 자재가 충족되어야 함 -->
 	  <select id="isWorkOrderReady" parameterType="string" resultType="int">
-	    SELECT CASE
-	             WHEN COUNT(*) = SUM(CASE WHEN IFNULL(inv.qty,0) >= wom.required_qty THEN 1 ELSE 0 END)
-	             THEN 1 ELSE 0
-	           END AS ready
-	    FROM work_order_material wom
-	    LEFT JOIN (
-	       SELECT material_id, SUM(quantity) AS qty
-	       FROM material_inventory
-	       GROUP BY material_id
-	    ) inv ON inv.material_id = wom.material_id
-	    WHERE wom.work_order_id = #{workOrderId}
-	  </select>
+		  SELECT
+		    CASE
+		      WHEN SUM(
+		        CASE
+		          WHEN wom.material_id = 'RM-0015' THEN 1                      
+		          WHEN GREATEST(COALESCE(inv.onhand,0)
+		                        - COALESCE(rs.others,0)
+		                        + COALESCE(rs.thiswo,0), 0) >= wom.required_qty
+		               THEN 1
+		          ELSE 0
+		        END
+		      ) = COUNT(*) THEN 1 ELSE 0
+		    END AS ready
+		  FROM work_order_material wom
+		  LEFT JOIN (
+		    SELECT material_id, SUM(quantity) AS onhand
+		    FROM material_inventory
+		    <!-- 필요하면 상태/창고 필터 추가 -->
+		    GROUP BY material_id
+		  ) inv ON inv.material_id = wom.material_id
+		  LEFT JOIN (
+		    SELECT material_id,
+		           SUM(CASE WHEN work_order_id = #{workOrderId} THEN reserved_qty ELSE 0 END) AS thiswo,
+		           SUM(CASE WHEN work_order_id &lt;&gt; #{workOrderId} THEN reserved_qty ELSE 0 END) AS others
+		    FROM material_reservation
+		    GROUP BY material_id
+		  ) rs ON rs.material_id = wom.material_id
+		  WHERE wom.work_order_id = #{workOrderId}
+		</select>
+
 	
 	  <!-- [B] 해당 작업지시서에 이미 출고 레코드가 있는지 여부 -->
 	  <select id="existsOutboundByWorkOrder" parameterType="string" resultType="int">
@@ -302,7 +320,48 @@
 	  </insert>
 
 
+		
+		<!-- 입고완료건 목록 -->
+		<select id="getInboundDoneList" resultType="map">
+		  SELECT
+		      i.inbound_id   AS inboundId,
+		      i.order_id     AS orderId,
+		      i.inbound_date AS inboundDate
+		  FROM material_inbound i
+		  WHERE i.inbound_status = '입고완료'
+		  ORDER BY i.inbound_date DESC
+		</select>
 
+
+		<!-- inboundId로 작업지시 헤더 조회 -->
+		<select id="getInboundDetailForOutbound" parameterType="string" resultType="map">
+		  SELECT
+		    w.order_id   AS workOrderId,
+		    w.product_id AS productId,
+		    w.line_id    AS lineId,
+		    w.due_date   AS dueDate
+		  FROM material_inbound i
+		  JOIN material_order o ON o.order_id  = i.order_id      <!-- 발주(가운데 테이블) -->
+		  JOIN work_order     w ON w.order_id  = o.work_order_id <!-- 발주가 참조한 작업지시 -->
+		  WHERE i.inbound_id = #{_parameter}
+		</select>
+		
+		
+		<!-- 입고ID -> 작업지시ID 해석 -->
+		<select id="findWorkOrderIdByInbound" parameterType="string" resultType="string">
+		  SELECT wom.work_order_id
+		  FROM material_inbound i
+		  JOIN material_order_item moi ON moi.order_id = i.order_id
+		  JOIN work_order_material wom  ON wom.material_id = moi.material_id
+		  JOIN work_order wo           ON wo.order_id = wom.work_order_id
+		  WHERE i.inbound_id = #{_parameter}
+		    AND IFNULL(wo.is_deleted,0) = 0
+		  ORDER BY 
+		    CASE wo.status WHEN 'IN_PROGRESS' THEN 0 WHEN 'WAITING' THEN 1 ELSE 2 END,
+		    wo.due_date ASC
+		  LIMIT 1
+		</select>
+		
 
 
 

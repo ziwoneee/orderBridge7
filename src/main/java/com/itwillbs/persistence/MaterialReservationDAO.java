@@ -10,30 +10,30 @@ import java.util.Map;
 public interface MaterialReservationDAO {
 	
 	// 예약 upsert: 같은 (WO, 자재)이면 수량 누적
-    int upsertReservation(String workOrderNo, String materialId, int qty) throws Exception;
+    int upsertReservation(String workOrderId, String materialId, int qty) throws Exception;
 
     // 자재별 총 예약합(모든 작업지시서 합계)
     int sumReservedByMaterial(String materialId) throws Exception;
 
     // 해당 작업지시서가 이미 예약한 수량(없으면 0)
-    int selectWoReserved(String workOrderNo, String materialId) throws Exception;
+    int selectWoReserved(String workOrderId, String materialId) throws Exception;
 
     // 자재 onhand(고정창고 기준 합계)
     int selectOnhand(String materialId) throws Exception;
 
     // 작업지시서 필요자재 목록(materialId, requiredQty)
-    List<Map<String,Object>> selectWoMaterials(String workOrderNo) throws Exception;
+    List<Map<String,Object>> selectWoMaterials(String workOrderId) throws Exception;
 
     // 모든 자재 예약 충족 시 work_order.shortage_status = RESOLVED
-    int resolveIfAllReserved(String workOrderNo) throws Exception;
+    int resolveIfAllReserved(String workOrderId) throws Exception;
 
     // 출고 확정(ISSUED) 시 예약 수량 차감
-    int releaseReservation(String workOrderNo, String materialId, int qty) throws Exception;
+    int releaseReservation(String workOrderId, String materialId, int qty) throws Exception;
     
     // 상태 단순 변경
-    int markWorkOrderShortageStatus(String workOrderNo, String status, String userId) throws Exception;
+    int markWorkOrderShortageStatus(String workOrderId, String status, String userId) throws Exception;
 	// (옵션) 안전 전이
-	int transitionShortageStatus(String workOrderNo, String from, String to, String userId) throws Exception;
+	int transitionShortageStatus(String workOrderId, String from, String to, String userId) throws Exception;
 
     
 

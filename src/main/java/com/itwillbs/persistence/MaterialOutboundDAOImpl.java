@@ -100,8 +100,8 @@ public class MaterialOutboundDAOImpl implements MaterialOutboundDAO {
 
 	    
 	    @Override
-	    public Date selectWorkOrderDueDate(String workOrderNo) {
-	        return sqlSession.selectOne(NAMESPACE + "selectWorkOrderDueDate", workOrderNo);
+	    public Date selectWorkOrderDueDate(String workOrderId) {
+	        return sqlSession.selectOne(NAMESPACE + "selectWorkOrderDueDate", workOrderId);
 	    }
 
 	    @Override

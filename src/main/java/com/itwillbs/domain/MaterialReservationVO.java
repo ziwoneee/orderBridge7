@@ -12,7 +12,7 @@ import lombok.Data;
 @Data
 public class MaterialReservationVO {
 	
-	private String workOrderNo;			// 작업지시서 번호
+	private String workOrderId;			// 작업지시서 번호
 	private String materialId;			// 자재 ID
 	private int reservedQty;			// 예약 수량 (해당 작업지시서가 확보해둔 수량)
 	private Date updatedAt;				// 수정 시간
