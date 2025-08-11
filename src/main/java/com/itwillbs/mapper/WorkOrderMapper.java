@@ -198,4 +198,14 @@ public interface WorkOrderMapper {
      */
     int deleteWorkOrder(@Param("orderId") String orderId);
     
+
+    /**
+     * 생산실적 등록 가능한 작업지시 목록 조회 (진행중 + 완료)
+     */
+    List<WorkOrderDTO> selectInProgressOrders();
+    
+    // 실적 반영 (누적/상태 업데이트)
+    int applyResultToWorkOrder(@Param("orderId") String orderId);
+    
+
 }

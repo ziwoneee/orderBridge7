@@ -65,26 +65,27 @@
 
 		ORDER BY
 		<choose>
-			<when
-				test="sortColumn != null and sortColumn != '' and sortOrder != null and sortOrder != ''">
-				<choose>
-					<when test="sortColumn == 'priority'">
-						CASE w.priority
-						WHEN 'EMERGENCY' THEN 1
-						WHEN 'HIGH' THEN 2
-						WHEN 'NORMAL' THEN 3
-						WHEN 'LOW' THEN 4
-						ELSE 5
-						END ${sortOrder}
-					</when>
-					<otherwise>
-						${sortColumn} ${sortOrder}
-					</otherwise>
-				</choose>
-			</when>
-			<otherwise>
-				w.created_at DESC
-			</otherwise>
+		  <when test="sortColumn != null and sortColumn != '' and sortOrder != null and sortOrder != ''">
+		    <choose>
+		      <when test="sortColumn == 'priority'">
+		        CASE w.priority
+		          WHEN 'EMERGENCY' THEN 1
+		          WHEN 'HIGH' THEN 2
+		          WHEN 'NORMAL' THEN 3
+		          WHEN 'LOW' THEN 4
+		          ELSE 5
+		        END ${sortOrder}
+		      </when>
+		      <when test="sortColumn == 'created_at'"> w.created_at ${sortOrder} </when>
+		      <when test="sortColumn == 'due_date'">   w.due_date   ${sortOrder} </when>
+		      <when test="sortColumn == 'order_qty'">  w.order_qty  ${sortOrder} </when>
+		      <when test="sortColumn == 'status'">     w.status     ${sortOrder} </when>
+		      <otherwise> w.created_at DESC </otherwise>
+		    </choose>
+		  </when>
+		  <otherwise>
+		    w.created_at DESC
+		  </otherwise>
 		</choose>
 
 		LIMIT #{pageStart}, #{perPageNum}
@@ -130,16 +131,17 @@
 
 	<!-- 전체 작업지시 개수 조회 -->
 	<select id="selectAllCount" resultType="int">
-		SELECT COUNT(*)
-		FROM work_order
+	  SELECT COUNT(*)
+	  FROM work_order
+	  WHERE is_deleted = FALSE
 	</select>
 
-	<!-- 상태별 작업지시 개수 조회 -->
-	<select id="selectCountByStatus" parameterType="string"
-		resultType="int">
-		SELECT COUNT(*)
-		FROM work_order
-		WHERE status = #{status}
+	<!-- 상태별 작업지시 개수 -->
+	<select id="selectCountByStatus" parameterType="string" resultType="int">
+	  SELECT COUNT(*)
+	  FROM work_order
+	  WHERE status = #{status}
+	    AND is_deleted = FALSE
 	</select>
 
 	<!-- ================================================================== -->
@@ -473,6 +475,75 @@
 		w.due_date ASC
 	</select>
 
+
+	<!-- ================================================================== -->
+	<!-- 생산실적 등록용 - 진행중/완료 상태 작업지시 조회 -->
+	<!-- ================================================================== -->
+		<select id="selectInProgressOrders" resultType="com.itwillbs.dto.WorkOrderDTO">
+	    SELECT 
+	        wo.order_id AS orderId,
+	        wo.product_id AS productId,
+	        p.product_name AS productName,
+	        pl.line_name AS lineName,
+	        wo.order_qty AS orderQty,
+	        wo.status,
+	        COALESCE(pr_sum.produced_qty, 0) AS producedQty
+	    FROM work_order wo
+	    LEFT JOIN product p ON wo.product_id = p.product_id  
+	    LEFT JOIN production_line pl ON wo.line_id = pl.line_id
+	    LEFT JOIN (
+	        SELECT 
+	            order_id,
+	            SUM(actual_qty - COALESCE(defect_qty, 0)) AS produced_qty
+	        FROM production_result 
+	        GROUP BY order_id
+	    ) pr_sum ON wo.order_id = pr_sum.order_id
+	    WHERE wo.status IN ('IN_PROGRESS', 'COMPLETED')
+	      AND wo.is_deleted = false
+	    ORDER BY wo.created_at DESC
+	</select>
+
+
+	<!-- ==============================================================
+     생산 실적 반영 (작업지시 상태 자동 갱신)
+     
+     1. production_result 테이블에서 해당 order_id의 실적 합계를 가져옴
+        - good_sum : Σ(정상품 수량) = actual_qty - defect_qty
+        - defect_qty가 NULL일 경우 0으로 처리
+     
+     2. 상태 변경 규칙
+        - good_sum >= order_qty      → 'COMPLETED' (생산완료)
+        - good_sum > 0 이고 현재 상태가 'WAITING' 또는 'READY'
+                                   → 'IN_PROGRESS' (생산중)
+        - 나머지 경우는 상태 그대로 유지
+
+     3. updated_at은 항상 현재 시간(NOW)으로 갱신
+	================================================================ -->
+	<update id="applyResultToWorkOrder" parameterType="string">
+ 	 <![CDATA[
+	  UPDATE work_order w
+	  LEFT JOIN (
+	    SELECT
+	      pr.order_id,
+	      COALESCE(SUM(pr.actual_qty - COALESCE(pr.defect_qty,0)), 0) AS good_sum
+	    FROM production_result pr
+	    WHERE pr.order_id = #{orderId}
+	    GROUP BY pr.order_id
+	  ) r ON r.order_id = w.order_id
+	  SET
+	    w.status = CASE
+	                 WHEN COALESCE(r.good_sum, 0) >= w.order_qty
+	                   THEN 'COMPLETED'
+	                 WHEN COALESCE(r.good_sum, 0) > 0
+	                      AND w.status IN ('WAITING','READY')
+	                   THEN 'IN_PROGRESS'
+	                 ELSE w.status
+	               END,
+	    w.updated_at = NOW()
+	  WHERE w.order_id = #{orderId}
+	  ]]>
+	</update>
+		
 
 
 </mapper>

@@ -30,6 +30,7 @@ public class WorkOrderServiceImpl implements WorkOrderService {
     private WorkOrderMapper workOrderMapper;
 
 
+
     /**
      * 작업지시 목록 조회 (검색, 페이징 포함)
      */
@@ -302,5 +303,25 @@ public class WorkOrderServiceImpl implements WorkOrderService {
     
 
 
+    /**
+     * 생산실적 등록 가능한 작업지시 목록 조회 (진행중 + 완료)
+     */
+    @Override
+    public List<WorkOrderDTO> getInProgressOrders() {
+        return workOrderMapper.selectInProgressOrders();
+    }
+    
+ // 작업지시 실적 반영(누적 합산 후 상태 자동 갱신)
+    @Override
+    @Transactional
+    public void refreshStatusByResults(String orderId) {
+        int updated = workOrderMapper.applyResultToWorkOrder(orderId);
+        if (updated == 0) {
+            log.warn("applyResultToWorkOrder: 대상 없음 or 갱신 없음 - orderId={}", orderId);
+        } else {
+            log.info("작업지시 상태/진행률 갱신 완료 - orderId={}", orderId);
+        }
+    }
+    
     
 }
