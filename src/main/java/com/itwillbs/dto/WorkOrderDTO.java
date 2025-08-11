@@ -14,7 +14,6 @@ import lombok.Data;
  */
 @Data
 public class WorkOrderDTO {
-
 	 // 작업 지시 기본 정보
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     @JsonFormat(pattern = "yyyy-MM-dd")
@@ -32,6 +31,9 @@ public class WorkOrderDTO {
     private Date createdAt;
     private Date updatedAt;
     private Boolean isDeleted;
+    
+    // ✅ 새로 추가: 이미 생산된 수량 (생산실적 등록용)
+    private Integer producedQty;  // 실시간 계산: SUM(actual_qty - defect_qty)
     
     // 제품 정보 (조회용)
     private String productName;
@@ -57,5 +59,24 @@ public class WorkOrderDTO {
     
     // 저장용 자재 소요량 리스트 (work_order_material 테이블 insert용)
     private List<WorkOrderMaterialDTO> materialList;
-
+    
+    // ✅ 편의 메서드들 추가 (선택사항)
+    /**
+     * 남은 수량 계산
+     * @return orderQty - producedQty (음수면 0)
+     */
+    public Integer getRemainingQty() {
+        if (producedQty == null) return orderQty;
+        return Math.max(0, orderQty - producedQty);
+    }
+    
+    /**
+     * 진행률 계산
+     * @return (producedQty / orderQty) * 100 (%)
+     */
+    public Double getProgressRate() {
+        if (orderQty == 0) return 0.0;
+        if (producedQty == null) return 0.0;
+        return Math.min(100.0, (double) producedQty / orderQty * 100);
+    }
 }
