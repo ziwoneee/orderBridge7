@@ -156,8 +156,6 @@ public class WorkOrderController {
             @RequestParam("dueDate") String dueDate,
             Model model) {
 
-        log.info(" 병합 작업지시 등록 팝업 요청 - 수주들: {}, 제품ID: {}, 수량: {}, 납기일: {}");
-
         // 등록 파라미터 유효성 검사
         validateRegistrationParams(clOrderIds, productId);
 
@@ -383,24 +381,27 @@ public class WorkOrderController {
      * 정렬 컬럼 검증 및 변환
      */
     private void validateAndConvertSortColumn(SearchCriteria cri) {
-        List<String> allowedColumns = List.of(
-            "w.order_id", "p.product_name", "w.created_at",
-            "w.status", "w.priority", "w.due_date"
+        // 클라이언트가 보내는 키 → 실제 컬럼 매핑
+        Map<String, String> map = Map.of(
+            "order_id",   "w.order_id",
+            "product_name","p.product_name",
+            "created_at", "w.created_at",
+            "status",     "w.status",
+            "priority",   "w.priority",
+            "due_date",   "w.due_date",
+            "order_qty",  "w.order_qty"
         );
 
-        if ("due_date".equals(cri.getSortColumn())) {
-            cri.setSortColumn("w.due_date"); // 최신 변경사항 반영
-        }
+        String raw = cri.getSortColumn();
+        String col = map.getOrDefault(raw, "w.created_at"); // 기본값
 
-        if (cri.getSortColumn() == null || 
-            cri.getSortColumn().trim().isEmpty() || 
-            !allowedColumns.contains(cri.getSortColumn())) {
-            cri.setSortColumn("w.created_at");
-        }
+        cri.setSortColumn(col);
 
-        if (cri.getSortOrder() == null || 
-            !(cri.getSortOrder().equals("asc") || cri.getSortOrder().equals("desc"))) {
+        String order = cri.getSortOrder();
+        if (!"asc".equalsIgnoreCase(order) && !"desc".equalsIgnoreCase(order)) {
             cri.setSortOrder("desc");
+        } else {
+            cri.setSortOrder(order.toLowerCase());
         }
     }
     
@@ -409,10 +410,11 @@ public class WorkOrderController {
      */
     private Map<String, Integer> getStatusCounts() {
         Map<String, Integer> statusCounts = new HashMap<>();
-        statusCounts.put("all", workOrderService.getAllCount());
-        statusCounts.put("waiting", workOrderService.getCountByStatus("WAITING"));
+        statusCounts.put("all",        workOrderService.getAllCount());
+        statusCounts.put("waiting",    workOrderService.getCountByStatus("WAITING"));
+        statusCounts.put("ready",      workOrderService.getCountByStatus("READY"));         // ★ 추가
         statusCounts.put("inProgress", workOrderService.getCountByStatus("IN_PROGRESS"));
-        statusCounts.put("completed", workOrderService.getCountByStatus("COMPLETED"));
+        statusCounts.put("completed",  workOrderService.getCountByStatus("COMPLETED"));
         return statusCounts;
     }
     
@@ -420,16 +422,17 @@ public class WorkOrderController {
      * 목록 조회 모델 바인딩
      */
     private void bindListModel(Model model, List<WorkOrderDTO> workOrderList, 
-                              SearchCriteria cri, PageMaker pageMaker, 
-                              Map<String, Integer> statusCounts) {
-        model.addAttribute("workOrders", workOrderList);
-        model.addAttribute("cri", cri);
-        model.addAttribute("pageMaker", pageMaker);
-        model.addAttribute("allCount", statusCounts.get("all"));
-        model.addAttribute("waitingCount", statusCounts.get("waiting"));
-        model.addAttribute("inProgressCount", statusCounts.get("inProgress"));
-        model.addAttribute("completedCount", statusCounts.get("completed"));
-    }
+            SearchCriteria cri, PageMaker pageMaker, 
+            Map<String, Integer> statusCounts) {
+	model.addAttribute("workOrders", workOrderList);
+	model.addAttribute("cri", cri);
+	model.addAttribute("pageMaker", pageMaker);
+	model.addAttribute("allCount",        statusCounts.get("all"));
+	model.addAttribute("waitingCount",    statusCounts.get("waiting"));
+	model.addAttribute("readyCount",      statusCounts.get("ready"));      // ★ 추가
+	model.addAttribute("inProgressCount", statusCounts.get("inProgress"));
+	model.addAttribute("completedCount",  statusCounts.get("completed"));
+	}
     
     /**
      * 등록 팝업 파라미터 검증
