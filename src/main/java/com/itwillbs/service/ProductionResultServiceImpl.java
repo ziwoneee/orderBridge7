@@ -12,9 +12,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.itwillbs.domain.ProductInboundVO;
 import com.itwillbs.domain.ProductionResultVO;
+import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.ProductionResultDTO;
+import com.itwillbs.mapper.ProductionResultMapper;
 import com.itwillbs.persistence.ProductInboundDAO;
 import com.itwillbs.persistence.ProductionResultDAO;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@RequiredArgsConstructor
+@Slf4j
 @Service
 public class ProductionResultServiceImpl implements ProductionResultService {
 
@@ -29,6 +37,7 @@ public class ProductionResultServiceImpl implements ProductionResultService {
 
     private final Map<String, Integer> serialMap = new HashMap<>(); // 날짜별 시리얼 관리
     
+    private final ProductionResultMapper productionResultMapper;
     
     // -------------------- ✅ 생산 결과 등록  - 아름 시작--------------------------
     // ✅ 생산 결과 등록 (단일) 
@@ -129,5 +138,24 @@ public class ProductionResultServiceImpl implements ProductionResultService {
     }
         
     // -------------------- ✅ 생산 결과 등록  - 아름 끝--------------------------
+ // --------------------  목록/카운트 (JOIN 조회)  --------------------
+    @Override
+    public List<ProductionResultDTO> getList(SearchCriteria cri) {
+        log.debug("[RESULT][LIST] criteria={}", cri);
+        if (cri.getSortColumn() == null || cri.getSortColumn().isEmpty()) {
+            cri.setSortColumn("created_at");
+            cri.setSortOrder("desc");
+        }
+        return productionResultMapper.selectResultList(cri);
+    }
 
+    @Override
+    public int getTotalCount(SearchCriteria cri) {
+        int total = productionResultMapper.selectResultCount(cri);
+        cri.setTotalCount(total);
+        log.debug("[RESULT][COUNT] total={}", total);
+        return total;
+    }
+  
+    
 }

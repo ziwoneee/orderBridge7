@@ -8,7 +8,7 @@
 
 <!-- ..............완제품 입고등록 아름 시작.................... -->
 
-  <!-- ✅ 생산결과 검색 + 정렬 + 날짜조회 + 페이징 -->
+  <!--  생산결과 검색 + 정렬 + 날짜조회 + 페이징 -->
   <select id="searchProductionResults" parameterType="com.itwillbs.domain.SearchCriteria" resultType="com.itwillbs.domain.ProductionResultVO">
     SELECT 
       result_id,
@@ -99,6 +99,90 @@
 </select>
 
 <!-- ..............완제품 입고등록 아름 끝.................... -->  
-  
 
+<!-- ..............생산 실적 관리 (태현).................... -->
+
+<!-- 생산 실적 목록 (안전한 버전) -->
+<select id="selectResultList"
+        parameterType="com.itwillbs.domain.SearchCriteria"
+        resultType="com.itwillbs.dto.ProductionResultDTO">
+
+  SELECT
+    -- production_result 기본 컬럼만
+    pr.result_id,
+    pr.order_id,
+    pr.product_id,
+    pr.lot_no,
+    pr.actual_qty,
+    pr.defect_qty,
+    pr.worker_name,
+    pr.started_at,
+    pr.ended_at,
+    pr.created_at,
+    
+    -- work_order 조인 (상태 필터용)
+    wo.status,
+    wo.order_qty
+
+  FROM production_result pr
+  LEFT JOIN work_order wo ON pr.order_id = wo.order_id
+
+  <where>
+    1=1
+    <!-- 기간 필터 (매우 안전한 체크) -->
+    <if test="startDate != null and startDate != '' and startDate.trim() != ''">
+      AND DATE(pr.created_at) &gt;= STR_TO_DATE(#{startDate}, '%Y-%m-%d')
+    </if>
+    <if test="endDate != null and endDate != '' and endDate.trim() != ''">
+      AND DATE(pr.created_at) &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d')
+    </if>
+
+    <!-- 상태 필터 (중요!) -->
+    <if test="status != null and status != ''">
+      AND wo.status = #{status}
+    </if>
+
+    <!-- 검색 -->
+    <if test="keyword != null and keyword != ''">
+      AND (
+        pr.worker_name LIKE CONCAT('%', #{keyword}, '%')
+        OR pr.order_id LIKE CONCAT('%', #{keyword}, '%')
+        OR pr.lot_no LIKE CONCAT('%', #{keyword}, '%')
+      )
+    </if>
+  </where>
+
+  ORDER BY pr.created_at DESC
+  LIMIT #{pageStart}, #{perPageNum}
+</select>
+
+<!-- 총 건수 (상태 필터 포함) -->
+<select id="selectResultCount"
+        parameterType="com.itwillbs.domain.SearchCriteria"
+        resultType="int">
+  SELECT COUNT(1)
+  FROM production_result pr
+  LEFT JOIN work_order wo ON pr.order_id = wo.order_id
+  <where>
+    1=1
+    <if test="startDate != null and startDate != '' and startDate.trim() != ''">
+      AND DATE(pr.created_at) &gt;= STR_TO_DATE(#{startDate}, '%Y-%m-%d')
+    </if>
+    <if test="endDate != null and endDate != '' and endDate.trim() != ''">
+      AND DATE(pr.created_at) &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d')
+    </if>
+    <!-- 상태 필터 (중요!) -->
+    <if test="status != null and status != ''">
+      AND wo.status = #{status}
+    </if>
+    <if test="keyword != null and keyword != ''">
+      AND (
+        pr.worker_name LIKE CONCAT('%', #{keyword}, '%')
+        OR pr.order_id LIKE CONCAT('%', #{keyword}, '%')
+        OR pr.lot_no LIKE CONCAT('%', #{keyword}, '%')
+      )
+    </if>
+  </where>
+</select>
+  
 </mapper>
