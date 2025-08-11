@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
@@ -110,67 +111,137 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
     @Override
     @Transactional
     public String createShortageDraftPO(String workOrderNo, String userId) throws Exception {
+    	// 0) 기존 로직: 부족 자재 산출 (+ 물 제외)
         List<Map<String,Object>> mats = getWoMaterials(workOrderNo);
-        List<Map<String,Object>> shortageItems = new ArrayList<>();
+        List<Map<String,Object>> shortages = new ArrayList<>();
 
         for (Map<String,Object> row : mats) {
-            String matId = (String) row.get("materialId");
+            String mid = (String) row.get("materialId");
             int required = ((Number) row.get("requiredQty")).intValue();
 
-            int stillNeed   = getStillNeed(workOrderNo, matId, required);
+            if ("RM-0015".equals(mid)) continue; // 물은 PO 제외
+
+            int stillNeed = getStillNeed(workOrderNo, mid, required);
             if (stillNeed <= 0) continue;
 
-            int available   = Math.max(getAvailable(matId), 0);
+            int available = Math.max(getAvailable(mid), 0);
             int willReserve = Math.min(stillNeed, available);
 
             if (willReserve > 0) {
-                reservationDAO.upsertReservation(workOrderNo, matId, willReserve);
+                reservationDAO.upsertReservation(workOrderNo, mid, willReserve);
                 stillNeed -= willReserve;
             }
             if (stillNeed > 0) {
                 Map<String,Object> s = new HashMap<>();
-                s.put("materialId",  matId);
-                s.put("orderQty",    stillNeed); // ← 네 Mapper에서 쓰는 키 이름에 맞게 변경 가능
-                shortageItems.add(s);
+                s.put("materialId", mid);
+                s.put("orderQty",   stillNeed);
+                shortages.add(s);
             }
         }
 
-        if (shortageItems.isEmpty()) {
-            // 부족 없음 → RESOLVED 체크만
+        if (shortages.isEmpty()) {
             reservationDAO.resolveIfAllReserved(workOrderNo);
             return null;
         }
 
-        // === 발주 초안 생성 (네 DAO 방식) ===
-        String orderId = orderDAO.generateOrderId();
+        // 1) 자재별 후보 협력사/단가/창고 조회
+        List<String> mids = shortages.stream()
+                .map(x -> (String)x.get("materialId"))
+                .distinct()
+                .collect(Collectors.toList());
 
-        // 헤더 파라미터(키 이름은 매퍼에서 받는대로 맞춰줘)
-        Map<String,Object> header = new HashMap<>();
-        header.put("orderId",          orderId);
-        header.put("createdBy",        userId);
-        header.put("orderStatus",      "DRAFT");
-        header.put("linkedWorkOrder",  workOrderNo); // 매퍼에 없으면 빼도 됨
-
-        orderDAO.insertOrderHeaderDraft(header);
-
-        // 항목 배치 파라미터(키 이름은 매퍼에 맞게)
-        // 예시 키: orderItemId, orderId, materialId, orderQuantity
-        List<Map<String,Object>> batch = new ArrayList<>();
-        int idx = orderDAO.selectNextOrderItemIndex(orderId); // 이미 있으면 이어서
-        for (Map<String,Object> it : shortageItems) {
-            String matId = (String) it.get("materialId");
-            int qty      = ((Number) it.get("orderQty")).intValue();
-
-            Map<String,Object> one = new HashMap<>();
-            one.put("orderItemId",    orderId + "-" + (idx++));
-            one.put("orderId",        orderId);
-            one.put("materialId",     matId);
-            one.put("orderQuantity",  qty);
-            batch.add(one);
+        // 내부사용(N) 자재 사전 차단(선택)
+        List<Map<String,Object>> nonPurch = orderDAO.selectNonPurchasableFromList(mids);
+        if (nonPurch != null && !nonPurch.isEmpty()) {
+            String bad = nonPurch.stream()
+                    .map(m -> (String)m.get("materialId"))
+                    .distinct().toString();
+            throw new IllegalStateException("구매불가 자재 존재: " + bad);
         }
-        orderDAO.insertOrderItemsBatch(batch);
 
-        return orderId;
+        List<Map<String,Object>> maps = orderDAO.selectSupplierItemMappings(mids);
+        // materialId -> 후보 리스트
+        Map<String, List<Map<String,Object>>> candByMat = new HashMap<>();
+        for (Map<String,Object> m : maps) {
+            String mid = (String) m.get("materialId");
+            candByMat.computeIfAbsent(mid, k -> new ArrayList<>()).add(m);
+        }
+
+        // 1-1) 우선협력사 선정: unitPrice ASC (is_preferred 컬럼 없으므로 가격 기준)
+        Map<String, Map<String,Object>> chosen = new HashMap<>();
+        for (String mid : mids) {
+            List<Map<String,Object>> cands = candByMat.getOrDefault(mid, List.of());
+            if (cands.isEmpty()) continue;
+            cands.sort((a,b) -> {
+                int au = ((Number)a.getOrDefault("unitPrice", 0)).intValue();
+                int bu = ((Number)b.getOrDefault("unitPrice", 0)).intValue();
+                return Integer.compare(au, bu);
+            });
+            chosen.put(mid, cands.get(0)); // 최저가 1건
+        }
+        // 협력사 미존재 자재 방지
+        List<String> noSupp = mids.stream().filter(mid -> !chosen.containsKey(mid)).collect(Collectors.toList());
+        if (!noSupp.isEmpty()) {
+            throw new IllegalStateException("협력사 미지정 자재: " + String.join(", ", noSupp));
+        }
+
+        // 2) 협력사별 그룹핑
+        Map<String, List<Map<String,Object>>> bySupplier = new HashMap<>();
+        for (Map<String,Object> it : shortages) {
+            String mid = (String) it.get("materialId");
+            String sid = (String) chosen.get(mid).get("supplierId");
+            bySupplier.computeIfAbsent(sid, k -> new ArrayList<>()).add(it);
+        }
+
+        // 3) 협력사별 헤더/아이템 생성
+        String firstOrderId = null;
+
+        for (Map.Entry<String, List<Map<String,Object>>> e : bySupplier.entrySet()) {
+            String supplierId = e.getKey();
+            List<Map<String,Object>> items = e.getValue();
+
+            // 헤더 파라미터(Map) – selectKey가 orderId를 셋팅해 줌
+            Map<String,Object> header = new HashMap<>();
+            header.put("supplierId",  supplierId);      // ★ 반드시 세팅
+            header.put("orderStatus", "초안");          // 혹은 "DRAFT" -> 매퍼에서 COALESCE 처리
+            header.put("createdBy",   userId);
+            // header.put("expectedArrivedDate", ...);  // 필요시 리드타임 계산해서 넣기
+            // header.put("note", null);
+
+            orderDAO.insertOrderHeaderDraft(header);
+
+            // 방금 생성된 orderId 회수 (selectKey BEFORE 덕분에 header에 값 들어있음)
+            String orderId = (String) header.get("orderId");
+            if (firstOrderId == null) firstOrderId = orderId;
+
+            int idx = orderDAO.selectNextOrderItemIndex(orderId);
+            List<Map<String,Object>> batch = new ArrayList<>();
+
+            for (Map<String,Object> it2 : items) {
+                String mid = (String) it2.get("materialId");
+                int qty = ((Number) it2.get("orderQty")).intValue();
+
+                Map<String,Object> chosenRow = chosen.get(mid);
+                int unit = ((Number) chosenRow.getOrDefault("unitPrice", 0)).intValue();
+                int total = unit * qty;
+                String wh = (String) chosenRow.getOrDefault("warehouseCode", "WH001");
+
+                Map<String,Object> row = new HashMap<>();
+                row.put("orderItemId",   orderId + "-" + (idx++));
+                row.put("orderId",       orderId);
+                row.put("materialId",    mid);
+                row.put("orderQuantity", qty);
+                row.put("unitPrice",     unit);   // ★ Mapper가 요구
+                row.put("totalPrice",    total);  // ★ Mapper가 요구
+                row.put("warehouseCode", wh);     // ★ Mapper가 요구
+
+                batch.add(row);
+            }
+
+            orderDAO.insertOrderItemsBatch(batch);
+        }
+
+        return firstOrderId; // 필요하면 List<String>으로 바꿔서 전부 반환
     }
 
     /**

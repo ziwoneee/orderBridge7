@@ -91,6 +91,7 @@
 	  FROM work_order wo
 	  LEFT JOIN product p ON p.product_id = wo.product_id 
 	  WHERE wo.status = 'WAITING'
+	  	AND wo.shortage_status IN ('NONE','CHECKED')
 	  ORDER BY wo.due_date ASC, wo.order_id ASC
 	</select>
 	

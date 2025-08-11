@@ -251,10 +251,10 @@ function renderMaterialRows(items) {
 
 	      $row.append($lotCell);
 	      
-	      // NEW: 가용(a4wo) 표시 셀
-	      $row.append(
-	    		  $('<td>').addClass('text-right align-middle a4wo').text(a4wo)
-	      );
+	      const a4woText = (mid === 'RM-0015') ? '직접출고' : a4wo;
+	       $row.append(
+	         $('<td>').addClass('text-right align-middle a4wo').text(a4woText)
+	       );
 	      
 	      // 합계 + 부족 셀
 	      $row.append(
