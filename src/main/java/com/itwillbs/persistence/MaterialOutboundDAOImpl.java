@@ -150,7 +150,24 @@ public class MaterialOutboundDAOImpl implements MaterialOutboundDAO {
 	        sqlSession.insert(NAMESPACE + "insertOutboundItemsFromWOM", p);
 	    }
 
-
+	    
+	    // 작업지시서 남은 필요수량 카운트
+	    @Override
+	    public int countRemainByWorkOrder(String workOrderId) throws Exception {
+	        return sqlSession.selectOne(NAMESPACE + "countRemainByWorkOrder", workOrderId);
+	    }
+	    
+	    // 부족해결 상태로 변경
+	    @Override
+	    public int updateWorkOrderShortageResolved(String workOrderId) throws Exception {
+	        return sqlSession.update(NAMESPACE + "updateWorkOrderShortageResolved", workOrderId);
+	    }
+	    
+	    // 전부 충족 시 지시 상태도 완료로 변경하고 싶으면 사용
+	    @Override
+	    public int updateWorkOrderIssuedCompleted(String workOrderId) throws Exception {
+	        return sqlSession.update(NAMESPACE + "updateWorkOrderIssuedCompleted", workOrderId);
+	    }
 
 
 }

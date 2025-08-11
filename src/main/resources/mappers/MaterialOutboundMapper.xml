@@ -82,16 +82,29 @@
 	<!-- WAITING 작업지시 -->
 	<select id="getWaitingOrders" resultType="com.itwillbs.domain.WorkOrderVO">
 	  SELECT
-	    wo.order_id   AS orderId,
-	    wo.product_id AS productId,
-	    p.product_name AS productName,
-	    wo.line_id    AS lineId,
-	    wo.order_qty  AS orderQty,
-	    wo.due_date   AS dueDate
+	    wo.order_id     AS orderId,
+	    wo.product_id   AS productId,
+	    p.product_name  AS productName,
+	    wo.line_id      AS lineId,
+	    wo.order_qty    AS orderQty,
+	    wo.due_date     AS dueDate
 	  FROM work_order wo
-	  LEFT JOIN product p ON p.product_id = wo.product_id 
+	  LEFT JOIN product p ON p.product_id = wo.product_id
 	  WHERE wo.status = 'WAITING'
-	  	AND wo.shortage_status IN ('NONE','CHECKED')
+	    AND wo.shortage_status IN ('NONE','CHECKED')
+	    AND EXISTS (
+	      SELECT 1
+	      FROM work_order_material wom
+	      LEFT JOIN material_outbound mo
+	             ON mo.work_order_id = wom.work_order_id
+	            AND mo.status = 'ISSUED'
+	      LEFT JOIN material_outbound_item oi
+	             ON oi.outbound_id = mo.outbound_id
+	            AND oi.material_id  = wom.material_id
+	      WHERE wom.work_order_id = wo.order_id
+	      GROUP BY wom.material_id
+	      HAVING COALESCE(SUM(oi.quantity),0) &lt; SUM(wom.required_qty)   -- 아직 남아있어야 목록에 보임
+	    )
 	  ORDER BY wo.due_date ASC, wo.order_id ASC
 	</select>
 	
@@ -361,6 +374,45 @@
 		    wo.due_date ASC
 		  LIMIT 1
 		</select>
+		
+		
+		
+		<!-- [R1] 작업지시별로 '남은 필요수량'이 있으면 개수>0 반환 -->
+		<select id="countRemainByWorkOrder" parameterType="string" resultType="int">
+		  SELECT COUNT(*)
+		  FROM (
+		    SELECT wom.material_id,
+		           SUM(wom.required_qty)                         AS req,
+		           COALESCE(SUM(oi.quantity), 0)                 AS issued
+		    FROM work_order_material wom
+		    LEFT JOIN material_outbound mo
+		           ON mo.work_order_id = wom.work_order_id
+		          AND mo.status = 'ISSUED'                      -- 출고 완료건만 집계
+		    LEFT JOIN material_outbound_item oi
+		           ON oi.outbound_id = mo.outbound_id
+		          AND oi.material_id   = wom.material_id
+		    WHERE wom.work_order_id = #{workOrderId}
+		    GROUP BY wom.material_id
+		    HAVING COALESCE(SUM(oi.quantity),0) &lt; SUM(wom.required_qty)   -- 아직 모자라면 남음
+		  ) t
+		</select>
+		
+		<!-- [R2] 부족해결로 업데이트 -->
+		<update id="updateWorkOrderShortageResolved" parameterType="string">
+		  UPDATE work_order
+		     SET shortage_status = 'RESOLVED',
+		         updated_at = NOW()
+		   WHERE order_id = #{_parameter}
+		</update>
+		
+		<!-- (선택) 전부 충족되면 지시상태도 완료 같은 걸로 바꾸고 싶으면 사용 -->
+		<update id="updateWorkOrderIssuedCompleted" parameterType="string">
+		  UPDATE work_order
+		     SET status = 'ISSUED_COMPLETED',
+		         updated_at = NOW()
+		   WHERE order_id = #{_parameter}
+		</update>
+		
 		
 
 

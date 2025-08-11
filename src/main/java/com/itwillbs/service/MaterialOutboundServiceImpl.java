@@ -190,7 +190,7 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	        
 	        moDAO.insertOutboundHeader(header);
 
-	     // ── 5) 항목 저장(LOT별)
+	        // ── 5) 항목 저장(LOT별)
 	        List<Map<String,Object>> rows = new ArrayList<>();
 	        int idx = 1; // ★ 아이템 일련번호
 
@@ -217,7 +217,15 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	            moDAO.insertOutboundItems(rows);
 	        }
 	        
-	        moDAO.updateWorkOrderShortageStatus(vo.getWorkOrderId(), "CHECKED");
+	        // 여기서 남은 필요수량 체크 → 상태 갱신
+	        int remain = moDAO.countRemainByWorkOrder(vo.getWorkOrderId()); // 0이면 모두 충족
+	        if (remain == 0) {
+	            moDAO.updateWorkOrderShortageResolved(vo.getWorkOrderId()); // shortage_status = RESOLVED
+	            // (선택) 전부 충족시 지시 상태도 완료 처리
+	            // moDAO.updateWorkOrderIssuedCompleted(vo.getWorkOrderId());
+	        } else {
+	            moDAO.updateWorkOrderShortageStatus(vo.getWorkOrderId(), "CHECKED"); // 아직 모자람
+	        }
 	    }
 
 

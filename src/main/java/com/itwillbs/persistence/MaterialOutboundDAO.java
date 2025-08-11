@@ -59,6 +59,15 @@ public interface MaterialOutboundDAO {
 
     // 출고 아이템 INSERT (작업지시서 자재 목록 복사)
     void insertOutboundItemsFromWOM(String outboundId, String workOrderId) throws Exception;
+    
+    // 작업지시서 남은 필요수량 카운트
+    int countRemainByWorkOrder(String workOrderId) throws Exception;
+    
+    // 부족해결 상태로 변경
+    int updateWorkOrderShortageResolved(String workOrderId) throws Exception;
+    
+    // 전부 충족 시 지시 상태도 완료로 변경하고 싶으면 사용
+    int updateWorkOrderIssuedCompleted(String workOrderId) throws Exception;
 	
 	
 
