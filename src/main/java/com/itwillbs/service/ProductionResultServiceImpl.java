@@ -15,13 +15,14 @@ import com.itwillbs.domain.ProductionResultVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.ProductionResultDTO;
 import com.itwillbs.mapper.ProductionResultMapper;
+import com.itwillbs.mapper.WorkOrderMapper; // ✅ 추가
 import com.itwillbs.persistence.ProductInboundDAO;
 import com.itwillbs.persistence.ProductionResultDAO;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-@RequiredArgsConstructor
+@RequiredArgsConstructor // ✅ 이거 있으면 @Autowired 대신 final 사용
 @Slf4j
 @Service
 public class ProductionResultServiceImpl implements ProductionResultService {
@@ -29,40 +30,79 @@ public class ProductionResultServiceImpl implements ProductionResultService {
     @Autowired
     private ProductionResultDAO productionResultDAO;
 
+    // ✅ WorkOrderMapper 직접 주입 (작업지시 상태 갱신용)
+    @Autowired 
+    private WorkOrderMapper workOrderMapper;
+    
     @Autowired
     private ProductInboundService productInboundService;
 
     @Autowired
     private ProductInboundDAO productInboundDAO;
 
-    private final Map<String, Integer> serialMap = new HashMap<>(); // 날짜별 시리얼 관리
+    private final Map<String, Integer> inboundSerialMap = new HashMap<>(); // 입고ID용만 메모리 사용
     
     private final ProductionResultMapper productionResultMapper;
     
-    // -------------------- ✅ 생산 결과 등록  - 아름 시작--------------------------
-    // ✅ 생산 결과 등록 (단일) 
+    // -------------------- ✅ 생산 결과 등록 - DB 기반 ID 생성 --------------------------
     @Transactional
     @Override
     public void insertResult(ProductionResultVO vo) {
+        // 1) 오늘 날짜(YYYYMMDD)
+        String todayStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
+
+        // 2) result_id 발번 (DB에서 조회)
+        String nextSeq = productionResultMapper.selectTodayResultSeq();
+        if (nextSeq == null || nextSeq.isEmpty()) nextSeq = "001";
+        String resultId = "PRS-" + todayStr + "-" + nextSeq;
+        vo.setResultId(resultId);
+
+        // 3) LOT 번호 생성 (DB에서 조회)
+        String lotNo = generateLotNumber(vo.getProductId(), todayStr);
+        vo.setLotNo(lotNo);
+
+        // 4) 서버측 수량 검증 및 보정
+        int actual = vo.getActualQty() == null ? 0 : vo.getActualQty();
+        int defect = vo.getDefectQty() == null ? 0 : vo.getDefectQty();
+        if (actual <= 0) {
+            throw new IllegalArgumentException("생산수량은 0보다 커야 합니다.");
+        }
+        if (defect < 0 || defect > actual) {
+            throw new IllegalArgumentException("불량품수량은 0 이상이고 생산수량 이하여야 합니다.");
+        }
+
+        // 5) 생산결과 INSERT
         productionResultDAO.insertResult(vo);
+        log.info("생산결과 등록 완료: {}", resultId);
 
-        int netQty = vo.getActualQty() - vo.getDefectQty();
-        if (netQty <= 0) return;
+        // 6) 작업지시 누적/상태 반영 (같은 트랜잭션)
+        // ✅ WorkOrderMapper의 applyResultToWorkOrder 직접 호출
+        workOrderMapper.applyResultToWorkOrder(vo.getOrderId());
+        log.info("작업지시 상태 갱신 완료: {}", vo.getOrderId());
 
-        String lotNo = vo.getLotNo();
-        String productId = extractProductIdFromLot(lotNo);
-        String today = new SimpleDateFormat("yyyyMMdd").format(new Date());
+        // 7) 자동입고 처리: 정상품 수량만 입고
+        int netQty = actual - defect;
+        if (netQty <= 0) {
+            log.info("정상품 수량이 0 이하여서 입고를 건너뜁니다. LOT: {}", lotNo);
+            return;
+        }
 
-        // 시리얼 번호 증가
-        int serial = serialMap.getOrDefault(today, 0) + 1;
-        serialMap.put(today, serial);
+        // 동일 LOT 중복입고 방지
+        if (productInboundDAO.existsByLotNo(lotNo)) {
+            log.warn("이미 입고된 LOT입니다: {}", lotNo);
+            return;
+        }
 
-        String inboundId = String.format("IN-FG-%s-%03d", today, serial);
+        // 8) 입고ID 발번 (메모리 기반 - 입고는 단순하므로)
+        int serial = inboundSerialMap.getOrDefault(todayStr, 0) + 1;
+        inboundSerialMap.put(todayStr, serial);
+        String inboundId = String.format("IN-FG-%s-%03d", todayStr, serial);
 
+        // 9) 입고 저장
         ProductInboundVO inbound = new ProductInboundVO();
         inbound.setInboundId(inboundId);
         inbound.setLotNo(lotNo);
-        inbound.setProductId(productId);
+        inbound.setProductId(vo.getProductId());
         inbound.setInboundQty(netQty);
         inbound.setInboundType("생산");
         inbound.setRemark("생산결과 자동입고");
@@ -71,13 +111,39 @@ public class ProductionResultServiceImpl implements ProductionResultService {
         inbound.setCreatedAt(vo.getCreatedAt());
 
         productInboundService.registerInbound(inbound);
+        log.info("자동입고 완료: {} -> {}", lotNo, inboundId);
+    }
+
+    // ✅ LOT 번호 생성 (DB 기반 - 안전함)
+    private String generateLotNumber(String productId, String todayStr) {
+        // 제품 코드 매핑
+        String productCode = getProductCodeFromId(productId);
+        
+        // DB에서 오늘 날짜의 해당 제품 LOT 시퀀스 조회
+        String lotSeq = productionResultMapper.selectTodayLotSeq(productCode, todayStr);
+        if (lotSeq == null || lotSeq.isEmpty()) {
+            lotSeq = "001";
+        }
+        
+        String lotNo = String.format("LOT-%s-%s-%s", productCode, todayStr, lotSeq);
+        log.debug("LOT 번호 생성: {} -> {}", productId, lotNo);
+        return lotNo;
+    }
+
+    // ✅ 제품ID → 제품코드 매핑
+    private String getProductCodeFromId(String productId) {
+        switch (productId) {
+            case "FG-001": return "DG";  // 돼지국밥
+            case "FG-002": return "SD";  // 순대국밥  
+            case "FG-003": return "HW";  // 한우곰탕
+            default: return "ETC";       // 기타
+        }
     }
 
     // ✅ 자동입고 전체 처리 (버튼용)
     @Override
     public void saveAllToInbound() {
         List<ProductionResultVO> resultList = productionResultDAO.selectAllResults();
-
         String today = new SimpleDateFormat("yyyyMMdd").format(new Date());
         int serial = 0;
 
@@ -89,10 +155,9 @@ public class ProductionResultServiceImpl implements ProductionResultService {
                 int netQty = result.getActualQty() - result.getDefectQty();
                 if (netQty <= 0) continue;
 
-                String productId = extractProductIdFromLot(result.getLotNo());
-                String productName = extractProductNameFromProductId(productId);
+                String productId = result.getProductId();
+                String productName = getProductNameFromId(productId);
                
-                
                 serial++;
                 String inboundId = String.format("IN-FG-%s-%03d", today, serial);
 
@@ -109,26 +174,15 @@ public class ProductionResultServiceImpl implements ProductionResultService {
                 inbound.setCreatedAt(result.getCreatedAt());
 
                 productInboundService.registerInbound(inbound);
+                log.info("일괄 자동입고 완료: {}", result.getLotNo());
             } catch (Exception e) {
-                System.err.println("자동입고 실패 LOT: " + result.getLotNo());
-                e.printStackTrace();
+                log.error("자동입고 실패 LOT: {}, 오류: {}", result.getLotNo(), e.getMessage());
             }
         }
     }
 
-    // ✅ LOT에서 제품코드 추출 로직
-    private String extractProductIdFromLot(String lotNo) {
-        if (lotNo == null || lotNo.split("-").length < 2) return "UNKNOWN";
-        String code = lotNo.split("-")[1];
-        switch (code) {
-            case "DG": return "FG-001";
-            case "SD": return "FG-002";
-            case "HW": return "FG-003";
-            default: return "FG-999";
-        }
-    }
-    //제품 ID → 제품명
-    private String extractProductNameFromProductId(String productId) {
+    // 제품 ID → 제품명
+    private String getProductNameFromId(String productId) {
         switch (productId) {
             case "FG-001": return "돼지국밥";
             case "FG-002": return "순대국밥";
@@ -137,8 +191,7 @@ public class ProductionResultServiceImpl implements ProductionResultService {
         }
     }
         
-    // -------------------- ✅ 생산 결과 등록  - 아름 끝--------------------------
- // --------------------  목록/카운트 (JOIN 조회)  --------------------
+    // -------------------- 목록/카운트 (JOIN 조회) --------------------
     @Override
     public List<ProductionResultDTO> getList(SearchCriteria cri) {
         log.debug("[RESULT][LIST] criteria={}", cri);
@@ -156,6 +209,15 @@ public class ProductionResultServiceImpl implements ProductionResultService {
         log.debug("[RESULT][COUNT] total={}", total);
         return total;
     }
-  
-    
+
+    // ✅ 상세 조회 메서드 추가 (Controller에서 사용)
+    @Override
+    public ProductionResultDTO getDetail(String resultId) {
+        log.debug("[RESULT][DETAIL] resultId={}", resultId);
+        ProductionResultDTO result = productionResultMapper.selectResultDetail(resultId);
+        if (result == null) {
+            throw new IllegalArgumentException("존재하지 않는 생산실적입니다: " + resultId);
+        }
+        return result;
+    }
 }
