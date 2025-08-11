@@ -33,8 +33,7 @@ public interface WorkOrderService {
     
     /**
      * 상태별 작업지시 개수 조회
-     * @param status 상태 (WAITING, IN_PROGRESS, COMPLETED)
-     * @return 해당 상태의 개수
+     * 상태별 작업지시 개수 조회
      */
     int getCountByStatus(String status);
     
@@ -114,5 +113,14 @@ public interface WorkOrderService {
      */
     List<WorkOrderDTO> getWaitingWorkOrders();
 
+    
+    /**
+     * 생산실적 등록 가능한 작업지시 목록 조회 (진행중 + 완료)
+     * @return 작업지시 목록
+     */
+    List<WorkOrderDTO> getInProgressOrders();
+    
+    // 작업지시 실적 반영(누적 합산 후 상태 자동 갱신)
+    void refreshStatusByResults(String orderId);
 
 }
