@@ -209,6 +209,13 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
      */
     @Override
     public void processInboundItem(MaterialInboundItemDTO dto) throws Exception {
+    	
+    	// [ADD] 검증 전에 창고코드 자동 보정
+        if (dto.getWarehouseCode() == null || dto.getWarehouseCode().isEmpty()) {
+            String wh = resolveWarehouseCode(dto.getMaterialId(), dto.getOrderItemId());
+            dto.setWarehouseCode(wh);
+        }
+    	
         // 0) 기본 검증
         if (dto.getQuantity() <= 0) throw new Exception("입고 수량이 0 이하인 자재가 있습니다.");
         if (dto.getLotNo() == null || dto.getLotNo().isEmpty()) throw new Exception("LOT 번호가 누락되었습니다.");
@@ -303,7 +310,17 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
         }
 
         dto.setInbound(inbound);
-        dto.setInboundItems(miDAO.getInboundItemsByInboundId(inboundId));
+        List<MaterialInboundItemVO> items = miDAO.getInboundItemsByInboundId(inboundId);
+        
+        // [ADD] 항목별 창고코드 비어있으면 보정
+        for (MaterialInboundItemVO it : items) {
+            if (it.getWarehouseCode() == null || it.getWarehouseCode().isEmpty()) {
+                String wh = resolveWarehouseCode(it.getMaterialId(), it.getOrderItemId());
+                it.setWarehouseCode(wh);
+            }
+        }
+        dto.setInboundItems(items);
+        
         return dto;
     }
 
@@ -388,5 +405,28 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
     public int getTotalInboundQuantity(String orderItemId) throws Exception {
         return miDAO.getTotalInboundQuantity(orderItemId);
     }
+    
+    
+    /** [ADD] 창고코드 자동결정: ORDER_ITEM > MATERIAL 기본창고 > 시스템 기본값(WH001) */
+    private String resolveWarehouseCode(String materialId, String orderItemId) throws Exception {
+        // 1) 발주항목 창고
+        if (orderItemId != null && !orderItemId.trim().isEmpty()) {
+            // getOrderItemById로도 가능 (이미 쓰고 있음)
+            MaterialOrderItemVO oi = miDAO.getOrderItemById(orderItemId);
+            if (oi != null && oi.getWarehouseCode() != null && !oi.getWarehouseCode().isEmpty()) {
+                return oi.getWarehouseCode();
+            }
+            // 또는 전용 DAO 메서드가 있으면:
+            // String w = miDAO.getOrderItemWarehouseCode(orderItemId);
+            // if (w != null && !w.isEmpty()) return w;
+        }
+        // 2) 자재 기본 창고
+        String w2 = miDAO.getDefaultWarehouseByMaterialId(materialId);
+        if (w2 != null && !w2.isEmpty()) return w2;
+
+        // 3) 시스템 기본
+        return "WH001";
+    }
+
     
 }

@@ -448,6 +448,14 @@
 	         );
 	</update>
 	
+	
+	
+	<!-- 자재별 기본 창고 코드 조회 -->
+	<select id="getDefaultWarehouseByMaterialId" parameterType="string" resultType="string">
+	    SELECT warehouse_code
+	    FROM material
+	    WHERE material_id = #{materialId}
+	</select>
 		
 	
 	

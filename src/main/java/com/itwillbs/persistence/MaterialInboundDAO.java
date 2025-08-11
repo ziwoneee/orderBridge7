@@ -97,6 +97,9 @@ public interface MaterialInboundDAO {
 
 	// 모든 입고건이 '입고완료'일 때만 발주 상태 '입고완료'로 업데이트
 	void updateOrderStatusToCompletedIfAllInboundDone(String orderId) throws Exception;
+	
+	// 창고 자동 매칭
+	String getDefaultWarehouseByMaterialId(String materialId) throws Exception;
 
 
 

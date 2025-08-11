@@ -21,14 +21,14 @@ function loadInboundDetail(inboundId) {
       console.log('상세 정보 응답:', data);
       
       // 기본 정보 설정
-      $('#inboundId').text(data.inbound.inboundId || '-');
-      $('#orderId').text(data.inbound.orderId || '-');
-      $('#expectedArrivedDate').text(formatDateString(data.inbound.expectedArrivedDate));
-      $('#orderDate').text(formatDateString(data.inbound.orderDate));
-      $('#supplierName').text(data.inbound.supplierName || data.inbound.supplierId || '-');
-      $('#inboundDate').text(formatDateString(data.inbound.inboundDate));
-      $('#handledBy').text(data.inbound.handledBy || '-');
-      $('#modalStatus').text(data.inbound.inboundStatus || '-');
+      $('#inboundDetailModal #inboundId').text(data.inbound.inboundId || '-');
+      $('#inboundDetailModal #orderId').text(data.inbound.orderId || '-');
+      $('#inboundDetailModal #expectedArrivedDate').text(formatDateString(data.inbound.expectedArrivedDate));
+      $('#inboundDetailModal #orderDate').text(formatDateString(data.inbound.orderDate));
+      $('#inboundDetailModal #supplierName').text(data.inbound.supplierName || data.inbound.supplierId || '-');
+      $('#inboundDetailModal #inboundDate').text(formatDateString(data.inbound.inboundDate));
+      $('#inboundDetailModal #handledBy').text(data.inbound.handledBy || '-');
+      $('#inboundDetailModal #modalStatus').text(data.inbound.inboundStatus || '-');
 
       // 항목 정보 렌더링
       const tbody = $("#inboundInfo").empty();
@@ -85,62 +85,67 @@ function loadInboundDetail(inboundId) {
 
 /* [2] 입고 모달 열기 - 수정된 버전 */
 function openInboundModal(itemOrId) {
-  console.log('[openInboundModal] arg=', itemOrId);
+	  console.log('[openInboundModal] arg=', itemOrId);
 
-  // 문자열로 오면(예: inboundId) → 상세 모달을 다시 띄우는 경로
-  if (typeof itemOrId === 'string' && !itemOrId.trim().startsWith('{')) {
-    loadInboundDetail(itemOrId);
-    return;
-  }
+	  if (typeof itemOrId === 'string' && !itemOrId.trim().startsWith('{')) {
+	    loadInboundDetail(itemOrId);
+	    return;
+	  }
 
-  // 객체만 처리
-  var item = itemOrId;
-  if (!item || !item.materialId) {
-    alert('자재 정보가 없습니다.');
-    return;
-  }
+	  var item = itemOrId;
+	  if (!item || !item.materialId) {
+	    alert('자재 정보가 없습니다.');
+	    return;
+	  }
 
-  console.log('입고 모달 열기 - 아이템 정보:', item);
+	  console.log('입고 모달 열기 - 아이템 정보:', item);
 
-  // 1) 필드 먼저 채우고 모달을 바로 연다
-  $('#materialId').val(item.materialId);
-  $('#materialName').val(item.materialName || '');
-  $('#lotNo').val('생성중...');                 // 임시 표시
-  $('#expirationDate').val(item.expirationDate || '');
+	  // 1) 기본 필드 세팅
+	  $('#inboundModal #materialId').val(item.materialId);
+	  $('#inboundModal #materialName').val(item.materialName || '');
+	  $('#inboundModal #lotNo').val('생성중...');
+	  $('#inboundModal #expirationDate').val(item.expirationDate || '');
 
-  var orderedQty = item.orderQuantity || 0;
-  var currentReceivedQty = item.quantity || 0;
-  var remainingQty = Math.max(orderedQty - currentReceivedQty, 0);
-  $('#quantity').val(remainingQty > 0 ? remainingQty : 1);
+	  var orderedQty = item.orderQuantity || 0;
+	  var currentReceivedQty = item.quantity || 0;  // 기입고
+	  var remainingQty = Math.max(orderedQty - currentReceivedQty, 0);
+	  $('#inboundModal #quantity').val(remainingQty > 0 ? remainingQty : 1);
 
-  $('#warehouseCode').val(item.warehouseCode || 'WH001');
-  $('#inboundId').val(item.inboundId || '');
-  $('#orderItemId').val(item.orderItemId || '');
-  $('#inboundItemId').val(item.inboundItemId || '');
+	  // ★ 창고 우선 세팅 (서버에서 내려온 값 우선)
+	  $('#inboundModal #warehouseCode').val(item.warehouseCode || 'WH001');
+	  $('#inboundModal #inboundId').val(item.inboundId || '');
+	  $('#inboundModal #orderItemId').val(item.orderItemId || '');
+	  $('#inboundModal #inboundItemId').val(item.inboundItemId || '');
 
-  // 저장 버튼 활성화 시도
-  $('#btnSaveInbound').prop('disabled', false).removeClass('disabled');
+	  // 2) 모달 먼저 띄워서 사용자 대기 최소화
+	  $('#btnSaveInbound').prop('disabled', false).removeClass('disabled');
+	  $('#inboundModal').modal('show');
 
-  // 모달 즉시 표시
-  console.log('모달 표시 시도');
-  $('#inboundModal').modal('show');
+	  // 3) LOT 번호 비동기 생성
+	  $.get('/material/inbound/generate-lot', { materialId: item.materialId })
+	    .done(function(lotNo){
+	      $('#inboundModal #lotNo').val(lotNo || '');
+	      validateInboundInputs && validateInboundInputs();
+	    })
+	    .fail(function(xhr){
+	      console.error('LOT 생성 실패:', xhr.responseText);
+	      $('#lotNo').val('');
+	    });
 
-  // 2) LOT 번호는 뒤에서 비동기로 채움 (실패해도 모달은 떠 있음)
-  $.ajax({
-    url: '/material/inbound/generate-lot',
-    method: 'GET',
-    data: { materialId: item.materialId }
-  })
-  .done(function(lotNo){
-    console.log('LOT No:', lotNo);
-    $('#lotNo').val(lotNo || '');
-    validateInboundInputs && validateInboundInputs();
-  })
-  .fail(function(xhr){
-    console.error('LOT 생성 실패:', xhr.responseText);
-    $('#lotNo').val(''); // 실패 시 비움
-  });
-}
+	  // 4) ★ 창고 자동 매칭 (서버 보정값이 없을 때만)
+	  if (!item.warehouseCode) {
+	    $.get('/material/inbound/default-warehouse', {
+	      materialId: item.materialId,
+	      orderItemId: item.orderItemId || ''
+	    }).done(function(wh){
+	      if ($('#inboundModal').is(':visible')) {
+	        $('#warehouseCode').val(wh || 'WH001');
+	        validateInboundInputs && validateInboundInputs();
+	      }
+	    });
+	  }
+	}
+
 
 /* [3] 미입고 발주 목록 불러오기 - 모달 버전 */
 function loadUnreceivedOrders(page = 1) {
@@ -174,14 +179,14 @@ function loadUnreceivedOrders(page = 1) {
 
 /* [4] 입고 처리 (단일 항목) - 수정된 버전 */
 function processInboundItem() {
-  const lotNo = $('#lotNo').val().trim();
-  const expirationDate = $('#expirationDate').val().trim();
-  const quantity = parseInt($('#quantity').val(), 10);
-  const warehouseCode = $('#warehouseCode').val();
-  const materialId = $('#materialId').val();
-  const inboundId = $('#inboundId').val();
-  const orderItemId = $('#orderItemId').val();
-  const inboundItemId = $('#inboundItemId').val(); // 추가
+  const lotNo = $('#inboundModal #lotNo').val().trim();
+  const expirationDate = $('#inboundModal #expirationDate').val().trim();
+  const quantity = parseInt($('#inboundModal #quantity').val(), 10);
+  const warehouseCode = $('#inboundModal #warehouseCode').val();
+  const materialId = $('#inboundModal #materialId').val();
+  const inboundId = $('#inboundModal #inboundId').val();
+  const orderItemId = $('#inboundModal #orderItemId').val();
+  const inboundItemId = $('#inboundModal #inboundItemId').val(); // 추가
 
   // 유효성 검사
   if (!lotNo) return alert('LOT 번호를 입력하거나 자동 생성해야 합니다.');
@@ -417,7 +422,8 @@ $(document).ready(function () {
 
   // 미입고 발주 입고등록 버튼
   $('#btn-insert-unreceived').on('click', function () {
-    registerSelectedOrders();
+	    // 목록 페이지에서 "미입고 발주 불러오기" 모달 열기
+	    loadUnreceivedOrders(1);
   });
 
   // 모달 내 미입고 발주 입고등록 버튼
@@ -504,12 +510,12 @@ $(document).on('show.bs.modal', '.modal', function () {
 
 //✅ [A] 모달 저장 버튼 유효성 토글
 function validateInboundInputs() {
-  const lotNo = $.trim($('#lotNo').val());
-  const expirationDate = $.trim($('#expirationDate').val());
-  const quantity = parseInt($('#quantity').val(), 10);
-  const warehouseCode = $.trim($('#warehouseCode').val());
-  const materialId = $.trim($('#materialId').val());
-  const inboundId = $.trim($('#inboundId').val());
+  const lotNo = $.trim($('#inboundModal #lotNo').val());
+  const expirationDate = $.trim($('#inboundModal #expirationDate').val());
+  const quantity = parseInt($('#inboundModal #quantity').val(), 10);
+  const warehouseCode = $.trim($('#inboundModal #warehouseCode').val());
+  const materialId = $.trim($('#inboundModal #materialId').val());
+  const inboundId = $.trim($('#inboundModal #inboundId').val());
 
   const ok = !!(lotNo && expirationDate && warehouseCode && materialId && inboundId && quantity > 0);
   $('#btnSaveInbound').prop('disabled', !ok);
