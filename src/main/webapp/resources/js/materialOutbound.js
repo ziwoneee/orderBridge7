@@ -495,34 +495,38 @@ $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
   }
 
   const $btn = $(this);
-  if ($btn.prop('disabled')) return; // 이미 처리 중이면 무시
-  
+  if ($btn.prop('disabled')) return;
   $btn.prop('disabled', true).text('생성 중...');
 
-  $.post(ctx + '/material/reservation/create-shortage-po', { workOrderId: workOrderId })
+  $.post(ctx + '/material/reservation/create-shortage-po', { workOrderId })
     .done(function(res) {
-      console.log('부족분 발주 응답:', res);
+      // 서버 응답 포맷: { ok:true, orderIds:["PO-...","PO-..."] } 또는 { ok:true, orderId:"PO-..." }
+      const ids = (res && (res.orderIds || (res.orderId ? [res.orderId] : []))) || [];
+
+      if (res && res.ok === true && ids.length > 0) {
+        // 발주목록(초안 필터)로 이동 + 방금 생성된 항목 하이라이트
+        const qs = '?status=DRAFT&highlight=' + encodeURIComponent(ids.join(','));
+        location.href = ctx + '/material/order/list' + qs;
+        return;
+      }
+
       if (res && res.ok === true) {
-        if (res.orderId) {
-          alert('부족분 발주 초안이 생성되었습니다: ' + res.orderId);
-          // 필요시 발주 목록 새창/새로고침
-          // window.open(ctx + '/material/order/list', '_blank');
-        } else {
-          alert('부족분이 없어 발주를 생성하지 않았습니다.');
-        }
+        // 생성할 부족분이 없을 때: 출고목록으로 보냄
+        alert('부족분이 없어 발주를 생성하지 않았습니다.');
+        location.href = ctx + '/material/outbound/list';
       } else {
         alert((res && res.message) ? res.message : '부족분 발주 생성에 실패했습니다.');
+        $btn.prop('disabled', false).text('부족분 발주');
       }
     })
     .fail(function(xhr) {
       console.error('부족분 발주 실패:', xhr);
-      const errorMsg = xhr.responseJSON ? xhr.responseJSON.message : xhr.responseText;
-      alert('부족분 발주 생성 중 오류가 발생했습니다.\n' + (errorMsg || '서버 오류'));
-    })
-    .always(function() {
+      const msg = (xhr.responseJSON && xhr.responseJSON.message) || xhr.responseText || '서버 오류';
+      alert('부족분 발주 생성 중 오류가 발생했습니다.\n' + msg);
       $btn.prop('disabled', false).text('부족분 발주');
     });
 });
+
 
 /* ---------- 출고 처리 ---------- */
 window.processOutbound = function(outboundId, btnEl){

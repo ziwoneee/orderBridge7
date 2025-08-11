@@ -242,9 +242,16 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 
 	    @Transactional
 	    @Override
-	    public void processOutbound(String outboundId) {
+	    public void processOutbound(String outboundId) throws Exception {
+	        // 1) 재고 차감
 	        int affected = moDAO.decreaseInventoryByOutbound(outboundId);
 	        if (affected <= 0) throw new IllegalStateException("재고 차감 실패");
+
+	        // 2) 예약 차감 + 0행 정리 (같은 트랜잭션)
+	        reservationDAO.consumeReservationByOutbound(outboundId);
+	        reservationDAO.deleteZeroReservationsByOutbound(outboundId);
+
+	        // 3) 출고 완료
 	        moDAO.updateOutboundCompleted(outboundId);
 	    }
     

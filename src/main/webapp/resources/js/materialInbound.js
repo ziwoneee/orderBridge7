@@ -391,6 +391,8 @@ function viewOrderDetail(orderId) {
             <td>${it.materialId}</td>
             <td>${it.materialName || ''}</td>
             <td class="text-right">${it.orderQuantity}</td>
+            <td class="text-right">${it.unitPrice}</td>
+            <td class="text-right">${it.totalPrice}</td>
             <td>${it.warehouseCode || '-'}</td>
           </tr>`
         );

@@ -35,6 +35,9 @@ public interface MaterialReservationDAO {
 	// (옵션) 안전 전이
 	int transitionShortageStatus(String workOrderId, String from, String to, String userId) throws Exception;
 
-    
-
+    // 이번 출고(outboundId)로 사용된 수량만큼 예약 차감
+	void consumeReservationByOutbound(String outboundId) throws Exception;
+	// 0이 된 예약행 정리
+	void deleteZeroReservationsByOutbound(String outboundId) throws Exception;
+	
 }

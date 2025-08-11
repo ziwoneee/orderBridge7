@@ -63,7 +63,7 @@ public class MaterialReservationDAOImpl implements MaterialReservationDAO {
         Integer n = sqlSession.selectOne(NAMESPACE + "selectOnhand", materialId);
         return (n == null) ? 0 : n;
     }
-
+    
     
     // 작업지시서 필요자재 목록(materialId, requiredQty)
     @Override
@@ -113,7 +113,18 @@ public class MaterialReservationDAOImpl implements MaterialReservationDAO {
         return sqlSession.update(NAMESPACE + "transitionShortageStatus", params);
     }
 
-
+    
+    // 이번 출고(outboundId)로 사용된 수량만큼 예약 차감
+    @Override
+    public void consumeReservationByOutbound(String outboundId) throws Exception {
+        sqlSession.update(NAMESPACE + "consumeReservationByOutbound", outboundId);
+    }
+    
+ 	// 0이 된 예약행 정리
+    @Override
+    public void deleteZeroReservationsByOutbound(String outboundId) throws Exception {
+        sqlSession.delete(NAMESPACE + "deleteZeroReservationsByOutbound", outboundId);
+    }
     
     
     

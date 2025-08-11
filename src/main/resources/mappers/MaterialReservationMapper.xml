@@ -94,6 +94,32 @@
 		   WHERE order_id = #{workOrderId}
 		     AND shortage_status = #{from}
 		</update>
+		
+		
+		<!-- 이번 출고(outboundId)로 사용된 수량만큼 예약 차감 -->
+		<update id="consumeReservationByOutbound" parameterType="string">
+		  UPDATE material_reservation r
+		  JOIN (
+		    SELECT o.work_order_id, i.material_id, SUM(i.quantity) AS used_qty
+		    FROM material_outbound_item i
+		    JOIN material_outbound o ON o.outbound_id = i.outbound_id
+		    WHERE i.outbound_id = #{_parameter}
+		    GROUP BY o.work_order_id, i.material_id
+		  ) u ON u.work_order_id = r.work_order_id
+		     AND u.material_id   = r.material_id
+		  SET r.reserved_qty = GREATEST(r.reserved_qty - u.used_qty, 0),
+		      r.updated_at   = NOW()
+		</update>
+		
+		<!-- 0이 된 예약행 정리 -->
+		<delete id="deleteZeroReservationsByOutbound" parameterType="string">
+		  DELETE r
+		  FROM material_reservation r
+		  JOIN material_outbound o ON o.work_order_id = r.work_order_id
+		  WHERE o.outbound_id = #{_parameter}
+		    AND r.reserved_qty = 0
+		</delete>
+				
 	  
 
 </mapper>
