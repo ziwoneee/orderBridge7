@@ -5,7 +5,6 @@
 
 <mapper namespace="com.itwillbs.mapper.ProductionResultMapper">
 
-
 <!-- ..............완제품 입고등록 아름 시작.................... -->
 
   <!--  생산결과 검색 + 정렬 + 날짜조회 + 페이징 -->
@@ -73,20 +72,37 @@
   
   <!-- 완제품 입고 자동등록 -->
   <insert id="insertResult" parameterType="com.itwillbs.domain.ProductionResultVO">
-    INSERT INTO production_result (
-        order_id, lot_no, actual_qty, defect_qty,
-        worker_name, started_at, ended_at, created_at
-    ) VALUES (
-        #{orderId}, #{lotNo}, #{actualQty}, #{defectQty},
-        #{workerName}, #{startedAt}, #{endedAt}, #{createdAt}
-    )
-</insert>
+	  INSERT INTO production_result (
+	      result_id,
+	      order_id,
+	      product_id,
+	      lot_no,
+	      actual_qty,
+	      defect_qty,
+	      worker_name,
+	      started_at,
+	      ended_at,
+	      created_at
+	  ) VALUES (
+	      #{resultId},
+	      #{orderId},
+	      #{productId},
+	      #{lotNo},
+	      #{actualQty},
+	      #{defectQty},
+	      #{workerName},
+	      #{startedAt},
+	      #{endedAt},
+	      #{createdAt}
+	  )
+	</insert>
 
 <!-- 전체 생산 결과 조회 -->
 <select id="selectAllResults" resultType="com.itwillbs.domain.ProductionResultVO">
   SELECT 
     result_id,
     order_id,
+    product_id,
     lot_no,
     actual_qty,
     defect_qty,
@@ -98,17 +114,46 @@
   ORDER BY created_at DESC
 </select>
 
-<!-- ..............완제품 입고등록 아름 끝.................... -->  
+<!-- ..............완제품 입고등록 아름 끝.................... -->
 
-<!-- ..............생산 실적 관리 (태현).................... -->
+<!-- ============== ID 시퀀스 생성 (DB 기반) ============== -->
 
-<!-- 생산 실적 목록 (안전한 버전) -->
+<!-- 오늘 날짜의 생산결과 ID 시퀀스 조회 -->
+<select id="selectTodayResultSeq" resultType="string">
+  SELECT LPAD(
+           IFNULL(
+             MAX(CAST(SUBSTRING(result_id, 14, 3) AS UNSIGNED)), 
+             0
+           ) + 1,
+           3,
+           '0'
+         )
+  FROM production_result
+  WHERE result_id LIKE CONCAT('PRS-', DATE_FORMAT(NOW(), '%Y%m%d'), '%')
+</select>
+
+<!-- ✅ 오늘 날짜의 해당 제품 LOT 시퀀스 조회 (핵심!) -->
+<select id="selectTodayLotSeq" resultType="string">
+  SELECT LPAD(
+           IFNULL(
+             MAX(CAST(SUBSTRING(lot_no, -3) AS UNSIGNED)),  -- 마지막 3자리 추출
+             0
+           ) + 1,
+           3,
+           '0'
+         )
+  FROM production_result
+  WHERE lot_no LIKE CONCAT('LOT-', #{productCode}, '-', #{dateStr}, '%')
+</select>
+
+<!-- ============== 생산 실적 목록 조회 ============== -->
+
+<!-- 생산 실적 목록 (JOIN + 페이징) -->
 <select id="selectResultList"
         parameterType="com.itwillbs.domain.SearchCriteria"
         resultType="com.itwillbs.dto.ProductionResultDTO">
-
   SELECT
-    -- production_result 기본 컬럼만
+    -- production_result 기본 컬럼
     pr.result_id,
     pr.order_id,
     pr.product_id,
@@ -120,16 +165,25 @@
     pr.ended_at,
     pr.created_at,
     
-    -- work_order 조인 (상태 필터용)
+    -- work_order 조인
     wo.status,
-    wo.order_qty
+    wo.order_qty,
+    wo.order_manager as orderManager,
+    
+    -- product 조인 (제품명)
+    p.product_name as productName,
+    
+    -- production_line 조인 (라인명)
+    pl.line_name as lineName
 
   FROM production_result pr
   LEFT JOIN work_order wo ON pr.order_id = wo.order_id
+  LEFT JOIN product p ON pr.product_id = p.product_id
+  LEFT JOIN production_line pl ON wo.line_id = pl.line_id
 
   <where>
     1=1
-    <!-- 기간 필터 (매우 안전한 체크) -->
+    <!-- 기간 필터 -->
     <if test="startDate != null and startDate != '' and startDate.trim() != ''">
       AND DATE(pr.created_at) &gt;= STR_TO_DATE(#{startDate}, '%Y-%m-%d')
     </if>
@@ -137,7 +191,7 @@
       AND DATE(pr.created_at) &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d')
     </if>
 
-    <!-- 상태 필터 (중요!) -->
+    <!-- 상태 필터 -->
     <if test="status != null and status != ''">
       AND wo.status = #{status}
     </if>
@@ -148,21 +202,41 @@
         pr.worker_name LIKE CONCAT('%', #{keyword}, '%')
         OR pr.order_id LIKE CONCAT('%', #{keyword}, '%')
         OR pr.lot_no LIKE CONCAT('%', #{keyword}, '%')
+        OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
       )
     </if>
   </where>
 
-  ORDER BY pr.created_at DESC
+  <!-- 정렬 -->
+  <choose>
+    <when test="sortColumn == 'created_at'">
+      ORDER BY pr.created_at ${sortOrder}
+    </when>
+    <when test="sortColumn == 'lot_no'">
+      ORDER BY pr.lot_no ${sortOrder}
+    </when>
+    <when test="sortColumn == 'order_id'">
+      ORDER BY pr.order_id ${sortOrder}
+    </when>
+    <when test="sortColumn == 'actual_qty'">
+      ORDER BY pr.actual_qty ${sortOrder}
+    </when>
+    <otherwise>
+      ORDER BY pr.created_at DESC
+    </otherwise>
+  </choose>
+
   LIMIT #{pageStart}, #{perPageNum}
 </select>
 
-<!-- 총 건수 (상태 필터 포함) -->
+<!-- 총 건수 조회 -->
 <select id="selectResultCount"
         parameterType="com.itwillbs.domain.SearchCriteria"
         resultType="int">
   SELECT COUNT(1)
   FROM production_result pr
   LEFT JOIN work_order wo ON pr.order_id = wo.order_id
+  LEFT JOIN product p ON pr.product_id = p.product_id
   <where>
     1=1
     <if test="startDate != null and startDate != '' and startDate.trim() != ''">
@@ -171,7 +245,6 @@
     <if test="endDate != null and endDate != '' and endDate.trim() != ''">
       AND DATE(pr.created_at) &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d')
     </if>
-    <!-- 상태 필터 (중요!) -->
     <if test="status != null and status != ''">
       AND wo.status = #{status}
     </if>
@@ -180,9 +253,56 @@
         pr.worker_name LIKE CONCAT('%', #{keyword}, '%')
         OR pr.order_id LIKE CONCAT('%', #{keyword}, '%')
         OR pr.lot_no LIKE CONCAT('%', #{keyword}, '%')
+        OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
       )
     </if>
   </where>
 </select>
-  
+
+<!-- 생산 실적 상세 조회 -->
+<select id="selectResultDetail" parameterType="string" 
+        resultType="com.itwillbs.dto.ProductionResultDTO">
+  SELECT
+    pr.result_id,
+    pr.order_id,
+    pr.product_id,
+    pr.lot_no,
+    pr.actual_qty,
+    pr.defect_qty,
+    pr.worker_name,
+    pr.started_at,
+    pr.ended_at,
+    pr.created_at,
+    
+    wo.status,
+    wo.order_qty,
+    wo.order_manager as orderManager,
+    
+    p.product_name as productName,
+    pl.line_name as lineName
+
+  FROM production_result pr
+  LEFT JOIN work_order wo ON pr.order_id = wo.order_id
+  LEFT JOIN product p ON pr.product_id = p.product_id
+  LEFT JOIN production_line pl ON wo.line_id = pl.line_id
+  WHERE pr.result_id = #{resultId}
+</select>
+
+<!-- ============== 작업지시 연동 ============== -->
+
+<!--  WorkOrderMapper에 있는 applyResultToWorkOrder 사용하므로 여기서는 제거 -->
+<!-- 작업지시 상태 갱신은 WorkOrderMapper.applyResultToWorkOrder(orderId) 호출 -->
+
+<!-- 작업지시의 현재 진행 상황 조회 (참고용) -->
+<select id="selectWorkOrderProgress" parameterType="string" resultType="map">
+  SELECT
+    order_id,
+    order_qty,
+    COALESCE(produced_qty, 0) AS producedQty,
+    COALESCE(defect_qty, 0) AS defectQty,
+    status
+  FROM work_order
+  WHERE order_id = #{orderId}
+</select>
+
 </mapper>
