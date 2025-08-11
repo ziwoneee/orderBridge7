@@ -29,5 +29,6 @@ public interface MaterialReservationDAO {
 
     // 출고 확정(ISSUED) 시 예약 수량 차감
     int releaseReservation(String workOrderNo, String materialId, int qty) throws Exception;
+    
 
 }

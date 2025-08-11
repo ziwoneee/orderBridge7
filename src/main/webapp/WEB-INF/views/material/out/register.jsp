@@ -63,7 +63,9 @@
 		            <th style="width:200px;">자재</th>
 		            <th style="width:110px;">필요수량</th>
 		            <th>LOT 선택 (유통기한 빠른 순)</th>
+		            <th>가용(이 WO)</th>
 		            <th style="width:110px;">선택합계</th>
+		            <th>부족</th>
 		          </tr>
 		        </thead>
 		        <tbody id="materialLotBody"><!-- JS 로드 --></tbody>

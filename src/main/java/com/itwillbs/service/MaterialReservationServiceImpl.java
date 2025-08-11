@@ -214,6 +214,17 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
         if (allOk) reservationDAO.resolveIfAllReserved(workOrderNo); // 전량 예약되면 상태 갱신
         return allOk;
     }
+    
+    
+    @Override public int selectOnhand(String materialId) throws Exception {
+        return reservationDAO.selectOnhand(materialId);
+    }
+    @Override public int sumReservedByMaterial(String materialId) throws Exception {
+        return reservationDAO.sumReservedByMaterial(materialId);
+    }
+    @Override public int selectWoReserved(String workOrderNo, String materialId) throws Exception {
+        return reservationDAO.selectWoReserved(workOrderNo, materialId);
+    }
 
 
 }

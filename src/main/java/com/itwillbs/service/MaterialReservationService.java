@@ -35,4 +35,9 @@ public interface MaterialReservationService {
     
     // 등록 직전 "예약만" 선처리: 전표/PO 생성 안 함	
     boolean reserveOnlyForWo(String workOrderNo) throws Exception;
+    
+    int selectOnhand(String materialId) throws Exception;
+    int sumReservedByMaterial(String materialId) throws Exception;
+    int selectWoReserved(String workOrderNo, String materialId) throws Exception;
+    
 }

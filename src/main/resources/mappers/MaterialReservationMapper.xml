@@ -32,13 +32,13 @@
 	      AND material_id   = #{materialId}
 	  </select>
 	
-	<!-- onhand = 해당 자재의 모든 창고 수량 합계 (폐기 제외) -->
-	<select id="selectOnhand" resultType="int">
-	  SELECT COALESCE(SUM(COALESCE(mi.actual_quantity, mi.quantity)), 0)
-	  FROM material_inventory mi
-	  WHERE mi.material_id = #{materialId}
-	    AND (mi.is_discarded IS NULL OR mi.is_discarded = 0)
-	</select>
+	 <!-- 현재고: 폐기 제외, 창고 제한 없음(고정 창고는 material 테이블에서 사용) -->
+	  <select id="selectOnhand" parameterType="string" resultType="int">
+	    SELECT COALESCE(SUM(COALESCE(mi.actual_quantity, mi.quantity)), 0)
+	    FROM material_inventory mi
+	    WHERE mi.material_id = #{materialId}
+	      AND (mi.is_discarded IS NULL OR mi.is_discarded = 0)
+	  </select>
 
 	
 	  <!-- [WO 필요자재 목록]

@@ -91,5 +91,7 @@ public class MaterialReservationDAOImpl implements MaterialReservationDAO {
         // <update id="releaseReservation">
         return sqlSession.update(NAMESPACE + "releaseReservation", p);
     }
+    
+    
 
 }
