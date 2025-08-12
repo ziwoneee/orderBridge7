@@ -58,7 +58,7 @@
 	</div>
 	    <!-- ✅ 테이블 -->
 	     <div class="table-responsive mt-4">
-	    <table id=outboundTable class="table table-bordered table-striped table-hover text-center">
+	    <table id=outboundTable class="table table-hover text-center">
 	        <thead>
 			  <tr>
 			    <th>출고ID</th>

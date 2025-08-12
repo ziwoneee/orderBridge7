@@ -75,7 +75,7 @@
           <!-- 재고 테이블 -->
           <div class="col-12">
             <div class="table-responsive">
-              <table id="stockTable" class="table table-bordered table-hover">
+              <table id="stockTable" class="table table-hover">
                 <thead>
                   <tr>
                     <th>제품명</th>
