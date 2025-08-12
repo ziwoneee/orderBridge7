@@ -74,7 +74,7 @@
 
     <!-- ✅ 테이블 -->
      <div class="table-responsive mt-4">
-    <table id = inboundTable class="table table-bordered table-striped table-hover text-center">
+    <table id="inboundTable" class="table table-hover text-center">
        <thead>
 <tr>
   <th>입고ID</th>
@@ -132,8 +132,8 @@
   </a>
 </th>
 
-
   <th>비고</th>
+  <th>상세내역</th> <!-- 출고내역과 동일하게 상세내역 컬럼 추가 -->
 </tr>
 </thead>
 
@@ -144,15 +144,88 @@
                 <td>${vo.productId}</td>
                 <td>${vo.productName}</td>                
                 <td>${vo.lotNo}</td>
-                <td>${vo.inboundQty}</td>
+                <td><fmt:formatNumber value="${vo.inboundQty}" pattern="#,###"/></td>
                 <td><fmt:formatDate value="${vo.createdAt}" pattern="yyyy-MM-dd"/></td>
                 <td>${vo.inboundType}</td>
                 <td>${vo.manager}</td>
                 <td>${vo.remark}</td>
+                <td>
+                    <!-- 입고 상세보기 버튼 (출고내역과 동일한 스타일) -->
+                    <button class="btn btn-sm btn-outline-info"
+                            data-toggle="modal"
+                            data-target="#inboundDetailModal"
+                            data-id="${vo.inboundId}">
+                        상세
+                    </button>
+                </td>
             </tr>
         </c:forEach>
         </tbody>
     </table>
+
+<!-- 입고 상세 모달 (출고내역과 동일한 구조) -->
+<div class="modal fade" id="inboundDetailModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+
+      <!-- 타이틀 영역 -->
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+            <span id="detail-productName-title"></span>
+            <span id="detail-inboundId-title"></span>
+            - 입고 상세정보
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal">
+            <span>&times;</span>
+        </button>
+      </div>
+
+      <!-- 내용 영역 -->
+      <div class="modal-body">
+        <table class="table table-bordered table-sm text-center align-middle">
+          <colgroup>
+            <col style="width: 15%;">
+            <col style="width: 35%;">
+            <col style="width: 15%;">
+            <col style="width: 35%;">
+          </colgroup>
+           <tbody>
+            <tr>
+              <th class="bg-light">입고ID</th><td id="detail-inboundId"></td>
+              <th class="bg-light">제품명</th><td id="detail-productName"></td>
+            </tr>
+            <tr>
+              <th class="bg-light">LOT 번호</th><td id="detail-lotNo"></td>
+              <th class="bg-light">입고수량</th><td id="detail-inboundQty"></td>
+            </tr>
+            <tr>
+              <th class="bg-light">입고일자</th><td id="detail-createdAt"></td>
+              <th class="bg-light">입고유형</th><td id="detail-inboundType"></td>
+            </tr>
+            <tr>
+              <th class="bg-light">담당자</th><td id="detail-manager"></td>
+              <th class="bg-light">제품ID</th><td id="detail-productId"></td>
+            </tr>
+            <tr>
+              <th class="bg-light">비고</th>
+              <td colspan="3" id="detail-remark"></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="alert alert-info text-center mt-5">
+         <span id="detail-productName-info"></span> 입고의 상세 내역입니다.
+        </div> 
+      </div>
+
+      <!-- 푸터 -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
+      </div>
+
+    </div>
+  </div>
+</div>
 
      <!-- ✅ 페이징 영역 -->
          <!-- 페이지네이션 -->
@@ -218,5 +291,37 @@
       }
     }
   });
-</script>
 
+  // 입고 상세 모달 JavaScript (출고내역과 유사하게)
+  $('#inboundDetailModal').on('show.bs.modal', function (event) {
+    var button = $(event.relatedTarget);
+    var inboundId = button.data('id');
+    var modal = $(this);
+    
+    // AJAX로 입고 상세 정보 가져오기
+    $.ajax({
+      url: '/product/inbound/detail/' + inboundId,
+      method: 'GET',
+      success: function(data) {
+        // 모달 제목 설정
+        modal.find('#detail-productName-title').text(data.productName);
+        modal.find('#detail-inboundId-title').text('(' + data.inboundId + ')');
+        modal.find('#detail-productName-info').text(data.productName);
+        
+        // 모달 내용 설정
+        modal.find('#detail-inboundId').text(data.inboundId);
+        modal.find('#detail-productName').text(data.productName);
+        modal.find('#detail-lotNo').text(data.lotNo);
+        modal.find('#detail-inboundQty').text(data.inboundQty ? data.inboundQty.toLocaleString() : '');
+        modal.find('#detail-createdAt').text(data.createdAt);
+        modal.find('#detail-inboundType').text(data.inboundType);
+        modal.find('#detail-manager').text(data.manager);
+        modal.find('#detail-productId').text(data.productId);
+        modal.find('#detail-remark').text(data.remark || '없음');
+      },
+      error: function() {
+        alert('상세 정보를 불러오는데 실패했습니다.');
+      }
+    });
+  });
+</script>

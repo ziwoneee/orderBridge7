@@ -44,7 +44,7 @@
 			</div>    
 <div class="table-responsive">   
     <button id="insert-btn" type="button" class="btn btn-success mb-2" onclick="showInsertRow()">신규등록</button>
-    <table class="table table-bordered text-center" >
+    <table class="table table-hover text-center" >
         <thead>
             <tr>
                 <th>제품코드</th>

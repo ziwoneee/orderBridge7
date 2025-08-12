@@ -96,10 +96,9 @@
             
           <!-- 수주 목록 테이블 -->
           <div class="table-responsive mt-4">
-            <table id="clorderTable" class="table table-bordered text-center">
+            <table id="clorderTable" class="table table-hover">
               <thead>
                 <tr>
-                  <th><input type="checkbox" id="selectAll"></th>
                   <th>수주번호</th>
                   <th>거래처명</th>
                   <th>수주일자</th>
@@ -111,8 +110,7 @@
               </thead>
               <tbody>
                 <c:forEach var="order" items="${orderList}">
-                  <tr>
-                    <td><input type="checkbox" name="orderChk" value="${order.clOrderId}"></td>
+                  <tr>                   
                     <td>${order.clOrderNum}</td>
                     <td>${order.clientName}</td>
                     <td><fmt:formatDate value="${order.clOrderDate}" pattern="yyyy-MM-dd"/></td>
