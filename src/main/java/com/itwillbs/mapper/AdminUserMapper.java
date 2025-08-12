@@ -1,26 +1,69 @@
 package com.itwillbs.mapper;
 
+import java.util.List;
+
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import com.itwillbs.domain.AdminUserVO;
 
 @Mapper
 public interface AdminUserMapper {
 
-    // 관리자 로그인
-    public AdminUserVO login(AdminUserVO vo);
-    
-    // 관리자 ID로 정보 조회
+    // [로그인용 단건 조회] - 아이디만 조회 (비밀번호 비교는 Service에서 bcrypt로)
     AdminUserVO findByAdminId(String adminId);
-    
-    // 관리자 등록
+
+    // [등록] 운영자가 수동 생성 (Service에서 비번 bcrypt 후 넣기)
     void insertAdmin(AdminUserVO vo);
+
+    // [로그인 실패] 실패횟수 +1, 5회 도달 시 즉시 LOCK (XML에서 한 번에 처리)
+    void increaseFailCount(String adminId);
+
+    // [로그인 성공] 실패횟수 0으로 초기화
+    void resetFailCount(String adminId);
+
+    // [잠금 해제] SUPER만 사용: status=ACTIVE, fail_count=0
+    void unlockAccount(String adminId);
+
+    // ===== 선택 기능 (쓰면 XML에도 존재해야 함) =====
+
+    // [수정] 이름/전화/권한/상태 수정
+    void updateAdminUser(AdminUserVO vo);
+
+    // [비밀번호 변경] bcrypt로 인코딩된 값으로 교체
+    void updatePassword(@Param("adminId") String adminId,
+                        @Param("encodedPassword") String encodedPassword);
     
-    // 비밀번호 틀렸을 때 실패 카운트 증가
-    public void increaseFailCount(String adminId);
+    // ==================== 설정 페이지용 새 메서드들 ====================
     
-    // 실패 5회 이상이면 계정 잠금
-    public void lockAccount(String adminId);
+    /**
+     * 관리자 목록 조회 (검색 조건 포함)
+     * @param search 검색어 (사번, 이름)
+     * @param role 역할 필터 (SUPER, PROD, SALES, MATERIAL)
+     * @param status 상태 필터 (ACTIVE, INACTIVE, LOCKED)
+     * @return 관리자 목록
+     */
+    List<AdminUserVO> getAdminList(@Param("search") String search, 
+                                   @Param("role") String role, 
+                                   @Param("status") String status);
     
-    // 로그인 성공 시 실패 카운트 초기화
-    public void resetFailCount(String adminId);
+    /**
+     * 관리자 정보 수정 (최고관리자용)
+     * - 이름, 전화번호, 비밀번호, 역할, 상태 수정 가능
+     * - 비밀번호가 null이면 업데이트하지 않음
+     */
+    void updateAdmin(AdminUserVO vo);
+    
+    /**
+     * 관리자 삭제
+     * - 물리 삭제 (또는 상태를 DELETED로 변경)
+     */
+    void deleteAdmin(String adminId);
+    
+    /**
+     * 내 정보 수정 (일반 관리자용)
+     * - 이름, 전화번호, 비밀번호만 수정 가능
+     * - 역할이나 상태는 변경 불가
+     */
+    void updateMyInfo(AdminUserVO vo);
+
 }

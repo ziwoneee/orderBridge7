@@ -1,87 +1,149 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
- 
-<mapper namespace ="com.itwillbs.mapper.AdminUserMapper">
 
-	<!--  로그인 -->
-    <select id="login" parameterType="com.itwillbs.domain.AdminUserVO"
-            resultType="com.itwillbs.domain.AdminUserVO">
-	    SELECT 
-	      admin_id AS adminId,
-	      password,
-	      name,
-	      phone,
-	      role_id AS roleId,
-	      fail_count AS failCount,
-	      status,
-	      created_at AS createdAt,
-	      updated_at AS updatedAt
-	    FROM admin_user
-	    WHERE admin_id = #{adminId}
-	      AND password = #{password}
-      </select>
-      
-	 <!-- 관리자 로그인용: 아이디로 정보 조회 --> 
-  <select id="findByAdminId" parameterType="String" 
-		  resultType="com.itwillbs.domain.AdminUserVO">
-	SELECT 
-		admin_id AS adminId,
-    	password,
-    	name,
-		phone,
-		role_id AS roleId,
-		fail_count AS failCount,
-		status,
-		created_at AS createdAt,
-		updated_at AS updatedAt
-	FROM admin_user
-	WHERE admin_id = #{adminId}
+
+<mapper namespace="com.itwillbs.mapper.AdminUserMapper">
+
+  <!-- [로그인용 단건 조회] 아이디만으로 조회, 비밀번호 비교는 Service에서 bcrypt로 -->
+  <select id="findByAdminId" parameterType="string"
+          resultType="com.itwillbs.domain.AdminUserVO">
+    SELECT
+      admin_id   AS adminId,
+      password,
+      name,
+      phone,
+      role_id    AS roleId,
+      fail_count AS failCount,
+      status,
+      created_at AS createdAt,
+      updated_at AS updatedAt
+    FROM admin_user
+    WHERE admin_id = #{adminId}
   </select>
-	
-	<!--  관리자 등록 -->
-	<insert id="insertAdmin" parameterType="com.itwillbs.domain.AdminUserVO">
-    INSERT INTO admin_user (
-        admin_id,
-        password,
+
+  <!-- [등록] 운영자가 수동 생성 (Service에서 bcrypt 후 password 세팅해서 넣음) -->
+  <insert id="insertAdmin" parameterType="com.itwillbs.domain.AdminUserVO">
+    INSERT INTO admin_user
+      (admin_id, password, name, phone, role_id, fail_count, status, created_at)
+    VALUES
+      (#{adminId}, #{password}, #{name}, #{phone}, #{roleId},
+       COALESCE(#{failCount}, 0), COALESCE(#{status}, 'ACTIVE'), NOW())
+  </insert>
+
+  <!-- [로그인 실패] 실패횟수 +1, 5회 도달 시 즉시 LOCK -->
+  <update id="increaseFailCount" parameterType="string">
+    UPDATE admin_user
+    SET fail_count = fail_count + 1,
+        status = CASE WHEN fail_count + 1 >= 5 THEN 'LOCKED' ELSE status END,
+        updated_at = NOW()
+    WHERE admin_id = #{adminId}
+  </update>
+
+  <!-- [로그인 성공] 실패횟수 0 -->
+  <update id="resetFailCount" parameterType="string">
+    UPDATE admin_user
+    SET fail_count = 0,
+        updated_at = NOW()
+    WHERE admin_id = #{adminId}
+  </update>
+
+  <!-- [잠금 해제] 설정 화면/버튼에서 사용 -->
+  <update id="unlockAccount" parameterType="string">
+    UPDATE admin_user
+    SET status = 'ACTIVE',
+        fail_count = 0,
+        updated_at = NOW()
+    WHERE admin_id = #{adminId}
+  </update>
+
+  <!-- 관리자 목록 조회 (검색 조건 포함) -->
+  <select id="getAdminList" resultType="com.itwillbs.domain.AdminUserVO">
+    SELECT 
+        admin_id as adminId,
         name,
         phone,
-        role_id,
-        fail_count,
+        role_id as roleId,
         status,
-        created_at
-    ) VALUES (
-        #{adminId},
-        #{password},
-        #{name},
-        #{phone},
-        #{roleId},
-        #{failCount},
-        #{status},
-        NOW()
-    )
-	</insert>
-	
-	<!-- 비밀번호 틀렸을 때 실패 카운트 증가 -->
-	<update id="increaseFailCount">
-	  UPDATE admin_user
-	  SET fail_count = fail_count + 1
-	  WHERE admin_id = #{adminId}
-	</update>
-	
-	<!-- 실패 5회 이상이면 계정 잠금 -->
-	<update id="lockAccount">
-	  UPDATE admin_user
-	  SET status = 'LOCKED'
-	  WHERE admin_id = #{adminId}
-	</update>
-	
-	<!-- 로그인 성공 시 실패 카운트 초기화 -->
-	<update id="resetFailCount">
-	  UPDATE admin_user
-	  SET fail_count = 0
-	  WHERE admin_id = #{adminId}
-	</update>
-
+        fail_count as failCount,
+        created_at as createdAt,
+        updated_at as updatedAt
+    FROM admin_user
+    WHERE 1=1
+    <if test="search != null and search != ''">
+        AND (admin_id LIKE CONCAT('%', #{search}, '%') 
+             OR name LIKE CONCAT('%', #{search}, '%'))
+    </if>
+    <if test="role != null and role != ''">
+        AND role_id = #{role}
+    </if>
+    <if test="status != null and status != ''">
+        AND status = #{status}
+    </if>
+    ORDER BY 
+        CASE role_id 
+            WHEN 'SUPER' THEN 1
+            WHEN 'PROD' THEN 2  
+            WHEN 'SALES' THEN 3
+            WHEN 'MATERIAL' THEN 4
+            ELSE 5
+        END,
+        admin_id ASC
+  </select>
+    
+  <!-- 관리자 정보 수정 (최고관리자용) -->
+  <update id="updateAdmin">
+    UPDATE admin_user 
+    SET 
+        name = #{name},
+        phone = #{phone},
+        role_id = #{roleId},
+        status = #{status},
+        updated_at = NOW()
+        <if test="password != null and password != ''">
+            , password = #{password}
+        </if>
+    WHERE admin_id = #{adminId}
+  </update>
+    
+  <!-- 관리자 삭제 -->
+  <delete id="deleteAdmin">
+    DELETE FROM admin_user 
+    WHERE admin_id = #{adminId}
+  </delete>
+    
+  <!-- 내 정보 수정 (일반 관리자용) -->
+  <update id="updateMyInfo">
+    UPDATE admin_user 
+    SET 
+        name = #{name},
+        phone = #{phone},
+        updated_at = NOW()
+        <if test="password != null and password != ''">
+            , password = #{password}
+        </if>
+    WHERE admin_id = #{adminId}
+  </update>
+    
+  <!-- 관리자 정보 수정 (기존 메서드) -->
+  <update id="updateAdminUser">
+    UPDATE admin_user 
+    SET 
+        name = #{name},
+        phone = #{phone},
+        role_id = #{roleId},
+        status = #{status},
+        updated_at = NOW()
+    WHERE admin_id = #{adminId}
+  </update>
+    
+  <!-- 비밀번호 변경 (기존 메서드) -->
+  <update id="updatePassword">
+    UPDATE admin_user 
+    SET 
+        password = #{encodedPassword},
+        updated_at = NOW()
+    WHERE admin_id = #{adminId}
+  </update>
 
 </mapper>
