@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,21 +23,18 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.itwillbs.domain.AdminUserVO;
+import com.itwillbs.domain.PageMaker;
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.service.AdminUserService;
 
 @Controller
 public class AdminUserController {
 	
-	// AdminMapper는 MyBatis에서 구현체가 자동으로 생성되는 인터페이스임
-	// @Autowired를 사용하면 스프링이 해당 구현체를 자동으로 주입해줌
-	// 직접 new AdminMapper() 하지 않아도 사용 가능
 	@Autowired
 	private AdminUserService adminUserService;
 
-
 	// http://localhost:8088/admin/login
     // 로그인 폼 이동 (GET)
-	// - 쿠키에 저장된 아이디가 있으면 미리 채워줌
 	@GetMapping("/admin/login")
 	public String showLoginForm(HttpServletRequest request,
 								HttpSession session,
@@ -55,16 +51,11 @@ public class AdminUserController {
 	        }
 	    }
 
-	    model.addAttribute("rememberedId", rememberedId); // JSP에서 ${rememberedId}로 사용
-
+	    model.addAttribute("rememberedId", rememberedId);
 	    return "admin/login";
 	}
 
-	
-	
     // 로그인 처리(POST)
-	// - ID/PW 검증 및 계정 잠금 여부 확인
-	// - 로그인 성공 시 세션 유지 및 아이디 저장 쿠키 처리
     @PostMapping("/admin/login")
     public String login(AdminUserVO vo,
     					HttpSession session, 
@@ -88,18 +79,16 @@ public class AdminUserController {
         }
 
         // 비밀번호 일치 여부 확인
-        AdminUserVO loginVO = adminUserService.login(vo); // 내부적으로 bcrypt 비교 포함
+        AdminUserVO loginVO = adminUserService.login(vo);
 
         if (loginVO != null) {
-        	
-        	 System.out.println(" 로그인 성공 → 세션 저장: " + loginVO.getAdminId() + " / 이름: " + loginVO.getName());
+        	System.out.println("로그인 성공 → 세션 저장: " + loginVO.getAdminId() + " / 이름: " + loginVO.getName());
 
-        	
         	// 로그인 성공: 세션 저장 + 자동 로그아웃 타이머 설정
             session.setAttribute("loginAdmin", loginVO);
             session.setMaxInactiveInterval(30 * 60); // 30분 동안 미사용 시 세션 만료
            
-            //  아이디 저장 체크 여부 확인
+            // 아이디 저장 체크 여부 확인
             String remember = request.getParameter("remember");
 
             if ("on".equals(remember)) {
@@ -124,32 +113,23 @@ public class AdminUserController {
         }
     }
     
-    
-    
     // 로그아웃 처리 (GET)  
-    // - 세션 초기화 및 메시지 전달
     @GetMapping("/admin/logout")
     public String logout(HttpSession session, RedirectAttributes rttr) {
-        // 세션 초기화(제거)
         session.invalidate();
-
         rttr.addFlashAttribute("msg", "로그아웃 되었습니다.");
-
         return "redirect:/admin/login";
     }
     
- // ==================== 설정 페이지 관련 메서드들 ====================
+    // ==================== 설정 페이지 관련 메서드들 ====================
     
     /**
-     * 설정 페이지 (관리자 계정 관리)
+     * 설정 페이지 (관리자 계정 관리) - 페이징 처리 추가
      * - 최고관리자: 전체 관리자 목록 조회 및 관리
      * - 일반관리자: 본인 정보 수정만 가능
      */
     @GetMapping("/admin/settings/accounts")
-    public String accounts(HttpSession session, Model model,
-                          @RequestParam(required = false) String search,
-                          @RequestParam(required = false) String role,
-                          @RequestParam(required = false) String status) {
+    public String accounts(HttpSession session, Model model, SearchCriteria cri) {
         
         // 로그인 체크
         AdminUserVO loginAdmin = (AdminUserVO) session.getAttribute("loginAdmin");
@@ -160,11 +140,35 @@ public class AdminUserController {
         // 최고관리자인 경우에만 전체 목록 조회
         if ("SUPER".equals(loginAdmin.getRoleId())) {
             try {
-                List<AdminUserVO> adminList = adminUserService.getAdminList(search, role, status);
+                // 기본 정렬 설정 (정렬 컬럼이 없으면 사번 기준 오름차순)
+                if (cri.getSortColumn() == null || cri.getSortColumn().isEmpty()) {
+                    cri.setSortColumn("admin_id");
+                    cri.setSortOrder("asc");
+                }
+                
+                // 전체 개수 조회
+                int totalCount = adminUserService.getAdminCount(cri);
+                cri.setTotalCount(totalCount);
+                
+                // 페이징 정보 생성
+                PageMaker pageMaker = new PageMaker(cri, totalCount);
+                
+                // 관리자 목록 조회 (페이징 적용)
+                List<AdminUserVO> adminList = adminUserService.getAdminListWithPaging(cri);
+                
+                // 모델에 데이터 추가
                 model.addAttribute("adminList", adminList);
+                model.addAttribute("cri", cri);
+                model.addAttribute("pageMaker", pageMaker);
+                
+                System.out.println("조회 조건: " + cri.toString());
+                System.out.println("총 개수: " + totalCount + ", 현재 페이지: " + cri.getPage());
+                
             } catch (Exception e) {
                 e.printStackTrace();
                 model.addAttribute("adminList", List.of()); // 빈 리스트
+                model.addAttribute("cri", cri);
+                model.addAttribute("pageMaker", new PageMaker(cri, 0));
             }
         }
         
@@ -197,6 +201,16 @@ public class AdminUserController {
                 return ResponseEntity.ok(result);
             }
             
+            // 전화번호 중복 체크
+            if (adminVO.getPhone() != null && !adminVO.getPhone().trim().isEmpty()) {
+                boolean isPhoneDuplicate = adminUserService.isPhoneDuplicate(adminVO.getPhone(), null);
+                if (isPhoneDuplicate) {
+                    result.put("success", false);
+                    result.put("message", "이미 사용 중인 전화번호입니다.");
+                    return ResponseEntity.ok(result);
+                }
+            }
+            
             // 관리자 등록
             adminUserService.insertAdmin(adminVO);
             result.put("success", true);
@@ -205,7 +219,7 @@ public class AdminUserController {
         } catch (Exception e) {
             e.printStackTrace();
             result.put("success", false);
-            result.put("message", "등록 중 오류가 발생했습니다.");
+            result.put("message", "등록 중 오류가 발생했습니다: " + e.getMessage());
         }
         
         return ResponseEntity.ok(result);
@@ -257,6 +271,16 @@ public class AdminUserController {
                 return ResponseEntity.ok(result);
             }
             
+            // 전화번호 중복 체크 (본인 제외)
+            if (adminVO.getPhone() != null && !adminVO.getPhone().trim().isEmpty()) {
+                boolean isPhoneDuplicate = adminUserService.isPhoneDuplicate(adminVO.getPhone(), adminId);
+                if (isPhoneDuplicate) {
+                    result.put("success", false);
+                    result.put("message", "이미 사용 중인 전화번호입니다.");
+                    return ResponseEntity.ok(result);
+                }
+            }
+            
             adminVO.setAdminId(adminId); // URL의 adminId 사용
             adminUserService.updateAdmin(adminVO);
             result.put("success", true);
@@ -265,23 +289,42 @@ public class AdminUserController {
         } catch (Exception e) {
             e.printStackTrace();
             result.put("success", false);
-            result.put("message", "수정 중 오류가 발생했습니다.");
+            result.put("message", "수정 중 오류가 발생했습니다: " + e.getMessage());
         }
         
         return ResponseEntity.ok(result);
     }
     
     /**
-     * 관리자 삭제 (최고관리자만)
+     * 전화번호 중복 확인
      */
-    @DeleteMapping("/admin/settings/accounts/{adminId}")
+    @GetMapping("/admin/settings/accounts/check-phone")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> deleteAdmin(@PathVariable String adminId,
-                                                          HttpSession session) {
-        Map<String, Object> result = new HashMap<>();
+    public ResponseEntity<Map<String, Object>> checkPhoneDuplicate(
+            @RequestParam String phone,
+            @RequestParam(required = false) String currentAdminId) {
         
+        Map<String, Object> result = new HashMap<>();
         try {
-            // 권한 체크
+            boolean isDuplicate = adminUserService.isPhoneDuplicate(phone, currentAdminId);
+            result.put("isDuplicate", isDuplicate);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.put("isDuplicate", false);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 소프트 삭제 (최고관리자만)
+     */
+    @PutMapping("/admin/settings/accounts/{adminId}/soft-delete")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> softDeleteAdmin(
+            @PathVariable String adminId, HttpSession session) {
+        
+        Map<String, Object> result = new HashMap<>();
+        try {
             AdminUserVO loginAdmin = (AdminUserVO) session.getAttribute("loginAdmin");
             if (loginAdmin == null || !"SUPER".equals(loginAdmin.getRoleId())) {
                 result.put("success", false);
@@ -296,14 +339,44 @@ public class AdminUserController {
                 return ResponseEntity.ok(result);
             }
             
-            adminUserService.deleteAdmin(adminId);
+            adminUserService.softDeleteAdmin(adminId);
             result.put("success", true);
             result.put("message", "관리자가 성공적으로 삭제되었습니다.");
             
         } catch (Exception e) {
             e.printStackTrace();
             result.put("success", false);
-            result.put("message", "삭제 중 오류가 발생했습니다.");
+            result.put("message", "삭제 중 오류가 발생했습니다: " + e.getMessage());
+        }
+        
+        return ResponseEntity.ok(result);
+    }
+    
+    /**
+     * 계정 잠금 해제 (최고관리자만)
+     */
+    @PutMapping("/admin/settings/accounts/{adminId}/unlock")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> unlockAccount(
+            @PathVariable String adminId, HttpSession session) {
+        
+        Map<String, Object> result = new HashMap<>();
+        try {
+            AdminUserVO loginAdmin = (AdminUserVO) session.getAttribute("loginAdmin");
+            if (loginAdmin == null || !"SUPER".equals(loginAdmin.getRoleId())) {
+                result.put("success", false);
+                result.put("message", "권한이 없습니다.");
+                return ResponseEntity.ok(result);
+            }
+            
+            adminUserService.unlockAccount(adminId);
+            result.put("success", true);
+            result.put("message", "계정 잠금이 해제되었습니다.");
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.put("success", false);
+            result.put("message", "잠금 해제 중 오류가 발생했습니다: " + e.getMessage());
         }
         
         return ResponseEntity.ok(result);
@@ -327,6 +400,16 @@ public class AdminUserController {
                 return ResponseEntity.ok(result);
             }
             
+            // 전화번호 중복 체크 (본인 제외)
+            if (adminVO.getPhone() != null && !adminVO.getPhone().trim().isEmpty()) {
+                boolean isPhoneDuplicate = adminUserService.isPhoneDuplicate(adminVO.getPhone(), loginAdmin.getAdminId());
+                if (isPhoneDuplicate) {
+                    result.put("success", false);
+                    result.put("message", "이미 사용 중인 전화번호입니다.");
+                    return ResponseEntity.ok(result);
+                }
+            }
+            
             // 본인 계정만 수정 가능
             adminVO.setAdminId(loginAdmin.getAdminId());
             adminUserService.updateMyInfo(adminVO);
@@ -341,10 +424,9 @@ public class AdminUserController {
         } catch (Exception e) {
             e.printStackTrace();
             result.put("success", false);
-            result.put("message", "수정 중 오류가 발생했습니다.");
+            result.put("message", "수정 중 오류가 발생했습니다: " + e.getMessage());
         }
         
         return ResponseEntity.ok(result);
     }
- 
 }
