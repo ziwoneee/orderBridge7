@@ -48,7 +48,11 @@
               </div>
               <div class="col-md-6 mb-3">
                  <label class="form-label required">연락처</label>
-                <input type="text" name="clientTel" class="form-control"  required value="${client.clientTel}">
+               <input type="text" id="clientTel" name="clientTel" class="form-control" required
+				  placeholder="예: 02-1234-5678 또는 1588-1234"
+				  pattern="(01[016789]-\d{3,4}-\d{4}|02-\d{3,4}-\d{4}|0(3[1-3]|4[1-4]|5[1-5]|6[1-4])-\d{3,4}-\d{4}|070-\d{3,4}-\d{4}|080-\d{3,4}-\d{4}|050\d-\d{3,4}-\d{4}|1\d{3}-\d{4})"
+				  title="휴대전화, 일반전화(02/031~064), 070/080/050X, 15XX 등 대표번호 형식을 허용합니다."
+				  value="${client.clientTel}" />
               </div>
               <div class="col-md-6 mb-3">
                  <label class="form-label required">업태</label>
@@ -154,67 +158,7 @@
   </div>
 </div>
 
-<script>
-  function execDaumPostcode() {
-    new daum.Postcode({
-      oncomplete: function(data) {
-        document.getElementById("postcode").value = data.zonecode;
-        document.getElementById("address").value = data.roadAddress || data.jibunAddress;
-        document.getElementById("addressDetail").focus();
-      }
-    }).open();
-  }
-
-  function validateForm() {
-    const bizNum = document.querySelector("input[name='businessNumber']").value;
-    const regex = /^\d{3}-\d{2}-\d{5}$/;
-    if (!regex.test(bizNum)) {
-      alert("사업자등록번호는 반드시 '123-45-67890' 형식이어야 합니다.");
-      return false;
-    }
-    return true;
-  }
-</script>
-
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const telInputs = ["clientTel", "managerTel"];
-    telInputs.forEach(id => {
-      const input = document.getElementById(id);
-      if (!input) return;
-
-      input.addEventListener("input", function () {
-        let number = this.value.replace(/[^0-9]/g, "");
-
-        if (number.length < 4) {
-          this.value = number;
-        } else if (number.length < 7) {
-          this.value = number.slice(0, 3) + "-" + number.slice(3);
-        } else if (number.length < 11) {
-          this.value = number.slice(0, 3) + "-" + number.slice(3, 6) + "-" + number.slice(6);
-        } else {
-          this.value = number.slice(0, 3) + "-" + number.slice(3, 7) + "-" + number.slice(7, 11);
-        }
-      });
-    });
-
-    // ✅ 사업자등록번호 자동 하이픈
-    const bizInput = document.getElementById("businessNumber");
-    if (bizInput) {
-      bizInput.addEventListener("input", function () {
-        let number = this.value.replace(/[^0-9]/g, "");
-
-        if (number.length < 4) {
-          this.value = number;
-        } else if (number.length < 6) {
-          this.value = number.slice(0, 3) + "-" + number.slice(3);
-        } else {
-          this.value = number.slice(0, 3) + "-" + number.slice(3, 5) + "-" + number.slice(5, 10);
-        }
-      });
-    }
-  });
-</script>
+<script src="${pageContext.request.contextPath}/resources/js/client-form.js"></script>
 
 
 
