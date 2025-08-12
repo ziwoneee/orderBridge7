@@ -35,59 +35,92 @@
 			</div>
 
 <script>
-//컨텍스트 루트
+// 컨텍스트 루트 (JSP EL 사용 OK)
 window.ctx = window.ctx || '${pageContext.request.contextPath}';
 
 // yyyy-MM-dd
-function toYmd(d){ if(!d) return ''; if(typeof d==='string') return d.slice(0,10);
+function toYmd(d){
+  if(!d) return '';
+  if(typeof d==='string') return d.slice(0,10);
   if(typeof d==='number') return new Date(d).toISOString().slice(0,10);
   if(d && d.time) return new Date(d.time).toISOString().slice(0,10);
   try{ return new Date(d).toISOString().slice(0,10);}catch(e){ return ''; }
 }
 
-/* [1] 버튼 → 모달 오픈 */
+/* ---------- 공통 UI 헬퍼 (문자열 연결 사용) ---------- */
+function inboundCols(){
+  var n = $('#inboundPickerModal thead th').length;
+  return n || 4;
+}
+function infoRowHTML(icon, cls, msg){
+  return '<tr>'
+       +   '<td colspan="' + inboundCols() + '" class="text-center ' + cls + ' py-4">'
+       +     '<i class="' + icon + '" style="font-size:24px;"></i>'
+       +     '<p class="mt-2 mb-0">' + msg + '</p>'
+       +   '</td>'
+       + '</tr>';
+}
+function showLoading($tb, msg){ $tb.html(infoRowHTML('ti-reload','text-muted', msg || '불러오는 중...')); }
+function showEmpty($tb, msg){ $tb.html(infoRowHTML('ti-info-alt','text-muted', msg || '입고완료 건이 없습니다.')); }
+function showError($tb, msg){ $tb.html(infoRowHTML('ti-alert','text-danger', msg || '목록을 불러오지 못했습니다. 잠시 후 다시 시도하세요.')); }
+
+/* ---------- [1] 버튼 → 모달 오픈 ---------- */
 $(document).on('click', '#btnPickInbound', function(){
-  $('#inboundPickerBody').html('<tr><td colspan="4" class="text-center text-muted">불러오는 중...</td></tr>');
+  var $tb = $('#inboundPickerBody');
+  showLoading($tb);
   $('#inboundPickerModal').modal('show');
 });
 
-/* [2] 모달 열릴 때 목록 로드 */
-$('#inboundPickerModal').on('shown.bs.modal', function(){
-  loadCompletedInbounds();
-});
+/* ---------- [2] 모달 열릴 때 목록 로드 ---------- */
+var inboundPickerReqToken = 0; // 응답 경합 방지
+
+$('#inboundPickerModal')
+  .on('shown.bs.modal', function(){
+    loadCompletedInbounds();
+  })
+  .on('hidden.bs.modal', function(){
+    inboundPickerReqToken++; // 모달 닫히면 이후 응답 무시
+  });
 
 function loadCompletedInbounds(){
-  var $tb = $('#inboundPickerBody').empty().append(
-    '<tr><td colspan="4" class="text-center text-muted">불러오는 중...</td></tr>'
-  );
+  var $tb = $('#inboundPickerBody');
+  var myToken = ++inboundPickerReqToken;
+  showLoading($tb);
 
-  // 서버에서: 입고완료 + 미처리 리스트 반환
   $.getJSON(ctx + '/material/outbound/inbounds', { status:'입고완료', processed:'N' })
     .done(function(list){
-      $tb.empty();
-      if(!list || list.length===0){
-        $tb.append('<tr><td colspan="4" class="text-center text-muted">표시할 입고완료 건이 없습니다.</td></tr>');
+      if(myToken !== inboundPickerReqToken || !$('#inboundPickerModal').is(':visible')) return;
+
+      if(!list || list.length === 0){
+        showEmpty($tb);
         return;
       }
-      list.forEach(function(row){
-        var tr = $('<tr>').attr('data-inbound-id', row.inboundId)
-          .append($('<td class="text-center">').text(row.inboundId || ''))
-          .append($('<td class="text-center">').text(row.orderId || '-'))
-          .append($('<td class="text-center">').text(toYmd(row.inboundDate)))
-          .append($('<td class="text-center" style="width:90px;">').append(
-            $('<button>',{type:'button','data-id':row.inboundId})
-              .addClass('btn btn-primary btn-xs pick-inbound').text('선택')
-          ));
-        $tb.append(tr);
-      });
+
+      var rows = '';
+      for(var i=0;i<list.length;i++){
+        var row = list[i];
+        var inboundId  = row.inboundId || '';
+        var orderId    = row.orderId   || '-';
+        var inboundYmd = toYmd(row.inboundDate);
+
+        rows += '<tr data-inbound-id="' + inboundId + '">'
+             +    '<td class="text-center">' + inboundId   + '</td>'
+             +    '<td class="text-center">' + orderId     + '</td>'
+             +    '<td class="text-center">' + inboundYmd  + '</td>'
+             +    '<td class="text-center" style="width:90px;">'
+             +      '<button type="button" class="btn btn-primary btn-xs pick-inbound" data-id="' + inboundId + '">선택</button>'
+             +    '</td>'
+             +  '</tr>';
+      }
+      $tb.html(rows);
     })
     .fail(function(xhr){
-      $tb.empty().append('<tr><td colspan="4" class="text-center text-danger">목록을 불러오지 못했습니다.</td></tr>');
-      console.error(xhr);
+	   	console.warn('inbound list load failed', xhr);
+	   	showEmpty($tb, '입고완료 건이 없습니다.');
     });
 }
 
-/* [3] 선택 → register로 이동 (inbound→workOrder 매핑 시도) */
+/* ---------- [3] 선택 → register로 이동 (inbound→workOrder 매핑) ---------- */
 $(document)
   .off('click.pickInbound', '.pick-inbound')
   .on('click.pickInbound', '.pick-inbound', function(e){
@@ -98,14 +131,14 @@ $(document)
     $.get(ctx + '/material/outbound/resolve-workorder', { inboundId: inboundId })
       .done(function(res){
         if(res && res.workOrderId){
-          location.href = ctx + '/material/outbound/register?workOrderId=' + encodeURIComponent(res.workOrderId)
+          location.href = ctx + '/material/outbound/register?workOrderId='
+                          + encodeURIComponent(res.workOrderId)
                           + '&inboundId=' + encodeURIComponent(inboundId);
         }else{
           location.href = ctx + '/material/outbound/register?inboundId=' + encodeURIComponent(inboundId);
         }
       })
       .fail(function(){
-        // 매핑 못 찾아도 inboundId만 들고 가서 화면에서 WO 선택하게
         location.href = ctx + '/material/outbound/register?inboundId=' + encodeURIComponent(inboundId);
       });
   });

@@ -92,20 +92,26 @@
 	  LEFT JOIN product p ON p.product_id = wo.product_id
 	  WHERE wo.status = 'WAITING'
 	    AND wo.shortage_status IN ('NONE','CHECKED')
-	    AND EXISTS (
-	      SELECT 1
-	      FROM work_order_material wom
-	      LEFT JOIN material_outbound mo
-	             ON mo.work_order_id = wom.work_order_id
-	            AND mo.status = 'ISSUED'
-	      LEFT JOIN material_outbound_item oi
-	             ON oi.outbound_id = mo.outbound_id
-	            AND oi.material_id  = wom.material_id
-	      WHERE wom.work_order_id = wo.order_id
-	      GROUP BY wom.material_id
-	      HAVING COALESCE(SUM(oi.quantity),0) &lt; SUM(wom.required_qty)   -- 아직 남아있어야 목록에 보임
-	    )
-	  ORDER BY wo.due_date ASC, wo.order_id ASC
+	    AND NOT EXISTS (                           <!-- 🔴 추가: 이미 출고 헤더가 있으면 제외 -->
+	    SELECT 1
+	    FROM material_outbound mo
+	    WHERE mo.work_order_id = wo.order_id
+	      AND mo.status IN ('DRAFT','ISSUED')    <!-- 등록만 되어도 제외 -->
+	  )
+	  AND EXISTS (                               
+	    SELECT 1
+	    FROM work_order_material wom
+	    LEFT JOIN material_outbound mo
+	           ON mo.work_order_id = wom.work_order_id
+	          AND mo.status = 'ISSUED'
+	    LEFT JOIN material_outbound_item oi
+	           ON oi.outbound_id = mo.outbound_id
+	          AND oi.material_id  = wom.material_id
+	    WHERE wom.work_order_id = wo.order_id
+	    GROUP BY wom.material_id
+	    HAVING COALESCE(SUM(oi.quantity),0) &lt; SUM(wom.required_qty)
+	  )
+	ORDER BY wo.due_date ASC, wo.order_id ASC
 	</select>
 	
 	<!-- 등록 화면: 헤더 -->
@@ -313,7 +319,7 @@
 	  <!-- [D] 출고 마스터 테이블에 INSERT -->
 	  <insert id="insertMaterialOutbound">
 	    INSERT INTO material_outbound(outbound_id, work_order_id, status, created_at, updated_at)
-	    VALUES(#{outboundId}, #{workOrderId}, '미출고', NOW(), NOW())
+	    VALUES(#{outboundId}, #{workOrderId}, 'DRAFT', NOW(), NOW())
 	  </insert>
 	
 	  <!-- [E] 출고 아이템 테이블에 INSERT -->
@@ -342,6 +348,18 @@
 		      i.inbound_date AS inboundDate
 		  FROM material_inbound i
 		  WHERE i.inbound_status = '입고완료'
+		    AND NOT EXISTS (
+		      SELECT 1
+		      FROM material_inbound_item  mii
+		      JOIN material_outbound_item moi
+		           ON moi.lot_no     = mii.lot_no
+		          AND moi.material_id = mii.material_id
+		      JOIN material_outbound mo
+		           ON mo.outbound_id = moi.outbound_id
+		      WHERE mii.inbound_id = i.inbound_id
+		        AND mii.lot_no IS NOT NULL               -- LOT 없는 건 제외 판정 안 함
+		        AND mo.status IN ('DRAFT','ISSUED')      -- 등록/출고된 건 목록에서 숨김
+		    )
 		  ORDER BY i.inbound_date DESC
 		</select>
 

@@ -294,17 +294,29 @@
 	
 	<!-- [2] 재고 존재 여부 확인 -->
 	<select id="checkInventoryExists" resultType="int">
-	  SELECT COUNT(*) FROM material_inventory
+	  SELECT COUNT(*)
+	  FROM material_inventory
 	  WHERE material_id = #{materialId}
 	    AND warehouse_code = #{warehouseCode}
+	    AND (
+	      (#{lotNo} IS NULL AND (lot_no IS NULL OR lot_no = ''))
+	      OR lot_no = #{lotNo}
+	    )
 	</select>
 	
 	<!-- [3] 재고 수량 업데이트 -->
 	<update id="updateInventoryQuantity">
 	  UPDATE material_inventory
-	  SET quantity = quantity + #{quantity}
+	  SET quantity = quantity + #{quantity},
+	      -- 선택: 유통기한/입고일 들어오면 보수적으로 갱신
+	      expiration_date = COALESCE(#{expirationDate}, expiration_date),
+	      received_date   = COALESCE(#{receivedDate},   received_date)
 	  WHERE material_id = #{materialId}
 	    AND warehouse_code = #{warehouseCode}
+	    AND (
+	      (#{lotNo} IS NULL AND (lot_no IS NULL OR lot_no = ''))
+	      OR lot_no = #{lotNo}
+	    )
 	</update>
 	
 	<!-- [5] 입고 마스터 상태 및 입고일 갱신 -->
