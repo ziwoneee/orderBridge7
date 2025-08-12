@@ -297,4 +297,4 @@
 <jsp:include page="inboundModal.jsp"/>
 <jsp:include page="orderModal.jsp"/>
 <script>var ctx='${pageContext.request.contextPath}';</script>
-<script src="${pageContext.request.contextPath}/resources/js/materialOutbound.js"></script>
+<script src="${pageContext.request.contextPath}/resources/js/materialOutbound.js?v=${System.currentTimeMillis()}"></script>
