@@ -102,6 +102,11 @@ public interface MaterialInboundDAO {
 	String getDefaultWarehouseByMaterialId(String materialId) throws Exception;
 
 
+	int recalcUsageStatusByOutboundId(String outboundId);
+    int recalcUsageStatusByInboundId(String inboundId);
+    
+    // 특정 상태의 입고건 개수 조회
+    public int getInboundCountByStatus(String status) throws Exception;
 
 
 }

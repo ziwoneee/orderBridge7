@@ -70,7 +70,7 @@
 			  <a type="button" class="btn btn-success mr-2" id="btnLoadOrder">
 			    작업지시 불러오기
 			  </a>
-			  <button id="btnPickInbound"   class="btn btn-outline-primary btn-sm ml-2">입고완료건 불러오기</button>
+			  <button id="btnPickInbound"   class="btn btn-info mr-2">입고완료건 불러오기</button>
 			</div>
 			
               <!-- 탭 -->
@@ -79,7 +79,7 @@
 			    <li class="nav-item">
 			      <a class="nav-link ${empty param.status ? 'active' : ''}" 
 			         href="/material/outbound/list?keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
-			        전체 <span class="badge badge-light ms-1">${totalCount}</span>
+			        전체 
 			      </a>
 			    </li>
 			    <li class="nav-item">
@@ -267,22 +267,64 @@
           </div>
           <!-- 페이징 처리 끝 -->
           
-		    <!-- 출고관리 상세 모달 -->
+		  <!-- 출고 상세 모달  -->
 			<div class="modal fade" id="outboundDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
 			  <div class="modal-dialog modal-lg" role="document">
 			    <div class="modal-content">
-			      <div class="modal-header" style="background-color:#1c355e;color:#fff;">
-			        <h5 class="modal-title">출고관리 상세</h5>
+			
+			      <div class="modal-header" style="background:#1c355e;color:#fff;">
+			        <h5 class="modal-title">출고 상세</h5>
 			        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
 			      </div>
-			      <div class="modal-body" id="outboundDetailBody"><!-- JS 렌더링 자리 --></div>
-			      <div class="modal-footer">
-			        <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
+			
+			      <div class="modal-body">
+			        <!-- 기본 정보 -->
+			        <h6 class="mt-4">출고 정보</h6>
+			        <table class="table table-bordered">
+			          <tbody>
+			            <tr>
+			              <th class="bg-light">출고번호</th><td id="modalOutboundId"></td>
+			              <th class="bg-light">작업지시</th><td id="modalWorkOrderId"></td>
+			            </tr>
+			            <tr>
+			              <th class="bg-light">출고일시</th><td id="modalIssuedAt"></td>
+			              <th class="bg-light">담당자</th><td id="modalHandledBy"></td>
+			            </tr>
+			            <tr>
+			              <th class="bg-light">상태</th><td id="modalStatus"></td>
+			              <th class="bg-light">비고</th><td id="modalNote"></td>
+			            </tr>
+			          </tbody>
+			        </table>
+			
+			        <!-- 상세 항목 -->
+			        <h6 class="mt-4">출고 항목</h6>
+			        <table class="table table-bordered text-center">
+			          <thead>
+			            <tr>
+			              <th>자재ID</th>
+			              <th>품명</th>
+			              <th>LOT</th>
+			              <th>출고수량</th>
+			              <th>창고</th>
+			              <th>유통기한</th>
+			              <th>비고</th>
+			            </tr>
+			          </thead>
+			          <tbody id="outboundItemsInfo">
+			            <tr><td colspan="7" class="text-muted">불러오는 중...</td></tr>
+			          </tbody>
+			        </table>
 			      </div>
+			
+			      <div class="modal-footer">
+			        <button class="btn btn-secondary" data-dismiss="modal">닫기</button>
+			      </div>
+			
 			    </div>
 			  </div>
 			</div>
-			
+
 			
 
         </div>
@@ -297,4 +339,4 @@
 <jsp:include page="inboundModal.jsp"/>
 <jsp:include page="orderModal.jsp"/>
 <script>var ctx='${pageContext.request.contextPath}';</script>
-<script src="${pageContext.request.contextPath}/resources/js/materialOutbound.js"></script>
+<script src="${pageContext.request.contextPath}/resources/js/materialOutbound.js?v=${System.currentTimeMillis()}"></script>

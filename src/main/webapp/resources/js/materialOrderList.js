@@ -53,7 +53,7 @@ $(document).on('click', '.btnSubmitOrder', function(){
       alert(res.message || '발주요청 완료');
       const $tr = $btn.closest('tr');
       $tr.find('td').eq(COL_STATUS).html('<span class="badge badge-warning">요청</span>');
-      $tr.find('td').eq(COL_REQUEST).html('-'); // 요청 버튼 칸 비우기
+      $tr.find('td').eq(COL_REQUEST).html(''); // 요청 버튼 칸 비우기
     })
     .fail(xhr => alert('발주요청 실패: ' + ((xhr.responseJSON && xhr.responseJSON.message) || xhr.statusText)));
 });

@@ -13,8 +13,8 @@ public class MaterialInboundVO {
     private String inboundStatus; 	  // 입고 상태
     private String note;              // 비고 (비고 또는 특이사항)
     private Date createdDate;
-    private Date updatedDate;
-    
+    private Date updatedDate;	
+    private String usageStatus;		  // 사용 상태	
     
     private Date expectedArrivedDate;  // 예상입고일
     private Date orderDate;            // 발주일자

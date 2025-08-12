@@ -216,6 +216,7 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
             header.put("supplierId",  supplierId);      // ★ 반드시 세팅
             header.put("orderStatus", "초안");          // 혹은 "DRAFT" -> 매퍼에서 COALESCE 처리
             header.put("createdBy",   userId);
+            header.put("workOrderId", workOrderId);
             // header.put("expectedArrivedDate", ...);  // 필요시 리드타임 계산해서 넣기
             // header.put("note", null);
 
@@ -245,6 +246,7 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
                 row.put("unitPrice",     unit);   // ★ Mapper가 요구
                 row.put("totalPrice",    total);  // ★ Mapper가 요구
                 row.put("warehouseCode", wh);     // ★ Mapper가 요구
+                row.put("workOrderId",   workOrderId);
 
                 batch.add(row);
             }

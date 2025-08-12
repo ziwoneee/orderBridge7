@@ -17,30 +17,29 @@
 		  <div class="card-body">
 		    <div class="row">
 		      <div class="col-sm-3">
-		        <label for="workOrderId">작업지시번호</label>
+		        <label for="workOrderIdView">작업지시번호</label>
 		        <input type="text" class="form-control input-sm" id="workOrderIdView" readonly>
 		      </div>
 		      <div class="col-sm-3">
 		        <label for="productId">제품ID</label>
-		        <input type="text" class="form-control input-sm" id="dueDateView" readonly>
+		        <input type="text" class="form-control input-sm" id="productId" readonly>
 		      </div>
 		      <div class="col-sm-3">
 		        <label for="lineId">라인ID</label>
-		        <input type="text" class="form-control input-sm" name="lineId" id="lineId" readonly>
+		        <input type="text" class="form-control input-sm" id="lineId" readonly>
 		      </div>
 		      <div class="col-sm-3">
-		        <label for="dueDate">납기일</label>
-		        <input type="text" class="form-control input-sm" name="dueDate" id="dueDate" readonly>
+		        <label for="dueDateView">납기일</label>
+		        <input type="text" class="form-control input-sm" id="dueDateView" readonly>
 		      </div>
 		    </div>
 		    <div class="row" style="margin-top:8px;">
 		      <div class="col-sm-3">
-		        <label for="owner">담당자</label>
-		        <input type="text" class="form-control input-sm" name="handledBy" id="owner" value="admin">
+		        <label for="handledBy">담당자</label>
+		        <input type="text" class="form-control input-sm" name="handledBy" id="handledBy" value="admin">
 		      </div>
 		      <div class="col-sm-9 text-right" style="margin-top:24px;">
 		        <a href="/material/outbound/list" class="btn btn-default btn-sm">목록</a>
-		        <button type="button" id="btnCreateDraft" class="btn btn-warning btn-sm">부족분 발주</button>
 		      </div>
 		    </div>
 		  </div>
@@ -52,7 +51,8 @@
 		  <%-- CSRF 쓰면 hidden 추가 --%>
 		  <input type="hidden" name="workOrderId" id="workOrderIdHidden">
 		  <input type="hidden" name="dueDate"     id="dueDateHidden">
-
+		  <input type="hidden" name="productId"   id="productIdHidden">
+		  <input type="hidden" name="lineId"      id="lineIdHidden">
 		  
 		  <div class="card">
 		    <div class="card-header bg-light"><b>자재별 필요수량 & LOT 선택 (FEFO)</b></div>
@@ -63,7 +63,7 @@
 		            <th style="width:200px;">자재</th>
 		            <th style="width:110px;">필요수량</th>
 		            <th>LOT 선택 (유통기한 빠른 순)</th>
-		            <th>가용(이 WO)</th>
+		            <th>예약수량</th>
 		            <th style="width:110px;">선택합계</th>
 		            <th>부족</th>
 		          </tr>
@@ -74,6 +74,7 @@
 		  </div>
 		
 		  <div class="text-right" style="margin-top:10px;">
+		    <button type="button" id="btnCreateDraft" class="btn btn-warning btn-sm">부족분 발주</button>
 		    <button type="submit" id="btnSubmit" class="btn btn-primary btn-sm" disabled>등록</button>
 		    <a href="/material/outbound/list" class="btn btn-default btn-sm">취소</a>
 		  </div>

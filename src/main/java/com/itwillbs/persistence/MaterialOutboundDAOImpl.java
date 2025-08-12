@@ -168,6 +168,27 @@ public class MaterialOutboundDAOImpl implements MaterialOutboundDAO {
 	    public int updateWorkOrderIssuedCompleted(String workOrderId) throws Exception {
 	        return sqlSession.update(NAMESPACE + "updateWorkOrderIssuedCompleted", workOrderId);
 	    }
+	    
+	    
+	 // MaterialOutboundDAOImpl.java에 추가할 메서드 구현들
+
+	    @Override
+	    public List<Map<String, Object>> getAvailableMaterialsByInbound(Map<String,Object> params) throws Exception {
+	        try {
+	            return sqlSession.selectList(NAMESPACE + "getAvailableMaterialsByInbound", params);
+	        } catch (Exception e) {
+	            throw new Exception("특정 입고건의 가용 자재 목록 조회 중 데이터베이스 오류가 발생했습니다.", e);
+	        }
+	    }
+
+	    @Override
+	    public int updateInboundUsageStatus(String inboundId) throws Exception {
+	        try {
+	            return sqlSession.update(NAMESPACE + "updateInboundUsageStatus", inboundId);
+	        } catch (Exception e) {
+	            throw new Exception("입고건 사용 상태 업데이트 중 데이터베이스 오류가 발생했습니다.", e);
+	        }
+	    }
 
 
 }

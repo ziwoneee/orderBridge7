@@ -24,6 +24,7 @@
 	</select>
 	
 	
+	
 	<!-- 자재별 요약 재고 현황 조회 (1자재 1행) -->
 	<select id="selectInventorySummaryList" resultType="com.itwillbs.domain.MaterialInventoryVO" parameterType="com.itwillbs.domain.SearchCriteria">
 	  SELECT

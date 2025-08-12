@@ -28,6 +28,7 @@ import com.itwillbs.domain.MaterialOutboundVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.WorkOrderVO;
 import com.itwillbs.mapper.MaterialOutboundMapper;
+import com.itwillbs.persistence.MaterialInboundDAO;
 import com.itwillbs.service.MaterialOutboundService;
 
 /**
@@ -47,6 +48,9 @@ public class MaterialOutboundController {
 	
 	@Inject
 	private MaterialOutboundMapper outboundMapper;
+	
+	@Inject
+    private MaterialInboundDAO inboundDAO;   
 	
 	// mylog
 	private static final Logger logger = LoggerFactory.getLogger(MaterialOutboundController.class);
@@ -134,14 +138,34 @@ public class MaterialOutboundController {
     
     // 등록 저장(VO 한 방에 받기: List로 바인딩)
     @RequestMapping(value="/register", method=RequestMethod.POST)
-    public String register(MaterialOutboundVO vo, RedirectAttributes rttr) throws Exception {
+    public String register(MaterialOutboundVO vo,
+				    		@RequestParam(value = "inboundIds", required = false) String inboundIdsCsv, // ★추가(복수)
+				            @RequestParam(value = "inboundId",  required = false) String inboundId,  
+    						RedirectAttributes rttr) throws Exception {
+    	
     	logger.info("register workOrderNo={}", vo.getWorkOrderId()); // null이면 바인딩 문제
     	
+    	// 1) 출고 헤더/아이템 저장 → DRAFT 생성
     	vo.setStatus("DRAFT");	// 미출고
         moService.registerOutbound(vo);
         
+        // 2) usage_status 재계산 (등록 시점부터 '사용'으로 간주)
+        //    - 모달에서 넘어온 inboundIdsCsv가 있으면 그걸, 없으면 inboundId 단일을 사용
+        if (inboundIdsCsv != null && !inboundIdsCsv.trim().isEmpty()) {
+            for (String inb : inboundIdsCsv.split(",")) {
+                inb = inb.trim();
+                if (!inb.isEmpty()) {
+                    inboundDAO.recalcUsageStatusByInboundId(inb);  // ★ 핵심 한 줄
+                }
+            }
+        } else if (inboundId != null && !inboundId.trim().isEmpty()) {
+            inboundDAO.recalcUsageStatusByInboundId(inboundId.trim()); // ★ 단수 fallback
+        }
+        // (선택) 만약 여기서 방금 생성한 outboundId를 알 수 있으면
+        // inboundDAO.recalcUsageStatusByOutboundId(outboundId); 로 한 방에 처리해도 됨
+
+        // 3) 후처리
         rttr.addFlashAttribute("successMessage", "등록이 완료되었습니다.");
-        
         return "redirect:/material/outbound/list";
     }
 
@@ -210,6 +234,46 @@ public class MaterialOutboundController {
         String wo = outboundMapper.findWorkOrderIdByInbound(inboundId);
         if (wo == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         return ResponseEntity.ok(Collections.singletonMap("workOrderId", wo));
+    }
+    
+
+    /**
+     * 특정 입고건의 가용 자재 목록 조회
+     * @param inboundId 입고ID
+     * @return 가용 자재 목록
+     */
+    @GetMapping("/available-materials")
+    @ResponseBody
+    public ResponseEntity<?> getAvailableMaterialsByInbound(
+    		@RequestParam("inboundId") String inboundId,
+    		@RequestParam String workOrderId) {
+    	
+        try {
+            List<Map<String, Object>> materials = moService.getAvailableMaterialsByInbound(inboundId, workOrderId);
+            return ResponseEntity.ok(materials);
+        } catch (Exception e) {
+            logger.error("getAvailableMaterialsByInbound error: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                               .body("가용 자재 목록 조회 실패: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 입고건 사용 상태 업데이트
+     * @param inboundId 입고ID
+     * @return 업데이트 결과
+     */
+    @PostMapping("/update-inbound-status")
+    @ResponseBody
+    public ResponseEntity<?> updateInboundUsageStatus(@RequestParam("inboundId") String inboundId) {
+        try {
+            moService.updateInboundUsageStatus(inboundId);
+            return ResponseEntity.ok(Map.of("success", true, "message", "입고건 사용 상태가 업데이트되었습니다."));
+        } catch (Exception e) {
+            logger.error("updateInboundUsageStatus error: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                               .body(Map.of("success", false, "message", "입고건 사용 상태 업데이트 실패: " + e.getMessage()));
+        }
     }
 
 	

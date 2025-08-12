@@ -300,7 +300,55 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	    
 	    
 	    
+	 // MaterialOutboundServiceImpl.java에 추가할 메서드 구현들
+    @Override
+    public List<Map<String, Object>> getAvailableMaterialsByInbound(String inboundId, String workOrderId) throws Exception {
+        // logger 자리표시자 수정 (두 값 모두 찍으려면 {} 2개)
+        logger.info("getAvailableMaterialsByInbound() called with inboundId: {}, workOrderId: {}", inboundId, workOrderId);
+
+        if (inboundId == null || inboundId.trim().isEmpty()) {
+            throw new IllegalArgumentException("입고ID는 필수입니다.");
+        }
+        if (workOrderId == null || workOrderId.trim().isEmpty()) {
+            // 필요수량을 계산하려면 작업지시도 필요
+            throw new IllegalArgumentException("작업지시ID는 필수입니다.");
+        }
+
+        try {
+            Map<String,Object> params = new HashMap<>();
+            params.put("inboundId", inboundId);
+            params.put("workOrderId", workOrderId);
+
+            List<Map<String, Object>> materials = moDAO.getAvailableMaterialsByInbound(params);
+            logger.info("getAvailableMaterialsByInbound() completed - found {} materials",
+                    (materials != null ? materials.size() : 0));
+            return (materials != null ? materials : new ArrayList<>());
+        } catch (Exception e) {
+            throw new Exception("가용 자재 목록 조회 중 오류가 발생했습니다: " + e.getMessage(), e);
+        }
+    }
 	    
+	    @Override
+	    @Transactional
+	    public void updateInboundUsageStatus(String inboundId) throws Exception {
+	        logger.info("updateInboundUsageStatus() called with inboundId: {}", inboundId);
+	        
+	        if (inboundId == null || inboundId.trim().isEmpty()) {
+	            throw new IllegalArgumentException("입고ID는 필수입니다.");
+	        }
+	        
+	        try {
+	            int updatedRows = moDAO.updateInboundUsageStatus(inboundId);
+	            logger.info("updateInboundUsageStatus() completed - updated {} rows", updatedRows);
+	            
+	            if (updatedRows == 0) {
+	                logger.warn("updateInboundUsageStatus() - No rows updated for inboundId: {}", inboundId);
+	            }
+	        } catch (Exception e) {
+	            logger.error("updateInboundUsageStatus() error for inboundId: {}", inboundId, e);
+	            throw new Exception("입고건 사용 상태 업데이트 중 오류가 발생했습니다: " + e.getMessage(), e);
+	        }
+	    }
 	    
 	    
 	    

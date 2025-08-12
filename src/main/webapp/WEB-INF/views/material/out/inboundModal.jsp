@@ -2,111 +2,393 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 
-			<!-- 입고완료건 선택 모달 -->
-			<div class="modal fade" id="inboundPickerModal" tabindex="-1" role="dialog" aria-hidden="true">
-			  <div class="modal-dialog modal-lg" role="document" style="max-width:1000px;">
-			    <div class="modal-content">
-			      <div class="modal-header" style="background:#1c355e;color:#fff;">
-			        <h4 class="modal-title">입고완료건 선택</h4>
-			        <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:#fff;"><span>&times;</span></button>
-			      </div>
-			      <div class="modal-body" style="padding:15px;">
-			        <div class="table-responsive">
-			          <table class="table table-bordered table-condensed" style="margin-bottom:0;">
-			            <thead>
-			              <tr>
-			                <th class="text-center">입고ID</th>
-			                <th class="text-center">발주ID</th>
-			                <th class="text-center">입고일</th>
-			                <th style="width:90px;"></th>
-			              </tr>
-			            </thead>
-			            <tbody id="inboundPickerBody">
-			              <tr><td colspan="4" class="text-center text-muted">불러오는 중...</td></tr>
-			            </tbody>
-			          </table>
-			        </div>
-			      </div>
-			      <div class="modal-footer">
-			        <button type="button" class="btn btn-default" data-dismiss="modal">닫기</button>
-			      </div>
-			    </div>
-			  </div>
-			</div>
+<!-- 입고완료건 선택 모달 -->
+<div class="modal fade" id="inboundPickerModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document" style="max-width:1400px;">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#1c355e;color:#fff;">
+        <h4 class="modal-title">입고완료건 선택</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color:#fff;"><span>&times;</span></button>
+      </div>
+      <div class="modal-body" style="padding:15px;">
+        <div class="row">
+          <!-- 왼쪽: 입고완료건 목록 (다중선택) -->
+          <div class="col-md-6">
+            <h6>입고완료건 목록</h6>
+            <div class="table-responsive">
+              <table class="table table-bordered table-condensed" style="margin-bottom:10px;">
+                <thead>
+                  <tr>
+                    <th style="width:36px" class="text-center">
+                      <input type="checkbox" id="inb-check-all">
+                    </th>
+                    <th class="text-center">입고ID</th>
+                    <th class="text-center">발주ID</th>
+                    <th class="text-center">입고일</th>
+                    <th class="text-center">사용상태</th>
+                  </tr>
+                </thead>
+                <tbody id="inboundPickerBody">
+                  <tr><td colspan="5" class="text-center text-muted">불러오는 중...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 오른쪽: 선택한 입고건들의 가용 자재 집계 -->
+          <div class="col-md-6">
+            <h6>가용 자재 목록 <small class="text-muted">(선택한 입고건 합산)</small></h6>
+            <div class="table-responsive">
+              <table class="table table-bordered table-condensed" style="margin-bottom:10px;">
+                <thead>
+                  <tr>
+                    <th>자재명</th>
+                    <th>LOT번호</th>
+                    <th class="text-center">가용수량</th>
+                    <th class="text-center">필요수량</th>
+                    <th class="text-center">유통기한</th>
+                  </tr>
+                </thead>
+                <tbody id="availableMaterialsBody">
+                  <tr><td colspan="5" class="text-center text-muted">입고건을 선택하세요</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 선택 요약 -->
+        <div id="selectedInboundInfo" class="alert alert-info" style="display:none; margin-top:15px;">
+          <strong>선택된 입고건:</strong> <span id="selectedInboundId">-</span>
+          | <strong>작업지시:</strong> <span id="selectedWorkOrderId">미확인</span>
+          | <strong>총 가용자재:</strong> <span id="totalAvailableMaterials">0</span>종
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="btnConfirmInbound" class="btn btn-primary" disabled>출고등록 진행</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
-//컨텍스트 루트
+// 컨텍스트 루트
 window.ctx = window.ctx || '${pageContext.request.contextPath}';
 
-// yyyy-MM-dd
-function toYmd(d){ if(!d) return ''; if(typeof d==='string') return d.slice(0,10);
+// 날짜 포맷
+function toYmd(d){
+  if(!d) return '';
+  if(typeof d==='string') return d.slice(0,10);
   if(typeof d==='number') return new Date(d).toISOString().slice(0,10);
   if(d && d.time) return new Date(d.time).toISOString().slice(0,10);
   try{ return new Date(d).toISOString().slice(0,10);}catch(e){ return ''; }
 }
 
-/* [1] 버튼 → 모달 오픈 */
+// 공용 메시지 행
+function infoRowHTML(icon, cls, msg, colspan){
+  return '<tr>'
+       +   '<td colspan="' + (colspan||5) + '" class="text-center ' + cls + ' py-4">'
+       +     '<i class="' + icon + '" style="font-size:24px;"></i>'
+       +     '<p class="mt-2 mb-0">' + msg + '</p>'
+       +   '</td>'
+       + '</tr>';
+}
+function showLoading($tb, msg, colspan){ $tb.html(infoRowHTML('ti-reload','text-muted', msg||'불러오는 중...', colspan)); }
+function showEmpty($tb, msg, colspan){ $tb.html(infoRowHTML('ti-info-alt','text-muted', msg||'데이터가 없습니다.', colspan)); }
+function showError($tb, msg, colspan){ $tb.html(infoRowHTML('ti-alert','text-danger', msg||'불러오기 실패', colspan)); }
+
+// 상태 배지
+function getUsageStatusBadge(s){
+  if(s==='AVAILABLE') return '<span class="badge badge-success">사용가능</span>';
+  if(s==='PARTIALLY_USED') return '<span class="badge badge-warning">부분사용</span>';
+  if(s==='FULLY_USED') return '<span class="badge badge-secondary">완전사용</span>';
+  return '<span class="badge badge-light">미확인</span>';
+}
+
+/* -------- 전역 선택 상태 -------- */
+const pickedInboundIds = new Set(); // 선택된 입고ID들
+let currentWorkOrderId = null;      // 같은 WO만 허용
+let inboundPickerReqToken = 0;
+
+/* -------- 모달 오픈 -------- */
 $(document).on('click', '#btnPickInbound', function(){
-  $('#inboundPickerBody').html('<tr><td colspan="4" class="text-center text-muted">불러오는 중...</td></tr>');
+  const $left = $('#inboundPickerBody');
+  const $right = $('#availableMaterialsBody');
+
+  // 완전 초기화
+  pickedInboundIds.clear();
+  currentWorkOrderId = null;
+  $('#inb-check-all').prop('checked', false);
+  $('#btnConfirmInbound').prop('disabled', true);
+  $('#selectedInboundInfo').hide();
+  $('#selectedInboundId').text('-');
+  $('#selectedWorkOrderId').text('미확인');
+  $('#totalAvailableMaterials').text(0);
+
+  showLoading($left, '불러오는 중...', 5);
+  showEmpty($right, '입고건을 선택하세요', 5);
+
   $('#inboundPickerModal').modal('show');
 });
 
-/* [2] 모달 열릴 때 목록 로드 */
-$('#inboundPickerModal').on('shown.bs.modal', function(){
-  loadCompletedInbounds();
-});
+$('#inboundPickerModal')
+  .on('shown.bs.modal', loadCompletedInbounds)
+  .on('hidden.bs.modal', function(){ inboundPickerReqToken++; });
 
+/* -------- 왼쪽 목록 로드 -------- */
 function loadCompletedInbounds(){
-  var $tb = $('#inboundPickerBody').empty().append(
-    '<tr><td colspan="4" class="text-center text-muted">불러오는 중...</td></tr>'
-  );
+  const $tb = $('#inboundPickerBody');
+  const myToken = ++inboundPickerReqToken;
+  showLoading($tb, '불러오는 중...', 5);
 
-  // 서버에서: 입고완료 + 미처리 리스트 반환
-  $.getJSON(ctx + '/material/outbound/inbounds', { status:'입고완료', processed:'N' })
+  $.getJSON(ctx + '/material/outbound/inbounds', { status: '입고완료', processed: 'N' })
     .done(function(list){
-      $tb.empty();
-      if(!list || list.length===0){
-        $tb.append('<tr><td colspan="4" class="text-center text-muted">표시할 입고완료 건이 없습니다.</td></tr>');
+      if (myToken !== inboundPickerReqToken || !$('#inboundPickerModal').is(':visible')) return;
+
+      list = Array.isArray(list) ? list : [];
+
+  	 // 1) 안전 필터: 진짜 '입고완료'만
+      list = list.filter(function (r) {
+        var st = r.status || r.inboundStatus || '입고완료';
+        return st === '입고완료';
+      });
+
+      // 1.5) 사용상태 AVAILABLE만 (추가)
+      list = list.filter(function (r) {
+        return (r.usageStatus || 'AVAILABLE') === 'AVAILABLE';
+      });
+
+      // 2) 이미 출고에 물린 것들은 제외
+      list = list.filter(function (r) {
+        var s = String((r.outboundStatus || r.latestOutboundStatus || 'NONE')).toUpperCase();
+        var hasOutbound = !!(r.outboundId || r.outboundCount || r.hasOutbound);
+        var badStatuses = { DRAFT: 1, PARTIAL: 1, ISSUED: 1, '미출고': 1 };
+        return !(badStatuses[s] || hasOutbound);
+      });
+
+      // 3) inboundId 기준 중복 제거
+      var seen = {};
+      list = list.filter(function (r) {
+        var id = r.inboundId || '';
+        if (!id) return true;
+        if (seen[id]) return false;
+        seen[id] = 1;
+        return true;
+      });
+
+
+      if (list.length === 0) {
+        showEmpty($tb, '입고완료 건이 없습니다.', 5);
         return;
       }
-      list.forEach(function(row){
-        var tr = $('<tr>').attr('data-inbound-id', row.inboundId)
-          .append($('<td class="text-center">').text(row.inboundId || ''))
-          .append($('<td class="text-center">').text(row.orderId || '-'))
-          .append($('<td class="text-center">').text(toYmd(row.inboundDate)))
-          .append($('<td class="text-center" style="width:90px;">').append(
-            $('<button>',{type:'button','data-id':row.inboundId})
-              .addClass('btn btn-primary btn-xs pick-inbound').text('선택')
-          ));
-        $tb.append(tr);
-      });
+
+      const rows = list.map(function(row){
+        const inboundId  = row.inboundId || '';
+        const orderId    = row.orderId   || '-';
+        const inboundYmd = toYmd(row.inboundDate);
+        const usage      = row.usageStatus || 'AVAILABLE';
+        const workOrderId= row.workOrderId || row.woId || '';
+
+        return '' +
+          '<tr class="inbound-row" data-inbound-id="'+inboundId+'" data-work-order-id="'+workOrderId+'">' +
+            '<td class="text-center"><input type="checkbox" class="inb-pick" value="'+inboundId+'"></td>' +
+            '<td class="text-center">'+inboundId+'</td>' +
+            '<td class="text-center">'+orderId+'</td>' +
+            '<td class="text-center">'+inboundYmd+'</td>' +
+            '<td class="text-center">'+getUsageStatusBadge(usage)+'</td>' +
+          '</tr>';
+      }).join('');
+
+      $tb.html(rows);
     })
-    .fail(function(xhr){
-      $tb.empty().append('<tr><td colspan="4" class="text-center text-danger">목록을 불러오지 못했습니다.</td></tr>');
-      console.error(xhr);
+    .fail(function(){
+      showError($tb, '목록을 불러오지 못했습니다.', 5);
     });
 }
 
-/* [3] 선택 → register로 이동 (inbound→workOrder 매핑 시도) */
-$(document)
-  .off('click.pickInbound', '.pick-inbound')
-  .on('click.pickInbound', '.pick-inbound', function(e){
-    e.preventDefault();
-    var inboundId = $(this).data('id');
-    if(!inboundId) return;
 
-    $.get(ctx + '/material/outbound/resolve-workorder', { inboundId: inboundId })
-      .done(function(res){
-        if(res && res.workOrderId){
-          location.href = ctx + '/material/outbound/register?workOrderId=' + encodeURIComponent(res.workOrderId)
-                          + '&inboundId=' + encodeURIComponent(inboundId);
-        }else{
-          location.href = ctx + '/material/outbound/register?inboundId=' + encodeURIComponent(inboundId);
-        }
-      })
-      .fail(function(){
-        // 매핑 못 찾아도 inboundId만 들고 가서 화면에서 WO 선택하게
-        location.href = ctx + '/material/outbound/register?inboundId=' + encodeURIComponent(inboundId);
-      });
+/* -------- 체크박스 동기화 -------- */
+$(document).on('change', '#inb-check-all', function(){
+  const checked = this.checked;
+  $('#inboundPickerBody .inb-pick').each(function(){
+    if (!this.disabled) this.checked = checked;
   });
+  syncPickedFromUI();
+});
+
+$(document).on('change', '.inb-pick', syncPickedFromUI);
+
+function syncPickedFromUI(){
+  pickedInboundIds.clear();
+
+  // 기준 WO 세팅/검증
+  $('#inboundPickerBody .inb-pick').each(function(){
+    const $tr = $(this).closest('tr');
+    const wo  = $tr.data('work-order-id') || null;
+
+    if (this.checked && !currentWorkOrderId) currentWorkOrderId = wo || null;
+
+    if (currentWorkOrderId && wo && wo !== currentWorkOrderId) {
+      this.checked = false;
+      this.disabled = true;
+      $tr.addClass('table-warning');
+      return;
+    } else {
+      this.disabled = false;
+      $tr.removeClass('table-warning');
+    }
+
+    if (this.checked) pickedInboundIds.add(this.value);
+  });
+
+  // 전체선택 체크 상태 보정
+  const all  = $('#inboundPickerBody .inb-pick:not(:disabled)').length;
+  const on   = $('#inboundPickerBody .inb-pick:not(:disabled):checked').length;
+  $('#inb-check-all').prop('checked', all>0 && all===on);
+
+  renderPickedInfoAndMaterials();
+}
+
+function renderPickedInfoAndMaterials(){
+  const ids = Array.from(pickedInboundIds);
+  $('#selectedInboundInfo').show();
+  $('#selectedInboundId').text(ids.join(', ') || '-');
+  $('#selectedWorkOrderId').text(currentWorkOrderId || '미확인');
+
+  const canGo = ids.length>0 && !!currentWorkOrderId;
+  $('#btnConfirmInbound').prop('disabled', !canGo);
+
+  if (!canGo) {
+    $('#availableMaterialsBody').html(infoRowHTML('ti-info-alt','text-muted','입고건을 선택하세요',5));
+    $('#totalAvailableMaterials').text(0);
+    return;
+  }
+  loadAndRenderAggregatedMaterials(ids);
+}
+
+function normalizeList(d){
+	  if (Array.isArray(d)) return d;
+	  if (d && Array.isArray(d.list)) return d.list;
+	  if (d && Array.isArray(d.rows)) return d.rows;
+	  if (d && Array.isArray(d.data)) return d.data;
+	  if (d && d.result && Array.isArray(d.result.list)) return d.result.list;
+	  return [];
+	}
+
+/* -------- 오른쪽: 선택건 합산 로드 -------- */
+function loadAndRenderAggregatedMaterials(inboundIds){
+  var $matTb = $('#availableMaterialsBody');
+  showLoading($matTb, '가용 자재 집계중...', 5);
+
+  try {
+	  var reqs = inboundIds.map(function(id){
+		  return $.getJSON(ctx + '/material/outbound/available-materials', { 
+		    inboundId: id,
+		    workOrderId: currentWorkOrderId
+		  })
+		  .done(function(d){ console.log('[available-materials]', id, d); })
+		  .fail(function(x){ console.warn('[available-materials:FAIL]', id, x.status, x.responseText); });
+		});
+
+	  $.when.apply($, reqs).done(function () {
+		  var mats = [];
+
+		  // arguments를 표준 배열로
+		  var args = Array.prototype.slice.call(arguments);
+		  if (reqs.length === 1) {
+		    // 단일 요청인 경우도 튜플처럼 보이게 맞춤
+		    args = [args];
+		  }
+
+		  args.forEach(function (arg) {
+		    // 여러개면 [data, textStatus, jqXHR], 단일이면 data만 올 수도 있음
+		    var data = Array.isArray(arg) ? arg[0] : arg;
+		    mats = mats.concat(normalizeList(data));
+		  });
+
+		  if (!mats.length) {
+		    showEmpty($matTb, '가용한 자재가 없습니다.', 5);
+		    $('#totalAvailableMaterials').text(0);
+		    return;
+		  }
+
+		  // 이하 집계/정렬/렌더링은 기존 그대로…
+		  var map = {}, orderKeys = [];
+		  mats.forEach(function (m) {
+		    var key = (m.materialId || '') + '|' + (m.lotNo || '');
+		    if (!map[key]) {
+		      map[key] = {
+		        materialId: m.materialId,
+		        materialName: m.materialName,
+		        lotNo: m.lotNo || '',
+		        availableQty: 0,
+		        requiredQty: Number(m.requiredQty || 0),
+		        expirationDate: m.expirationDate
+		      };
+		      orderKeys.push(key);
+		    }
+		    map[key].availableQty += Number(m.availableQty || m.qty || 0);
+		    if (!map[key].expirationDate && m.expirationDate) {
+		      map[key].expirationDate = m.expirationDate;
+		    }
+		  });
+
+		  var rowsArr = orderKeys.map(function (k) { return map[k]; })
+		    .sort(function (a, b) {
+		      var ad = new Date(a.expirationDate || '9999-12-31').getTime();
+		      var bd = new Date(b.expirationDate || '9999-12-31').getTime();
+		      return ad - bd;
+		    });
+
+		  var html = rowsArr.map(function (x) {
+		    return '<tr>'
+		      + '<td>' + (x.materialName||'') + '<br><small class="text-muted">' + (x.materialId||'') + '</small></td>'
+		      + '<td class="text-center"><span class="badge badge-light">' + (x.lotNo||'') + '</span></td>'
+		      + '<td class="text-center"><strong>' + (x.availableQty||0) + '</strong></td>'
+		      + '<td class="text-center">' + (x.requiredQty||0) + '</td>'
+		      + '<td class="text-center">' + (toYmd(x.expirationDate) || '-') + '</td>'
+		      + '</tr>';
+		  }).join('');
+
+		  $matTb.html(html);
+		  $('#totalAvailableMaterials').text(rowsArr.length);
+		}).fail(function () {
+		  showError($matTb, '가용 자재 집계 실패', 5);
+		  $('#totalAvailableMaterials').text(0);
+		});
+
+  } catch (e) {
+    console.error(e);
+    showError($matTb, '가용 자재 집계 실패', 5);
+    $('#totalAvailableMaterials').text(0);
+  }
+}
+
+
+/* -------- 진행 버튼: 다중 입고건으로 register 이동 -------- */
+$(document).on('click', '#btnConfirmInbound', function(){
+  const ids = Array.from(pickedInboundIds);
+  if (!(ids.length>0 && currentWorkOrderId)) {
+    alert('같은 작업지시의 입고건을 하나 이상 선택하세요.');
+    return;
+  }
+
+  // (선택) 사용상태 업데이트 – 대량이면 서버에서 일괄 처리 권장
+  // updateInboundUsageStatus(ids[0]);
+
+  // register로 이동 (백엔드에서 inboundIds 처리 필요)
+  location.href = ctx + '/material/outbound/register'
+    + '?workOrderId=' + encodeURIComponent(currentWorkOrderId)
+    + '&inboundIds=' + encodeURIComponent(ids.join(','));
+});
+
+// 선택사항: 상태 업데이트
+function updateInboundUsageStatus(inboundId){
+  $.post(ctx + '/material/outbound/update-inbound-status', { inboundId: inboundId })
+    .done(function(res){ console.log('입고건 상태 업데이트 완료', res); })
+    .fail(function(){ console.warn('입고건 상태 업데이트 실패(무시)'); });
+}
+
 </script>

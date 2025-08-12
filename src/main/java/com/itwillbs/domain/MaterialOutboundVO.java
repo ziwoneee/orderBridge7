@@ -20,6 +20,8 @@ public class MaterialOutboundVO {
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date dueDate;             // 납기일자 (출고 대상 예정 납기일)
     private String note;              // 비고 (출고 비고 또는 특이사항)
+    private String sourceInboundId;	  // 주 연결 입고ID
+    
     
     private String materialId;
     
