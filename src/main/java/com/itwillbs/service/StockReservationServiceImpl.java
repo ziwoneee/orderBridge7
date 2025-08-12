@@ -46,25 +46,81 @@ public class StockReservationServiceImpl implements StockReservationService {
     /**
      * 단일 예약 등록
      */
+    @Transactional
     @Override
     public void reserveStock(StockReservationVO vo) {
-        // 1. 예약 등록
+        // ✅ qty 검증 (primitive int이면 null 체크 불가)
+        int reservedQty = vo.getReservedQty();
+        if (reservedQty <= 0) {
+            throw new IllegalArgumentException("예약 수량이 0 이하입니다.");
+        }
+
+        // ✅ productId 검증
+        String productId = vo.getProductId();
+        if (productId == null || productId.isEmpty()) {
+            throw new IllegalArgumentException("productId가 필요합니다.");
+        }
+
+        // ✅ LOT 미지정 → 임박 LOT부터 자동 배정
+        if (vo.getLotNo() == null || vo.getLotNo().isEmpty()) {   // ← '||' 사용
+            int remaining = reservedQty;
+
+            // 임박순 + 만료 제외 + FOR UPDATE (Mapper에 준비된 메서드로 교체)
+            List<LotStockDTO> lots = stockDAO.getAvailableLotsOrdered(productId);
+            if (lots == null || lots.isEmpty()) {
+                throw new IllegalStateException("가용 LOT 없음: " + productId);
+            }
+
+            for (LotStockDTO lot : lots) {
+                if (remaining <= 0) break;
+
+                int alloc = Math.min(remaining, Math.max(lot.getAvailableQty(), 0));
+                if (alloc <= 0) continue;
+
+                StockReservationVO r = new StockReservationVO();
+                r.setClOrderId(vo.getClOrderId());
+                r.setDetailId(vo.getDetailId());
+                r.setProductId(productId);
+                r.setClientId(vo.getClientId());
+                r.setLotNo(lot.getLotNo());
+                r.setReservedQty(alloc);
+                r.setManager(vo.getManager() == null ? "SYSTEM" : vo.getManager());
+                r.setCreatedAt(new java.util.Date());
+
+                reservationDAO.insertReservation(r);
+                stockDAO.increaseReservedQty(productId, lot.getLotNo(), alloc);
+
+                productStockService.insertTransaction(
+                    "RESERVE", r.getLotNo(), alloc, productId,
+                    r.getClientId(), r.getManager(), null, null, r.getClOrderId()
+                );
+
+                remaining -= alloc;
+            }
+
+            if (remaining > 0) {
+                // 보상 롤백
+                List<StockReservationVO> rollback = reservationDAO.getReservationsByOrderId(vo.getClOrderId());
+                for (StockReservationVO r : rollback) {
+                    if (!productId.equals(r.getProductId())) continue;
+                    reservationDAO.deleteReservation(r.getClOrderId(), r.getProductId());
+                    stockDAO.decreaseReservedQty(r.getProductId(), r.getLotNo(), r.getReservedQty());
+                    productStockService.insertTransaction(
+                        "CANCEL_RESERVE", r.getLotNo(), r.getReservedQty(), r.getProductId(),
+                        r.getClientId(), r.getManager(), null, null, r.getClOrderId()
+                    );
+                }
+                throw new IllegalStateException("자재 부족: " + productId + ", 부족=" + remaining);
+            }
+            return;
+        }
+
+        // ✅ LOT 지정된 경우: 기존 단일 LOT 예약
         reservationDAO.insertReservation(vo);
-
-        // 2. 재고 예약 수량 증가
-        stockDAO.increaseReservedQty(vo.getProductId(), vo.getLotNo(), vo.getReservedQty());
-
-        // ✅ 3. 예약 이력 기록 - clientId 포함!
+        stockDAO.increaseReservedQty(productId, vo.getLotNo(), reservedQty);
         productStockService.insertTransaction(
-            "RESERVE",
-            vo.getLotNo(),
-            vo.getReservedQty(),
-            vo.getProductId(),
-            vo.getClientId(),     
-            vo.getManager(),      
-            null,
-            null,
-            vo.getClOrderId()
+            "RESERVE", vo.getLotNo(), reservedQty, productId,
+            vo.getClientId(), vo.getManager(), null, null, vo.getClOrderId()
         );
     }
 

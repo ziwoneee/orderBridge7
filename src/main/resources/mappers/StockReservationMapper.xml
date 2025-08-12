@@ -68,7 +68,9 @@
 
 
 <!-- LOT별 가용 수량 (유통기한 오름차순) 조회 -->
-<select id="getAvailableLotsOrdered" parameterType="String" resultType="com.itwillbs.dto.LotStockDTO">
+<select id="getAvailableLotsOrdered"
+        parameterType="String"
+        resultType="com.itwillbs.dto.LotStockDTO">
   SELECT 
     pi.product_id,
     pi.lot_no,
@@ -89,8 +91,9 @@
     GROUP BY product_id, lot_no
   ) sr ON pi.product_id = sr.product_id AND pi.lot_no = sr.lot_no
   WHERE pi.product_id = #{productId}
+    AND (pi.expire_date IS NULL OR pi.expire_date >= CURDATE())  
   HAVING available_qty > 0
-  ORDER BY pi.expire_date ASC
+  ORDER BY pi.expire_date ASC, pi.lot_no ASC
 </select>
 
 <!-- 특정 제품 + LOT 기준 예약 수량 조회 -->

@@ -53,25 +53,43 @@ function openLotHistoryModal(lotNo, productId) {
     success: function (response) {
       console.log("✅ 서버 응답:", response);
       console.log("✅ 유통기한 확인:", response.expireDate);
+      
+   // 1) 배열/객체 응답 모두 대응: history 확보
+      const records = Array.isArray(response) ? response : (response.history || []);
 
+      // 2) 합계 계산 (입고/출고/취소)
+      const sumBy = (pred) =>
+        records.reduce((acc, e) => (pred(e) ? acc + (Number(e.qty) || 0) : acc), 0);
 
+      const isInbound  = (e) => e.type === 'INBOUND'  || e.type === '입고';
+      const isOutbound = (e) => e.type === 'OUTBOUND' || e.type === '출고';
+      const isCancel   = (e) => e.type === 'CANCEL'   || e.type === '취소';
+
+      const inboundQty       = sumBy(isInbound);
+      const totalOutboundQty = sumBy(isOutbound);
+      const cancelQty        = sumBy(isCancel);
+
+      // 3) 예약 수량/유통기한: 객체 응답이면 그대로, 배열이면 기본값
+      const reservedQty = Array.isArray(response) ? 0 : (response.reservedQty || 0);
+      const availableQty = inboundQty - totalOutboundQty + cancelQty - reservedQty;
+      const expireDate = Array.isArray(response) ? null : response.expireDate;
+
+      // 4) 헤더 영역 채우기
       $('#modal-lot-no').text(lotNo);
-      $('#modal-product-name').text(productId || '-'); // 화면 표시용
+      $('#modal-product-name').text(productId || '-');
+      
+      $('#modal-inboundQty').text(inboundQty);
+      $('#modal-totalOutboundQty').text(totalOutboundQty);
+      $('#modal-reservedQty').text(reservedQty);
+      $('#modal-availableQty').text(availableQty);
+      $('#modal-expireDate').text(expireDate ? formatDate(expireDate) : '-');
 
-      // 입출고 수치 출력 (response가 객체가 아니라 리스트일 경우 제거 가능)
-      $('#modal-inboundQty').text(response.inboundQty || 0);
-      $('#modal-totalOutboundQty').text(response.totalOutboundQty || 0);
-      $('#modal-reservedQty').text(response.reservedQty || 0);
-      $('#modal-availableQty').text(response.availableQty || 0);
-      $('#modal-expireDate').text(response.expireDate ? formatDate(response.expireDate) : '-');
-
-      // 테이블 렌더링
-      const history = response.history || [];
+      // 테이블 렌더링  
 
       $('#lotHistoryTableBody').empty();
 
    // ✅ 데이터가 없으면 안내 문구 출력
-      if (!history || history.length === 0) {
+      if (!records || records.length === 0) {
     	  $('#lotHistoryEmpty').removeClass('d-none');  // 안내 문구 보이기
     	  $('#lotHistoryModal').modal('show');
     	  return;
@@ -81,7 +99,7 @@ function openLotHistoryModal(lotNo, productId) {
       // ✅ 데이터가 있을 경우 안내 문구 숨기고 테이블 출력
       $('#lotHistoryEmpty').addClass('d-none');
       // 테이블에 입출고 이력 추가
-      history.forEach(entry => {
+      records.forEach(entry => {
     	  // 예약/예약취소는 무시
     	  if (entry.type === 'RESERVE' || entry.type === '예약' ||
     	      entry.type === 'CANCEL_RESERVE' || entry.type === '예약취소') {

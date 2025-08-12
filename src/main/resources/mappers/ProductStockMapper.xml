@@ -154,13 +154,14 @@
 
 
   <!-- ✅ 3. 입고 시: 있으면 +, 없으면 INSERT -->
-  <insert id="upsertStockQty">
+ <insert id="upsertStockQty" parameterType="map">
   INSERT INTO product_stock (product_id, lot_no, stock_qty, safe_qty, reg_date, expire_date)
-  VALUES (#{productId}, #{lotNo}, #{qty}, 50, NOW(), #{expireDate})
+  VALUES (#{productId}, #{lotNo}, #{qty}, 50, NOW(), DATE_ADD(NOW(), INTERVAL 1 YEAR))
   ON DUPLICATE KEY UPDATE
-    stock_qty = stock_qty + #{qty},
-    expire_date = #{expireDate}
+    stock_qty  = stock_qty + #{qty},
+    expire_date = DATE_ADD(NOW(), INTERVAL 1 YEAR)
 </insert>
+
 
 
   <!-- ✅ 4. 출고 시: 수량 감소 (음수 방지) -->

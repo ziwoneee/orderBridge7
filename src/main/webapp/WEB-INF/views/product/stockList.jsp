@@ -214,33 +214,63 @@
  </div>
  
            <!-- ✅ 페이징 영역 -->
+<!-- ✅ 페이징 영역 (필터 유지 + 안전 링크) -->
 <div class="d-flex justify-content-center mt-4">
-<nav>
-  <ul class="pagination justify-content-center mt-4">
+  <nav>
+    <ul class="pagination justify-content-center mt-4">
 
-    <c:if test="${pageMaker.cri.page>1}">
-      <li class="page-item">
-        <a class="page-link" href="?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&laquo;</a>
-      </li>
-    </c:if>
+      <!-- ◀ Prev -->
+      <c:if test="${pageMaker.cri.page > 1}">
+        <c:url var="prevUrl" value="/product/stocklist">
+          <c:param name="page" value="${pageMaker.startPage - 1}" />
+          <c:param name="perPageNum" value="${pageMaker.cri.perPageNum}" />
+          <c:param name="status" value="${param.status}" />
+          <c:param name="mode" value="${param.mode}" />
+          <c:param name="keyword" value="${param.keyword}" />
+          <c:param name="startDate" value="${param.startDate}" />
+          <c:param name="endDate" value="${param.endDate}" />
+        </c:url>
+        <li class="page-item">
+          <a class="page-link" href="${prevUrl}">&laquo;</a>
+        </li>
+      </c:if>
 
-    <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
-      <li class="page-item ${p == cri.page ? 'active' : ''}">
-        <a class="page-link" href="?page=${p}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">${p}</a>
-      </li>
-    </c:forEach>
+      <!-- 숫자 페이지 -->
+      <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+        <c:url var="pageUrl" value="/product/stocklist">
+          <c:param name="page" value="${p}" />
+          <c:param name="perPageNum" value="${pageMaker.cri.perPageNum}" />
+          <c:param name="status" value="${param.status}" />
+          <c:param name="mode" value="${param.mode}" />
+          <c:param name="keyword" value="${param.keyword}" />
+          <c:param name="startDate" value="${param.startDate}" />
+          <c:param name="endDate" value="${param.endDate}" />
+        </c:url>
+        <li class="page-item ${p == pageMaker.cri.page ? 'active' : ''}">
+          <a class="page-link" href="${pageUrl}">${p}</a>
+        </li>
+      </c:forEach>
 
-    <c:if test="${pageMaker.cri.page<pageMaker.endPage}">
-      <li class="page-item">
-        <a class="page-link" href="?page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">&raquo;</a>
-      </li>
-    </c:if>
+      <!-- Next ▶ -->
+      <c:if test="${pageMaker.cri.page < pageMaker.endPage}">
+        <c:url var="nextUrl" value="/product/stocklist">
+          <c:param name="page" value="${pageMaker.cri.page + 1}" />
+          <c:param name="perPageNum" value="${pageMaker.cri.perPageNum}" />
+          <c:param name="status" value="${param.status}" />
+          <c:param name="mode" value="${param.mode}" />
+          <c:param name="keyword" value="${param.keyword}" />
+          <c:param name="startDate" value="${param.startDate}" />
+          <c:param name="endDate" value="${param.endDate}" />
+        </c:url>
+        <li class="page-item">
+          <a class="page-link" href="${nextUrl}">&raquo;</a>
+        </li>
+      </c:if>
 
-  </ul>
-  
-</nav>
-
+    </ul>
+  </nav>
 </div>
+
 <!-- 페이징 처리 끝 -->
 
        
