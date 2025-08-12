@@ -69,7 +69,10 @@ $(document).on('click', '.btn-reservation-detail', function () {
       $('#modal-current-stock').text(data.currentStock);
       $('#modal-delivery-date').text(data.deliveryDate);
 
-      $('#reservationDetailModal').modal('show');
+      const el = document.getElementById('reservationDetailModal');
+      const modal = new bootstrap.Modal(el);
+      modal.show();
+
     },
     error: function () {
       alert('예약 상세 정보를 불러오는 데 실패했습니다.');

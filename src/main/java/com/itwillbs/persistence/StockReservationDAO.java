@@ -3,6 +3,7 @@ package com.itwillbs.persistence;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.StockReservationVO;
 import com.itwillbs.dto.LotStockDTO;
+import com.itwillbs.dto.ReservationDetailDTO;
 
 import java.util.List;
 import java.util.Map;
@@ -28,5 +29,10 @@ public interface StockReservationDAO {
     List<StockReservationVO> getFilteredReservationList(SearchCriteria cri);
    
     int countFilteredReservationList(SearchCriteria cri);
+    
+    //예약상세 모달
+    // ✅ 모달 상세 (LOT + 수주 단건)
+    ReservationDetailDTO selectReservationDetailForModal(String lotNo, String clOrderId);
+
 
 }

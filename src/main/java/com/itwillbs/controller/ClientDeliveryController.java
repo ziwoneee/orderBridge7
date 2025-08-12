@@ -3,6 +3,7 @@ package com.itwillbs.controller;
 import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.StockReservationVO;
+import com.itwillbs.dto.ReservationDetailDTO;
 import com.itwillbs.dto.ShipmentCompletedDTO;
 import com.itwillbs.dto.ShipmentCompletedGroupDTO;
 import com.itwillbs.dto.ShipmentPendingGroupDTO;
@@ -10,6 +11,8 @@ import com.itwillbs.service.ClientDeliveryService;
 import com.itwillbs.service.StockReservationService;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -174,8 +177,25 @@ public class ClientDeliveryController {
         return "redirect:/shipment/list?tab=completed";
     }
 
-    
-   
+   //예약 상세 모달  
+    @GetMapping(value = "/reservation/detail", produces = "application/json; charset=UTF-8")
+    @ResponseBody
+    public ResponseEntity<?> getReservationDetail(
+            @RequestParam String lotNo,
+            @RequestParam String clOrderId) {
 
+        try {
+            ReservationDetailDTO dto = reservationService.getReservationDetail(lotNo, clOrderId);
+            if (dto == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("{\"message\":\"not found\"}");
+            }
+            return ResponseEntity.ok(dto);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("{\"message\":\"server error\"}");
+        }
 
+    }
 }

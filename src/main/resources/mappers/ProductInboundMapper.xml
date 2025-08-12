@@ -20,15 +20,19 @@
   </resultMap>
 
   <!-- 1. 입고 등록 -->
-  <insert id="insertInbound" parameterType="com.itwillbs.domain.ProductInboundVO">
-    INSERT INTO product_inbound (
-      inbound_id, lot_no, product_id, product_name, inbound_qty,
-      inbound_type, remark, manager, reg_date, created_at
-    ) VALUES (
-      #{inboundId}, #{lotNo}, #{productId}, #{productName}, #{inboundQty},
-      #{inboundType}, #{remark}, #{manager}, #{regDate}, #{createdAt}
-    )
-  </insert>
+ <insert id="insertInbound" parameterType="com.itwillbs.domain.ProductInboundVO">
+  INSERT INTO product_inbound (
+    inbound_id, lot_no, product_id, product_name, inbound_qty,
+    inbound_type, remark, manager, reg_date, created_at,
+    expire_date                     
+  ) VALUES (
+    #{inboundId}, #{lotNo}, #{productId}, #{productName}, #{inboundQty},
+    #{inboundType}, #{remark}, #{manager},
+    #{regDate}, #{createdAt},
+    DATE_ADD(COALESCE(#{regDate}, NOW()), INTERVAL 1 YEAR)  
+  )
+</insert>
+
 
   <!-- 2. 중복 확인 -->
   <select id="existsByLotNo" parameterType="String" resultType="boolean">
