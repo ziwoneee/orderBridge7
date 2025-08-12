@@ -47,4 +47,21 @@ public interface MaterialOutboundService {
         public String reason;       // 생성 안한 이유
     }
     
+    
+
+    /**
+     * 특정 입고건의 가용 자재 목록 조회
+     * @param inboundId 입고ID
+     * @return 가용 자재 목록 (자재ID, 자재명, LOT번호, 가용수량 등)
+     * @throws Exception
+     */
+    List<Map<String, Object>> getAvailableMaterialsByInbound(String inboundId) throws Exception;
+
+    /**
+     * 입고건 사용 상태 업데이트
+     * @param inboundId 입고ID
+     * @throws Exception
+     */
+    void updateInboundUsageStatus(String inboundId) throws Exception;
+    
 }

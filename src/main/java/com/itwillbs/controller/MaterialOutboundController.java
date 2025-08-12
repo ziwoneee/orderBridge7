@@ -211,6 +211,43 @@ public class MaterialOutboundController {
         if (wo == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         return ResponseEntity.ok(Collections.singletonMap("workOrderId", wo));
     }
+    
+
+    /**
+     * 특정 입고건의 가용 자재 목록 조회
+     * @param inboundId 입고ID
+     * @return 가용 자재 목록
+     */
+    @GetMapping("/available-materials")
+    @ResponseBody
+    public ResponseEntity<?> getAvailableMaterialsByInbound(@RequestParam("inboundId") String inboundId) {
+        try {
+            List<Map<String, Object>> materials = moService.getAvailableMaterialsByInbound(inboundId);
+            return ResponseEntity.ok(materials);
+        } catch (Exception e) {
+            logger.error("getAvailableMaterialsByInbound error: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                               .body("가용 자재 목록 조회 실패: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 입고건 사용 상태 업데이트
+     * @param inboundId 입고ID
+     * @return 업데이트 결과
+     */
+    @PostMapping("/update-inbound-status")
+    @ResponseBody
+    public ResponseEntity<?> updateInboundUsageStatus(@RequestParam("inboundId") String inboundId) {
+        try {
+            moService.updateInboundUsageStatus(inboundId);
+            return ResponseEntity.ok(Map.of("success", true, "message", "입고건 사용 상태가 업데이트되었습니다."));
+        } catch (Exception e) {
+            logger.error("updateInboundUsageStatus error: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                               .body(Map.of("success", false, "message", "입고건 사용 상태 업데이트 실패: " + e.getMessage()));
+        }
+    }
 
 	
 	
