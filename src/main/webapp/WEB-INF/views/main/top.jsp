@@ -81,7 +81,7 @@
           <span class="text-primary">${sessionScope.loginAdmin.name}</span> 님
         </a>
         <div class="dropdown-menu dropdown-menu-right navbar-dropdown" aria-labelledby="profileDropdown">
-          <a class="dropdown-item" href="${pageContext.request.contextPath}/admin/settings">
+          <a class="dropdown-item" href="${pageContext.request.contextPath}/admin/settings/accounts">
             <i class="ti-settings text-primary"></i> 설정
           </a>
           <a class="dropdown-item" href="${pageContext.request.contextPath}/admin/logout">
