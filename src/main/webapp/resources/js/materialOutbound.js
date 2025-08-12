@@ -1,32 +1,46 @@
 /* ---------- 전역: 전체 검증 ---------- */
 window.validateAll = function () {
-  let ok = true;
+  let hasSupplyShortage = false;      // cap < req 인 행 존재?
+  let hasSelectionMismatch = false;   // sum !== target 인 행 존재?
 
   $('#materialLotBody tr').each(function () {
     const req = Number($(this).find('.req').data('req')) || 0;
 
-    // 0을 허용하면서 null/undefined만 대체
+    // null/undefined만 대체(0 허용)
     const capData = $(this).data('cap');
     const cap = (capData == null) ? req : Number(capData);
 
-    const target = Math.min(req, cap);
-    let sum = Number($(this).find('.sum').text()) || 0;
     const mid = String($(this).data('material') || '');
+    const target = Math.min(req, cap);
 
-    // 물(RM-0015) 특례
+    // 물 특례: target으로 고정
     if (mid === 'RM-0015') {
-      const v = target;
-      $(this).find('.lot-qty').val(v);
-      $(this).find('.sum').text(v);
-      sum = v;
+      $(this).find('.lot-qty').val(target);
+      $(this).find('.sum').text(target);
     }
 
-    if (target !== sum) { ok = false; return false; }
+    const sum = Number($(this).find('.sum').text()) || 0;
+
+    // 공급 부족 여부(물은 제외)
+    if (mid !== 'RM-0015' && cap < req) {
+      hasSupplyShortage = true;
+    }
+    // 선택합 불일치 여부
+    if (sum !== target) {
+      hasSelectionMismatch = true;
+    }
   });
 
-  $('#btnSubmit').prop('disabled', !ok);
-  return ok;
+  // 등록: 공급부족 없고 + 선택합도 모두 OK일 때만
+  const canSubmit = !hasSupplyShortage && !hasSelectionMismatch;
+  $('#btnSubmit').prop('disabled', !canSubmit);
+
+  // 부족분 발주: 공급부족이 하나라도 있을 때만
+  $('#btnCreateDraft').prop('disabled', !hasSupplyShortage);
+
+  return canSubmit;
 };
+
 
 // 부족분 발주 생성
 window.collectShortages = function () {
@@ -38,14 +52,11 @@ window.collectShortages = function () {
     const materialId = $(this).data('material');
     const materialName = $(this).find('.font-weight-bold').text().trim();
     const required = +($(this).find('.req').data('req') || 0);
-    const sum = +($(this).find('.sum').text() || 0);
+    const capData = $(this).data('cap');
+    const cap = (capData == null) ? required : Number(capData);
     
-    if (sum < required) {
-      shortages.push({ 
-        materialId: materialId, 
-        lackQty: required - sum, 
-        materialName: materialName 
-      });
+    if (cap < required) {
+    	shortages.push({ materialId, lackQty: required - cap, materialName });
     }
   });
   return shortages;
@@ -81,14 +92,19 @@ $(function(){
   // 1) workOrderId 있으면: 기존대로 로드
   if (workOrderId) {
     $.get(ctx + '/material/outbound/work-order', { workOrderId }, function(dto){
-      const no  = dto.workOrderId || '';
-      const due = toYmd(dto.dueDate) || '';
-      $('#workOrderIdView').val(no);
-      $('#dueDateView').val(due);
-      $('#workOrderIdHidden').val(no);
-      $('#dueDateHidden').val(due);
-      $('#productId').val(dto.productId || '');
-      $('#lineId').val(dto.lineId || '');
+      const no = dto.workOrderId || '';
+      const dueStr = toYmd(dto.dueDate) || '';
+        $('#workOrderIdView').val(no);
+        $('#workOrderIdHidden').val(no);
+      
+        $('#productId').val(dto.productId || '');
+        $('#productIdHidden').val(dto.productId || '');
+      
+        $('#lineId').val(dto.lineId || '');
+        $('#lineIdHidden').val(dto.lineId || '');
+      
+        $('#dueDateView').val(dueStr);
+        $('#dueDateHidden').val(dueStr);
       renderMaterialRows(dto.materialList || []);
     }).fail(function(xhr) {
       console.error('작업지시서 정보 로드 실패:', xhr);
@@ -366,16 +382,19 @@ function updateRowSumAndValidate($row) {
 	  const shortageUi = (mid === 'RM-0015') ? 0 : Math.max(0, required - sum);
 	  $row.find('.shortage').text(shortageUi);
 	  
+	  const noShortage = (cap >= required);
+	  const selectedOk = (sum === target);
+	  
 	  $row.removeClass('table-success table-warning table-danger');
 	  if (lotRequired === 'N') {
-	    if (sum >= target && target > 0) $row.addClass('table-success');
+	    if (noShortage && sum >= target && target > 0) $row.addClass('table-success');
 	    else if (sum > 0) $row.addClass('table-warning');
 	    else $row.addClass('table-danger');
 	    return;
 	  }
 	  // LOT 필요한 자재는 기존 규칙
-	  if (target === 0 && required > 0) $row.addClass('table-warning'); // 가용 0
-	  else if (sum === target) $row.addClass('table-success');
+	  if (target === 0 && required > 0) $row.addClass('table-warning');
+	  else if (noShortage && selectedOk) $row.addClass('table-success');
 	  
 	  else if (sum > 0) $row.addClass('table-warning');
 	  else $row.addClass('table-danger');
@@ -493,6 +512,11 @@ $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
     alert('작업지시서를 먼저 선택하세요.');
     return;
   }
+  
+  //🔹 여기서 사용자에게 최종 확인
+  if (!confirm('이 작업지시서의 부족분 발주 초안을 생성하시겠습니까?')) {
+    return; // 사용자가 "취소" 누르면 그냥 종료
+  }
 
   const $btn = $(this);
   if ($btn.prop('disabled')) return;
@@ -504,6 +528,7 @@ $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
       const ids = (res && (res.orderIds || (res.orderId ? [res.orderId] : []))) || [];
 
       if (res && res.ok === true && ids.length > 0) {
+    	alert('부족분 발주 초안이 생성되었습니다.');
         // 발주목록(초안 필터)로 이동 + 방금 생성된 항목 하이라이트
         const qs = '?status=DRAFT&highlight=' + encodeURIComponent(ids.join(','));
         location.href = ctx + '/material/order/list' + qs;
