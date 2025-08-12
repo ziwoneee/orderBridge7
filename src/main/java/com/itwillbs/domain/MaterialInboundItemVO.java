@@ -11,6 +11,7 @@ public class MaterialInboundItemVO {
     private String inboundId;          // 입고 ID (연결된 입고 ID)
     private String materialId;         // 자재 ID (입고된 자재 ID)
     private int quantity;              // 수량 (입고 수량)
+    private int orderQuantity;		   // 발주수량 (미입고 여부 판단 가능)
     private String lotNo;              // LOT 번호 (입고된 자재의 LOT 번호)
     private Date lotCreatedDate;       // LOT 생성일자 (생성 시점)
     private Date expirationDate;       // 유통기한 (해당 자재의 유통기한)
@@ -19,16 +20,14 @@ public class MaterialInboundItemVO {
     private String warehouseCode;      // 보관 창고 코드 (예: WH001)
     private Date supplyDueDate;        // 납기일 (실제 납품 예정일)
     private String inboundStatus;      // 진행상태 (미입고, 입고완료 등)
-    private int orderQuantity;		   // 발주수량 (미입고 여부 판단 가능)
-    private int unitPrice;    		   // 단가
-    private int totalPrice;  		   // 총금액
-
-    
+    private String orderItemId;
     private Date createdDate;
     private Date updatedDate;
+    private int unitPrice;    		   // 단가
+    private int totalPrice;  		   // 총금액
+    
     
     // 화면 출력용 필드
-    private String orderItemId;
     private int receivedQuantity;
     private String materialName;
     

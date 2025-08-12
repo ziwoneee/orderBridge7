@@ -61,40 +61,50 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
     }
 
     
-    // 발주 등록
+ // 발주 등록
     @Override
     public void insertOrder(MaterialOrderDTO orderDTO) throws Exception {
-    	
-    	// 1. 납기일 유효성 검사
-    	java.util.Date today = new java.util.Date();
-    	java.util.Date expectedDate = orderDTO.getOrder().getExpectedArrivedDate();
-    	
-        if (expectedDate.before(today)) {
+
+        // 0) workOrderId 확보 (폼에서 order.workOrderId로 넘어오는 값)
+        String workOrderId = orderDTO.getOrder().getWorkOrderId(); // 없으면 null 허용
+
+        // 1) 납기일 유효성 검사 (시간오차 방지용으로 날짜만 비교 권장)
+        Date today = new Date();
+        Date expectedDate = orderDTO.getOrder().getExpectedArrivedDate();
+        if (expectedDate != null && expectedDate.before(today)) {
             throw new IllegalArgumentException("납기일은 오늘 이후여야 합니다.");
         }
 
-        
-        // 1. 발주번호 생성
+        // 2) 발주번호 생성
         String newOrderId = mOrderDAO.generateOrderId();
         orderDTO.getOrder().setOrderId(newOrderId);
 
-        // 2. order 테이블 insert
-        mOrderDAO.insertOrder(orderDTO.getOrder());
-
-        // 3. order_item 테이블 insert (for each)
-        int index = 1;
-        for (MaterialOrderItemVO item : orderDTO.getOrderItems()) {
-            item.setOrderId(newOrderId); // 외래키 설정
-
-            // ✅ 자동 생성되는 order_item_id
-            String itemId = newOrderId + "-" + index;
-            item.setOrderItemId(itemId);
-            index++;
-
-            mOrderDAO.insertOrderItem(item);
+        // 🔹 헤더에 work_order_id 주입
+        if (workOrderId != null && !workOrderId.isEmpty()) {
+            orderDTO.getOrder().setWorkOrderId(workOrderId);
         }
 
+        // 3) order 테이블 insert (Mapper에 work_order_id 컬럼 이미 추가되어 있어야 함)
+        mOrderDAO.insertOrder(orderDTO.getOrder());
+
+        // 4) order_item 테이블 insert
+        int index = 1;
+        for (MaterialOrderItemVO item : orderDTO.getOrderItems()) {
+            item.setOrderId(newOrderId); // FK
+
+            // 🔹 아이템에도 동일 work_order_id 주입
+            if (item.getWorkOrderId() == null || item.getWorkOrderId().isEmpty()) {
+                item.setWorkOrderId(workOrderId); // 헤더와 통일
+            }
+
+            // order_item_id 생성
+            item.setOrderItemId(newOrderId + "-" + index);
+            index++;
+
+            mOrderDAO.insertOrderItem(item); // Mapper에 work_order_id 포함되어 있어야 함
+        }
     }
+
 	
     
     // 자재명으로 거래처 검색

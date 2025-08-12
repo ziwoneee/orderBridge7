@@ -125,6 +125,7 @@ public class MaterialOrderController {
 
 	    MaterialOrderVO order = orderDTO.getOrder();
 	    List<MaterialOrderItemVO> itemList = orderDTO.getOrderItems();
+	    String workOrderId = order.getWorkOrderId();
 	    
 	    // 필수값 검증 및 기본값 설정
 	    if (order.getOrderStatus() == null || order.getOrderStatus().isEmpty()) {
@@ -147,6 +148,13 @@ public class MaterialOrderController {
 	    
 	    if (itemList == null || itemList.isEmpty()) {
 	        throw new IllegalArgumentException("발주 항목이 없습니다.");
+	    }
+	    
+		/* 🔹 여기서 work_order_id 세팅 */
+	    if (workOrderId != null && !workOrderId.isEmpty()) {
+	        for (MaterialOrderItemVO item : itemList) {
+	            item.setWorkOrderId(workOrderId);
+	        }
 	    }
 	    
 	    // 총금액 계산 (int 기반)

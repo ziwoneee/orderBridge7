@@ -140,7 +140,7 @@
 	<insert id="insertOrder" parameterType="com.itwillbs.domain.MaterialOrderVO">
 		INSERT INTO material_order (
 			order_id, supplier_id, order_date, order_status,
-			expected_arrived_date, created_by, note
+			expected_arrived_date, created_by, note, work_order_id
 		) VALUES (
 			#{orderId}, 
 			#{supplierId}, 
@@ -148,19 +148,21 @@
 			#{orderStatus},
 			#{expectedArrivedDate, jdbcType=DATE}, 
 			#{createdBy}, 
-			#{note}
+			#{note},
+			#{workOrderId}
 		)
 	</insert>
 	
 	<!-- 발주 항목 등록 (VO 타입) -->
 	<insert id="insertOrderItem" parameterType="com.itwillbs.domain.MaterialOrderItemVO">
 		INSERT INTO material_order_item (
-			order_item_id, order_id, material_id, order_quantity,
+			order_item_id, order_id, material_id, work_order_id, order_quantity,
 			unit_price, total_price, warehouse_code
 		) VALUES (
 			#{orderItemId},
 			#{orderId}, 
 			#{materialId}, 
+			#{workOrderId},
 			#{orderQuantity, jdbcType=INTEGER},
 			#{unitPrice, jdbcType=INTEGER},
 			#{totalPrice, jdbcType=INTEGER}, 
@@ -171,12 +173,13 @@
 	<!-- 발주 항목 등록 (Map 타입) -->
 	<insert id="insertOrderItemMap" parameterType="map">
 		INSERT INTO material_order_item (
-			order_item_id, order_id, material_id, order_quantity,
+			order_item_id, order_id, material_id, work_order_id, order_quantity,
 			unit_price, total_price, warehouse_code
 		) VALUES (
 			#{orderItemId},
 			#{orderId}, 
 			#{materialId}, 
+			#{workOrderId},
 			#{orderQuantity, jdbcType=INTEGER},
 			#{unitPrice, jdbcType=INTEGER},
 			#{totalPrice, jdbcType=INTEGER}, 
@@ -245,7 +248,7 @@
 		
 		INSERT INTO material_order (
 			order_id, supplier_id, order_date, order_status,
-			expected_arrived_date, created_by, note
+			expected_arrived_date, created_by, note, work_order_id
 		) VALUES (
 			#{orderId}, 
 			#{supplierId}, 
@@ -253,7 +256,8 @@
 			COALESCE(#{orderStatus}, '초안'),
 			#{expectedArrivedDate, jdbcType=DATE}, 
 			#{createdBy}, 
-			#{note}
+			#{note},
+			#{workOrderId}
 		)
 	</insert>
 	
@@ -271,7 +275,7 @@
 	<insert id="insertOrderItemsBatch" parameterType="list">
 		<if test="list != null and list.size() > 0">
 			INSERT INTO material_order_item (
-				order_item_id, order_id, material_id, order_quantity,
+				order_item_id, order_id, material_id, work_order_id, order_quantity,
 				unit_price, total_price, warehouse_code
 			) VALUES
 			<foreach collection="list" item="item" separator=",">
@@ -279,6 +283,7 @@
 					#{item.orderItemId},
 					#{item.orderId},
 					#{item.materialId},
+					#{item.workOrderId},
 					#{item.orderQuantity, jdbcType=INTEGER},
 					#{item.unitPrice, jdbcType=INTEGER},
 					#{item.totalPrice, jdbcType=INTEGER},
@@ -319,7 +324,8 @@
 	    moi.order_quantity AS orderQuantity,
 	    moi.unit_price    AS unitPrice,
 	    moi.total_price   AS totalPrice,
-	    moi.warehouse_code AS warehouseCode
+	    moi.warehouse_code AS warehouseCode,
+	    moi.work_order_id AS workOrderId
 	  FROM material_order mo
 	  JOIN material_order_item moi ON moi.order_id = mo.order_id
 	  WHERE mo.order_id = #{orderId}
@@ -355,7 +361,8 @@
 	    mo.expected_arrived_date  AS expectedArrivedDate,
 	    mo.order_status           AS orderStatus,
 	    mo.created_by             AS createdBy,
-	    mo.note                   AS note
+	    mo.note                   AS note,
+	    mo.work_order_id 		  AS workOrderId
 	  FROM material_order mo
 	  JOIN supplier s ON s.supplier_id = mo.supplier_id
 	  WHERE mo.order_id = #{orderId}
@@ -370,7 +377,8 @@
 	    moi.order_quantity  AS orderQuantity,
 	    moi.unit_price      AS unitPrice,
 	    moi.total_price     AS totalPrice,
-	    moi.warehouse_code  AS warehouseCode
+	    moi.warehouse_code  AS warehouseCode,
+	    moi.work_order_id   AS workOrderId
 	  FROM material_order_item moi
 	  JOIN material m ON m.material_id = moi.material_id
 	  WHERE moi.order_id = #{orderId}
