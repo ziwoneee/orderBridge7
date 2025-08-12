@@ -3,11 +3,13 @@ package com.itwillbs.persistence;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.StockReservationVO;
 import com.itwillbs.dto.LotStockDTO;
+import com.itwillbs.dto.ReservationDetailDTO;
 
 import org.apache.ibatis.session.SqlSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -109,5 +111,17 @@ public class StockReservationDAOImpl implements StockReservationDAO {
     public int countFilteredReservationList(SearchCriteria cri) {
         return sqlSession.selectOne(NAMESPACE + ".countFilteredReservationList", cri);
     }
+    
+    // ==========================
+    // 모달 상세 (LOT + 수주 단건)
+    // ==========================
+    @Override
+    public ReservationDetailDTO selectReservationDetailForModal(String lotNo, String clOrderId) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("lotNo", lotNo);
+        params.put("clOrderId", clOrderId);
+        return sqlSession.selectOne(NAMESPACE + ".selectReservationDetailForModal", params);
+    }
+    
 
 }

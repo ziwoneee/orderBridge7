@@ -443,9 +443,7 @@
           <h5 class="modal-title text-white" id="modalLabel-${status.index}">
             출하 상세 내역 - ${group.clOrderId}
           </h5>
-          <button type="button" class="close text-white" data-dismiss="modal">
-    <span>&times;</span>
-  </button>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="닫기"></button>
         </div>
         <div class="modal-body">
           <table class="table table-bordered table-sm">
@@ -609,54 +607,54 @@
     </tbody>
   </table> 
   
-  <!-- 예약 상세정보 모달 -->
-  <!-- 📦 예약 상세정보 모달 -->
+<!-- 📦 예약 상세정보 모달 -->
 <div class="modal fade" id="reservationDetailModal" tabindex="-1" aria-labelledby="reservationDetailModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
+   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
-      <div class="modal-header">
+    
+    <!-- 제목 -->
+      <div class="modal-header bg-primary text-white">
         <h5 class="modal-title fw-bold" id="reservationDetailModalLabel">예약 상세 정보</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
-      </div>
-      <div class="modal-body">
-        <table class="table table-bordered">
-          <tbody>
+<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+
+       </div>
+       <div class="modal-body">
+  <table class="table table-bordered table-sm">          
+  <thead class="table-light">
             <tr>
               <th>LOT 번호</th>
-              <td id="modal-lot-no"></td>
-              <th>제품명</th>
-              <td id="modal-product-name"></td>
-            </tr>
-            <tr>
               <th>수주번호</th>
-              <td id="modal-cl-order-id"></td>
+              <th>제품명</th>
               <th>거래처</th>
-              <td id="modal-client-name"></td>
-            </tr>
-            <tr>
               <th>예약수량</th>
-              <td id="modal-reserved-qty"></td>
               <th>예약일시</th>
-              <td id="modal-reserved-at"></td>
-            </tr>
-            <tr>
               <th>유통기한</th>
-              <td id="modal-expire-date"></td>
               <th>현재고</th>
-              <td id="modal-current-stock"></td>
-            </tr>
-            <tr>
               <th>납기 요청일</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td id="modal-lot-no"></td>
+              <td id="modal-cl-order-id"></td>
+              <td id="modal-product-name"></td>
+              <td id="modal-client-name"></td>
+              <td id="modal-reserved-qty"></td>
+              <td id="modal-reserved-at"></td>
+              <td id="modal-expire-date"></td>
+              <td id="modal-current-stock"></td>
               <td id="modal-delivery-date"></td>
-              <th colspan="2"></th>
             </tr>
           </tbody>
         </table>
+        <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+      </div>
       </div>
     </div>
   </div>
 </div>
-  
+
   
   
   <!-- 예약관리 페이지네이션 -->

@@ -179,6 +179,48 @@
   </where>
 </select>
 
+<!-- ✅ 예약 상세(LOT + 수주 단건) - 모달용 -->
+<select id="selectReservationDetailForModal"
+        resultType="com.itwillbs.dto.ReservationDetailDTO">
+  SELECT
+    sr.lot_no AS lotNo,
+    p.product_name AS productName,
+    sr.cl_order_id AS clOrderId,
+    c.client_name AS clientName,
+    sr.reserved_qty AS reservedQty,
+    DATE_FORMAT(sr.reserved_at, '%Y-%m-%d %H:%i:%s') AS reservedAt,
+    DATE_FORMAT(sr.reserved_at, '%Y-%m-%d %H:%i') AS reservedAtFormatted,
+    DATE_FORMAT(pi.expire_date, '%Y-%m-%d') AS expireDate,
+    /* LOT 현재 재고 = (입고합 - 출고합) */
+    GREATEST(
+      COALESCE((
+        SELECT SUM(pi2.inbound_qty)
+        FROM product_inbound pi2
+        WHERE pi2.product_id = sr.product_id
+          AND pi2.lot_no = sr.lot_no
+      ),0) - COALESCE((
+        SELECT SUM(po2.outbound_qty)
+        FROM product_outbound po2
+        WHERE po2.product_id = sr.product_id
+          AND po2.lot_no = sr.lot_no
+      ),0), 0
+    ) AS currentStock,
+    DATE_FORMAT(co.cl_delivery_date, '%Y-%m-%d') AS deliveryDate
+  FROM stock_reservation sr
+  JOIN product p       ON p.product_id = sr.product_id
+  JOIN client_order co ON co.cl_order_id = sr.cl_order_id
+  JOIN client c        ON c.client_id = co.client_id
+  LEFT JOIN (
+    SELECT product_id, lot_no, MIN(expire_date) AS expire_date
+    FROM product_inbound
+    GROUP BY product_id, lot_no
+  ) pi ON pi.product_id = sr.product_id AND pi.lot_no = sr.lot_no
+  WHERE sr.lot_no = #{lotNo}
+    AND sr.cl_order_id = #{clOrderId}
+  LIMIT 1
+</select>
+
+
   
 
 </mapper>

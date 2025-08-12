@@ -4,6 +4,7 @@ import com.itwillbs.domain.ClientOrderDetailVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.StockReservationVO;
 import com.itwillbs.dto.LotStockDTO;
+import com.itwillbs.dto.ReservationDetailDTO;
 import com.itwillbs.persistence.ClientDeliveryDAO;
 import com.itwillbs.persistence.ClientOrderDAO;
 import com.itwillbs.persistence.ProductStockDAO;
@@ -263,6 +264,12 @@ public class StockReservationServiceImpl implements StockReservationService {
     @Override
     public int countFilteredReservationList(SearchCriteria cri) {
         return reservationDAO.countFilteredReservationList(cri);
+    }
+    
+    //예약상세 모달
+    @Override
+    public ReservationDetailDTO getReservationDetail(String lotNo, String clOrderId) {
+        return reservationDAO.selectReservationDetailForModal(lotNo, clOrderId);
     }
 
 }

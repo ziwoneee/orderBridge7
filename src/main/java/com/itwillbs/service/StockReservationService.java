@@ -3,6 +3,7 @@ package com.itwillbs.service;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.StockReservationVO;
 import com.itwillbs.dto.LotStockDTO;
+import com.itwillbs.dto.ReservationDetailDTO;
 
 import java.util.List;
 
@@ -64,6 +65,9 @@ public interface StockReservationService {
     List<StockReservationVO> getFilteredReservationList(SearchCriteria cri);
    
     int countFilteredReservationList(SearchCriteria cri);
+    
+    //예약상세 모달
+    ReservationDetailDTO getReservationDetail(String lotNo, String clOrderId);
 
 
 	
