@@ -82,6 +82,41 @@ function toYmd(dateValue) {
 }
 function fmtDate(value) { return toYmd(value); }
 
+/* === [NEW] inboundIds 읽기 & 사용상태 갱신 유틸 === */
+function getInboundIdsParam() {
+  const p = new URLSearchParams(location.search);
+  const raw = p.get('inboundIds') || p.get('inboundId') || '';
+  return raw.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+//페이지 이동 직전에도 안전하게 쏘기 위해 sendBeacon 우선 사용
+function updateInboundStatuses(ids) {
+  if (!ids || !ids.length) return;
+
+  // 배치 엔드포인트가 있으면 주석 해제해서 사용
+  // const url = ctx + '/material/outbound/update-inbound-status-batch';
+  // const data = JSON.stringify({ inboundIds: ids });
+  // if (navigator.sendBeacon) {
+  //   const blob = new Blob([data], { type: 'application/json' });
+  //   navigator.sendBeacon(url, blob);
+  //   return;
+  // }
+
+  // 단건 엔드포인트로 fallback
+  ids.forEach(id => {
+    const url = ctx + '/material/outbound/update-inbound-status';
+    const form = new FormData();
+    form.append('inboundId', id);
+
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(url, form);
+    } else {
+      // 비콘이 없으면 비동기로라도 발사 (페이지 전환 중 드랍될 수 있음)
+      $.post(url, { inboundId: id }).catch(()=>{});
+    }
+  });
+}
+
 /* ---------- register.jsp: 초기 로드 ---------- */
 $(function(){
   if (!$('#outboundForm').length) return;
@@ -89,6 +124,21 @@ $(function(){
   const params = new URLSearchParams(location.search);
   const workOrderId = params.get('workOrderId');
   const inboundId   = params.get('inboundId');
+  const inboundIds  = params.get('inboundIds');
+  
+  //★ 선택한 입고건들 hidden으로 넘기기(모달에서 온 값 유지)
+  if (inboundIds && !$('#outboundForm input[name="inboundIds"]').length) {
+    $('#outboundForm').append(
+      $('<input>', { type:'hidden', name:'inboundIds', value: inboundIds })
+    );
+  }
+
+  // (선택) 단일 inboundId도 서버에서 받게 하려면 유지
+  if (inboundId && !$('#outboundForm input[name="inboundId"]').length) {
+    $('#outboundForm').append(
+      $('<input>', { type:'hidden', name:'inboundId', value: inboundId })
+    );
+  }
 
   // 둘 다 없으면 대기
   if (!workOrderId && !inboundId) return;
@@ -428,6 +478,11 @@ $(document).off('submit.resv', '#outboundForm')
         $('#btnSubmit').prop('disabled', false).text('등록');
         return;
       }
+      
+      // === [NEW] 선택된 모든 입고건 사용상태 갱신 ===
+      const ids = getInboundIdsParam();
+      if (ids.length) updateInboundStatuses(ids);
+      
       formEl.submit(); // 네이티브 submit
     })
     .fail(function(xhr){

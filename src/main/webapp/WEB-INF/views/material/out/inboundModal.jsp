@@ -143,11 +143,43 @@ function loadCompletedInbounds(){
   const myToken = ++inboundPickerReqToken;
   showLoading($tb, '불러오는 중...', 5);
 
-  $.getJSON(ctx + '/material/outbound/inbounds', { status:'입고완료', processed:'N' })
+  $.getJSON(ctx + '/material/outbound/inbounds', { status: '입고완료', processed: 'N' })
     .done(function(list){
-      if(myToken !== inboundPickerReqToken || !$('#inboundPickerModal').is(':visible')) return;
+      if (myToken !== inboundPickerReqToken || !$('#inboundPickerModal').is(':visible')) return;
 
-      if(!list || list.length===0){
+      list = Array.isArray(list) ? list : [];
+
+  	 // 1) 안전 필터: 진짜 '입고완료'만
+      list = list.filter(function (r) {
+        var st = r.status || r.inboundStatus || '입고완료';
+        return st === '입고완료';
+      });
+
+      // 1.5) 사용상태 AVAILABLE만 (추가)
+      list = list.filter(function (r) {
+        return (r.usageStatus || 'AVAILABLE') === 'AVAILABLE';
+      });
+
+      // 2) 이미 출고에 물린 것들은 제외
+      list = list.filter(function (r) {
+        var s = String((r.outboundStatus || r.latestOutboundStatus || 'NONE')).toUpperCase();
+        var hasOutbound = !!(r.outboundId || r.outboundCount || r.hasOutbound);
+        var badStatuses = { DRAFT: 1, PARTIAL: 1, ISSUED: 1, '미출고': 1 };
+        return !(badStatuses[s] || hasOutbound);
+      });
+
+      // 3) inboundId 기준 중복 제거
+      var seen = {};
+      list = list.filter(function (r) {
+        var id = r.inboundId || '';
+        if (!id) return true;
+        if (seen[id]) return false;
+        seen[id] = 1;
+        return true;
+      });
+
+
+      if (list.length === 0) {
         showEmpty($tb, '입고완료 건이 없습니다.', 5);
         return;
       }
@@ -157,22 +189,25 @@ function loadCompletedInbounds(){
         const orderId    = row.orderId   || '-';
         const inboundYmd = toYmd(row.inboundDate);
         const usage      = row.usageStatus || 'AVAILABLE';
-        const workOrderId= row.workOrderId || row.woId || ''; // 백엔드 키 호환
+        const workOrderId= row.workOrderId || row.woId || '';
 
-        return ''+
-        '<tr class="inbound-row" data-inbound-id="'+inboundId+'" data-work-order-id="'+workOrderId+'">'+
-          '<td class="text-center"><input type="checkbox" class="inb-pick" value="'+inboundId+'"></td>'+
-          '<td class="text-center">'+inboundId+'</td>'+
-          '<td class="text-center">'+orderId+'</td>'+
-          '<td class="text-center">'+inboundYmd+'</td>'+
-          '<td class="text-center">'+getUsageStatusBadge(usage)+'</td>'+
-        '</tr>';
+        return '' +
+          '<tr class="inbound-row" data-inbound-id="'+inboundId+'" data-work-order-id="'+workOrderId+'">' +
+            '<td class="text-center"><input type="checkbox" class="inb-pick" value="'+inboundId+'"></td>' +
+            '<td class="text-center">'+inboundId+'</td>' +
+            '<td class="text-center">'+orderId+'</td>' +
+            '<td class="text-center">'+inboundYmd+'</td>' +
+            '<td class="text-center">'+getUsageStatusBadge(usage)+'</td>' +
+          '</tr>';
       }).join('');
 
       $tb.html(rows);
     })
-    .fail(function(){ showError($tb, '목록을 불러오지 못했습니다.', 5); });
+    .fail(function(){
+      showError($tb, '목록을 불러오지 못했습니다.', 5);
+    });
 }
+
 
 /* -------- 체크박스 동기화 -------- */
 $(document).on('change', '#inb-check-all', function(){
@@ -233,61 +268,104 @@ function renderPickedInfoAndMaterials(){
   loadAndRenderAggregatedMaterials(ids);
 }
 
+function normalizeList(d){
+	  if (Array.isArray(d)) return d;
+	  if (d && Array.isArray(d.list)) return d.list;
+	  if (d && Array.isArray(d.rows)) return d.rows;
+	  if (d && Array.isArray(d.data)) return d.data;
+	  if (d && d.result && Array.isArray(d.result.list)) return d.result.list;
+	  return [];
+	}
+
 /* -------- 오른쪽: 선택건 합산 로드 -------- */
-async function loadAndRenderAggregatedMaterials(inboundIds){
-  const $matTb = $('#availableMaterialsBody');
+function loadAndRenderAggregatedMaterials(inboundIds){
+  var $matTb = $('#availableMaterialsBody');
   showLoading($matTb, '가용 자재 집계중...', 5);
 
   try {
-    // 배치 API가 없으면 개별 호출로 대체
-    const lists = await Promise.all(
-      inboundIds.map(id => $.getJSON(ctx + '/material/outbound/available-materials', { inboundId:id }))
-    );
-    const mats = lists.flat();
-    if (!mats || mats.length===0){
-      showEmpty($matTb, '가용한 자재가 없습니다.', 5);
-      $('#totalAvailableMaterials').text(0);
-      return;
-    }
+	  var reqs = inboundIds.map(function(id){
+		  return $.getJSON(ctx + '/material/outbound/available-materials', { 
+		    inboundId: id,
+		    workOrderId: currentWorkOrderId
+		  })
+		  .done(function(d){ console.log('[available-materials]', id, d); })
+		  .fail(function(x){ console.warn('[available-materials:FAIL]', id, x.status, x.responseText); });
+		});
 
-    // materialId+lotNo 기준 합산
-    const map = new Map();
-    mats.forEach(m => {
-      const key = (m.materialId||'') + '|' + (m.lotNo||'');
-      const prev = map.get(key) || {
-        materialId: m.materialId,
-        materialName: m.materialName,
-        lotNo: m.lotNo || '',
-        availableQty: 0,
-        requiredQty: 0,
-        expirationDate: m.expirationDate
-      };
-      prev.availableQty += Number(m.availableQty||0);
-      prev.requiredQty  += Number(m.requiredQty||0);
-      if (!prev.expirationDate && m.expirationDate) prev.expirationDate = m.expirationDate;
-      map.set(key, prev);
-    });
+	  $.when.apply($, reqs).done(function () {
+		  var mats = [];
 
-    const rows = Array.from(map.values())
-      .sort((a,b)=> new Date(a.expirationDate||'9999-12-31') - new Date(b.expirationDate||'9999-12-31'))
-      .map(m => (
-        '<tr>'
-        + '<td>'+(m.materialName||'')+'<br><small class="text-muted">'+(m.materialId||'')+'</small></td>'
-        + '<td class="text-center"><span class="badge badge-light">'+(m.lotNo||'')+'</span></td>'
-        + '<td class="text-center"><strong>'+(m.availableQty||0)+'</strong></td>'
-        + '<td class="text-center">'+(m.requiredQty||0)+'</td>'
-        + '<td class="text-center">'+(toYmd(m.expirationDate)||'-')+'</td>'
-        + '</tr>'
-      )).join('');
+		  // arguments를 표준 배열로
+		  var args = Array.prototype.slice.call(arguments);
+		  if (reqs.length === 1) {
+		    // 단일 요청인 경우도 튜플처럼 보이게 맞춤
+		    args = [args];
+		  }
 
-    $matTb.html(rows);
-    $('#totalAvailableMaterials').text(map.size);
+		  args.forEach(function (arg) {
+		    // 여러개면 [data, textStatus, jqXHR], 단일이면 data만 올 수도 있음
+		    var data = Array.isArray(arg) ? arg[0] : arg;
+		    mats = mats.concat(normalizeList(data));
+		  });
+
+		  if (!mats.length) {
+		    showEmpty($matTb, '가용한 자재가 없습니다.', 5);
+		    $('#totalAvailableMaterials').text(0);
+		    return;
+		  }
+
+		  // 이하 집계/정렬/렌더링은 기존 그대로…
+		  var map = {}, orderKeys = [];
+		  mats.forEach(function (m) {
+		    var key = (m.materialId || '') + '|' + (m.lotNo || '');
+		    if (!map[key]) {
+		      map[key] = {
+		        materialId: m.materialId,
+		        materialName: m.materialName,
+		        lotNo: m.lotNo || '',
+		        availableQty: 0,
+		        requiredQty: Number(m.requiredQty || 0),
+		        expirationDate: m.expirationDate
+		      };
+		      orderKeys.push(key);
+		    }
+		    map[key].availableQty += Number(m.availableQty || m.qty || 0);
+		    if (!map[key].expirationDate && m.expirationDate) {
+		      map[key].expirationDate = m.expirationDate;
+		    }
+		  });
+
+		  var rowsArr = orderKeys.map(function (k) { return map[k]; })
+		    .sort(function (a, b) {
+		      var ad = new Date(a.expirationDate || '9999-12-31').getTime();
+		      var bd = new Date(b.expirationDate || '9999-12-31').getTime();
+		      return ad - bd;
+		    });
+
+		  var html = rowsArr.map(function (x) {
+		    return '<tr>'
+		      + '<td>' + (x.materialName||'') + '<br><small class="text-muted">' + (x.materialId||'') + '</small></td>'
+		      + '<td class="text-center"><span class="badge badge-light">' + (x.lotNo||'') + '</span></td>'
+		      + '<td class="text-center"><strong>' + (x.availableQty||0) + '</strong></td>'
+		      + '<td class="text-center">' + (x.requiredQty||0) + '</td>'
+		      + '<td class="text-center">' + (toYmd(x.expirationDate) || '-') + '</td>'
+		      + '</tr>';
+		  }).join('');
+
+		  $matTb.html(html);
+		  $('#totalAvailableMaterials').text(rowsArr.length);
+		}).fail(function () {
+		  showError($matTb, '가용 자재 집계 실패', 5);
+		  $('#totalAvailableMaterials').text(0);
+		});
+
   } catch (e) {
     console.error(e);
     showError($matTb, '가용 자재 집계 실패', 5);
     $('#totalAvailableMaterials').text(0);
   }
 }
+
 
 /* -------- 진행 버튼: 다중 입고건으로 register 이동 -------- */
 $(document).on('click', '#btnConfirmInbound', function(){
@@ -308,8 +386,9 @@ $(document).on('click', '#btnConfirmInbound', function(){
 
 // 선택사항: 상태 업데이트
 function updateInboundUsageStatus(inboundId){
-  $.post(ctx + '/material/outbound/update-inbound-status', { inboundId })
-   .done(function(res){ console.log('입고건 상태 업데이트 완료', res); })
-   .fail(function(){ console.warn('입고건 상태 업데이트 실패(무시)'); });
+  $.post(ctx + '/material/outbound/update-inbound-status', { inboundId: inboundId })
+    .done(function(res){ console.log('입고건 상태 업데이트 완료', res); })
+    .fail(function(){ console.warn('입고건 상태 업데이트 실패(무시)'); });
 }
+
 </script>

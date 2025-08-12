@@ -55,7 +55,7 @@ public interface MaterialOutboundService {
      * @return 가용 자재 목록 (자재ID, 자재명, LOT번호, 가용수량 등)
      * @throws Exception
      */
-    List<Map<String, Object>> getAvailableMaterialsByInbound(String inboundId) throws Exception;
+    List<Map<String, Object>> getAvailableMaterialsByInbound(String inboundId, String workOrderId) throws Exception;
 
     /**
      * 입고건 사용 상태 업데이트
@@ -63,5 +63,6 @@ public interface MaterialOutboundService {
      * @throws Exception
      */
     void updateInboundUsageStatus(String inboundId) throws Exception;
+    
     
 }

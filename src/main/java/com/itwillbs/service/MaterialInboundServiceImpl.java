@@ -13,6 +13,8 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import com.itwillbs.domain.*;
 import com.itwillbs.dto.*;
@@ -428,5 +430,30 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
         return "WH001";
     }
 
+    
+    @Override
+    @Transactional
+    public void touchUsageStatusAfterOutbound(String outboundId, List<String> inboundIds) {
+        // 1) 모달에서 여러 입고건을 골랐다면, 그 목록 기준으로 각각 재계산
+        if (inboundIds != null && !inboundIds.isEmpty()) {
+            for (String inb : inboundIds) {
+                if (StringUtils.hasText(inb)) {
+                    miDAO.recalcUsageStatusByInboundId(inb.trim());
+                }
+            }
+            return;
+        }
+
+        // 2) 목록이 없으면 outboundId 기반으로 “이번 출고가 건드린 입고건 전체” 재계산
+        if (StringUtils.hasText(outboundId)) {
+            miDAO.recalcUsageStatusByOutboundId(outboundId.trim());
+        }
+    }
+    
+    
+    
+    
+    
+    
     
 }

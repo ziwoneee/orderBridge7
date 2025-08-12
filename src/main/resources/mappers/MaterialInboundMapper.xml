@@ -468,6 +468,73 @@
 	    FROM material
 	    WHERE material_id = #{materialId}
 	</select>
+	
+	
+  <!-- 출고 아이디 기반: 이번 출고가 건드린 입고건들의 usage_status 재계산 -->
+  <update id="recalcUsageStatusByOutboundId" parameterType="string">
+    UPDATE material_inbound i
+    JOIN (
+      SELECT 
+        ii.inbound_id,
+        SUM(ii.quantity) AS total_inbound,
+        COALESCE(SUM(used.used_qty), 0) AS total_used
+      FROM material_inbound_item ii
+      LEFT JOIN (
+        SELECT 
+          oi.lot_no,
+          SUM(oi.quantity) AS used_qty
+        FROM material_outbound_item oi
+        JOIN material_outbound o ON o.outbound_id = oi.outbound_id
+        WHERE o.status IN ('DRAFT','PARTIAL','ISSUED')  <!-- 등록(DRAFT)도 사용으로 간주 -->
+        GROUP BY oi.lot_no
+      ) used ON used.lot_no = ii.lot_no
+      WHERE ii.inbound_id IN (
+        SELECT DISTINCT ii2.inbound_id
+        FROM material_outbound_item oi2
+        JOIN material_inbound_item ii2 ON ii2.lot_no = oi2.lot_no
+        WHERE oi2.outbound_id = #{outboundId}
+      )
+      GROUP BY ii.inbound_id
+    ) calc ON calc.inbound_id = i.inbound_id
+    SET i.usage_status = CASE
+          WHEN calc.total_used &lt;= 0 THEN 'AVAILABLE'
+          WHEN calc.total_used &gt;= calc.total_inbound THEN 'FULLY_USED'
+          ELSE 'PARTIALLY_USED'
+        END,
+        i.updated_date = NOW()
+    WHERE i.inbound_id = calc.inbound_id;
+  </update>
+
+  <!-- 입고 아이디 기반: 단일 입고건 usage_status 재계산 -->
+  <update id="recalcUsageStatusByInboundId" parameterType="string">
+    UPDATE material_inbound i
+    JOIN (
+      SELECT 
+        ii.inbound_id,
+        SUM(ii.quantity) AS total_inbound,
+        COALESCE(SUM(used.used_qty), 0) AS total_used
+      FROM material_inbound_item ii
+      LEFT JOIN (
+        SELECT 
+          oi.lot_no,
+          SUM(oi.quantity) AS used_qty
+        FROM material_outbound_item oi
+        JOIN material_outbound o ON o.outbound_id = oi.outbound_id
+        WHERE o.status IN ('DRAFT','PARTIAL','ISSUED')
+        GROUP BY oi.lot_no
+      ) used ON used.lot_no = ii.lot_no
+      WHERE ii.inbound_id = #{inboundId}
+      GROUP BY ii.inbound_id
+    ) calc ON calc.inbound_id = i.inbound_id
+    SET i.usage_status = CASE
+          WHEN calc.total_used &lt;= 0 THEN 'AVAILABLE'
+          WHEN calc.total_used &gt;= calc.total_inbound THEN 'FULLY_USED'
+          ELSE 'PARTIALLY_USED'
+        END,
+        i.updated_date = NOW()
+    WHERE i.inbound_id = #{inboundId};
+  </update>
+	
 		
 	
 	

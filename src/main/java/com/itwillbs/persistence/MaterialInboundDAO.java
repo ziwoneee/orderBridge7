@@ -102,6 +102,8 @@ public interface MaterialInboundDAO {
 	String getDefaultWarehouseByMaterialId(String materialId) throws Exception;
 
 
+	int recalcUsageStatusByOutboundId(String outboundId);
+    int recalcUsageStatusByInboundId(String inboundId);
 
 
 }

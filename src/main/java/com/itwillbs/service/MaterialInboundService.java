@@ -3,6 +3,7 @@ package com.itwillbs.service;
 import java.util.List;
 
 import com.itwillbs.domain.MaterialOrderVO;
+import com.itwillbs.domain.MaterialOutboundVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.MaterialInboundDTO;
 import com.itwillbs.dto.MaterialInboundItemDTO;
@@ -52,7 +53,6 @@ public interface MaterialInboundService {
 	// 특정 발주 항목의 누적 입고 수량 조회
 	int getTotalInboundQuantity(String orderItemId) throws Exception;
 
-
-
+	void touchUsageStatusAfterOutbound(String outboundId, List<String> inboundIds);
 
 }

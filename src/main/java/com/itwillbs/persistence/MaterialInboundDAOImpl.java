@@ -241,6 +241,17 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
     public String getDefaultWarehouseByMaterialId(String materialId) throws Exception {
         return sqlSession.selectOne(NAMESPACE + "getDefaultWarehouseByMaterialId", materialId);
     }
+    
+    
+    @Override
+    public int recalcUsageStatusByOutboundId(String outboundId) {
+        return sqlSession.update(NAMESPACE + "recalcUsageStatusByOutboundId", outboundId);
+    }
+
+    @Override
+    public int recalcUsageStatusByInboundId(String inboundId) {
+        return sqlSession.update(NAMESPACE + "recalcUsageStatusByInboundId", inboundId);
+    }
 
 	
 }

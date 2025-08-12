@@ -173,9 +173,9 @@ public class MaterialOutboundDAOImpl implements MaterialOutboundDAO {
 	 // MaterialOutboundDAOImpl.java에 추가할 메서드 구현들
 
 	    @Override
-	    public List<Map<String, Object>> getAvailableMaterialsByInbound(String inboundId) throws Exception {
+	    public List<Map<String, Object>> getAvailableMaterialsByInbound(Map<String,Object> params) throws Exception {
 	        try {
-	            return sqlSession.selectList(NAMESPACE + "getAvailableMaterialsByInbound", inboundId);
+	            return sqlSession.selectList(NAMESPACE + "getAvailableMaterialsByInbound", params);
 	        } catch (Exception e) {
 	            throw new Exception("특정 입고건의 가용 자재 목록 조회 중 데이터베이스 오류가 발생했습니다.", e);
 	        }

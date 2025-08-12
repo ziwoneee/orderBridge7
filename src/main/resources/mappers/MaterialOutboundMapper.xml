@@ -472,43 +472,44 @@
 <!-- 4. 새로 추가할 쿼리들 -->
 <!-- ================================================================= -->
 
-	<!-- 특정 입고건의 가용 자재 목록 (새로 추가) -->
-	<select id="getAvailableMaterialsByInbound" parameterType="string" resultType="map">
+	<!-- 특정 입고건의 가용 자재 목록 -->
+	<select id="getAvailableMaterialsByInbound" parameterType="map" resultType="map">
 	  SELECT
-	    ii.inbound_item_id AS inboundItemId,
-	    ii.material_id AS materialId,
-	    m.material_name AS materialName,
-	    ii.lot_no AS lotNo,
-	    ii.quantity AS inboundQty,
-	    ii.expiration_date AS expirationDate,
-	    ii.warehouse_code AS warehouseCode,
-	    COALESCE(used.used_qty, 0) AS usedQty,
-	    ii.quantity - COALESCE(used.used_qty, 0) AS availableQty,
-	    wom.required_qty AS requiredQty,
-	    inv.inventory_id AS inventoryId
+	    ii.material_id            AS materialId,
+	    m.material_name           AS materialName,
+	    COALESCE(ii.lot_no, '')   AS lotNo,
+	    /* 가용수량 = 입고수량 - (이미 출고로 묶인 수량) */
+	    (COALESCE(ii.quantity, 0) - COALESCE(used.used_qty, 0)) AS availableQty,
+	    ii.expiration_date        AS expirationDate,
+	    /* 필요수량: 작업지시별 자재 필요 분량 */
+	    COALESCE(wom.required_qty, 0) AS requiredQty
 	  FROM material_inbound_item ii
-	  JOIN material m ON m.material_id = ii.material_id
-	  JOIN material_inbound i ON i.inbound_id = ii.inbound_id
-	  JOIN material_order mo ON mo.order_id = i.order_id
-	  JOIN work_order_material wom ON wom.work_order_id = mo.work_order_id 
-	                                AND wom.material_id = ii.material_id
-	  LEFT JOIN material_inventory inv ON inv.lot_no = ii.lot_no 
-	                                   AND inv.material_id = ii.material_id
+	  JOIN material_inbound i   ON i.inbound_id = ii.inbound_id
+	  JOIN material m           ON m.material_id = ii.material_id
+	  /* 출고로 사용된 수량: material_id + lot_no 단위 합산 (LOT는 입고에서 생성되므로 inbound_id 없이도 식별됨) */
 	  LEFT JOIN (
 	    SELECT
-	      oi.lot_no,
-	      oi.material_id,
-	      SUM(oi.quantity) AS used_qty
-	    FROM material_outbound_item oi
-	    JOIN material_outbound o ON o.outbound_id = oi.outbound_id
-	    WHERE o.status IN ('DRAFT', 'ISSUED')
-	      AND oi.lot_no IS NOT NULL
-	    GROUP BY oi.lot_no, oi.material_id
-	  ) used ON used.lot_no = ii.lot_no AND used.material_id = ii.material_id
-	  WHERE ii.inbound_id = #{inboundId}
-	    AND ii.quantity - COALESCE(used.used_qty, 0) > 0
-	  ORDER BY ii.material_id, ii.expiration_date ASC
+	      moi.material_id,
+	      COALESCE(moi.lot_no, '') AS lot_no,
+	      SUM(moi.quantity)        AS used_qty   -- 필요시 issued_qty로 교체
+	    FROM material_outbound_item moi
+	    GROUP BY moi.material_id, COALESCE(moi.lot_no, '')
+	  ) used
+	    ON used.material_id = ii.material_id
+	   AND used.lot_no      = COALESCE(ii.lot_no, '')
+	  /* 작업지시 필요수량 */
+	  LEFT JOIN work_order_material wom
+	    ON wom.work_order_id = #{workOrderId}
+	   AND wom.material_id   = ii.material_id
+	
+	  WHERE i.inbound_id = #{inboundId}
+	    AND i.inbound_status = '입고완료'
+	    AND (COALESCE(ii.quantity, 0) - COALESCE(used.used_qty, 0)) > 0
+	
+	  ORDER BY ii.expiration_date ASC
 	</select>
+
+
 	
 	<!-- 입고건 사용 상태 업데이트 (새로 추가) -->
 	<update id="updateInboundUsageStatus" parameterType="string">
@@ -525,7 +526,7 @@
 	        SUM(oi.quantity) AS used_qty
 	      FROM material_outbound_item oi
 	      JOIN material_outbound o ON o.outbound_id = oi.outbound_id
-	      WHERE o.status = 'ISSUED'
+	      WHERE o.status IN ('DRAFT','PARTIAL','ISSUED')
 	      GROUP BY oi.lot_no
 	    ) used ON used.lot_no = ii.lot_no
 	    WHERE ii.inbound_id = #{inboundId}
