@@ -203,11 +203,20 @@
 	</select>
 	
 	<select id="getOutboundItems" parameterType="string" resultType="map">
-	  SELECT i.material_id AS materialId, m.material_name AS materialName,
-	         i.quantity, i.lot_no AS lotNo
+	  SELECT 
+	  	i.material_id AS materialId,
+	   	m.material_name AS materialName,
+        i.quantity,
+        i.lot_no AS lotNo,
+        COALESCE(inv.warehouse_code, m.warehouse_code) AS warehouseCode,
+	    inv.expiration_date                             AS expirationDate
 	  FROM material_outbound_item i
 	  JOIN material m ON m.material_id = i.material_id
+	  LEFT JOIN material_inventory inv
+         ON inv.inventory_id = i.inventory_id
+         OR (inv.material_id = i.material_id AND inv.lot_no = i.lot_no)
 	  WHERE i.outbound_id = #{_parameter}
+	  ORDER BY i.material_id
 	</select>
 	
 	<!-- 처리: LOT 단위 차감 -->

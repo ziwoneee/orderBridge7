@@ -1,3 +1,37 @@
+/**
+ * tbody 내부에서 같은 텍스트가 연속되는 셀을 rowspan으로 병합
+ * @param {string} tbodySelector - 예: '#outboundItemsInfo'
+ * @param {number[]} colIdxs - 병합할 열 인덱스 배열 (오른쪽→왼쪽 순으로 병합)
+ */
+function mergeRowspan(tbodySelector, colIdxs){
+  var $rows = $(tbodySelector).children('tr');
+  if ($rows.length === 0) return;
+
+  // 인덱스가 바뀌지 않도록 오른쪽→왼쪽으로
+  var cols = (colIdxs || []).slice().sort(function(a,b){ return b - a; });
+
+  cols.forEach(function(colIndex){
+    var prevText = null, $prevCell = null, span = 1;
+
+    $rows.each(function(){
+      var $cells = $(this).children('td');
+      var $cell  = $cells.eq(colIndex);
+      var text   = $.trim($cell.text());
+
+      if ($prevCell && text === prevText){
+        span += 1;
+        $cell.remove();
+        $prevCell.attr('rowspan', span).addClass('align-middle');
+      } else {
+        prevText = text;
+        $prevCell = $cell;
+        span = 1;
+      }
+    });
+  });
+}
+
+
 /* ---------- 전역: 전체 검증 ---------- */
 window.validateAll = function () {
   let ok = true;            // sum === target 모두 충족?
@@ -550,55 +584,89 @@ window.processOutbound = function(outboundId, btnEl){
   });
 };
 
-/* ---------- 출고 상세 조회 (모달) ---------- */
-window.loadOutboundDetail = function(outboundId) {
-  $.ajax({
-    url: ctx + '/material/outbound/detail',
-    method: 'GET',
-    data: { outboundId: outboundId },
-    dataType: 'json' // JSON으로 강제 수신
-  })
-  .done(function(data) {
-    // 서버 포맷 방어적 보정
-    var head  = (data && (data.header || data.outbound || data)) || {};
-    var items = data && data.items ? data.items
-               : (data && data.detailItems ? data.detailItems : []);
+//상태 뱃지 & 날짜 유틸
+function badgeStatus(st){
+  st = String(st || '').toUpperCase();
+  if (st === 'COMPLETED' || st === 'ISSUED') return '<span class="badge badge-success">출고완료</span>';
+  if (st === 'CANCELLED' || st === 'CANCELED') return '<span class="badge badge-secondary">취소</span>';
+  return '<span class="badge badge-danger">미출고</span>'; // DRAFT, PARTIAL 등
+}
+function toYmd(d){
+  if(!d) return '';
+  if (typeof d === 'string') return d.replace('T',' ').slice(0,19);
+  if (d.time) return new Date(d.time).toISOString().replace('T',' ').slice(0,19);
+  try { return new Date(d).toISOString().replace('T',' ').slice(0,19); } catch(e){ return ''; }
+}
 
-    let html = '<div class="row">';
-    html += '<div class="col-12"><h6>출고 정보</h6>';
-    html += '<table class="table table-sm">';
-    html += '<tr><th>출고번호</th><td>' + (head.outboundId || '') + '</td>';
-    html += '<th>작업지시</th><td>' + (head.workOrderId || '') + '</td></tr>';
-    html += '<tr><th>출고일자</th><td>' + (head.outboundDate || '-') + '</td>';
-    html += '<th>담당자</th><td>' + (head.handledBy || '') + '</td></tr>';
-    html += '</table></div>';
+// ★ 새 모달 전용 구현
+window.loadOutboundDetail = function(outboundId){
+	  // 1) 초기화 & 모달 오픈
+	  $('#modalOutboundId,#modalWorkOrderId,#modalIssuedAt,#modalHandledBy,#modalStatus,#modalNote').text('');
+	  $('#outboundItemsInfo').html('<tr><td colspan="7" class="text-muted">불러오는 중...</td></tr>');
+	  $('#outboundDetailModal').modal('show');
 
-    if (items && items.length > 0) {
-      html += '<div class="col-12 mt-3"><h6>출고 항목</h6>';
-      html += '<table class="table table-sm table-bordered">';
-      html += '<thead><tr><th>자재</th><th>LOT</th><th>출고수량</th><th>창고</th></tr></thead><tbody>';
+	  // 2) 데이터 조회
+	  $.getJSON(ctx + '/material/outbound/detail', { outboundId })
+	    .done(function(res){
+	      // 헤더/아이템 방어적 매핑
+	      var h = (res && (res.header || res.outbound || res)) || {};
+	      var items = (res && (res.items || res.detailItems)) || [];
+	      
+	      items.sort(function(a,b){
+	          return (a.materialId||'').localeCompare(b.materialId||'')
+	              || (a.materialName||'').localeCompare(b.materialName||'')
+	              || (a.lotNo||'').localeCompare(b.lotNo||'');
+	        });
 
-      items.forEach(function(item) {
-        html += '<tr>';
-        html += '<td>' + (item.materialName || '') + '<br><small class="text-muted">' + (item.materialId || '') + '</small></td>';
-        html += '<td>' + (item.lotNo || '') + '</td>';
-        html += '<td class="text-right">' + (item.quantity || 0) + '</td>';
-        html += '<td>' + (item.warehouseCode || '') + '</td>';
-        html += '</tr>';
-      });
+	      var issuedAt = h.issuedAt || h.outboundDate || h.createdDate;
+	      var handledBy = h.handledBy || h.userName || h.createdBy;
+	      var status = h.status || h.statusCode || h.status_display;
+	      var note = h.note || h.remark || '';
 
-      html += '</tbody></table></div>';
-    }
-    html += '</div>';
+	      // 3) 헤더 채우기
+	      $('#modalOutboundId').text(h.outboundId || '-');
+	      $('#modalWorkOrderId').text(h.workOrderId || '-');
+	      $('#modalIssuedAt').text(toYmd(issuedAt) || '-');
+	      $('#modalHandledBy').text(handledBy || '-');
+	      $('#modalStatus').html(badgeStatus(status));
+	      $('#modalNote').text(note || '-');
 
-    $('#outboundDetailBody').html(html);
-    $('#outboundDetailModal').modal('show');
-  })
-  .fail(function(xhr) {
-    console.error('상세 정보 로드 실패:', xhr);
-    alert('상세 정보를 불러올 수 없습니다.');
-  });
-};
+	      // 4) 상세 항목
+	      if (!items.length){
+	        $('#outboundItemsInfo').html('<tr><td colspan="7" class="text-muted">항목이 없습니다.</td></tr>');
+	        return;
+	      }
+
+	      var rows = items.map(function(it){
+	        var exp = it.expirationDate
+	          ? (typeof it.expirationDate === 'string'
+	              ? it.expirationDate.slice(0,10)
+	              : new Date(it.expirationDate.time || it.expirationDate).toISOString().slice(0,10))
+	          : '-';
+	        var wh = it.warehouseCode || it.warehouse_code || it.storageLocation || '-';
+
+	        return '<tr>'
+	             + '<td>' + (it.materialId||'') + '</td>'
+	             + '<td>' + (it.materialName||'') + '</td>'
+	             + '<td>' + (it.lotNo||'') + '</td>'
+	             + '<td class="text-right">' + ((it.quantity != null) ? it.quantity : 0) + '</td>'
+	             + '<td>' + wh + '</td>'
+	             + '<td>' + exp + '</td>'
+	             + '<td>' + (it.remark||'') + '</td>'
+	             + '</tr>';
+	      }).join('');
+
+	      $('#outboundItemsInfo').html(rows);
+	      
+	      mergeRowspan('#outboundItemsInfo', [0, 1]);
+	    })
+	    .fail(function(xhr){
+	        $('#outboundItemsInfo').html('<tr><td colspan="7" class="text-danger">상세를 불러오지 못했습니다.</td></tr>');
+	        console.error('outbound/detail error', xhr);
+	      });
+	};
+
+
 
 /* ---------- 자동 배정 기능 ---------- */
 // 행 단위 자동 배정 (FEFO 순으로 배정)
