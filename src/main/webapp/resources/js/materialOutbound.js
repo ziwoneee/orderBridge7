@@ -116,6 +116,24 @@ function toYmd(dateValue) {
 }
 function fmtDate(value) { return toYmd(value); }
 
+function asDate(v){
+	  if (!v) return null;
+	  if (typeof v === 'string') return new Date(v.replace(' ', 'T'));
+	  if (v && typeof v === 'object' && 'time' in v) return new Date(v.time);
+	  try { return new Date(v); } catch(e){ return null; }
+	}
+	function fmtTS(v){ // yyyy-MM-dd HH:mm:ss (로컬)
+	  const d = asDate(v); if(!d || isNaN(d)) return '-';
+	  const p=n=>String(n).padStart(2,'0');
+	  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+	}
+	function fmtYmd(v){ // yyyy-MM-dd (로컬)
+	  const d = asDate(v); if(!d || isNaN(d)) return '-';
+	  const p=n=>String(n).padStart(2,'0');
+	  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+	}
+
+
 /* === [NEW] inboundIds 읽기 & 사용상태 갱신 유틸 === */
 function getInboundIdsParam() {
   const p = new URLSearchParams(location.search);
@@ -149,6 +167,8 @@ function updateInboundStatuses(ids) {
       $.post(url, { inboundId: id }).catch(()=>{});
     }
   });
+  
+  
 }
 
 /* ---------- register.jsp: 초기 로드 ---------- */
@@ -591,12 +611,6 @@ function badgeStatus(st){
   if (st === 'CANCELLED' || st === 'CANCELED') return '<span class="badge badge-secondary">취소</span>';
   return '<span class="badge badge-danger">미출고</span>'; // DRAFT, PARTIAL 등
 }
-function toYmd(d){
-  if(!d) return '';
-  if (typeof d === 'string') return d.replace('T',' ').slice(0,19);
-  if (d.time) return new Date(d.time).toISOString().replace('T',' ').slice(0,19);
-  try { return new Date(d).toISOString().replace('T',' ').slice(0,19); } catch(e){ return ''; }
-}
 
 // ★ 새 모달 전용 구현
 window.loadOutboundDetail = function(outboundId){
@@ -618,7 +632,7 @@ window.loadOutboundDetail = function(outboundId){
 	              || (a.lotNo||'').localeCompare(b.lotNo||'');
 	        });
 
-	      var issuedAt = h.issuedAt || h.outboundDate || h.createdDate;
+	      var issuedAt = h.outboundDate || h.issuedAt || h.createdDate;
 	      var handledBy = h.handledBy || h.userName || h.createdBy;
 	      var status = h.status || h.statusCode || h.status_display;
 	      var note = h.note || h.remark || '';
@@ -626,7 +640,7 @@ window.loadOutboundDetail = function(outboundId){
 	      // 3) 헤더 채우기
 	      $('#modalOutboundId').text(h.outboundId || '-');
 	      $('#modalWorkOrderId').text(h.workOrderId || '-');
-	      $('#modalIssuedAt').text(toYmd(issuedAt) || '-');
+	      $('#modalIssuedAt').text(fmtTS(issuedAt));
 	      $('#modalHandledBy').text(handledBy || '-');
 	      $('#modalStatus').html(badgeStatus(status));
 	      $('#modalNote').text(note || '-');
@@ -638,11 +652,7 @@ window.loadOutboundDetail = function(outboundId){
 	      }
 
 	      var rows = items.map(function(it){
-	        var exp = it.expirationDate
-	          ? (typeof it.expirationDate === 'string'
-	              ? it.expirationDate.slice(0,10)
-	              : new Date(it.expirationDate.time || it.expirationDate).toISOString().slice(0,10))
-	          : '-';
+	    	var exp = fmtYmd(it.expirationDate);
 	        var wh = it.warehouseCode || it.warehouse_code || it.storageLocation || '-';
 
 	        return '<tr>'

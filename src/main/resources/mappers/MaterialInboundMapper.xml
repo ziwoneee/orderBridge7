@@ -84,9 +84,8 @@
 	  <!-- 페이징 -->
 	  LIMIT #{pageStart}, #{perPageNum}
 	</select>
-
-
-
+	
+	
 	<!-- 전체 건수 조회 (페이징용) -->
 	<select id="getInboundListCount" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
 	  SELECT COUNT(*) 
@@ -111,6 +110,24 @@
 	  ) AS inbound_status
 	</select>
 
+
+	<!-- 특정 상태의 입고건 개수 조회 -->
+	<select id="getInboundCountByStatus" parameterType="string" resultType="int">
+	  SELECT COUNT(*) 
+	  FROM (
+	    SELECT i.inbound_id,
+	           CASE 
+	             WHEN SUM(ii.quantity) = 0 THEN '미입고'
+	             WHEN SUM(ii.quantity) >= SUM(moi.order_quantity) THEN '입고완료'
+	             ELSE '부분입고'
+	           END AS status
+	    FROM material_inbound i
+	    LEFT JOIN material_inbound_item ii ON i.inbound_id = ii.inbound_id
+	    LEFT JOIN material_order_item moi ON i.order_id = moi.order_id AND moi.material_id = ii.material_id
+	    GROUP BY i.inbound_id
+	    HAVING status = #{status}
+	  ) AS filtered_inbound
+	</select>
 
 
 	<!-- =================================================================== -->

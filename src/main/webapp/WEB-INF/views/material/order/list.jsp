@@ -217,7 +217,7 @@
 						
 						<!-- 상세 -->
 						<td>
-						  <button type="button" class="btn btn-outline-secondary btn-sm btnOrderDetail"
+						  <button type="button" class="btn btn-sm btn-outline-info btnOrderDetail"
 						          data-id="${order.orderId}">상세</button>
 						</td>
 						
@@ -225,7 +225,7 @@
 						<td>
 						  <c:choose>
 						    <c:when test="${order.orderStatus eq '초안'}">
-						      <button type="button" class="btn btn-primary btn-sm btnSubmitOrder"
+						      <button type="button" class="btn btn-sm btn-outline-success btnSubmitOrder"
 						              data-id="${order.orderId}">발주요청</button>
 						    </c:when>
 						    <c:otherwise></c:otherwise>

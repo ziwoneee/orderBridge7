@@ -451,7 +451,19 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
     }
     
     
-    
+    /**
+     * 입고 상태별 카운트 조회
+     */
+    public Map<String, Integer> getInboundStatusCounts() throws Exception {
+        Map<String, Integer> statusCounts = new HashMap<>();
+        
+        // 각 상태별로 개수를 조회하여 Map에 저장
+        statusCounts.put("미입고", miDAO.getInboundCountByStatus("미입고"));
+        statusCounts.put("부분입고", miDAO.getInboundCountByStatus("부분입고"));
+        statusCounts.put("입고완료", miDAO.getInboundCountByStatus("입고완료"));
+        
+        return statusCounts;
+    }
     
     
     

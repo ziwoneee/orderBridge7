@@ -69,6 +69,12 @@ public class MaterialInboundController {
 	    
 		// 메뉴 하이라이트용
 	    model.addAttribute("menu", "material"); 
+	    
+	    // ✅ 각 상태별 카운트를 계산하여 Model에 추가
+	    Map<String, Integer> statusCounts = miService.getInboundStatusCounts();
+	    model.addAttribute("pendingCount", statusCounts.getOrDefault("미입고", 0));
+	    model.addAttribute("partialCount", statusCounts.getOrDefault("부분입고", 0)); 
+	    model.addAttribute("completedCount", statusCounts.getOrDefault("입고완료", 0));
 
 	    return "material/inbound/list";
 	}

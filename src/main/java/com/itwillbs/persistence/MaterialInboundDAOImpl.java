@@ -252,6 +252,11 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
     public int recalcUsageStatusByInboundId(String inboundId) {
         return sqlSession.update(NAMESPACE + "recalcUsageStatusByInboundId", inboundId);
     }
+    
+    // 특정 상태의 입고건 개수 조회
+    public int getInboundCountByStatus(String status) throws Exception {
+        return sqlSession.selectOne(NAMESPACE + "getInboundCountByStatus", status);
+    }
 
 	
 }
