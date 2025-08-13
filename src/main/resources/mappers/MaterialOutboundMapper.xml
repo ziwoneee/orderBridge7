@@ -122,16 +122,23 @@
 	
 	<!-- 등록 화면: 자재 + 현재고 합계 -->
 	<select id="getWorkOrderItemsWithStock" parameterType="string" resultType="map">
-	  SELECT wom.material_id AS materialId, m.material_name AS materialName,
-	         wom.required_qty AS requiredQty,
-	         IFNULL(SUM(mi.quantity),0) AS stockQty
+	   SELECT
+	    wom.work_order_id                                 AS workOrderId,
+	    wom.material_id                                   AS materialId,
+	    wom.required_qty                                  AS requiredQty,
+	    IFNULL(r.reserved_qty, 0)                         AS reservedQtyThisWO,  -- ← 화면의 "예약수량(이번 WO)"에 바인딩
+	    IFNULL(inv.stock, 0)                              AS currentStock
 	  FROM work_order_material wom
-	  JOIN material m ON m.material_id = wom.material_id
-	  LEFT JOIN material_inventory mi
-	         ON mi.material_id = wom.material_id
-	        AND (mi.is_discarded = 0 OR mi.is_discarded IS NULL)
-	  WHERE wom.work_order_id = #{_parameter}
-	  GROUP BY wom.material_id, m.material_name, wom.required_qty
+	  LEFT JOIN (
+	      SELECT material_id, SUM(quantity) AS stock
+	      FROM material_inventory
+	      GROUP BY material_id
+	  ) inv ON inv.material_id = wom.material_id
+	  LEFT JOIN material_reservation r
+	         ON r.work_order_id = wom.work_order_id       -- ★ 키 통일 (id vs no 혼용 금지)
+	        AND r.material_id   = wom.material_id
+	  WHERE wom.work_order_id = #{workOrderId}            -- ★ 파라미터 이름도 workOrderId로
+	  ORDER BY wom.material_id
 	</select>
 	
 	<!-- LOT 목록(참고: 인벤토리 컨트롤러에서 이 id를 호출) -->

@@ -300,9 +300,21 @@ function renderMaterialRows(items) {
           onhandFromLots = 0;
         }
         
-        var reservedOthers = Number((avail.reservedOthers != null ? avail.reservedOthers : avail.reservedTotal) || 0);
-                var reservedThis   = Number(avail.reservedForThis || 0);  // ✅ 이번 WO 예약
-                // onhandTotal / onhandFromLots는 위에서 이미 계산했으므로 재선언 제거
+        var reservedThis = Number(
+        		  (avail.reservedForThis != null) ? avail.reservedForThis
+        		  : (avail.woReserved != null)    ? avail.woReserved
+        		  : 0
+        		);
+
+        		var reservedOthers = (function(){
+        		  if (avail.reservedOthers != null) return Number(avail.reservedOthers) || 0;
+        		  // reservedTotal이 전체이면 = total - this
+        		  if (avail.reservedTotal != null) {
+        		    var tot = Number(avail.reservedTotal) || 0;
+        		    return Math.max(0, tot - reservedThis);
+        		  }
+        		  return 0;
+        		})();
 
         let a4wo = (avail.availableForThisWO != null)
           ? Number(avail.availableForThisWO)
