@@ -232,6 +232,7 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	    public Map<String, Object> getOutboundDetailMap(String outboundId) {
 	        Map<String,Object> header = moDAO.selectOutboundHeader(outboundId);
 	        List<Map<String,Object>> items = moDAO.selectOutboundItems(outboundId);
+	        
 	        Map<String,Object> res = new HashMap<>();
 	        if (header != null) res.putAll(header);
 	        res.put("items", items);

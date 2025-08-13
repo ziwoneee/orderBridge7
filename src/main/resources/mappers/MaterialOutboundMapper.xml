@@ -409,7 +409,7 @@
 		    ON used.lot_no = ii.lot_no
 		
 		  WHERE i.inbound_status = '입고완료'
-		    AND (i.usage_status IS NULL OR i.usage_status &lt;&gt; 'FULLY_USED')
+		    AND i.usage_status = 'AVAILABLE'
 		
 		  <if test="workOrderId != null and workOrderId != ''">
 		    /* (옵션) 특정 WO 컨텍스트일 때만: 그 WO에 남은 필요가 있는 경우만 */

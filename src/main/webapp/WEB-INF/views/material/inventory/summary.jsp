@@ -221,11 +221,7 @@
 					        <c:when test="${inv.stockStatus == '소진'}">
 					            <span class="badge badge-danger">소진</span>
 					        </c:when>
-					        <c:when test="${inv.stockStatus == '임박'}">
-					            <span class="badge badge-secondary">임박</span>
-					        </c:when>
 					        <c:otherwise>
-					            <span class="badge badge-light">알 수 없음</span>
 					        </c:otherwise>
 					    </c:choose>
 					  </td>

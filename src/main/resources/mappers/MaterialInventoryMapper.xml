@@ -44,15 +44,6 @@
 	              WHERE mi2.material_id = m.material_id
 	            ) &lt;= 0
 	          </when>
-	          <when test="status == '임박'">
-	            AND EXISTS (
-	              SELECT 1 FROM material_inventory mi2 
-	              WHERE mi2.material_id = m.material_id 
-	              AND mi2.expiration_date IS NOT NULL
-	              AND mi2.expiration_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-	              AND COALESCE(mi2.quantity, 0) &gt; 0
-	            )
-	          </when>
 	        </choose>
 	      </if>
 	    GROUP BY m.material_id
@@ -147,11 +138,6 @@
 	        </when>
 	        <when test="status == '소진'">
 	          AND SUM(mi.quantity) &lt;= 0
-	        </when>
-	        <when test="status == '임박'">
-	          AND SUM(mi.quantity) &gt; 0
-	          AND MIN(mi.expiration_date) IS NOT NULL
-	          AND MIN(mi.expiration_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
 	        </when>
 	      </choose>
 	    </if>

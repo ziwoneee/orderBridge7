@@ -161,10 +161,11 @@
    						  
    						 <!-- 출고일자 -->
    						 <td>
-					       <c:if test="${item.outboundDate != null}">
-					         <fmt:formatDate value="${item.outboundDate}" pattern="yyyy-MM-dd"/>
-					       </c:if>
-					     </td>
+						  <c:if test="${item.outboundDate != null}">
+						    ${item.outboundDate.toLocalDate()}
+						  </c:if>
+						</td>
+
   
 				         <!-- 출고상태 -->
 						<td>
