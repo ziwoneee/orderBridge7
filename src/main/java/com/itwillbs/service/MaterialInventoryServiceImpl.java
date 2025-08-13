@@ -45,8 +45,11 @@ public class MaterialInventoryServiceImpl implements MaterialInventoryService {
 	
 	
 	
-
-
+	// 자재 기본 정보 조회 (새로 추가)
+	@Override
+	public MaterialInventoryVO getMaterialInfo(String materialId) throws Exception {
+	    return miDAO.selectMaterialInfo(materialId);
+	}
 	
 	
 	

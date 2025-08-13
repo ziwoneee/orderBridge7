@@ -109,6 +109,13 @@
 	    mi.lot_no ASC
 	</select>
 	
+    <!-- 자재 기본 정보 조회 (새로 추가) -->
+    <select id="selectMaterialInfo" parameterType="string" resultType="MaterialInventoryVO">
+	    SELECT material_id, material_name, material_type, unit
+	    FROM material 
+	    WHERE material_id = #{materialId}
+	</select>
+	
 	<!-- 출하시 박스 차감 시작-->	
 	<!-- 자재 재고 조회 (박스용, FEFO) -->
     <select id="selectAvailableLotsForMaterial" parameterType="string"
@@ -120,7 +127,7 @@
         ORDER BY expiration_date ASC, received_date ASC
         FOR UPDATE
     </select>
-
+    
     <!-- 자재 재고 차감 -->
     <update id="decreaseLotQuantity">
         UPDATE material_inventory

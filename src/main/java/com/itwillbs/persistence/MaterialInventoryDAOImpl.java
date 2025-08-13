@@ -54,6 +54,13 @@ public class MaterialInventoryDAOImpl implements MaterialInventoryDAO {
         param.put("deductQty", deductQty);
         sqlSession.update(NAMESPACE + "decreaseLotQuantity", param);
     }
+    
+    
+    // 자재 기본 정보 조회 (새로 추가)
+    @Override
+    public MaterialInventoryVO selectMaterialInfo(String materialId) throws Exception {
+        return sqlSession.selectOne(NAMESPACE + "selectMaterialInfo", materialId);
+    }
 	
 
 	

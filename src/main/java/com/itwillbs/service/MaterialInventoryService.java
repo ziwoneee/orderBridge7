@@ -18,5 +18,8 @@ public interface MaterialInventoryService {
 	
 	// material_id로 LOT 목록 조회
 	List<MaterialInventoryVO> getLotListByMaterialId(String materialId) throws Exception;
+	
+	// 자재 기본 정보 조회 (새로 추가)
+    MaterialInventoryVO getMaterialInfo(String materialId) throws Exception;
 
 }

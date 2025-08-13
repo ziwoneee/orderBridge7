@@ -1,5 +1,6 @@
 package com.itwillbs.controller;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -76,17 +77,54 @@ public class MaterialInventoryController {
 	// material_id로 LOT 목록 조회
 	@GetMapping("/lot-details")
 	@ResponseBody
-	public ResponseEntity<List<MaterialInventoryVO>> getLotDetails(@RequestParam("materialId") String materialId) throws Exception {
+	public ResponseEntity<Map<String, Object>> getLotDetails(@RequestParam("materialId") String materialId) throws Exception {
 	    logger.info("LOT 조회 요청 - materialId: {}", materialId);
 	    
-	    List<MaterialInventoryVO> lotList = miService.getLotListByMaterialId(materialId);
+	    Map<String, Object> result = new HashMap<>();
 	    
-	    logger.info("조회된 LOT 데이터 개수: {}", lotList != null ? lotList.size() : 0);
-	    if (lotList != null && !lotList.isEmpty()) {
-	        logger.info("첫 번째 LOT 데이터: {}", lotList.get(0));
+	    try {
+	        // 1. 자재 기본 정보 조회 (LOT 유무와 관계없이)
+	        MaterialInventoryVO materialInfo = miService.getMaterialInfo(materialId);
+	        
+	        // 2. LOT 목록 조회
+	        List<MaterialInventoryVO> lotList = miService.getLotListByMaterialId(materialId);
+	        
+	        // 3. 자재 정보가 있으면 설정, 없으면 materialId만 설정
+	        if (materialInfo != null) {
+	            result.put("materialId", materialInfo.getMaterialId());
+	            result.put("materialName", materialInfo.getMaterialName());
+	            result.put("materialType", materialInfo.getMaterialType());
+	            result.put("unit", materialInfo.getUnit());
+	        } else {
+	            // 자재 정보가 없는 경우 최소한의 정보 설정
+	            result.put("materialId", materialId);
+	            result.put("materialName", "정보 없음");
+	            result.put("materialType", "-");
+	            result.put("unit", "-");
+	        }
+	        
+	        // 4. LOT 목록 설정 (빈 배열이어도 포함)
+	        result.put("lotList", lotList != null ? lotList : new ArrayList<>());
+	        
+	        logger.info("조회 결과 - 자재정보: {}, LOT 개수: {}", 
+	                   materialInfo != null ? "있음" : "없음", 
+	                   lotList != null ? lotList.size() : 0);
+	        
+	        return ResponseEntity.ok(result);
+	        
+	    } catch (Exception e) {
+	    	logger.error("LOT 조회 중 오류 발생 - materialId: {}", materialId, e);
+	        
+	        // 오류 발생 시에도 최소한의 정보 반환
+	        result.put("materialId", materialId);
+	        result.put("materialName", "조회 실패");
+	        result.put("materialType", "-");
+	        result.put("unit", "-");
+	        result.put("lotList", new ArrayList<>());
+	        result.put("error", "데이터 조회 중 오류가 발생했습니다.");
+	        
+	        return ResponseEntity.ok(result);
 	    }
-	    
-	    return ResponseEntity.ok(lotList);
 	}
 
 
