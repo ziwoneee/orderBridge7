@@ -52,4 +52,13 @@ public interface MaterialOrderService {
     int getCountByStatus(String status);
     Map<String, Integer> getStatusCounts();
     
+    
+    //협력사 승인 요청 이메일
+    void sendApprovalRequest(String orderId);
+    
+    //협력사 승인 상태변경
+	MaterialOrderVO findByOrderId(String orderId);
+
+    
+    
 }

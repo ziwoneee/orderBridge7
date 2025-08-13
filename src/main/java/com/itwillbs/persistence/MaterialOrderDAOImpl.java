@@ -150,4 +150,20 @@ public class MaterialOrderDAOImpl implements MaterialOrderDAO {
         return statusMap;
     }
     
-}
+    //협력사 이메일
+    @Override
+    public MaterialOrderVO findById(String orderId) {
+        return sqlSession.selectOne(NAMESPACE + "findById", orderId);
+        
+    } 
+   
+    // ✅ 협력사 발주 상태 업데이트
+    @Override
+    public void updateOrderStatus(MaterialOrderVO vo) {
+        sqlSession.update(NAMESPACE + "updateOrderStatus", vo);
+    }
+
+        
+    }
+    
+    

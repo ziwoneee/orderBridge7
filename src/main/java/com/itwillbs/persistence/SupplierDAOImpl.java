@@ -103,7 +103,13 @@ public class SupplierDAOImpl implements SupplierDAO {
 	    paramMap.put("status", status);
 	    sqlSession.update(NAMESPACE + "updateSupplierStatus", paramMap);
 	}
+	
 
+	//협력사 이메일
+	@Override
+    public String findEmailById(String supplierId) {
+        return sqlSession.selectOne(NAMESPACE + "findEmailById", supplierId);
+    }
 	
 	
 }

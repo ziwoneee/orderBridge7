@@ -48,5 +48,8 @@ public interface SupplierDAO {
  	// 협력사 비활성화 처리 (소프트 삭제)
  	void updateSupplierStatus(String supplierId, String status) throws Exception;
 
+ 	//협력사 이메일
+ 	  String findEmailById(String supplierId);
+ 	
 
 }

@@ -1,6 +1,8 @@
 package com.itwillbs.service;
 
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -11,15 +13,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.itwillbs.domain.ApprovalTokenVO;
 import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
@@ -29,7 +34,9 @@ import com.itwillbs.dto.PurchaseDraftRequest.ShortageItem;
 import com.itwillbs.dto.PurchaseDraftResult;
 import com.itwillbs.dto.SupplierItemDTO;
 import com.itwillbs.mapper.MaterialOutboundMapper;
+import com.itwillbs.persistence.ApprovalTokenDAO;
 import com.itwillbs.persistence.MaterialOrderDAO;
+import com.itwillbs.persistence.SupplierDAO;
 
 /**
  * 자재 발주 서비스 구현체
@@ -46,6 +53,23 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
 	// MaterialOrderServiceImpl.java 상단
 	@Inject
 	private MaterialOutboundMapper outboundMapper;
+	
+	
+	@Inject
+	private ApprovalTokenDAO approvalTokenDAO;
+
+	
+
+	@Inject
+	private MailService mailService;
+	
+	@Autowired
+	private MaterialOrderDAO materialOrderDAO;
+
+	@Inject
+	private SupplierDAO supplierDAO;
+
+
 
 
 	// 발주 목록 조회
@@ -334,5 +358,61 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
         return mOrderDAO.getStatusCounts(); // DAO에서 이미 처리된 Map<String, Integer> 반환
     }    
     
+    /**
+     * 발주요청 시 거래처 승인 토큰 생성 + 이메일 전송
+     */
+    @Override
+    public void sendApprovalRequest(String orderId) {
+        // 1. 발주 정보 조회
+    	MaterialOrderVO order = materialOrderDAO.findById(orderId);
+
+        if (order == null) {
+            throw new IllegalArgumentException("해당 발주 정보가 존재하지 않습니다.");
+        }
+
+        // 2. 거래처 이메일 조회
+        String supplierEmail = supplierDAO.findEmailById(order.getSupplierId());
+        if (supplierEmail == null || supplierEmail.isEmpty()) {
+            throw new IllegalArgumentException("거래처 이메일을 찾을 수 없습니다.");
+        }
+
+        // 3. 토큰 생성
+        String tokenId = UUID.randomUUID().toString();
+
+        ApprovalTokenVO token = new ApprovalTokenVO();
+        token.setTokenId(tokenId);
+        token.setOrderId(order.getOrderId());
+        token.setSupplierId(order.getSupplierId());
+        token.setTokenType("ORDER_APPROVAL");
+        token.setUsed(false);
+        token.setExpiresAt(Timestamp.valueOf(LocalDateTime.now().plusDays(1)));
+
+        // 4. DB 저장
+        approvalTokenDAO.insert(token);
+
+        // 5. 승인 링크 생성
+        String approvalLink = "http://localhost:8088/approval/confirm?token=" + tokenId;
+
+        // 6. 메일 전송
+        String subject = "[OrderBridge] 발주 승인 요청";
+        String body = "안녕하세요.\n\n다음 발주 요청을 승인 또는 거절해주세요.\n\n"
+                    + "발주번호: " + order.getOrderId() + "\n"
+                    + "납기일자: " + order.getExpectedArrivedDate() + "\n\n"
+                    + "승인 링크: " + approvalLink + "\n\n"
+                    + "유효기간: 24시간";
+
+        mailService.sendMail(supplierEmail, subject, body);
+    }
+    //협력사 승인상태 변경
+    @Override
+    public MaterialOrderVO findByOrderId(String orderId) {
+        return materialOrderDAO.findById(orderId);
+    }
+
     
 }
+    
+    
+    
+    
+

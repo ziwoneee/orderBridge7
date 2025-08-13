@@ -74,6 +74,15 @@ public interface MaterialOrderDAO {
      */
     int getCountByStatus(String status);
     Map<String, Integer> getStatusCounts();
+    
+    //협력사 이메일
+    MaterialOrderVO findById(String orderId);
+
+    
+    //협력사 발주상태 업데이트
+	void updateOrderStatus(MaterialOrderVO vo);
+
+	
 
     
 }
