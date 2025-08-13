@@ -248,7 +248,6 @@
 	    AND COALESCE(mi.quantity,0) &gt; 0          
 	    AND (mi.is_discarded = 0 OR mi.is_discarded IS NULL)  
 	    AND mi.lot_no LIKE 'LOT-%'              
-	    AND (mi.status = '정상' OR mi.status IS NULL)         
 	  ORDER BY
 	    CASE WHEN mi.expiration_date IS NULL THEN 1 ELSE 0 END,
 	    mi.expiration_date ASC,

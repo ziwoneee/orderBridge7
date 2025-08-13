@@ -2,10 +2,10 @@ function showLotDetails(materialId) {
     console.log('=== LOT 조회 시작 ===');
     console.log('materialId:', materialId);
     
-    // 🔥 모달을 먼저 표시하고 데이터 초기화
+    // 모달을 먼저 표시하고 데이터 초기화
     $('#lotModal').modal('show');
     
-    // 🔥 기존 데이터 완전히 초기화
+    // 기존 데이터 완전히 초기화
     $('#lotTableBody').html('<tr><td colspan="5" class="text-center">데이터를 불러오는 중...</td></tr>');
     $('#modalMaterialId').text('-');
     $('#modalMaterialName').text('-');
@@ -13,7 +13,7 @@ function showLotDetails(materialId) {
     $('#modalMaterialUnit').text('-');
     $('#lotPagination').empty();
     
-    // 🔥 전역 변수 초기화
+    // 전역 변수 초기화
     lotData = [];
     currentPage = 1;
     currentSort = { column: '', order: '' };
@@ -29,13 +29,13 @@ function loadLotData(materialId) {
     method: 'GET',
     data: { materialId: materialId },
     dataType: 'json',
-    cache: false,  // 🔥 캐시 비활성화
+    cache: false,  // 캐시 비활성화
     beforeSend: function () {
       console.log('=== AJAX 요청 시작 ===');
       console.log('요청 URL:', '/material/inventory/lot-details');
       console.log('요청 materialId:', materialId);
       
-      // 🔥 로딩 상태 명확히 표시
+      // 로딩 상태 명확히 표시
       $('#lotTableBody').html('<tr><td colspan="5" class="text-center">데이터를 불러오는 중...</td></tr>');
       $('#lotPagination').empty();
     },
@@ -48,62 +48,39 @@ function loadLotData(materialId) {
       const tbody = $('#lotTableBody');
       tbody.empty();
       
-      // 🔥 응답 데이터 유효성 검증 강화
+      // 응답 데이터 유효성 검증 강화
       if (!response) {
         console.error('응답 데이터가 null 또는 undefined입니다.');
         tbody.html('<tr><td colspan="5" class="text-center text-danger">데이터를 불러올 수 없습니다.</td></tr>');
         return;
       }
       
-      // 배열이 아닌 경우 배열로 변환
-      const responseArray = Array.isArray(response) ? response : [response];
-      console.log('변환된 배열:', responseArray);
-      
-      // 🔥 응답 구조 확인 (백엔드 수정 후)
-      if (response.materialId) {
-        // 새로운 응답 구조: {materialId, materialName, materialType, unit, lotList}
-        console.log('새로운 응답 구조 감지');
-        
-        $('#modalMaterialId').text(response.materialId || '-');
-        $('#modalMaterialName').text(response.materialName || '-');
-        $('#modalMaterialType').text(response.materialType || '-');
-        $('#modalMaterialUnit').text(response.unit || '-');
-        
-        // LOT 데이터는 lotList에서 가져옴
-        lotData = response.lotList || [];
-        
-      } else {
-        // 기존 응답 구조: LOT 배열 직접 반환
-        console.log('기존 응답 구조 사용');
-        
-        const responseArray = Array.isArray(response) ? response : [response];
-        
-        // 자재 정보 바인딩 (빈 배열이어도 materialId로 기본 정보 설정)
-        $('#modalMaterialId').text(materialId || '-');
-        
-        if (responseArray.length > 0) {
-          const material = responseArray[0];
-          console.log('자재 정보 바인딩:', material);
-          
-          $('#modalMaterialName').text(material.materialName || '-');
-          $('#modalMaterialType').text(material.materialType || '-');
-          $('#modalMaterialUnit').text(material.unit || '-');
-          
-        } else {
-          console.log('LOT 데이터가 비어있어 기본 자재 정보만 표시');
-          // 🔥 빈 배열인 경우 자재 이름 등을 알 수 없으므로 기본값 설정
-          $('#modalMaterialName').text('정보 없음');
-          $('#modalMaterialType').text('-');
-          $('#modalMaterialUnit').text('-');
+      // 1) LOT 리스트 언랩 (배열 / lotList / list / rows / data 모두 수용)
+        let lots = [];
+        if (Array.isArray(response)) {
+          lots = response;
+        } else if (response && Array.isArray(response.lotList)) {
+          lots = response.lotList;
+        } else if (response && Array.isArray(response.list)) {
+          lots = response.list;
+        } else if (response && Array.isArray(response.rows)) {
+          lots = response.rows;
+        } else if (response && Array.isArray(response.data)) {
+          lots = response.data;
         }
-        
-        // LOT 데이터 설정
-        lotData = responseArray;
-      }
+      
+        // 2) 헤더(자재 정보) 바인딩
+        $('#modalMaterialId').text(response.materialId || materialId || '-');
+        $('#modalMaterialName').text(response.materialName || (lots[0] && lots[0].materialName) || '정보 없음');
+        $('#modalMaterialType').text(response.materialType || (lots[0] && lots[0].materialType) || '-');
+        $('#modalMaterialUnit').text(response.unit || (lots[0] && lots[0].unit) || '-');
+      
+        // 3) 전역 데이터 설정
+        lotData = lots || [];
 
       // (1) 전역 배열에 LOT 데이터 저장 → 정렬/페이징에 필요
       currentPage = 1;                  // 페이지 초기화
-      currentSort = { column: '', order: '' };  // 정렬 상태 초기화
+      currentSort = { column: '', order: '' }; // 정렬 초기화
       
       console.log('전역 lotData 설정:', lotData);
       console.log('lotData 길이:', lotData.length);
@@ -156,7 +133,7 @@ function loadLotData(materialId) {
         </tr>
       `);
       
-      // 🔥 오류 시에도 전역 변수 초기화
+      // 오류 시에도 전역 변수 초기화
       lotData = [];
       currentPage = 1;
       currentSort = { column: '', order: '' };
