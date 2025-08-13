@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import com.itwillbs.domain.ProductionResultVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.ProductionResultDTO;
 
 @Repository
 public class ProductionResultDAOImpl implements ProductionResultDAO {
@@ -38,6 +39,18 @@ public class ProductionResultDAOImpl implements ProductionResultDAO {
     public List<ProductionResultVO> selectAllResults() {
         return sqlSession.selectList(NAMESPACE + ".selectAllResults");
     }
+    
+    //입고 상세 모달
+    @Override
+    public String getLatestResultIdByLot(String lotNo) {
+        return sqlSession.selectOne(NAMESPACE + ".getLatestResultIdByLot", lotNo);
+    }
+
+    @Override
+    public ProductionResultDTO getDetailByResultId(String resultId) {
+        return sqlSession.selectOne(NAMESPACE + ".getDetailByResultId", resultId);
+    }
+
     
     //완제품 입고(아름 끝)
 }

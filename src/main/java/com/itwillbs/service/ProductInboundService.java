@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.itwillbs.domain.ProductInboundVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.ProductionResultDTO;
 
 public interface ProductInboundService {
 
@@ -25,5 +26,7 @@ public interface ProductInboundService {
     // 실제 DB 검색
     List<ProductInboundVO> searchInboundList(SearchCriteria cri);
     int countInboundList(SearchCriteria cri);
+    
+    
 
 }
