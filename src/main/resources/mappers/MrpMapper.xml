@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<!--
+  목적: BOM 전개를 통해 자재별 "총소요량(gross requirement)"을 계산
+  입력: productId(제품ID), orderQty(주문/작업지시 수량)
+  로직:
+    - 활성 BOM(bom_master.status = 'ACTIVE')만 사용
+    - bom_detail.qty × orderQty (= 제품 1EA당 소요 × 주문수량)
+    - material 테이블을 조인해서 자재명/단위 같이 반환(선택)
+-->  
+<mapper namespace="com.itwillbs.mapper.MrpMapper">
+
+
+	 <!-- 결과: [{materialId, materialName, unit, gross_req}, ...] -->
+	  <select id="selectGrossRequirements" resultType="hashmap">
+	    SELECT
+	      bd.material_id              AS materialId,     -- 자재 ID
+	      m.material_name             AS materialName,   -- 자재명(표시용)
+	      m.unit                      AS unit,           -- 기본 단위(kg, EA 등)
+	      SUM(bd.qty * #{orderQty})   AS gross_req       -- 총소요량 = (BOM 수량 × 주문수량)
+	    FROM bom_master bm
+	    JOIN bom_detail bd ON bd.bom_id = bm.bom_id
+	    LEFT JOIN material m ON m.material_id = bd.material_id
+	    WHERE bm.product_id = #{productId}
+	      AND bm.status     = 'ACTIVE'                  -- 활성 BOM만 전개
+	    GROUP BY bd.material_id, m.material_name, m.unit
+	    ORDER BY materialId
+	  </select>
+	  
+	  
+	  
+	    <!--
+		    2단계: 가용/순소요(Netting)
+		    입력: productId, orderQty
+		    로직:
+		      1) BOM 전개해서 자재별 총소요량(gross_req) 산출
+		      2) material_inventory에서 자재별 재고합계(on_hand) 집계
+		      3) material_reservation에서 자재별 예약합계(reserved) 집계
+		      4) available = on_hand - reserved
+		      5) net_req  = GREATEST(gross_req - available, 0)
+		    주의:
+		      - 창고/로케이션/LOT 단위 재고라면 SUM으로 자재별 집계
+		      - 수량 타입은 DECIMAL 권장(정밀도)
+		  -->
+	  <select id="selectNetting" resultType="hashmap">
+	    SELECT
+	      g.materialId                                 AS materialId,     -- 자재ID
+	      m.material_name                              AS materialName,   -- 자재명(표시용)
+	      m.unit                                       AS unit,           -- 단위
+	      g.gross_req                                  AS gross_req,      -- 총소요
+	      IFNULL(inv.on_hand, 0)                       AS on_hand,        -- 재고합계
+	      IFNULL(rsv.reserved, 0)                      AS reserved,       -- 예약합계
+	      (IFNULL(inv.on_hand, 0) - IFNULL(rsv.reserved, 0)) AS available, -- 가용
+	      GREATEST(g.gross_req - (IFNULL(inv.on_hand,0) - IFNULL(rsv.reserved,0)), 0) AS net_req -- 순소요(최소 0)
+	    FROM (
+	      /* 1) BOM 전개 → 총소요 */
+	      SELECT
+	        bd.material_id        AS materialId,
+	        SUM(bd.qty * #{orderQty}) AS gross_req
+	      FROM bom_master bm
+	      JOIN bom_detail bd ON bd.bom_id = bm.bom_id
+	      WHERE bm.product_id = #{productId}
+	        AND bm.status     = 'ACTIVE'
+	      GROUP BY bd.material_id
+	    ) g
+	    /* 2) 자재 마스터(표시용 정보) */
+	    LEFT JOIN material m ON m.material_id = g.materialId
+	    /* 3) 재고합계(on_hand): LOT/창고 행을 자재별로 집계 */
+	    LEFT JOIN (
+	      SELECT material_id, SUM(quantity) AS on_hand
+	      FROM material_inventory
+	      GROUP BY material_id
+	    ) inv ON inv.material_id = g.materialId
+	    /* 4) 예약합계(reserved): WO×자재 예약을 자재별로 집계 */
+	    LEFT JOIN (
+	      SELECT material_id, SUM(reserved_qty) AS reserved
+	      FROM material_reservation
+	      GROUP BY material_id
+	    ) rsv ON rsv.material_id = g.materialId
+	    ORDER BY net_req DESC, materialId
+	  </select>
+	  
+
+
+</mapper>
