@@ -75,6 +75,7 @@ public class ClientDeliveryController {
 
         model.addAttribute("cri", cri);
         model.addAttribute("tab", tab);
+        model.addAttribute("menu", "sales");
 
         // ✅ 예약관리 탭일 경우
         if ("reservation".equals(tab)) {

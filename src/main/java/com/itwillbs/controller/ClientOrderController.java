@@ -158,6 +158,7 @@ public class ClientOrderController {
         model.addAttribute("orderList", orderList);
         model.addAttribute("pageMaker", pageMaker);
         model.addAttribute("cri", cri);
+        model.addAttribute("menu", "sales");
 
         // 상태별 건수 전달
         model.addAttribute("totalCount", allCount);

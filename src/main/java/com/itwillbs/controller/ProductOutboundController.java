@@ -68,6 +68,7 @@ public class ProductOutboundController {
         model.addAttribute("outboundList", outboundList);
         model.addAttribute("cri", cri);
         model.addAttribute("pageMaker", pageMaker);
+        model.addAttribute("menu", "product");
         return "product/outboundList";  // JSP 경로
     }
     

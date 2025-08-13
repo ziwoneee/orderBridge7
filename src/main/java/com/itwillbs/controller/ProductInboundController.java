@@ -68,6 +68,7 @@ public class ProductInboundController {
         model.addAttribute("inboundList", inboundList);
         model.addAttribute("cri", cri);
         model.addAttribute("pageMaker", pageMaker);
+        model.addAttribute("menu", "product");
         return "product/inboundList";
     }
 
