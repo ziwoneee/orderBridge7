@@ -40,4 +40,10 @@ public interface MaterialReservationDAO {
 	// 0이 된 예약행 정리
 	void deleteZeroReservationsByOutbound(String outboundId) throws Exception;
 	
+	// 작업지시 납기일 조회
+	java.util.Date selectWorkOrderDueDate(String workOrderId) throws Exception;
+
+    // 자재/거래처 기준 리드타임 최대값(없으면 defaultLeadDays 반환)
+    Integer selectMaxLeadDaysForShortagePO(String workOrderId, int defaultLeadDays) throws Exception;
+	
 }

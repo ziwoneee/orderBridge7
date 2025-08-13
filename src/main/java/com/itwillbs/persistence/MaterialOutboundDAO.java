@@ -66,11 +66,7 @@ public interface MaterialOutboundDAO {
     // 부족해결 상태로 변경
     int updateWorkOrderShortageResolved(String workOrderId) throws Exception;
     
-    // 전부 충족 시 지시 상태도 완료로 변경하고 싶으면 사용
-    int updateWorkOrderIssuedCompleted(String workOrderId) throws Exception;
     
- // MaterialOutboundDAO.java에 추가할 메서드 선언들
-
     /**
      * 특정 입고건의 가용 자재 목록 조회
      * @param params 입고ID
@@ -86,6 +82,17 @@ public interface MaterialOutboundDAO {
      * @throws Exception
      */
     int updateInboundUsageStatus(String inboundId) throws Exception;
+    
+    
+    /** 이번 출고(outboundId)에서 사용한 LOT들의 원(原)입고건 ID 목록 */
+    List<String> findInboundIdsByOutbound(String outboundId) throws Exception;
+
+    /** 출고ID → 작업지시서ID 역추적 */
+    String getWorkOrderIdByOutbound(String outboundId) throws Exception;
+    
+    // 출고처리시, work_order 상태값 READY
+    int updateWorkOrderStatus(@org.apache.ibatis.annotations.Param("workOrderId") String workOrderId,
+            @org.apache.ibatis.annotations.Param("status") String status) throws Exception;
 	
 	
 

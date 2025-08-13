@@ -18,6 +18,7 @@ public class SupplierItemVO {
     
     private Timestamp createdAt;       // 등록일
     private Timestamp updatedAt;       // 수정일
+    private int leadDays;	
     
     private String materialName;   // 자재명 (조인된 필드)
     private String materialType;   // 자재유형 (조인된 필드)
