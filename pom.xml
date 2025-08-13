@@ -191,6 +191,21 @@
 		    <version>2.13.3</version> <!-- 사용 중인 스프링 버전에 따라 변경 가능 -->
 		</dependency>
 		
+		<!-- 이메일 -->
+		<dependency>
+    <groupId>com.sun.mail</groupId>
+    <artifactId>javax.mail</artifactId>
+    <version>1.6.2</version>
+</dependency>
+		
+		
+
+<!-- Spring Security Taglibs (JSP에서 <sec:authorize> 태그 사용 가능하게 함) -->
+<dependency>
+    <groupId>org.springframework.security</groupId>
+    <artifactId>spring-security-taglibs</artifactId>
+    <version>4.2.3.RELEASE</version> <!-- Spring 4.3.8.RELEASE에 맞는 호환 버전 -->
+</dependency>
 
 
 		<!-- 외부 라이브러리 작성 공간 -->

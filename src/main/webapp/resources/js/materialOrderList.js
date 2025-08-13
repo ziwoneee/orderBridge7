@@ -1,4 +1,11 @@
-// 공통 유틸
+/************************************
+ * materialOrderList.js (완성본)
+ * - 상세 모달
+ * - 발주요청(초안→요청)
+ * - 요청 성공 후 협력사 승인요청 메일 전송
+ ************************************/
+
+/** ===== 전역 유틸 ===== */
 window.formatYMD = d => !d ? '-' : new Date(d).toISOString().slice(0,10);
 window.calcRowTotal = (row) => {
   const qty = +((row.querySelector("input[name$='.orderQuantity']")||{}).value||0);
@@ -6,12 +13,29 @@ window.calcRowTotal = (row) => {
   return Math.round(qty*unit);
 };
 
+/** ===== 설정(필요시 변경) ===== */
+// 컨트롤러 엔드포인트: 기본 권장 경로
+const APPROVAL_ENDPOINT = ctx + '/material/order/request-approval';
+// 만약 컨트롤러가 "/material/order/request"를 사용한다면 ↓ 이 줄로 바꾸세요
+// const APPROVAL_ENDPOINT = ctx + '/material/order/request';
 
-const COL_STATUS = 5;     // 상태
-const COL_DETAIL = 6;     // 상세
-const COL_REQUEST = 7;    // 발주요청
+/** ===== (선택) CSRF 사용 시 활성화 ===== */
+var token = $("meta[name='_csrf']").attr("content");
+var header = $("meta[name='_csrf_header']").attr("content");
 
-// 상세 모달 오픈
+if (token && header) {
+  $(document).ajaxSend(function(e, xhr){
+    xhr.setRequestHeader(header, token);
+  });
+}
+
+
+/** ===== 테이블 컬럼 인덱스 ===== */
+const COL_STATUS  = 5; // 상태
+const COL_DETAIL  = 6; // 상세
+const COL_REQUEST = 7; // 발주요청
+
+/** ===== 상세 모달 오픈 ===== */
 $(document).on('click', '.btnOrderDetail', function(){
   const id = $(this).data('id');
   $.get(ctx + '/material/order/detail', { orderId: id })
@@ -43,17 +67,42 @@ $(document).on('click', '.btnOrderDetail', function(){
     .fail(xhr => alert('상세 조회 실패: ' + ((xhr.responseJSON && xhr.responseJSON.message) || xhr.statusText)));
 });
 
-// 발주요청
+/** ===== 발주요청 (초안 → 요청) + 메일 전송 ===== */
 $(document).on('click', '.btnSubmitOrder', function(){
-  const $btn=$(this), orderId=$btn.data('id');
-  if (!confirm('이 발주 초안을 "요청" 상태로 전환할까요?')) return;
+  const $btn = $(this);
+  const orderId = $btn.data('id');
 
+  if (!confirm('이 발주 초안을 "요청" 상태로 전환하고, 협력사에 승인요청 메일을 전송할까요?')) return;
+
+  // 1) 상태 전환: 초안 → 요청
   $.post(ctx + '/material/order/submit', { orderId })
     .done(res => {
-      alert(res.message || '발주요청 완료');
-      const $tr = $btn.closest('tr');
-      $tr.find('td').eq(COL_STATUS).html('<span class="badge badge-warning">요청</span>');
-      $tr.find('td').eq(COL_REQUEST).html(''); // 요청 버튼 칸 비우기
+      // 서버가 {success, message, ...} 형태로 응답한다고 가정
+      if (res && res.success) {
+        // 2) 승인요청 메일 전송
+        $.post(APPROVAL_ENDPOINT, { orderId })
+          .done(mailRes => {
+            // 문자열("success"/"fail") 또는 {success:true} 모두 커버
+            const ok = (mailRes === 'success') || (mailRes && mailRes.success === true);
+            if (ok) {
+              alert((res.message || '발주요청 완료') + '\n협력사에 승인요청 메일을 전송했습니다.');
+            } else {
+              alert((res.message || '발주요청 완료') + '\n메일 전송은 실패했습니다. 관리자에게 문의하세요.');
+            }
+          })
+          .fail(() => {
+            alert((res.message || '발주요청 완료') + '\n메일 전송 중 오류가 발생했습니다.');
+          });
+
+        // UI 갱신
+        const $tr = $btn.closest('tr');
+        $tr.find('td').eq(COL_STATUS).html('<span class="badge badge-warning">요청</span>');
+        $tr.find('td').eq(COL_REQUEST).html(''); // 버튼 제거
+      } else {
+        alert('발주요청 실패: ' + (res && res.message ? res.message : '알 수 없는 오류'));
+      }
     })
-    .fail(xhr => alert('발주요청 실패: ' + ((xhr.responseJSON && xhr.responseJSON.message) || xhr.statusText)));
+    .fail(xhr => {
+      alert('발주요청 실패: ' + ((xhr.responseJSON && xhr.responseJSON.message) || xhr.statusText));
+    });
 });

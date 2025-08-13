@@ -245,7 +245,10 @@
 	</update>
     
     
-    
+    <!-- 협력사 메일 -->
+<select id="findEmailById" parameterType="string" resultType="string">
+  SELECT email FROM supplier WHERE supplier_id = #{supplierId}
+</select>
     
     
 
