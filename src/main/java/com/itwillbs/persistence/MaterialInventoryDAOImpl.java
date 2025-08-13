@@ -68,9 +68,4 @@ public class MaterialInventoryDAOImpl implements MaterialInventoryDAO {
         return sqlSession.selectOne(NAMESPACE + "selectMaterialInfo", materialId);
     }
 	
-
-	
-	
-	
-
 }

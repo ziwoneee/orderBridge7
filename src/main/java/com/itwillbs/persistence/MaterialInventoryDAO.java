@@ -31,5 +31,5 @@ public interface MaterialInventoryDAO {
 	
 	// 자재 기본 정보 조회 (새로 추가)
     MaterialInventoryVO selectMaterialInfo(String materialId) throws Exception;
-	
+    
 }

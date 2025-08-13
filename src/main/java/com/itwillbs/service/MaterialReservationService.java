@@ -23,7 +23,7 @@ public interface MaterialReservationService {
      * - 남은 부족분만 모아서 발주(PO) 초안 생성
      * - 생성된 orderId 반환 (부족분이 없으면 null)
      */
-    String createShortageDraftPO(String workOrderId, String userId) throws Exception;
+    String createShortageDraftPO(String workOrderId, String userId, Integer overrideLeadDays) throws Exception;
 
     /**
      * [출고 확정(ISSUED)시 호출]

@@ -126,6 +126,24 @@ public class MaterialReservationDAOImpl implements MaterialReservationDAO {
         sqlSession.delete(NAMESPACE + "deleteZeroReservationsByOutbound", outboundId);
     }
     
+    // 작업지시 납기일 조회
+    @Override
+    public java.util.Date selectWorkOrderDueDate(String workOrderId) {
+        return sqlSession.selectOne(NAMESPACE + "selectWorkOrderDueDate", workOrderId);
+    }
+
+    // 자재/거래처 기준 리드타임 최대값(없으면 defaultLeadDays 반환)
+    @Override
+    public Integer selectMaxLeadDaysForShortagePO(String workOrderId, int defaultLeadDays) {
+        Map<String,Object> p = new HashMap<>();
+        p.put("workOrderId", workOrderId);
+        p.put("defaultLeadDays", defaultLeadDays);
+        return sqlSession.selectOne(NAMESPACE + "selectMaxLeadDaysForShortagePO", p);
+    }
+
+
+	
+	
     
     
 
