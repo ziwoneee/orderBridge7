@@ -27,26 +27,35 @@
 	
 </body>
 
-<script>
-document.getElementById('btnGross').addEventListener('click', async () => {
-  const productId = document.getElementById('prod').value.trim();
-  const orderQty  = document.getElementById('qty').value || 0;
 
-  const res  = await fetch(`/mrp/gross?productId=${encodeURIComponent(productId)}&orderQty=${orderQty}`);
+
+</html>
+
+
+<script>
+document.getElementById('btnGross').addEventListener('click', async function () {
+  const productId = document.getElementById('prod').value.trim();
+  const orderQty  = Number(document.getElementById('qty').value || 0);
+
+  const res  = await fetch('/mrp/gross/data?productId=' + encodeURIComponent(productId) + '&orderQty=' + orderQty);
   const data = await res.json();
 
   const tbody = document.getElementById('grossBody');
   tbody.innerHTML = '';
-  (data.items || []).forEach(r => {
+
+  // 값이 비었으면 '-' 로 표시
+  function text(v) { return (v === null || v === undefined || v === '') ? '-' : v; }
+  // 숫자 포맷팅
+  function fmt(v)  { return Number(v || 0).toLocaleString('ko-KR'); }
+
+  (data.items || []).forEach(function (r) {
     const tr = document.createElement('tr');
     tr.innerHTML =
-      `<td>${r.materialId}</td>
-       <td>${r.materialName ?? '-'}</td>
-       <td>${r.unit ?? '-'}</td>
-       <td class="text-right">${Number(r.gross_req).toLocaleString('ko-KR')}</td>`;
+      '<td>' + text(r.materialId)   + '</td>' +
+      '<td>' + text(r.materialName) + '</td>' +
+      '<td>' + text(r.unit)         + '</td>' +
+      '<td class="text-right">' + fmt(r.gross_req) + '</td>';
     tbody.appendChild(tr);
   });
 });
 </script>
-
-</html>

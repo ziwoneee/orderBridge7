@@ -39,26 +39,30 @@ document.getElementById('btnNet').addEventListener('click', async () => {
   const productId = document.getElementById('prod').value.trim();
   const orderQty  = document.getElementById('qty').value || 0;
 
-  const res  = await fetch(`/mrp/netting?productId=${encodeURIComponent(productId)}&orderQty=${orderQty}`);
+  const res  = await fetch('/mrp/netting?productId=' + encodeURIComponent(productId) + '&orderQty=' + orderQty);
   const data = await res.json();
 
   const tbody = document.getElementById('netBody');
   tbody.innerHTML = '';
+
+  const text = v => (v === null || v === undefined || v === '') ? '-' : v;
+  const fmt  = v => Number(v || 0).toLocaleString('ko-KR');
+
   (data.items || []).forEach(r => {
-    const fmt = v => Number(v ?? 0).toLocaleString('ko-KR');
     const tr = document.createElement('tr');
     tr.innerHTML =
-      `<td>${r.materialId}</td>
-       <td>${r.materialName ?? '-'}</td>
-       <td>${r.unit ?? '-'}</td>
-       <td class="text-right">${fmt(r.gross_req)}</td>
-       <td class="text-right">${fmt(r.on_hand)}</td>
-       <td class="text-right">${fmt(r.reserved)}</td>
-       <td class="text-right">${fmt(r.available)}</td>
-       <td class="text-right"><strong>${fmt(r.net_req)}</strong></td>`;
+      '<td>' + text(r.materialId) + '</td>' +
+      '<td>' + text(r.materialName) + '</td>' +
+      '<td>' + text(r.unit) + '</td>' +
+      '<td class="text-right">' + fmt(r.gross_req) + '</td>' +
+      '<td class="text-right">' + fmt(r.on_hand)   + '</td>' +
+      '<td class="text-right">' + fmt(r.reserved)  + '</td>' +
+      '<td class="text-right">' + fmt(r.available) + '</td>' +
+      '<td class="text-right"><strong>' + fmt(r.net_req) + '</strong></td>';
     tbody.appendChild(tr);
   });
 });
 </script>
+
 
 </html>

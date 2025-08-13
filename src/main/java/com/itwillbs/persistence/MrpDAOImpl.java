@@ -45,5 +45,50 @@ public class MrpDAOImpl implements MrpDAO {
         return sqlSession.selectList(NAMESPACE + "selectNetting", params);
     }
 
+    
+    // 3-1) 부족분 리스트 (net_req > 0)
+    @Override
+    public List<Map<String, Object>> selectShortages(String productId, double orderQty) {
+        Map<String, Object> p = new HashMap<>();
+        p.put("productId", productId);
+        p.put("orderQty",  orderQty);
+        return sqlSession.selectList(NAMESPACE + "selectShortages", p);
+    }
+
+    // 3-2) 발주 추천 초안
+    @Override
+    public List<Map<String, Object>> selectRecommendPO(String productId, double orderQty) {
+        Map<String, Object> p = new HashMap<>();
+        p.put("productId", productId);
+        p.put("orderQty",  orderQty);
+        return sqlSession.selectList(NAMESPACE + "selectRecommendPO", p);
+    }
+    
+    
+    // 4-1) 신규 PO 아이디 채번
+    @Override
+    public String selectNextPoId() {
+        return sqlSession.selectOne(NAMESPACE + "selectNextPoId");
+    }
+
+    // 4-2) PO 헤더 INSERT
+    @Override
+    public int insertMaterialOrderHeader(String orderId, String supplierId, String expectedInbound) {
+        Map<String, Object> p = new HashMap<>();
+        p.put("orderId", orderId);
+        p.put("supplierId", supplierId);
+        p.put("expectedInbound", expectedInbound); // 헤더에 대표 예상입고(없으면 null)
+        return sqlSession.insert(NAMESPACE + "insertMaterialOrderHeader", p);
+    }
+
+    // 4-3) PO 아이템 INSERT (배치)
+    @Override
+    public int insertMaterialOrderItems(String orderId, List<Map<String, Object>> items) {
+        Map<String, Object> p = new HashMap<>();
+        p.put("orderId", orderId);
+        p.put("items", items);
+        return sqlSession.insert(NAMESPACE + "insertMaterialOrderItems", p);
+    }
+
 
 }

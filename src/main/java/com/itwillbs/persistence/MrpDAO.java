@@ -26,4 +26,28 @@ public interface MrpDAO {
      */
     List<Map<String, Object>> selectNetting(String productId, double orderQty);
     
+    
+    /**
+     * 3-1) 부족분 리스트 (net_req > 0)
+     *  - 컬럼: materialId, materialName, unit, gross_req, on_hand, reserved, available, net_req
+     */
+    List<Map<String, Object>> selectShortages(String productId, double orderQty);
+
+    /**
+     * 3-2) 발주 추천 초안
+     *  - 컬럼: materialId, materialName, unit, net_req, planned_qty,
+     *         supplier_id, unit_price, lead_days, expected_inbound_date, total_cost, plan_status
+     */
+    List<Map<String, Object>> selectRecommendPO(String productId, double orderQty);
+    
+    // 4-1) 신규 PO 아이디 채번
+    String selectNextPoId();
+
+    // 4-2) PO 헤더 INSERT
+    int insertMaterialOrderHeader(String orderId, String supplierId, String expectedInbound);
+
+    // 4-3) PO 아이템 INSERT (배치)
+    int insertMaterialOrderItems(String orderId, List<Map<String, Object>> items);
+
+    
 }
