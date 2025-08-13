@@ -221,8 +221,6 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	        int remain = moDAO.countRemainByWorkOrder(vo.getWorkOrderId()); // 0이면 모두 충족
 	        if (remain == 0) {
 	            moDAO.updateWorkOrderShortageResolved(vo.getWorkOrderId()); // shortage_status = RESOLVED
-	            // (선택) 전부 충족시 지시 상태도 완료 처리
-	            // moDAO.updateWorkOrderIssuedCompleted(vo.getWorkOrderId());
 	        } else {
 	            moDAO.updateWorkOrderShortageStatus(vo.getWorkOrderId(), "CHECKED"); // 아직 모자람
 	        }
@@ -247,13 +245,30 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	        int affected = moDAO.decreaseInventoryByOutbound(outboundId);
 	        if (affected <= 0) throw new IllegalStateException("재고 차감 실패");
 
-	        // 2) 예약 차감 + 0행 정리 (같은 트랜잭션)
+	        // 2) 예약 차감 + 0행 정리
 	        reservationDAO.consumeReservationByOutbound(outboundId);
 	        reservationDAO.deleteZeroReservationsByOutbound(outboundId);
 
 	        // 3) 출고 완료
 	        moDAO.updateOutboundCompleted(outboundId);
+
+	        // 🔹 4) 이번 출고로 사용된 LOT들의 원(原)입고건 usage_status 재계산
+	        //     - outbound_item(lot_no) → inbound_item(lot_no) → inbound_id 추출
+	        List<String> inboundIds = moDAO.findInboundIdsByOutbound(outboundId);
+	        for (String inboundId : inboundIds) {
+	            moDAO.updateInboundUsageStatus(inboundId); // 이미 가지고 있는 쿼리 재사용
+	        }
+
+	        // 🔹 5) 작업지시서 남은 필요 0이면 마감(부족상태 해제)
+	        String workOrderId = moDAO.getWorkOrderIdByOutbound(outboundId);
+	        moDAO.updateWorkOrderStatus(workOrderId, "READY");
+	        
+	        int remain = moDAO.countRemainByWorkOrder(workOrderId);
+	        if (remain == 0) {
+	            moDAO.updateWorkOrderShortageResolved(workOrderId);
+	        }
 	    }
+
     
 	    
 	    @Override

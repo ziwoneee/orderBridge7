@@ -163,12 +163,6 @@ public class MaterialOutboundDAOImpl implements MaterialOutboundDAO {
 	        return sqlSession.update(NAMESPACE + "updateWorkOrderShortageResolved", workOrderId);
 	    }
 	    
-	    // 전부 충족 시 지시 상태도 완료로 변경하고 싶으면 사용
-	    @Override
-	    public int updateWorkOrderIssuedCompleted(String workOrderId) throws Exception {
-	        return sqlSession.update(NAMESPACE + "updateWorkOrderIssuedCompleted", workOrderId);
-	    }
-	    
 	    
 	 // MaterialOutboundDAOImpl.java에 추가할 메서드 구현들
 
@@ -189,6 +183,28 @@ public class MaterialOutboundDAOImpl implements MaterialOutboundDAO {
 	            throw new Exception("입고건 사용 상태 업데이트 중 데이터베이스 오류가 발생했습니다.", e);
 	        }
 	    }
+	    
+	    /** 이번 출고(outboundId)에서 사용한 LOT들의 원(原)입고건 ID 목록 */
+	    @Override
+	    public List<String> findInboundIdsByOutbound(String outboundId) throws Exception {
+	        return sqlSession.selectList(NAMESPACE + "findInboundIdsByOutbound", outboundId);
+	    }
 
+	    /** 출고ID → 작업지시서ID 역추적 */
+	    @Override
+	    public String getWorkOrderIdByOutbound(String outboundId) throws Exception {
+	        return sqlSession.selectOne(NAMESPACE + "getWorkOrderIdByOutbound", outboundId);
+	    }
+	    
+	    // 출고처리시, work_order 상태값 READY
+	    @Override
+	    public int updateWorkOrderStatus(String workOrderId, String status) throws Exception {
+	        Map<String, Object> p = new HashMap<>();
+	        p.put("workOrderId", workOrderId);
+	        p.put("status", status);
+	        return sqlSession.update(NAMESPACE + "updateWorkOrderStatus", p);
+	    }
+	    
+	    
 
 }

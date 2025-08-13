@@ -709,25 +709,29 @@ $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
 
 
 /* ---------- 출고 처리 ---------- */
-window.processOutbound = function(outboundId, btnEl){
-  if (!confirm('이 출고건을 처리하시겠습니까?')) return;
+window.processOutbound = function(outboundId, btnEl) {
+	  if (!confirm('이 출고건을 처리하시겠습니까?')) return;
 
-  $.ajax({
-    type: 'POST',
-    url: ctx + '/material/outbound/process',
-    data: { outboundId: outboundId },
-    success: function(_res){
-      var $tr = $(btnEl).closest('tr');
-      var $statusTd = $tr.find('td').eq(2);
-      $statusTd.html('<span class="badge badge-success">출고완료</span>');
-      $(btnEl).closest('td').empty();
-    },
-    error: function(xhr){
-      console.error('출고처리 오류:', xhr);
-      alert('출고처리 중 오류가 발생했습니다.\n' + (xhr.responseText || ''));
-    }
-  });
-};
+	  $.ajax({
+	    type: 'POST',
+	    url: ctx + '/material/outbound/process',
+	    data: { outboundId: outboundId },
+	    success: function(res){
+	      if (res === 'OK') {
+	        alert('출고처리 완료되었습니다.'); // ✅ 여기서 알림
+	      }
+	      var $tr = $(btnEl).closest('tr');
+	      var $statusTd = $tr.find('td').eq(2);
+	      $statusTd.html('<span class="badge badge-success">출고완료</span>');
+	      $(btnEl).closest('td').empty();
+	    },
+	    error: function(xhr){
+	      console.error('출고처리 오류:', xhr);
+	      alert('출고처리 중 오류가 발생했습니다.\n' + (xhr.responseText || ''));
+	    }
+	  });
+	};
+
 
 //상태 뱃지 & 날짜 유틸
 function badgeStatus(st){

@@ -360,7 +360,8 @@
 
 		
 		<!-- 입고완료건 목록 -->
-		<select id="getInboundDoneList" resultType="map">
+		<!-- 입고완료건 목록 (DRAFT/ISSUED로 잡아둔 수량까지 가용에서 차감) -->
+		<select id="getInboundDoneList" parameterType="map" resultType="map">
 		  SELECT
 		    i.inbound_id   AS inboundId,
 		    i.order_id     AS orderId,
@@ -371,14 +372,14 @@
 		    wo.line_id        AS lineId,
 		    wo.due_date       AS dueDate,
 		
-		    /* 총 입고 수량(이 입고건의 해당 품목들) */
+		    /* 총 입고 수량 */
 		    SUM(ii.quantity) AS totalInboundQty,
 		
-		    /* 이미 출고된 수량(LOT 기준 합계) */
-		    COALESCE(used.total_used_qty, 0) AS usedQty,
+		    /* 이미 잡아둔/출고된 수량 (LOT 단위 합계의 합) */
+		    SUM(COALESCE(used.used_qty, 0)) AS usedQty,
 		
-		    /* 가용 수량 */
-		    SUM(ii.quantity) - COALESCE(used.total_used_qty, 0) AS availableQty
+		    /* 가용 수량 = 총입고 - 사용(=DRAFT+ISSUED) */
+		    (SUM(ii.quantity) - SUM(COALESCE(used.used_qty, 0))) AS availableQty
 		
 		  FROM material_inbound i
 		  JOIN material_inbound_item ii
@@ -388,30 +389,58 @@
 		    ON mo.order_id = i.order_id
 		
 		  LEFT JOIN material_order_item moi
-		    ON moi.order_item_id = ii.order_item_id  <!-- ★ 품목 단위 연결 -->
+		    ON moi.order_item_id = ii.order_item_id
 		
 		  LEFT JOIN work_order wo
 		    ON wo.order_id = moi.work_order_id
 		
+		  /* LOT별 사용합 계산 (DRAFT + ISSUED 모두 포함) */
 		  LEFT JOIN (
-		    SELECT oi.lot_no, SUM(oi.quantity) AS total_used_qty
+		    SELECT
+		      oi.lot_no,
+		      SUM(oi.quantity) AS used_qty
 		    FROM material_outbound_item oi
-		    JOIN material_outbound o ON o.outbound_id = oi.outbound_id
+		    JOIN material_outbound o
+		      ON o.outbound_id = oi.outbound_id
 		    WHERE o.status IN ('DRAFT','ISSUED')
 		      AND oi.lot_no IS NOT NULL AND oi.lot_no &lt;&gt; ''
 		    GROUP BY oi.lot_no
-		  ) used ON used.lot_no = ii.lot_no
+		  ) used
+		    ON used.lot_no = ii.lot_no
 		
 		  WHERE i.inbound_status = '입고완료'
+		    AND (i.usage_status IS NULL OR i.usage_status &lt;&gt; 'FULLY_USED')
+		
+		  <if test="workOrderId != null and workOrderId != ''">
+		    /* (옵션) 특정 WO 컨텍스트일 때만: 그 WO에 남은 필요가 있는 경우만 */
+		    AND EXISTS (
+		      SELECT 1
+		      FROM (
+		        SELECT wom.material_id,
+		               SUM(wom.required_qty) AS req,
+		               COALESCE(SUM(oi.quantity),0) AS issued
+		        FROM work_order_material wom
+		        LEFT JOIN material_outbound mo2
+		          ON mo2.work_order_id = wom.work_order_id
+		         AND mo2.status IN ('DRAFT','ISSUED')
+		        LEFT JOIN material_outbound_item oi
+		          ON oi.outbound_id = mo2.outbound_id
+		         AND oi.material_id  = wom.material_id
+		        WHERE wom.work_order_id = #{workOrderId}
+		        GROUP BY wom.material_id
+		        HAVING COALESCE(SUM(oi.quantity),0) &lt; SUM(wom.required_qty)
+		      ) remain
+		    )
+		  </if>
 		
 		  GROUP BY
 		    i.inbound_id, i.order_id, i.inbound_date,
-		    moi.work_order_id, wo.product_id, wo.line_id, wo.due_date,
-		    used.total_used_qty
+		    moi.work_order_id, wo.product_id, wo.line_id, wo.due_date
 		
-		  HAVING (SUM(ii.quantity) - COALESCE(used.total_used_qty, 0)) > 0
+		  HAVING (SUM(ii.quantity) - SUM(COALESCE(used.used_qty, 0))) &gt; 0
 		  ORDER BY i.inbound_date DESC
 		</select>
+
 
 
 
@@ -474,15 +503,6 @@
 		         updated_at = NOW()
 		   WHERE order_id = #{_parameter}
 		</update>
-		
-		<!-- (선택) 전부 충족되면 지시상태도 완료 같은 걸로 바꾸고 싶으면 사용 -->
-		<update id="updateWorkOrderIssuedCompleted" parameterType="string">
-		  UPDATE work_order
-		     SET status = 'ISSUED_COMPLETED',
-		         updated_at = NOW()
-		   WHERE order_id = #{_parameter}
-		</update>
-		
 		
 <!-- ================================================================= -->
 <!-- 4. 새로 추가할 쿼리들 -->
@@ -555,6 +575,32 @@
 	  END
 	  WHERE i.inbound_id = #{inboundId}
 	</update>
+	
+	<!-- 이번 출고로 사용된 입고건 찾기 -->
+	<select id="findInboundIdsByOutbound" parameterType="string" resultType="string">
+	  SELECT DISTINCT ii.inbound_id
+	  FROM material_outbound_item oi
+	  JOIN material_inbound_item  ii ON ii.lot_no = oi.lot_no
+	  WHERE oi.outbound_id = #{outboundId}
+	</select>
+	
+	<!-- 출고 → 작업지시서 ID 역추적 -->
+	<select id="getWorkOrderIdByOutbound" parameterType="string" resultType="string">
+	  SELECT o.work_order_id
+	  FROM material_outbound o
+	  WHERE o.outbound_id = #{outboundId}
+	</select>
+	
+	<!-- 작업지시 상태 갱신: WAITING → READY (이미 READY면 그대로) -->
+	<update id="updateWorkOrderStatus" parameterType="map">
+	  UPDATE work_order
+	     SET status = #{status},
+	         updated_at = NOW()
+	   WHERE order_id = #{workOrderId}
+	     AND (status IS NULL OR status = 'WAITING')
+	</update>
+	
+	
 
 
 
