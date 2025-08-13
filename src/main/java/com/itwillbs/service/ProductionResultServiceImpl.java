@@ -15,7 +15,7 @@ import com.itwillbs.domain.ProductionResultVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.ProductionResultDTO;
 import com.itwillbs.mapper.ProductionResultMapper;
-import com.itwillbs.mapper.WorkOrderMapper; // ✅ 추가
+import com.itwillbs.mapper.WorkOrderMapper; 
 import com.itwillbs.persistence.ProductInboundDAO;
 import com.itwillbs.persistence.ProductionResultDAO;
 
@@ -219,5 +219,62 @@ public class ProductionResultServiceImpl implements ProductionResultService {
             throw new IllegalArgumentException("존재하지 않는 생산실적입니다: " + resultId);
         }
         return result;
+    }
+    
+ // 기존 ServiceImpl 클래스에 추가
+
+    @Override
+    public boolean checkNeedSupplement(String orderId) {
+        try {
+            // ✅ 기존 selectWorkOrderProgress 사용
+            Map<String, Object> workOrderInfo = productionResultMapper.selectWorkOrderProgress(orderId);
+            if (workOrderInfo == null) {
+                return false;
+            }
+            
+            Integer orderQty = (Integer) workOrderInfo.get("order_qty");
+            if (orderQty == null) {
+                return false;
+            }
+            
+            // 해당 작업지시의 총 양품 수량 계산
+            int totalProduced = productionResultMapper.selectTotalProducedQty(orderId);
+            int totalDefect = productionResultMapper.selectTotalDefectQty(orderId);
+            int goodQty = totalProduced - totalDefect;
+            
+            boolean needSupplement = goodQty < orderQty;
+            
+                  return needSupplement;
+            
+        } catch (Exception e) {
+            log.error("보완생산 체크 중 오류: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    @Override
+    public int getShortageQty(String orderId) {
+        try {
+            // ✅ 기존 selectWorkOrderProgress 사용
+            Map<String, Object> workOrderInfo = productionResultMapper.selectWorkOrderProgress(orderId);
+            if (workOrderInfo == null) {
+                return 0;
+            }
+            
+            Integer orderQty = (Integer) workOrderInfo.get("order_qty");
+            if (orderQty == null) {
+                return 0;
+            }
+            
+            int totalProduced = productionResultMapper.selectTotalProducedQty(orderId);
+            int totalDefect = productionResultMapper.selectTotalDefectQty(orderId);
+            int goodQty = totalProduced - totalDefect;
+            
+            return Math.max(0, orderQty - goodQty);
+            
+        } catch (Exception e) {
+            log.error("부족수량 계산 중 오류: {}", e.getMessage());
+            return 0;
+        }
     }
 }

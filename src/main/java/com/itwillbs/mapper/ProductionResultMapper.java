@@ -1,11 +1,8 @@
 package com.itwillbs.mapper;
-
 import java.util.List;
 import java.util.Map;
-
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
 import com.itwillbs.domain.SearchCriteria;
 
 @Mapper
@@ -49,4 +46,15 @@ public interface ProductionResultMapper {
      * 작업지시의 현재 진행 상황 조회 (참고용)
      */
     Map<String, Object> selectWorkOrderProgress(String orderId);
+    
+    // ✅ 보완생산 관련 추가
+    /**
+     * 작업지시별 총 생산량 조회
+     */
+    int selectTotalProducedQty(String orderId);
+    
+    /**
+     * 작업지시별 총 불량량 조회  
+     */
+    int selectTotalDefectQty(String orderId);
 }

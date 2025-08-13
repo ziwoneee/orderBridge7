@@ -1,6 +1,8 @@
 package com.itwillbs.mapper;
 
 import java.util.List;
+import java.util.Map;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import com.itwillbs.domain.SearchCriteria;
@@ -207,5 +209,6 @@ public interface WorkOrderMapper {
     // 실적 반영 (누적/상태 업데이트)
     int applyResultToWorkOrder(@Param("orderId") String orderId);
     
+    Map<String, Object> selectWorkOrderById(String orderId);
 
 }

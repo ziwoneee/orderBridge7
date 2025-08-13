@@ -543,6 +543,18 @@
 	  WHERE w.order_id = #{orderId}
 	  ]]>
 	</update>
+	
+	
+	<select id="selectWorkOrderById" parameterType="string" resultType="map">
+    SELECT 
+        order_id,
+        order_qty,
+        status,
+        product_id,
+        line_id
+    FROM work_order 
+    WHERE order_id = #{orderId}
+</select>
 		
 
 

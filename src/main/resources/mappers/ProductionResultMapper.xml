@@ -305,4 +305,19 @@
   WHERE order_id = #{orderId}
 </select>
 
+
+<!-- 작업지시별 총 생산량 조회 -->
+<select id="selectTotalProducedQty" parameterType="String" resultType="int">
+    SELECT COALESCE(SUM(actual_qty), 0)
+    FROM production_result 
+    WHERE order_id = #{orderId}
+</select>
+
+<!-- 작업지시별 총 불량량 조회 -->
+<select id="selectTotalDefectQty" parameterType="String" resultType="int">
+    SELECT COALESCE(SUM(defect_qty), 0)
+    FROM production_result 
+    WHERE order_id = #{orderId}
+</select>
+
 </mapper>
