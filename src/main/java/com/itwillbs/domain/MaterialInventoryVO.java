@@ -28,5 +28,6 @@ public class MaterialInventoryVO {
     private String unit;            // 단위
     private int safetyStock;        // 안전재고 기준 (material 테이블에서 가져옴)
     private String materialType;
+    private String stockStatus;
 
 }

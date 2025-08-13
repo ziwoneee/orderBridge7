@@ -32,6 +32,12 @@ public class MaterialInventoryDAOImpl implements MaterialInventoryDAO {
 	public int selectInventoryCount(SearchCriteria cri) throws Exception {
 		return sqlSession.selectOne(NAMESPACE + "selectInventoryCount", cri);
 	}
+	
+	// 상태별 카운트 조회
+	@Override
+    public Map<String, Object> selectStatusCounts() throws Exception {
+        return sqlSession.selectOne(NAMESPACE + "selectStatusCounts");
+    }
 
 	
 	// material_id로 LOT 목록 조회

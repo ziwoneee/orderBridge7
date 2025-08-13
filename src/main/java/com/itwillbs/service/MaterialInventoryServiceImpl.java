@@ -1,6 +1,7 @@
 package com.itwillbs.service;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -35,6 +36,11 @@ public class MaterialInventoryServiceImpl implements MaterialInventoryService {
 	public int getInventoryCount(SearchCriteria cri) throws Exception {
 		return miDAO.selectInventoryCount(cri);
 	}
+	
+	// 상태별 카운트 조회
+    public Map<String, Object> getStatusCounts() throws Exception {
+        return miDAO.selectStatusCounts();
+    }
 
 
 	// material_id로 LOT 목록 조회

@@ -1,6 +1,7 @@
 package com.itwillbs.service;
 
 import java.util.List;
+import java.util.Map;
 
 import com.itwillbs.domain.MaterialInventoryVO;
 import com.itwillbs.domain.SearchCriteria;
@@ -15,6 +16,9 @@ public interface MaterialInventoryService {
 	
 	// 자재 재고 전체 건수 조회 (페이징용)
 	int getInventoryCount(SearchCriteria cri) throws Exception;
+	
+	// 상태별 카운트 조회
+	Map<String, Object> getStatusCounts() throws Exception;
 	
 	// material_id로 LOT 목록 조회
 	List<MaterialInventoryVO> getLotListByMaterialId(String materialId) throws Exception;
