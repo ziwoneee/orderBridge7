@@ -25,12 +25,28 @@
           <!-- 검색 영역 -->
           <div class="col-12 mb-3">
             <form id="stockForm" action="${pageContext.request.contextPath}/product/stocklist" method="get" class="form-inline">
+              <select name="sortColumn" class="form-control mr-2">		               
+		                <option value="all" ${cri.sortColumn eq 'all' ? 'selected' : ''}>전체</option>
+		                <option value="product_name" ${cri.sortColumn eq 'product_name' ? 'selected' : ''}>제품명</option>
+		                <option value="lot_no" ${cri.sortColumn eq 'lot_no' ? 'selected' : ''}>LOT번호</option>
+		         </select>          
+              
+              
+              
               <input type="hidden" name="mode" value="${param.mode}" />
               <input type="date" name="startDate" class="form-control mr-2" value="${param.startDate}">
               <span>~</span>
               <input type="date" name="endDate" class="form-control mx-2" value="${param.endDate}">
               <input type="text" name="keyword" class="form-control mx-2" placeholder="제품명, LOT 번호 검색" value="${param.keyword}">
-                           <button type="button" class="btn btn-primary me-2" onclick="viewAll()"><i class="ti-search"></i> 검색</button>
+              
+              
+              
+              
+               <button type="submit" class="btn btn-primary me-2"><i class="ti-search"></i>검색</button>
+                <a href="/product/stocklist" class="btn btn-light">
+          <i class="ti-reload"></i> 초기화
+        </a>
+           
            <div class="d-flex justify-content-end ">
 			  <a href="${pageContext.request.contextPath}/product/stocklist"class="btn btn-success ml-5">
 			    ⟳ 실시간 업데이트
@@ -285,106 +301,25 @@
 
 
 <script>
-  // 시작 날짜 선택 시 → 종료 날짜 최소값 변경
-  document.querySelector('input[name="startDate"]').addEventListener('change', function () {
-    const startDate = this.value;
-    const endDateInput = document.querySelector('input[name="endDate"]');
+//시작 날짜 선택 시 → 종료 날짜 최소값 변경
+document.querySelector('input[name="startDate"]').addEventListener('change', function () {
+  const startDate = this.value;
+  const endDateInput = document.querySelector('input[name="endDate"]');
 
-    if (startDate) {
-      endDateInput.min = startDate;
+  if (startDate) {
+    // 종료일의 최소값을 시작일과 같은 날짜로 설정 (같은 날짜 허용)
+    endDateInput.min = startDate;
 
-      // 현재 선택된 endDate가 startDate보다 이전이면 초기화
-      if (endDateInput.value && endDateInput.value < startDate) {
-        endDateInput.value = '';
-      }
+    // 현재 선택된 endDate가 startDate보다 이전이면 시작일과 동일하게 설정
+    if (endDateInput.value && endDateInput.value < startDate) {
+      endDateInput.value = startDate; // 같은 날짜로 자동 설정
     }
-  });
+  }
+});
+
 </script>
 
 
-<style>
-/* 언더라인 탭 스타일 - 상단 라인 */
-.nav-underline-custom {
-    border-bottom: 1px solid #dee2e6;
-    margin-bottom: 0;
-}
-
-.nav-underline-custom .nav-link {
-    border: none;
-    border-top: 3px solid transparent;
-    color: #6c757d;
-    padding: 0.75rem 1.5rem;
-    font-weight: 500;
-    background: none;
-}
-
-.nav-underline-custom .nav-link.active {
-    color: #1C355E;
-    border-top-color: #1C355E;
-    background: none;
-    font-weight: 700;
-}
-
-.nav-underline-custom .nav-link:hover {
-    color: #1C355E;
-    border-top-color: rgba(28, 53, 94, 0.5);
-    background: none;
-}
-
-/* 배지 스타일 */
-.nav-link .badge {
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-
-/* 체크박스 스타일 */
-.highlight-checkbox {
-    width: 18px;
-    height: 18px;
-    accent-color: #28a745;
-    cursor: pointer;
-}
-
-.highlight-checkbox:hover {
-    box-shadow: 0 0 5px #28a745;
-    transform: scale(1.1);
-    transition: all 0.2s ease;
-}
-
-/* 테이블 호버 효과 */
-.table-hover tbody tr:hover {
-    background-color: rgba(28, 53, 94, 0.05);
-}
-
-/* 정렬 링크 스타일 */
-.table thead th a:hover {
-    color: #f8f9fa !important;
-    text-decoration: underline !important;
-}
-
-/* 페이지네이션 호버 효과 */
-.page-link:hover {
-    background-color: rgba(28, 53, 94, 0.1);
-    border-color: #1C355E;
-    color: #1C355E;
-}
-
-/* 버튼 호버 효과 */
-.btn-primary:hover {
-    background-color: #152a4a !important;
-    border-color: #152a4a !important;
-}
-
-/* 탭 콘텐츠 부드러운 전환 */
-.tab-content {
-    margin-top: 20px;
-}
- .neutral-arrow {
-    color: #ccc;
-    font-size: 12px;
-    margin-left: 4px;
-  }
-</style>
 
 <script src="${pageContext.request.contextPath}/resources/js/lotHistory.js"></script>
 

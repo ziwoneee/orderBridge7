@@ -181,11 +181,7 @@
 
   <!-- ✅ 기본 정보 -->
   <table class="table table-bordered table-sm mb-4 align-middle text-center">
-    <thead class="table-primary">
-      <tr>
-        <th colspan="8" class="text-start ps-3">기본 정보</th>
-      </tr>
-    </thead>
+   
     <tbody>
       <tr>
         <th class="bg-light">실적번호</th>
