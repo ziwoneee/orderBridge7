@@ -220,4 +220,31 @@ public class ProductionResultServiceImpl implements ProductionResultService {
         }
         return result;
     }
-}
+    
+    // LOT번호별 생산 입고 상세 조회
+    @Override
+    @Transactional(readOnly = true)
+    public ProductionResultDTO getLatestDetailByLot(String lotNo) {
+        if (lotNo == null || lotNo.trim().isEmpty()) return null;
+        String rid = productionResultDAO.getLatestResultIdByLot(lotNo.trim());
+        if (rid == null) return null;
+        ProductionResultDTO dto = productionResultDAO.getDetailByResultId(rid);
+        computeDerived(dto);
+        return dto;
+    }
+
+    /** 달성률/불량률 계산만 수행 (불량목록 없음) */
+    private void computeDerived(ProductionResultDTO dto) {
+        if (dto == null) return;
+        int actual = dto.getActualQty() == null ? 0 : dto.getActualQty();
+        int defect = dto.getDefectQty() == null ? 0 : dto.getDefectQty();
+        int plan   = dto.getOrderQty()  == null ? 0 : dto.getOrderQty();
+
+        int total = actual + defect;
+        dto.setDefectRate(total > 0 ? (defect * 100.0 / total) : null);
+        dto.setAchievementRate(plan  > 0 ? (actual * 100.0 / plan) : null);
+
+        // dto.setDefectList(null); // DTO에 필드가 남아있어도 비우고 넘김(원하면 DTO에서 필드 삭제)
+    }
+
+    }

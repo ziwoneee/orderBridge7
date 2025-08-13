@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.itwillbs.domain.ProductInboundVO;
 import com.itwillbs.domain.ProductionResultVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.ProductionResultDTO;
 import com.itwillbs.persistence.ProductInboundDAO;
 import com.itwillbs.persistence.ProductStockDAO;
 import com.itwillbs.persistence.ProductionResultDAO;
@@ -193,5 +194,5 @@ public class ProductInboundServiceImpl implements ProductInboundService {
     public int countInboundList(SearchCriteria cri) {
         return inboundDAO.countInboundList(cri);
     }
-
+   
 }

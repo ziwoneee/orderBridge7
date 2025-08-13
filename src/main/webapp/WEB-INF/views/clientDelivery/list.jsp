@@ -80,7 +80,7 @@
                   <a class="nav-link ${param.tab == 'reservation' ? 'active' : ''}"
                      href="/shipment/list?tab=reservation&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&page=1&perPageNum=${cri.perPageNum}">
                     예약 관리
-                    <span class="badge badge-light ms-1">${fn:length(reservationList)}</span>
+                    <span class="badge badge-light ms-1">${reservationCount}</span>
                   </a>
                 </li>
 

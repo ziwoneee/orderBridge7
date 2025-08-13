@@ -31,6 +31,13 @@ public interface ProductionResultService {
      */
     void saveAllToInbound();
     
+    /**
+     * 
+     * lotNo별 입고 생산 실적 상세 모달 조회
+     * 
+     */
+    ProductionResultDTO getLatestDetailByLot(String lotNo);
+    
     // ===========================
     // 태현 흐름: 목록/조회
     // ===========================

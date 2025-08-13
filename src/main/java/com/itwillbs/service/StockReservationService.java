@@ -6,6 +6,7 @@ import com.itwillbs.dto.LotStockDTO;
 import com.itwillbs.dto.ReservationDetailDTO;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * ✅ 재고 예약 관련 서비스 인터페이스
@@ -69,7 +70,7 @@ public interface StockReservationService {
     //예약상세 모달
     ReservationDetailDTO getReservationDetail(String lotNo, String clOrderId);
 
-
+   
 	
 
 }

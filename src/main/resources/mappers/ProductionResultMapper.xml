@@ -114,6 +114,48 @@
   ORDER BY created_at DESC
 </select>
 
+ <!-- ✅ LOT 기준 최신 result_id -->
+	 <select id="getLatestResultIdByLot" parameterType="String" resultType="String">
+	  SELECT result_id
+	  FROM production_result
+	  WHERE lot_no = #{lotNo}
+	  ORDER BY created_at DESC
+	  LIMIT 1
+	</select>
+
+
+  <!-- ✅ 상세 조회 (DTO에 맞춰 alias) -->
+  <select id="getDetailByResultId" parameterType="string"
+          resultType="com.itwillbs.dto.ProductionResultDTO">
+    SELECT
+      pr.result_id     AS resultId,
+      pr.order_id      AS orderId,
+      pr.product_id    AS productId,
+      pr.lot_no        AS lotNo,
+      pr.actual_qty    AS actualQty,
+      pr.defect_qty    AS defectQty,
+      pr.worker_name   AS workerName,
+      pr.started_at    AS startedAt,
+      pr.ended_at      AS endedAt,
+      pr.created_at    AS createdAt,
+
+      p.product_name   AS productName,
+
+      wo.order_qty     AS orderQty,
+      wo.order_manager AS orderManager,
+      wo.status        AS status,
+      wo.line_id       AS lineId,
+      wo.priority      AS priority,
+      wo.due_date      AS dueDate,
+
+      pl.line_name     AS lineName
+    FROM production_result pr
+    JOIN product p       ON p.product_id = pr.product_id
+    JOIN work_order wo   ON wo.order_id  = pr.order_id
+    LEFT JOIN production_line pl ON pl.line_id = wo.line_id
+    WHERE pr.result_id = #{resultId}
+  </select>
+  
 <!-- ..............완제품 입고등록 아름 끝.................... -->
 
 <!-- ============== ID 시퀀스 생성 (DB 기반) ============== -->
