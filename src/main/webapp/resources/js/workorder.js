@@ -33,7 +33,13 @@ $(document).ready(function () {
     $('#detailModal').on('hidden.bs.modal', function () {
         $(this).find('.modal-content').empty();
     });
-    
+
+    // ============================
+    // ✅ IN_PROGRESS 드롭다운 차단
+    // (상태 변경 select가 있는 경우 방어)
+    // ============================
+    $('.js-status-select option[value="IN_PROGRESS"]').remove();
+
     console.log('작업지시 관리 JavaScript 로드 완료');
 });
 
@@ -115,7 +121,7 @@ function saveChanges() {
     // 현재 입력값들
     const lineId = $('#lineSelect').val();
     const remarks = $('#remarksTextarea').val();
-    const priority = $('#prioritySelect').val(); // ← 이것만 남기고
+    const priority = $('#prioritySelect').val(); // ← 우선순위 전송
     
     // 유효성 검사
     if (!lineId) {
@@ -134,7 +140,7 @@ function saveChanges() {
         method: 'POST',
         data: {
             orderId: orderId,
-            priority: priority,  // ← 새로운 우선순위 값 전송
+            priority: priority,
             lineId: lineId,
             remarks: remarks
         },
@@ -149,7 +155,7 @@ function saveChanges() {
                 // data 속성 업데이트
                 workOrderData.data('line-id', lineId);
                 workOrderData.data('remarks', remarks);
-                workOrderData.data('priority', priority); // ← 우선순위도 업데이트
+                workOrderData.data('priority', priority);
                 
                 // 편집 모드 종료
                 cancelEditMode();
@@ -220,6 +226,38 @@ function deleteWorkOrder(orderId) {
 }
 
 // ========================================================================
+// ✅ 생산 시작 (READY → IN_PROGRESS)
+// 상세 모달에서 생산 시작 (READY -> IN_PROGRESS)
+// ========================================================================
+$(document).on('click', '.js-start-production', function (e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const orderId = $(this).data('order-id');
+  if (!orderId) return alert('작업지시 번호가 없습니다.');
+
+  if (!confirm('이 작업지시를 생산 시작(IN_PROGRESS)으로 전환할까요?')) return;
+
+  $.ajax({
+    url: '/workorder/start/' + encodeURIComponent(orderId), // ★ 전용 URL
+    method: 'POST',
+    success: function (res) {
+      if (res && res.success) {
+        alert('생산을 시작했습니다.');
+        $('#detailModal').modal('hide');
+        setTimeout(() => location.reload(), 150);
+      } else {
+        alert(res && res.message ? res.message : '처리 실패');
+      }
+    },
+    error: function () {
+      alert('서버 오류가 발생했습니다.');
+    }
+  });
+});
+
+
+// ========================================================================
 // 작업지시 등록 관련
 // ========================================================================
 
@@ -271,29 +309,26 @@ function openOrderSelectionPopup() {
  * 팝업에서 선택한 수주 데이터 처리
  */
 function receiveOrderData(orderData) {
-	  if (!orderData || !orderData.clOrderIds || orderData.clOrderIds.length === 0) {
-	    alert("유효하지 않은 수주 정보입니다.");
-	    return;
-	  }
+    if (!orderData || !orderData.clOrderIds || orderData.clOrderIds.length === 0) {
+        alert("유효하지 않은 수주 정보입니다.");
+        return;
+    }
 
-	  console.log("받은 병합 수주 정보:", orderData);
+    console.log("받은 병합 수주 정보:", orderData);
 
-	  // 수량, 납기일 입력
-	  $('#orderQty').val(orderData.orderQty);
-	  $('#dueDate').val(orderData.dueDate);
+    // 수량, 납기일 입력
+    $('#orderQty').val(orderData.orderQty);
+    $('#dueDate').val(orderData.dueDate);
 
-	  // 숨겨진 수주번호들 추가
-	  $('#workOrderForm').find('input[name="clOrderIds"]').remove(); // 기존 제거
-	  orderData.clOrderIds.forEach(clOrderId => {
-	    $('#workOrderForm').append(`<input type="hidden" name="clOrderIds" value="${clOrderId}">`);
-	  });
+    // 숨겨진 수주번호들 추가
+    $('#workOrderForm').find('input[name="clOrderIds"]').remove(); // 기존 제거
+    orderData.clOrderIds.forEach(clOrderId => {
+        $('#workOrderForm').append(`<input type="hidden" name="clOrderIds" value="${clOrderId}">`);
+    });
 
-	  // BOM 불러오기
-	  loadBom(orderData.productId, orderData.orderQty);
-	}
-
-
-
+    // BOM 불러오기
+    loadBom(orderData.productId, orderData.orderQty);
+}
 
 // ========================================================================
 // 유틸리티 함수
@@ -359,42 +394,40 @@ function getStatusInfo(status) {
 }
 
 function loadBom(productId, orderQty) {
-	  $.ajax({
-	    url: '/workorder/getBomByProduct',
-	    type: 'GET',
-	    data: { 
-	      productId: productId, 
-	      orderQty: orderQty 
-	    },
-	    success: function(bomList) {
-	      var tbody = $('#bomTableBody');
-	      tbody.empty();
-	      
-	      if (!bomList || bomList.length === 0) {
-	        tbody.html('<tr><td colspan="6" class="text-center text-muted">BOM 정보 없음</td></tr>');
-	        return;
-	      }
-	      
-	      var packs = orderQty / 10;
-	      
-	      for (var i = 0; i < bomList.length; i++) {
-	        var item = bomList[i];
-	        var total = item.qty * packs;
-	        var row = '<tr>' +
-	                  '<td>' + item.materialId + '</td>' +
-	                  '<td>' + item.materialName + '</td>' +
-	                  '<td>' + item.materialType + '</td>' +
-	                  '<td class="text-center">' + item.qty + '</td>' +
-	                  '<td class="text-center font-weight-bold">' + total.toFixed(1) + '</td>' +
-	                  '<td>' + item.unit + '</td>' +
-	                  '</tr>';
-	        tbody.append(row);
-	      }
-	    },
-	    error: function() {
-	      $('#bomTableBody').html('<tr><td colspan="6" class="text-center text-danger">로딩 실패</td></tr>');
-	    }
-	  });
-	}
-
-
+    $.ajax({
+        url: '/workorder/getBomByProduct',
+        type: 'GET',
+        data: { 
+            productId: productId, 
+            orderQty: orderQty 
+        },
+        success: function(bomList) {
+            var tbody = $('#bomTableBody');
+            tbody.empty();
+            
+            if (!bomList || bomList.length === 0) {
+                tbody.html('<tr><td colspan="6" class="text-center text-muted">BOM 정보 없음</td></tr>');
+                return;
+            }
+            
+            var packs = orderQty / 10;
+            
+            for (var i = 0; i < bomList.length; i++) {
+                var item = bomList[i];
+                var total = item.qty * packs;
+                var row = '<tr>' +
+                            '<td>' + item.materialId + '</td>' +
+                            '<td>' + item.materialName + '</td>' +
+                            '<td>' + item.materialType + '</td>' +
+                            '<td class="text-center">' + item.qty + '</td>' +
+                            '<td class="text-center font-weight-bold">' + total.toFixed(1) + '</td>' +
+                            '<td>' + item.unit + '</td>' +
+                          '</tr>';
+                tbody.append(row);
+            }
+        },
+        error: function() {
+            $('#bomTableBody').html('<tr><td colspan="6" class="text-center text-danger">로딩 실패</td></tr>');
+        }
+    });
+}

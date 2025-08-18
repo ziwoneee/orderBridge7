@@ -76,7 +76,7 @@
                       대기 <span class="badge badge-light ms-1">${waitingCount}</span>
                     </a>
                   </li>
-                  <!-- ✅ READY 탭 추가 -->
+                  <!--  READY 탭 추가 -->
                   <li class="nav-item">
                     <a class="nav-link ${cri.status == 'READY' ? 'active' : ''}" 
                        href="/workorder/list?status=READY&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
@@ -110,62 +110,60 @@
   <table class="table table-hover">
     <thead style="background-color: #1C355E; color: white; border-top: none;">
       <tr>
-        <thead style="background-color: #1C355E; color: white; border-top: none;">
-  <tr>
-    <!-- ✅ 작업지시번호 정렬 O -->
-    <th>
-      <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=order_id&sortOrder=${cri.sortColumn == 'order_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-         class="text-white text-decoration-none">
-        작업지시번호 
-        <c:if test="${cri.sortColumn == 'order_id'}">
-          <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-        </c:if>
-      </a>
-    </th>
+        <!-- 작업지시번호 -->
+        <th>
+          <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=order_id&sortOrder=${cri.sortColumn == 'order_id' && cri.sortOrder == 'ASC' ? 'DESC' : 'ASC'}"
+             class="text-white text-decoration-none">
+            작업지시번호
+            <c:if test="${cri.sortColumn == 'order_id'}">
+              <i class="ti-arrow-${cri.sortOrder == 'ASC' ? 'up' : 'down'}"></i>
+            </c:if>
+          </a>
+        </th>
 
-    <!-- ✅ 작업지시일자 정렬 O -->
-    <th>
-      <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=created_at&sortOrder=${cri.sortColumn == 'created_at' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-         class="text-white text-decoration-none">
-        작업지시일자
-        <c:if test="${cri.sortColumn == 'created_at'}">
-          <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-        </c:if>
-      </a>
-    </th>
+        <!-- 작업지시일자 -->
+        <th>
+          <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=created_at&sortOrder=${cri.sortColumn == 'created_at' && cri.sortOrder == 'ASC' ? 'DESC' : 'ASC'}"
+             class="text-white text-decoration-none">
+            작업지시일자
+            <c:if test="${cri.sortColumn == 'created_at'}">
+              <i class="ti-arrow-${cri.sortOrder == 'ASC' ? 'up' : 'down'}"></i>
+            </c:if>
+          </a>
+        </th>
 
-    <!-- ✅ 납기일 정렬 O -->
-    <th>
-      <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=due_date&sortOrder=${cri.sortColumn == 'due_date' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-         class="text-white text-decoration-none">
-        납기일
-        <c:if test="${cri.sortColumn == 'due_date'}">
-          <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-        </c:if>
-      </a>
-    </th>
+        <!-- 납기일 -->
+        <th>
+          <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=due_date&sortOrder=${cri.sortColumn == 'due_date' && cri.sortOrder == 'ASC' ? 'DESC' : 'ASC'}"
+             class="text-white text-decoration-none">
+            납기일
+            <c:if test="${cri.sortColumn == 'due_date'}">
+              <i class="ti-arrow-${cri.sortOrder == 'ASC' ? 'up' : 'down'}"></i>
+            </c:if>
+          </a>
+        </th>
 
-    <!-- 일반 텍스트 컬럼들 (정렬 X) -->
-    <th>라인ID</th>
-    <th>제품명</th>
-    <th>생산수량</th>
-    <th>작업지시자</th>
+        <!-- 일반 컬럼 -->
+        <th>라인ID</th>
+        <th>제품명</th>
+        <th>생산수량</th>
+        <th>작업지시자</th>
 
-    <!-- ✅ 우선순위 정렬 O -->
-    <th>
-      <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=priority&sortOrder=${cri.sortColumn == 'priority' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-         class="text-white text-decoration-none">
-        우선순위
-        <c:if test="${cri.sortColumn == 'priority'}">
-          <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
-        </c:if>
-      </a>
-    </th>
+        <!-- 우선순위 -->
+        <th>
+          <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=priority&sortOrder=${cri.sortColumn == 'priority' && cri.sortOrder == 'ASC' ? 'DESC' : 'ASC'}"
+             class="text-white text-decoration-none">
+            우선순위
+            <c:if test="${cri.sortColumn == 'priority'}">
+              <i class="ti-arrow-${cri.sortOrder == 'ASC' ? 'up' : 'down'}"></i>
+            </c:if>
+          </a>
+        </th>
 
-    <th>상태</th>
-    <th>상세</th>
-  </tr>
-</thead>
+        <th>상태</th>
+        <th>상세</th>
+      </tr>
+    </thead>
 
     <tbody>
       <c:forEach var="workOrder" items="${workOrders}">
@@ -188,7 +186,7 @@
                 <span class="badge badge-warning">높음</span>
               </c:when>
               <c:when test="${workOrder.priority == 'NORMAL'}">
-                <span class="badge badge-info">보통</span>
+             	  <span class="badge badge-success">보통</span>
               </c:when>
               <c:when test="${workOrder.priority == 'LOW'}">
                 <span class="badge badge-secondary">낮음</span>
@@ -214,6 +212,7 @@
               </c:otherwise>
             </c:choose>
           </td>
+          
           <td>
             <a href="#" 
                onclick="openDetailModal('${workOrder.orderId}')" 
@@ -227,7 +226,7 @@
       <!-- 데이터 없을 때 -->
       <c:if test="${empty workOrders}">
         <tr>
-          <td colspan="11" class="text-center py-4">
+          <td colspan="10" class="text-center py-4">
             <div class="text-muted">
               <i class="ti-info-alt" style="font-size: 24px;"></i>
               <p class="mt-2">조회된 작업지시가 없습니다.</p>

@@ -200,6 +200,18 @@
         <i class="fas fa-edit"></i> 수정
       </button>
     </c:if>
+    
+     <!-- ✅ READY: 생산 시작 버튼 -->
+	  <c:if test="${workOrder.status == 'READY'}">
+	    <button type="button"
+	            class="btn btn-primary js-start-production"
+	            data-order-id="${workOrder.orderId}">
+	      생산 시작
+	    </button>
+	  </c:if>
+	
+    
+    
 
     <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
   </div>
