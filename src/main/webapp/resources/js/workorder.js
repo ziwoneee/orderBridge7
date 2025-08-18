@@ -111,15 +111,20 @@ function saveChanges() {
     // data 속성에서 값 가져오기
     const workOrderData = $('#workOrderData');
     const orderId = workOrderData.data('order-id');
-    const priority = workOrderData.data('priority');
     
-    // 현재 입력값
+    // 현재 입력값들
     const lineId = $('#lineSelect').val();
     const remarks = $('#remarksTextarea').val();
+    const priority = $('#prioritySelect').val(); // ← 이것만 남기고
     
     // 유효성 검사
     if (!lineId) {
         alert('라인을 선택해주세요.');
+        return;
+    }
+    
+    if (!priority) {
+        alert('우선순위를 선택해주세요.');
         return;
     }
     
@@ -129,7 +134,7 @@ function saveChanges() {
         method: 'POST',
         data: {
             orderId: orderId,
-            priority: priority,
+            priority: priority,  // ← 새로운 우선순위 값 전송
             lineId: lineId,
             remarks: remarks
         },
@@ -144,9 +149,15 @@ function saveChanges() {
                 // data 속성 업데이트
                 workOrderData.data('line-id', lineId);
                 workOrderData.data('remarks', remarks);
+                workOrderData.data('priority', priority); // ← 우선순위도 업데이트
                 
                 // 편집 모드 종료
                 cancelEditMode();
+                
+                // 페이지 새로고침으로 목록도 업데이트
+                setTimeout(function() {
+                    location.reload();
+                }, 1000);
             }
         },
         error: function(xhr, status, error) {

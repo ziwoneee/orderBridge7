@@ -76,6 +76,13 @@
                       대기 <span class="badge badge-light ms-1">${waitingCount}</span>
                     </a>
                   </li>
+                  <!-- ✅ READY 탭 추가 -->
+                  <li class="nav-item">
+                    <a class="nav-link ${cri.status == 'READY' ? 'active' : ''}" 
+                       href="/workorder/list?status=READY&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+                      준비완료 <span class="badge badge-light ms-1">${readyCount}</span>
+                    </a>
+                  </li>
                   <li class="nav-item">
                     <a class="nav-link ${cri.status == 'IN_PROGRESS' ? 'active' : ''}" 
                        href="/workorder/list?status=IN_PROGRESS&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
@@ -192,6 +199,9 @@
             <c:choose>
               <c:when test="${workOrder.status == 'WAITING'}">
                 <span class="badge badge-secondary">대기</span>
+              </c:when>
+              <c:when test="${workOrder.status == 'READY'}">
+                <span class="badge badge-info">준비완료</span>
               </c:when>
               <c:when test="${workOrder.status == 'IN_PROGRESS'}">
                 <span class="badge badge-warning">생산중</span>

@@ -300,18 +300,27 @@ public class WorkOrderServiceImpl implements WorkOrderService {
         return bomList;
     }
     
-    
-
-
     /**
-     * 생산실적 등록 가능한 작업지시 목록 조회 (진행중 + 완료)
+     * 생산실적 등록 가능한 작업지시 목록 조회 (READY + IN_PROGRESS)
      */
     @Override
     public List<WorkOrderDTO> getInProgressOrders() {
+        log.debug("보완생산용 작업지시 목록 조회 (READY + IN_PROGRESS)");
         return workOrderMapper.selectInProgressOrders();
     }
+
+    /**
+     * ✅ 일반 생산실적 등록용 작업지시 조회 (IN_PROGRESS만)
+     */
+    @Override
+    public List<WorkOrderDTO> getInProgressOnlyOrders() {
+        log.debug("일반 등록용 작업지시 목록 조회 (IN_PROGRESS만)");
+        return workOrderMapper.selectInProgressOnlyOrders();
+    }
     
- // 작업지시 실적 반영(누적 합산 후 상태 자동 갱신)
+    /**
+     * 작업지시 실적 반영(누적 합산 후 상태 자동 갱신)
+     */
     @Override
     @Transactional
     public void refreshStatusByResults(String orderId) {

@@ -28,38 +28,46 @@
         <td colspan="5">${workOrder.orderId}</td>
       </tr>
 
-      <!-- 납기일 / 작업지시일자 / 수주번호 -->
+      <!-- 납기일 / 작업지시일자 -->
       <tr>
         <th class="bg-light">납기일</th>
         <td><fmt:formatDate value="${workOrder.dueDate}" pattern="yyyy-MM-dd"/></td>
         <th class="bg-light">작업지시일자</th>
-        <td><fmt:formatDate value="${workOrder.createdAt}" pattern="yyyy-MM-dd HH:mm:ss"/></td>
-        <th class="bg-light">수주번호</th>
-        <td>${workOrder.clOrderId}</td>
+        <td colspan="3"><fmt:formatDate value="${workOrder.createdAt}" pattern="yyyy-MM-dd HH:mm:ss"/></td>
       </tr>
 
-      <!-- 제품명 / 거래처 / 우선순위 -->
+      <!-- 제품명 / 우선순위 -->
       <tr>
         <th class="bg-light">제품명</th>
-        <td>${workOrder.productName}</td>
-        <th class="bg-light">거래처</th>
-        <td>${workOrder.clientName}</td>
+        <td colspan="3">${workOrder.productName}</td>
         <th class="bg-light">우선순위</th>
         <td>
-          <c:choose>
-            <c:when test="${workOrder.priority == 'EMERGENCY'}">
-              <span class="badge badge-danger">긴급</span>
-            </c:when>
-            <c:when test="${workOrder.priority == 'HIGH'}">
-              <span class="badge badge-warning text-dark">높음</span>
-            </c:when>
-            <c:when test="${workOrder.priority == 'NORMAL'}">
-              <span class="badge badge-info">보통</span>
-            </c:when>
-            <c:when test="${workOrder.priority == 'LOW'}">
-              <span class="badge badge-secondary">낮음</span>
-            </c:when>
-          </c:choose>
+          <!-- 보기 모드 -->
+          <div class="view-mode">
+            <c:choose>
+              <c:when test="${workOrder.priority == 'EMERGENCY'}">
+                <span class="badge badge-danger">긴급</span>
+              </c:when>
+              <c:when test="${workOrder.priority == 'HIGH'}">
+                <span class="badge badge-warning text-dark">높음</span>
+              </c:when>
+              <c:when test="${workOrder.priority == 'NORMAL'}">
+                <span class="badge badge-info">보통</span>
+              </c:when>
+              <c:when test="${workOrder.priority == 'LOW'}">
+                <span class="badge badge-secondary">낮음</span>
+              </c:when>
+            </c:choose>
+          </div>
+          <!-- 편집 모드 -->
+          <div class="edit-mode" style="display:none;">
+            <select id="prioritySelect" name="priority" class="form-control form-control-sm">
+              <option value="EMERGENCY" <c:if test="${workOrder.priority == 'EMERGENCY'}">selected</c:if>>긴급</option>
+              <option value="HIGH" <c:if test="${workOrder.priority == 'HIGH'}">selected</c:if>>높음</option>
+              <option value="NORMAL" <c:if test="${workOrder.priority == 'NORMAL'}">selected</c:if>>보통</option>
+              <option value="LOW" <c:if test="${workOrder.priority == 'LOW'}">selected</c:if>>낮음</option>
+            </select>
+          </div>
         </td>
       </tr>
 
@@ -79,11 +87,14 @@
             <c:when test="${workOrder.status == 'WAITING'}">
               <span class="badge badge-secondary">대기</span>
             </c:when>
+            <c:when test="${workOrder.status == 'READY'}">
+              <span class="badge badge-info">준비완료</span>
+            </c:when>
             <c:when test="${workOrder.status == 'IN_PROGRESS'}">
               <span class="badge badge-warning text-dark">생산중</span>
             </c:when>
             <c:when test="${workOrder.status == 'COMPLETED'}">
-              <span class="badge badge-success">완료</span>
+              <span class="badge badge-success">생산완료</span>
             </c:when>
             <c:otherwise>
               <span class="badge badge-light">${workOrder.status}</span>
@@ -181,13 +192,6 @@
 <div class="modal-footer justify-content-end">
   <!-- 보기 모드 버튼들 -->
   <div class="view-mode-buttons">
-    <!-- 보완 등록 버튼: 진행중/대기 상태에서 노출 -->
-    <c:if test="${workOrder.status == 'WAITING' || workOrder.status == 'IN_PROGRESS'}">
-      <button type="button" class="btn btn-info" onclick="openSupplementModal('${workOrder.orderId}')">
-        <i class="fas fa-plus"></i> 보완 등록
-      </button>
-    </c:if>
-
     <c:if test="${workOrder.status == 'WAITING'}">
       <button type="button" class="btn btn-danger" onclick="confirmDelete('${workOrder.orderId}')">
         <i class="fas fa-trash-alt"></i> 삭제
@@ -225,17 +229,5 @@
 </style>
 
 <script>
-/* ▼ 보완 등록 모달 열기(라우팅은 프로젝트 규칙에 맞춰 조정) */
-function openSupplementModal(orderId) {
-  // 예: /workorder/supplement/form?orderId=... 에서 모달용 HTML 반환
-  $('#supplementModal').remove(); // 중복 제거
-  $('body').append(
-    '<div class="modal fade" id="supplementModal" tabindex="-1" role="dialog" aria-hidden="true">' +
-      '<div class="modal-dialog modal-lg"><div class="modal-content"></div></div>' +
-    '</div>'
-  );
-  $.get('/workorder/supplement/form', { orderId: orderId })
-    .done(function (html) { $('#supplementModal .modal-content').html(html); $('#supplementModal').modal('show'); })
-    .fail(function () { alert('보완 등록 화면 로드에 실패했어요.'); });
-}
+// 기존 편집 관련 스크립트들이 여기에 들어가면 됩니다
 </script>

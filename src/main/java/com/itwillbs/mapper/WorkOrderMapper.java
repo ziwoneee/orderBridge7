@@ -200,15 +200,44 @@ public interface WorkOrderMapper {
      */
     int deleteWorkOrder(@Param("orderId") String orderId);
     
+    // ========================================================================
+    // ✅ 생산실적 등록용 작업지시 조회
+    // ========================================================================
 
     /**
-     * 생산실적 등록 가능한 작업지시 목록 조회 (진행중 + 완료)
+     * 생산실적 등록 가능한 작업지시 목록 조회 (READY + IN_PROGRESS)
+     * - 보완생산용: READY와 IN_PROGRESS 상태 모두 포함
+     * 
+     * @return READY, IN_PROGRESS 상태의 작업지시 목록
      */
     List<WorkOrderDTO> selectInProgressOrders();
     
-    // 실적 반영 (누적/상태 업데이트)
+    /**
+     * ✅ 일반 생산실적 등록용 작업지시 조회 (IN_PROGRESS만)
+     * - 일반 등록용: IN_PROGRESS 상태만 조회
+     * 
+     * @return IN_PROGRESS 상태의 작업지시 목록만
+     */
+    List<WorkOrderDTO> selectInProgressOnlyOrders();
+    
+    // ========================================================================
+    // 생산실적 연동
+    // ========================================================================
+    
+    /**
+     * 실적 반영 (누적/상태 업데이트)
+     * 
+     * @param orderId 작업지시번호
+     * @return 업데이트 성공 여부
+     */
     int applyResultToWorkOrder(@Param("orderId") String orderId);
     
+    /**
+     * 작업지시 기본 정보 조회 (Map 형태)
+     * 
+     * @param orderId 작업지시번호
+     * @return 작업지시 기본 정보
+     */
     Map<String, Object> selectWorkOrderById(String orderId);
 
 }

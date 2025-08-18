@@ -1,7 +1,5 @@
 package com.itwillbs.service;
-
 import java.util.List;
-
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.BomItemDTO;
 import com.itwillbs.dto.WorkOrderDTO;
@@ -33,10 +31,8 @@ public interface WorkOrderService {
     
     /**
      * 상태별 작업지시 개수 조회
-     * 상태별 작업지시 개수 조회
      */
     int getCountByStatus(String status);
-    
     
     /**
      * 확정 수주 목록 조회 (작업지시 등록용)
@@ -54,23 +50,18 @@ public interface WorkOrderService {
     
     /**
      * 작업지시 등록 서비스
-     * - 병합된 수주 정보 포함
-     * - 자재 소요량 계산 및 저장 포함
-     * 
-     * @param workOrderDTO 작업지시 정보 (제품, 수량, 병합 수주 리스트 등)
+     * @param workOrderDTO 작업지시 정보
      * @return 등록 성공 여부
      */
     int registerWorkOrder(WorkOrderDTO workOrderDTO);
     
     /**
-     * 작업지시 등록 시, BOM 기준 자재 소요량 계산
+     * BOM 기준 자재 소요량 계산
      * @param productId 제품 ID
      * @param orderQty 지시 수량
-     * @return 자재 소요량 목록 (자재명, 단위, 수량 포함)
+     * @return 자재 소요량 목록
      */
     List<BomItemDTO> calculateMaterialUsage(String productId, int orderQty);
-    
-    
     
     /**
      * 작업지시 상태 변경
@@ -87,7 +78,6 @@ public interface WorkOrderService {
      */
     WorkOrderDTO getWorkOrderDetail(String orderId);
     
-    
     /**
      * 작업지시 수정
      * @param dto 수정할 작업지시 정보
@@ -100,20 +90,31 @@ public interface WorkOrderService {
      */
     void deleteWorkOrder(String orderId);
     
-    
-    // 수주 상세 정보 조회 (작업지시 등록용)
+    /**
+     * 수주 상세 정보 조회 (작업지시 등록용)
+     */
     WorkOrderDTO getOrderDetail(String clOrderId, String productId);
     
- 
-
+    // ========================================================================
+    // ✅ 생산실적 등록용 작업지시 조회 메서드들
+    // ========================================================================
     
     /**
-     * 생산실적 등록 가능한 작업지시 목록 조회 (진행중 + 완료)
+     * 생산실적 등록 가능한 작업지시 목록 조회 (READY + IN_PROGRESS)
+     * - 보완생산용: READY와 IN_PROGRESS 상태 모두 포함
      * @return 작업지시 목록
      */
     List<WorkOrderDTO> getInProgressOrders();
     
-    // 작업지시 실적 반영(누적 합산 후 상태 자동 갱신)
+    /**
+     * ✅ 일반 생산실적 등록용 작업지시 조회 (IN_PROGRESS만)
+     * - 일반 등록용: IN_PROGRESS 상태만 조회 
+     * @return IN_PROGRESS 상태의 작업지시 목록만
+     */
+    List<WorkOrderDTO> getInProgressOnlyOrders();
+    
+    /**
+     * 작업지시 실적 반영(누적 합산 후 상태 자동 갱신)
+     */
     void refreshStatusByResults(String orderId);
-
 }

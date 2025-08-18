@@ -255,6 +255,7 @@ public class WorkOrderController {
             // 3. 수정할 필드만 설정 (나머지는 기존 값 유지)
             origin.setLineId(dto.getLineId());
             origin.setRemarks(dto.getRemarks());
+            origin.setPriority(dto.getPriority()); // ← 이 줄 추가!
             
             // 4. 수정 처리
             workOrderService.updateWorkOrder(origin);
@@ -381,34 +382,40 @@ public class WorkOrderController {
      * 정렬 컬럼 검증 및 변환
      */
     private void validateAndConvertSortColumn(SearchCriteria cri) {
-        // 클라이언트가 보내는 키 → 실제 컬럼 매핑
-        Map<String, String> map = Map.of(
-            "order_id",   "w.order_id",
-            "product_name","p.product_name",
-            "created_at", "w.created_at",
-            "status",     "w.status",
-            "priority",   "w.priority",
-            "due_date",   "w.due_date",
-            "order_qty",  "w.order_qty"
+        // 허용 컬럼 키(스네이크 케이스)
+        Map<String, Boolean> allowed = Map.of(
+            "order_id",   true,
+            "product_name", true,
+            "created_at", true,
+            "status",     true,
+            "priority",   true,
+            "due_date",   true,
+            "order_qty",  true
         );
 
-        // ✅ null 체크 추가
+        // sortColumn 정규화: null/빈칸이면 그대로 두고(= Mapper 기본 정렬 사용)
         String raw = cri.getSortColumn();
-        if (raw == null || raw.trim().isEmpty()) {
-            raw = "created_at"; // 기본값 설정
+        if (raw != null) {
+            raw = raw.trim();
+            // 카멜로 들어오면 스네이크로 변환
+            raw = raw.replaceAll("([a-z])([A-Z]+)", "$1_$2").toLowerCase();
+            if (!allowed.containsKey(raw)) {
+                raw = null; // 허용 안 되면 Mapper 기본 정렬로
+            }
         }
-        
-        String col = map.getOrDefault(raw, "w.created_at"); // 이제 안전함
-        cri.setSortColumn(col);
+        cri.setSortColumn(raw); // "created_at" 같은 키 그대로 넘김
 
-        // ✅ sortOrder도 null 체크 추가
+        // sortOrder 정규화: ASC/DESC만 허용
         String order = cri.getSortOrder();
-        if (order == null || order.trim().isEmpty()) {
-            cri.setSortOrder("desc");
-        } else if (!"asc".equalsIgnoreCase(order) && !"desc".equalsIgnoreCase(order)) {
-            cri.setSortOrder("desc");
+        if (order == null || order.isBlank()) {
+            cri.setSortOrder(null); // null이면 Mapper에서 기본 분기 타게 함
         } else {
-            cri.setSortOrder(order.toLowerCase());
+            order = order.trim().toUpperCase();
+            if (!order.equals("ASC") && !order.equals("DESC")) {
+                cri.setSortOrder(null);
+            } else {
+                cri.setSortOrder(order);
+            }
         }
     }
     
