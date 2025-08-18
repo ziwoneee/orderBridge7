@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.itwillbs.mapper.WorkOrderQueryMapper">
+
+  <resultMap id="WorkOrderLiteMap" type="com.itwillbs.dto.WorkOrderLiteDTO">
+    <result column="order_id"        property="orderId"/>
+    <result column="product_id"      property="productId"/>
+    <result column="product_name"    property="productName"/>
+    <result column="status"          property="status"/>
+    <result column="shortage_status" property="shortageStatus"/>
+    <result column="due_date"        property="dueDate"/>
+    <result column="order_qty"       property="orderQty"/>
+    <result column="updated_at"      property="updatedAt"/>
+  </resultMap>
+
+  <!-- ETA 대상: WAITING / READY (완료/취소 제외) + 삭제아님 -->
+  <select id="selectEligibleForEta" resultMap="WorkOrderLiteMap">
+  SELECT
+    wo.order_id, wo.product_id,
+    COALESCE(p.product_name, wo.product_id) AS product_name,  <!-- 추가 -->
+    wo.status, wo.shortage_status, wo.due_date, wo.order_qty, wo.updated_at
+  FROM work_order wo
+  LEFT JOIN product p ON p.product_id = wo.product_id        <!-- 추가 -->
+  WHERE wo.is_deleted = 0
+    AND wo.status IN ('WAITING','READY')
+    <if test="q != null">
+      AND (
+        wo.order_id   LIKE CONCAT('%', #{q}, '%')
+        OR wo.product_id LIKE CONCAT('%', #{q}, '%')
+        OR p.product_name LIKE CONCAT('%', #{q}, '%')         <!-- 제품명 검색 -->
+      )
+    </if>
+  <!-- 정렬은 2번 섹션 참고 -->
+  ORDER BY
+    CASE wo.status WHEN 'READY' THEN 1 WHEN 'WAITING' THEN 2 ELSE 9 END,
+    CASE wo.shortage_status WHEN 'CHECKED' THEN 1 WHEN 'DRAFTED' THEN 2 WHEN 'NONE' THEN 3 ELSE 9 END,
+    wo.due_date ASC,
+    wo.updated_at DESC
+  LIMIT #{limit}
+</select>
+
+  <select id="selectLiteById" resultMap="WorkOrderLiteMap">
+	  SELECT
+	    wo.order_id, wo.product_id,
+	    COALESCE(p.product_name, wo.product_id) AS product_name,  <!-- 추가 -->
+	    wo.status, wo.shortage_status, wo.due_date, wo.order_qty, wo.updated_at
+	  FROM work_order wo
+	  LEFT JOIN product p ON p.product_id = wo.product_id        <!-- 추가 -->
+	  WHERE wo.order_id = #{orderId} AND wo.is_deleted = 0
+	  LIMIT 1
+  </select>
+  
+  <select id="resolveAiStage" parameterType="string" resultType="string">
+	  SELECT
+	    CASE
+	      WHEN wo.status IN ('IN_PROGRESS','COMPLETED') THEN wo.status
+	      WHEN wo.status = 'READY' THEN 'READY'
+	      WHEN wo.status = 'WAITING' AND wo.shortage_status = 'CHECKED' THEN 'CHECKED_ONLY'
+	      WHEN wo.status = 'WAITING' AND wo.shortage_status = 'DRAFTED' THEN 'PO_PLACED'
+	      WHEN wo.status = 'WAITING' AND wo.shortage_status = 'NONE' THEN 'PLANNED'
+	      ELSE 'PLANNED'
+	    END AS ai_stage
+	  FROM work_order wo
+	  WHERE wo.order_id = #{workOrderId}
+	</select>
+
+  
+
+
+</mapper>
