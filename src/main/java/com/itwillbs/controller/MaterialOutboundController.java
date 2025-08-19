@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.itwillbs.domain.MaterialOutboundVO;
+import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.WorkOrderVO;
 import com.itwillbs.mapper.MaterialOutboundMapper;
@@ -59,37 +60,50 @@ public class MaterialOutboundController {
     @RequestMapping(value="/list", method=RequestMethod.GET)
     public String list(SearchCriteria cri, Model model) throws Exception {
     	
-    	 logger.info("list() called - SearchCriteria: {}", cri);
+    	logger.info("list() called - SearchCriteria: {}", cri);
     	    
-    	    // SearchCriteria 기본값 설정
-    	    if (cri == null) {
-    	        cri = new SearchCriteria();
-    	    }
+	    // SearchCriteria 기본값 설정
+	    if (cri == null) {
+	        cri = new SearchCriteria();
+	    }
     	    
-    	    // 기본 정렬 설정
-    	    if (cri.getSortColumn() == null || cri.getSortColumn().isEmpty()) {
-    	        cri.setSortColumn("outbound_date");
-    	        cri.setSortOrder("desc");
-    	    }
+	    // 기본값 보정
+	    if (cri.getPage() <= 0) cri.setPage(1);
+	    if (cri.getPerPageNum() <= 0) cri.setPerPageNum(10);
     	    
-    	    try {
-    	        // 서비스 호출
-    	        model.addAttribute("list", moService.getOutboundList(cri));
-    	        model.addAttribute("totalCount", moService.getOutboundCount(cri));
-    	        model.addAttribute("pendingCount", moService.getOutboundCountByStatus("DRAFT"));
-    	        model.addAttribute("completedCount", moService.getOutboundCountByStatus("ISSUED"));
-    	        model.addAttribute("waitingOrders", moService.getWaitingOrders());
-    	        model.addAttribute("cri", cri);
-    	        model.addAttribute("menu", "material");
-    	        
-    	        logger.info("list() completed successfully");
-    	        
-    	    } catch (Exception e) {
-    	        logger.error("list() error: ", e);
-    	        throw e;
-    	    }
-    	    
-    	    return "material/out/list";
+	    // 기본 정렬 설정
+	    if (cri.getSortColumn() == null || cri.getSortColumn().isEmpty()) {
+	        cri.setSortColumn("outbound_date");
+	        cri.setSortOrder("desc");
+	    }
+	    
+	    try {
+	    	// 총 건수
+	        int totalCount = moService.getOutboundCount(cri);
+
+	        // ✅ PageMaker 생성 (중요!)
+	        PageMaker pageMaker = new PageMaker(cri, totalCount);
+	        
+	        // 서비스 호출
+	        model.addAttribute("list", moService.getOutboundList(cri));
+	        
+	        model.addAttribute("totalCount", moService.getOutboundCount(cri));
+	        model.addAttribute("pendingCount", moService.getOutboundCountByStatus("DRAFT"));
+	        model.addAttribute("completedCount", moService.getOutboundCountByStatus("ISSUED"));
+	        model.addAttribute("waitingOrders", moService.getWaitingOrders());
+	        
+	        model.addAttribute("pageMaker", pageMaker);
+	        model.addAttribute("cri", cri);
+	        model.addAttribute("menu", "material");
+	        
+	        logger.info("list() completed successfully");
+	        
+	    } catch (Exception e) {
+	        logger.error("list() error: ", e);
+	        throw e;
+	    }
+	    
+	    return "material/out/list";
     }
 
     // [AJAX] 대기 작업지시 목록
