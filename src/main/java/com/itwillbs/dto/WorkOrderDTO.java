@@ -103,4 +103,10 @@ public class WorkOrderDTO {
     // BOM 상세 리스트 (조회용)
     // ---------------------------
     private List<BomItemDTO> bomList;
+    
+ // ---------------------------
+ // 진행 시간 관련 (조회용)
+ // ---------------------------
+ @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+ private Date startedAt;   // production_result.started_at (진행중인 실적 시작시간)
 }
