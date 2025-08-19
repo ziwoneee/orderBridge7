@@ -1,5 +1,6 @@
 package com.itwillbs.controller;
 
+import java.util.Arrays;
 import java.util.List;
 
 import javax.servlet.http.HttpSession;
@@ -124,55 +125,59 @@ public class ClientOrderController {
     }
 
 
-    // 수주 목록 페이지 (검색, 정렬, 페이징, 기간 필터 모두 반영)
+ // 수주 목록 페이지 (검색, 정렬, 페이징, 기간 필터 모두 반영)
     @GetMapping("/list")
     public String orderList(@ModelAttribute("cri") SearchCriteria cri, Model model) {
-        // 정렬 컬럼/방향 기본값 (허용 컬럼만)
-        if (cri.getSortColumn() == null ||
-           (!"cl_order_date".equals(cri.getSortColumn())
-         && !"client_name".equals(cri.getSortColumn())
-         && !"product_name".equals(cri.getSortColumn()))) {
+
+        // ✅ 허용된 정렬 컬럼 화이트리스트
+        List<String> allowedSortColumns = Arrays.asList(
+            "cl_order_num",     // 수주번호
+            "client_name",      // 거래처명
+            "cl_order_date",    // 수주일자
+            "cl_delivery_date", // 납기요청일
+            "cl_order_status"   // 수주상태
+        );
+
+        // ✅ 정렬 컬럼 유효성 검사 + 기본값
+        if (cri.getSortColumn() == null || !allowedSortColumns.contains(cri.getSortColumn())) {
             cri.setSortColumn("cl_order_date");
         }
-        if (cri.getSortOrder() == null ||
-           (!"asc".equalsIgnoreCase(cri.getSortOrder())
-         && !"desc".equalsIgnoreCase(cri.getSortOrder()))) {
-            cri.setSortOrder("desc");
-        }
+
+        // ✅ 정렬 방향 소문자 표준화 + 기본값(desc)
+        if (cri.getSortOrder() == null) cri.setSortOrder("desc");
+        String order = cri.getSortOrder().toLowerCase();
+        if (!order.equals("asc") && !order.equals("desc")) order = "desc";
+        cri.setSortOrder(order);
+
         if (cri.getPerPageNum() <= 0) cri.setPerPageNum(10);
 
         int totalCount = clientOrderService.getOrderCount(cri);
-        // 상태별 건수 조회
-        int allCount = clientOrderService.countAllOrders(); // 전체 건수
+
+        // 상태별 건수
+        int allCount = clientOrderService.countAllOrders();
         int requestedCount = clientOrderService.countOrdersByStatus("REQUESTED");
         int confirmedCount = clientOrderService.countOrdersByStatus("CONFIRMED");
         int shippedCount = clientOrderService.countOrdersByStatus("SHIPPED");
         int cancelledCount = clientOrderService.countOrdersByStatus("CANCELLED");
 
-        // 현재 조건으로 검색된 목록 조회
-        int filteredCount = clientOrderService.getOrderCount(cri); // 현재 조건에 따른 전체 목록 수
+        // 목록 조회
         List<ClientOrderVO> orderList = clientOrderService.getOrderList(cri);
         PageMaker pageMaker = new PageMaker(cri, totalCount);
 
-     // 모델에 값 전달
         model.addAttribute("orderList", orderList);
         model.addAttribute("pageMaker", pageMaker);
         model.addAttribute("cri", cri);
+        model.addAttribute("menu", "sales");
 
-        // 상태별 건수 전달
         model.addAttribute("totalCount", allCount);
         model.addAttribute("requestedCount", requestedCount);
         model.addAttribute("confirmedCount", confirmedCount);
         model.addAttribute("shippedCount", shippedCount);
         model.addAttribute("cancelledCount", cancelledCount);
-        
-        
-        
-        
-        
-        
+
         return "clientOrder/orderList";
     }
+
     
     
     //수주상태변경

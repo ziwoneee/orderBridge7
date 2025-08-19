@@ -67,7 +67,6 @@ public class ClientDeliveryController {
     
     
 //출하관리 전체 목록보기
-    
     @GetMapping("/list")
     public String showShipmentTabs(@ModelAttribute SearchCriteria cri,
                                    @RequestParam(value = "tab", required = false, defaultValue = "pending") String tab,
@@ -75,65 +74,67 @@ public class ClientDeliveryController {
 
         model.addAttribute("cri", cri);
         model.addAttribute("tab", tab);
+        model.addAttribute("menu", "sales");
 
-        // ✅ 예약관리 탭일 경우
+        // ✅ 공백 날짜 → null (빈 값으로 인한 WHERE 오류 방지)
+        if (cri.getStartDate() != null && cri.getStartDate().trim().isEmpty()) cri.setStartDate(null);
+        if (cri.getEndDate()   != null && cri.getEndDate().trim().isEmpty())   cri.setEndDate(null);
+
+        // ✅ 배지 숫자는 어떤 탭이든 항상 먼저 계산해서 모델에 넣음
+        int pendingCount      = deliveryService.countPendingGroupedList(cri);
+        int completedCount    = deliveryService.countCompletedShipmentList(cri);
+
+        // ⚠️ 예약 카운트는 '목록 사이즈'가 아니라 'COUNT 쿼리'로!
+        int reservationCount  = reservationService.countFilteredReservationList(cri);
+
+        model.addAttribute("pendingCount", pendingCount);
+        model.addAttribute("completedCount", completedCount);
+        model.addAttribute("reservationCount", reservationCount);
+
+        // ✅ 예약된 수주번호 맵(기존)
+        List<String> reservedOrderIds = reservationService.getReservedOrderIds();
+        Map<String, Boolean> reservedMap = reservedOrderIds.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .collect(Collectors.toMap(id -> id, id -> Boolean.TRUE, (a,b)->a));
+        model.addAttribute("reservedMap", reservedMap);
+
+        // ✅ 예약 탭
         if ("reservation".equals(tab)) {
-            // 예약 리스트 조회
             List<StockReservationVO> reservationList = reservationService.getFilteredReservationList(cri);
             int totalReservationCount = reservationService.countFilteredReservationList(cri);
             PageMaker reservationPage = new PageMaker(cri, totalReservationCount);
-
             model.addAttribute("reservationList", reservationList);
             model.addAttribute("reservationPage", reservationPage);
-
-            return "clientDelivery/list";  // 기존 JSP 공유
+            return "clientDelivery/list";
         }
 
-        // ✅ 출하대기 목록
+        // ✅ 출하대기
         List<ShipmentPendingGroupDTO> groupedList = deliveryService.searchPendingGroupedList(cri);
-        int totalPending = deliveryService.countPendingGroupedList(cri);
-        PageMaker pendingPage = new PageMaker(cri, totalPending);
+        PageMaker pendingPage = new PageMaker(cri, pendingCount);
         model.addAttribute("groupedList", groupedList);
         model.addAttribute("pendingPage", pendingPage);
 
-     // ✅ 예약된 수주번호 목록
-        List<String> reservedOrderIds = reservationService.getReservedOrderIds();
-        Map<String, Boolean> reservedMap = reservedOrderIds.stream()
-            .filter(Objects::nonNull)
-            .map(String::trim)
-            .collect(Collectors.toMap(id -> id, id -> Boolean.TRUE, (a,b)->a));
-
-        model.addAttribute("reservedMap", reservedMap);
-        
-        // ✅ 출하완료 목록
+        // ✅ 출하완료 (정렬 화이트리스트는 기존 로직 유지)
         List<String> allowed = Arrays.asList("deliveryId", "clOrderId", "deliveryDate", "productName", "clientName", "lotNo", "trackingNumber");
-
-        if (cri.getSortColumn() == null || !allowed.contains(cri.getSortColumn())) {
-            cri.setSortColumn("deliveryDate");
-        }
-
-        if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) {
-            cri.setSortOrder("desc");
-        }
-
-        if (cri.getStartDate() != null && cri.getStartDate().trim().isEmpty()) cri.setStartDate(null);
-        if (cri.getEndDate() != null && cri.getEndDate().trim().isEmpty()) cri.setEndDate(null);
+        if (cri.getSortColumn() == null || !allowed.contains(cri.getSortColumn())) cri.setSortColumn("deliveryDate");
+        if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) cri.setSortOrder("desc");
 
         List<ShipmentCompletedDTO> completedList = deliveryService.searchCompletedShipmentList(cri);
-        int totalCompleted = deliveryService.countCompletedShipmentList(cri);
-        PageMaker completedPage = new PageMaker(cri, totalCompleted);
-
+        PageMaker completedPage = new PageMaker(cri, completedCount);
         List<ShipmentCompletedGroupDTO> groupedCompletedList = deliveryService.getCompletedGroupedList(cri);
 
         model.addAttribute("completedList", completedList);
         model.addAttribute("groupedCompletedList", groupedCompletedList);
-        model.addAttribute("pageMaker", completedPage); // 출하완료용
+        model.addAttribute("pageMaker", completedPage);
+
         return "clientDelivery/list";
     }
 
 
+
  // ✅ 예약 등록
-    @GetMapping("/reserve")
+    @PostMapping("/reserve")
     public String reserveStock(@RequestParam("clOrderId") String clOrderId, RedirectAttributes rttr) {
         boolean success = reservationService.reserveStockByOrderId(clOrderId);
 
@@ -151,7 +152,7 @@ public class ClientDeliveryController {
 
 
     // ✅ 예약 해지 
-    @GetMapping("/unreserve")
+    @PostMapping("/unreserve")
     public String releaseStock(@RequestParam("clOrderId") String clOrderId, RedirectAttributes rttr) {
         reservationService.deleteReservation(clOrderId);
         rttr.addFlashAttribute("message",  "수주번호 [" + clOrderId + "] 예약이 해제되었습니다.");

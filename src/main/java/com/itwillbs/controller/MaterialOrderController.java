@@ -245,6 +245,20 @@ public class MaterialOrderController {
 	        "items",  mOrderService.getOrderItems(orderId)
 	    );
 	}
+	
+	//협력사 승인 요청 이메일
+	@PostMapping("/request-approval")
+	@ResponseBody
+	public String requestOrderApproval(@RequestParam("orderId") String orderId) {
+	    try {
+	        mOrderService.sendApprovalRequest(orderId);  // ✅ 기존 Service에 메서드 추가
+	        return "success";
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return "fail";
+	    }
+	}
+
 
 	
 

@@ -406,8 +406,17 @@
 	</select>
 
 
-
-
+		<!-- 메일 승인 -->
+		<select id="findById" parameterType="string" resultType="com.itwillbs.domain.MaterialOrderVO">
+		  SELECT * FROM material_order WHERE order_id = #{orderId}
+		</select>
+		
+		<!-- 협력사 발주 승인 상태 변경 -->
+		<update id="updateOrderStatus" parameterType="com.itwillbs.domain.MaterialOrderVO">
+		  UPDATE material_order
+		  SET order_status = #{orderStatus}
+		  WHERE order_id = #{orderId}
+		</update>
 
 
 

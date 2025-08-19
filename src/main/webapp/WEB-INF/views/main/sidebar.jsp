@@ -107,6 +107,25 @@
 	            </div>
 	          </li>
 	          <!-- 완제품 관리 끝 -->
+	          
+	          <!-- AI 시작 -->
+	          <li class="nav-item ${menu eq 'ai' ? 'active' : ''}">
+	            <a class="nav-link" data-toggle="collapse"
+				   href="#menu-ai"
+				   aria-expanded="${menu eq 'ai' ? 'true' : 'false'}"
+				   aria-controls="menu-ai">
+	              <i class="ti-thought menu-icon"></i>
+	              <span class="menu-title">AI 예측</span>
+	              <i class="menu-arrow"></i>
+	            </a>
+	            <div class="collapse ${menu eq 'ai' ? 'show' : ''}" id="menu-ai">
+	              <ul class="nav flex-column sub-menu">
+	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/ai/eta">납기 예측</a></li>
+	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/ai/pred-logs">GPT 이력 조회</a></li>
+	              </ul>
+	            </div>
+	          </li>
+	          <!-- AI 끝 -->
 	
 	  </ul>
 	</nav>

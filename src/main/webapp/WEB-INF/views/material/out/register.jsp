@@ -61,11 +61,12 @@
 		        <thead>
 		          <tr>
 		            <th style="width:200px;">자재</th>
-		            <th style="width:110px;">필요수량</th>
+		            <th class="text-center">필요수량</th>
 		            <th>LOT 선택 (유통기한 빠른 순)</th>
-		            <th>예약수량</th>
-		            <th style="width:110px;">선택합계</th>
-		            <th>부족</th>
+		            <th class="text-center">예약수량(이번 WO)</th>
+		            <th class="text-center">예상예약</th> 
+		            <th class="text-center">선택합계</th>
+		            <th class="text-center">부족</th>
 		          </tr>
 		        </thead>
 		        <tbody id="materialLotBody"><!-- JS 로드 --></tbody>

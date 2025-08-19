@@ -1,6 +1,7 @@
 package com.itwillbs.controller;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -70,10 +71,14 @@ public class MaterialReservationController {
     }
 
     /**
-     * [부족분 발주 버튼]
-     * - 가용분 예약 먼저 반영
-     * - 남은 수량만 PO 초안 생성 → orderId 반환
-     * - 부족 없으면 orderId=null
+     * 부족분 발주 생성 (리드타임 자동 적용)
+     * - 입력: workOrderId (필수), leadDays (선택 오버라이드)
+     * - 동작: Service에서
+     *        (1) 작업지시 납기일 조회
+     *        (2) 자재별 부족분 계산
+     *        (3) 자재→거래처로 묶어서 발주 헤더/아이템 생성
+     *        (4) 발주 헤더 expected_arrived_date = 작업지시 due_date - leadDays
+     * - 출력: { ok, orderIds[], message }
      */
     @PostMapping(
         value = "/create-shortage-po",
@@ -83,21 +88,28 @@ public class MaterialReservationController {
     @ResponseBody
     public Map<String, Object> createShortagePO(
             @RequestParam("workOrderId") String workOrderId,
+            @RequestParam(value = "leadDays", required = false) Integer leadDays,
             HttpSession session) {
+    	
         Map<String,Object> res = new HashMap<>();
         try {
-            String userId = getUserId(session);
-            String orderId = reservationService.createShortageDraftPO(workOrderId, userId);
+        	// (선택) 세션 사용자ID가 필요하면 꺼내 쓰세요
+            // String userId = ((MemberVO)session.getAttribute("loginMember")).getMemberId();
+        	String userId = getUserId(session);
+        	String orderId = reservationService.createShortageDraftPO(workOrderId, userId, leadDays);
 
-            res.put("ok", true);
-            res.put("orderId", orderId); // null이면 “부족 없음”
-            res.put("message", (orderId != null)
-                    ? "부족분만 발주 초안 생성 완료"
-                    : "부족분이 없어 발주를 생성하지 않았습니다.");
+        	res.put("ok", true);
+        	res.put("orderId", orderId);
+        	res.put("message",
+        	    (orderId == null)
+        	        ? "부족분이 없어 발주를 생성하지 않았습니다."
+        	        : "부족분 발주 생성 완료 (1건)"
+        	);
         } catch (Exception e) {
-            logger.error("createShortagePO error", e);
+        	LoggerFactory.getLogger(getClass())
+            .error("create-shortage-po 실패: workOrderId=" + workOrderId + ", leadDays=" + leadDays, e);
             res.put("ok", false);
-            res.put("message", "부족분 발주 처리 중 오류가 발생했습니다.");
+            res.put("message", "부족분 발주 생성 중 오류: " + e.getMessage());
         }
         return res;
     }
@@ -119,5 +131,7 @@ public class MaterialReservationController {
         }
         return res;
     }
+    
+
     
 }

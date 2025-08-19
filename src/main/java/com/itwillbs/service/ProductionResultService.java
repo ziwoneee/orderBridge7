@@ -10,15 +10,19 @@ import com.itwillbs.dto.ProductionResultDTO;
 public interface ProductionResultService {
     
     // 아름 흐름: 완제품 입고 연동
-	// 등록(LOT 자동생성 + 실적저장 + 상태자동반영 + 자동입고)
+    // 등록(LOT 자동생성 + 실적저장 + 상태자동반영 + 자동입고)
     void insertResult(ProductionResultVO vo);
     
-	// 일괄 자동입고
+    // 일괄 자동입고
     void saveAllToInbound();
-
+    
+    /**
+     * lotNo별 입고 생산 실적 상세 모달 조회
+     */
+    ProductionResultDTO getLatestDetailByLot(String lotNo);
+    
     // 태현 흐름: 목록/조회
     List<ProductionResultDTO> getList(SearchCriteria cri);
     int getTotalCount(SearchCriteria cri);
     ProductionResultDTO getDetail(String resultId);
-    
 }

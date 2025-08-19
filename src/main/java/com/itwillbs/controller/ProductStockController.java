@@ -50,6 +50,7 @@ public class ProductStockController {
 
         PageMaker pageMaker = new PageMaker(cri, totalCount);
         model.addAttribute("pageMaker", pageMaker);
+        model.addAttribute("menu", "product");
 
         // 날짜 계산
         LocalDate today = LocalDate.now();

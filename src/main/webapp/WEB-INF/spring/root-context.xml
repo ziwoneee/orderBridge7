@@ -6,6 +6,11 @@
          http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
          http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
 
+   <!-- 0. application.properties 로딩 -->
+   <context:property-placeholder
+         location="classpath:application.properties"
+         ignore-unresolvable="true"/>
+
    <!-- 1. 서비스/DAO 스캔 -->
    <context:component-scan base-package="com.itwillbs" />
 

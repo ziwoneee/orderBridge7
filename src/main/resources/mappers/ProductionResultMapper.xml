@@ -70,36 +70,36 @@
       </if>
   </select>
   
-  <!-- 완제품 입고 자동등록 -->
+  <!-- 🆕 완제품 입고 자동등록 (진행률 필드 추가) -->
   <insert id="insertResult" parameterType="com.itwillbs.domain.ProductionResultVO">
-	  INSERT INTO production_result (
-	    result_id,
-	    order_id,
-	    product_id,
-	    lot_no,
-	    actual_qty,
-	    defect_qty,
-	    worker_name,
-	    started_at,
-	    ended_at,
-	    created_at,
-	    progress_rate,
-	    cumulative_qty 
-	  ) VALUES (
-	    #{resultId},
-	    #{orderId},
-	    #{productId},
-	    #{lotNo},
-	    #{actualQty},
-	    #{defectQty},
-	    #{workerName},
-	    #{startedAt},
-	    #{endedAt},
-	    #{createdAt},
-	    #{progressRate},
-	    #{cumulativeQty}
-	  )
-	</insert>
+    INSERT INTO production_result (
+      result_id,
+      order_id,
+      product_id,
+      lot_no,
+      actual_qty,
+      defect_qty,
+      worker_name,
+      started_at,
+      ended_at,
+      created_at,
+      progress_rate,
+      cumulative_qty 
+    ) VALUES (
+      #{resultId},
+      #{orderId},
+      #{productId},
+      #{lotNo},
+      #{actualQty},
+      #{defectQty},
+      #{workerName},
+      #{startedAt},
+      #{endedAt},
+      #{createdAt},
+      #{progressRate},
+      #{cumulativeQty}
+    )
+  </insert>
 
   <!-- 전체 생산 결과 조회 -->
   <select id="selectAllResults" resultType="com.itwillbs.domain.ProductionResultVO">
@@ -116,6 +116,47 @@
       created_at
     FROM production_result
     ORDER BY created_at DESC
+  </select>
+
+  <!-- 🆕 LOT 기준 최신 result_id (develop 브랜치에서 추가) -->
+  <select id="getLatestResultIdByLot" parameterType="String" resultType="String">
+    SELECT result_id
+    FROM production_result
+    WHERE lot_no = #{lotNo}
+    ORDER BY created_at DESC
+    LIMIT 1
+  </select>
+
+  <!-- 🆕 상세 조회 (DTO에 맞춰 alias) - develop 브랜치에서 추가 -->
+  <select id="getDetailByResultId" parameterType="string"
+          resultType="com.itwillbs.dto.ProductionResultDTO">
+    SELECT
+      pr.result_id     AS resultId,
+      pr.order_id      AS orderId,
+      pr.product_id    AS productId,
+      pr.lot_no        AS lotNo,
+      pr.actual_qty    AS actualQty,
+      pr.defect_qty    AS defectQty,
+      pr.worker_name   AS workerName,
+      pr.started_at    AS startedAt,
+      pr.ended_at      AS endedAt,
+      pr.created_at    AS createdAt,
+
+      p.product_name   AS productName,
+
+      wo.order_qty     AS orderQty,
+      wo.order_manager AS orderManager,
+      wo.status        AS status,
+      wo.line_id       AS lineId,
+      wo.priority      AS priority,
+      wo.due_date      AS dueDate,
+
+      pl.line_name     AS lineName
+    FROM production_result pr
+    JOIN product p       ON p.product_id = pr.product_id
+    JOIN work_order wo   ON wo.order_id  = pr.order_id
+    LEFT JOIN production_line pl ON pl.line_id = wo.line_id
+    WHERE pr.result_id = #{resultId}
   </select>
 
   <!-- ..............완제품 입고등록 아름 끝.................... -->
@@ -240,34 +281,35 @@
   </select>
 
   <!-- ================== 생산실적 상세 ================== -->
+  <!-- 🆕 진행률 필드 추가 (96-보완-등록 브랜치) -->
   <select id="selectResultDetail" parameterType="string"
-        resultType="com.itwillbs.dto.ProductionResultDTO">
-  SELECT
-    pr.result_id, pr.order_id, pr.product_id, pr.lot_no,
-    pr.actual_qty, pr.defect_qty, pr.worker_name,
-    pr.started_at, pr.ended_at, pr.created_at,
-    pr.progress_rate, pr.cumulative_qty,  
-    wo.status, wo.order_qty, wo.order_manager AS orderManager,
-    p.product_name AS productName,
-    pl.line_name   AS lineName,
-    -- 누적/잔여(해당 오더 기준)
-    COALESCE(agg.good_sum, 0) AS producedQty,
-    COALESCE(agg.def_sum,  0) AS defectQtyTotal,
-    GREATEST(wo.order_qty - COALESCE(agg.good_sum, 0), 0) AS remainingQty
-  FROM production_result pr
-  LEFT JOIN work_order wo ON pr.order_id = wo.order_id
-  LEFT JOIN product p     ON pr.product_id = p.product_id
-  LEFT JOIN production_line pl ON wo.line_id = pl.line_id
-  LEFT JOIN (
+          resultType="com.itwillbs.dto.ProductionResultDTO">
     SELECT
-      order_id,
-      SUM(GREATEST(actual_qty - COALESCE(defect_qty,0), 0)) AS good_sum,
-      SUM(COALESCE(defect_qty,0))                           AS def_sum
-    FROM production_result
-    GROUP BY order_id
-  ) agg ON agg.order_id = pr.order_id
-  WHERE pr.result_id = #{resultId}
-</select>
+      pr.result_id, pr.order_id, pr.product_id, pr.lot_no,
+      pr.actual_qty, pr.defect_qty, pr.worker_name,
+      pr.started_at, pr.ended_at, pr.created_at,
+      pr.progress_rate, pr.cumulative_qty,  <!-- 🆕 추가 -->
+      wo.status, wo.order_qty, wo.order_manager AS orderManager,
+      p.product_name AS productName,
+      pl.line_name   AS lineName,
+      -- 누적/잔여(해당 오더 기준)
+      COALESCE(agg.good_sum, 0) AS producedQty,
+      COALESCE(agg.def_sum,  0) AS defectQtyTotal,
+      GREATEST(wo.order_qty - COALESCE(agg.good_sum, 0), 0) AS remainingQty
+    FROM production_result pr
+    LEFT JOIN work_order wo ON pr.order_id = wo.order_id
+    LEFT JOIN product p     ON pr.product_id = p.product_id
+    LEFT JOIN production_line pl ON wo.line_id = pl.line_id
+    LEFT JOIN (
+      SELECT
+        order_id,
+        SUM(GREATEST(actual_qty - COALESCE(defect_qty,0), 0)) AS good_sum,
+        SUM(COALESCE(defect_qty,0))                           AS def_sum
+      FROM production_result
+      GROUP BY order_id
+    ) agg ON agg.order_id = pr.order_id
+    WHERE pr.result_id = #{resultId}
+  </select>
 
   <!-- ================== 작업지시 연동(진행상황 보기) ================== -->
   <!-- ⚠️ work_order에 produced_qty/defect_qty 컬럼 없으므로 집계로 계산 -->

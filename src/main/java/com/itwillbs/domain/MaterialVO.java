@@ -18,5 +18,6 @@ public class MaterialVO {
     private String supplyUnit;           // 입고 단위 (예: 10kg 망, 20kg 박스 등)
     private String useYn;				 // 자재 논리 삭제
     private String purchasalbeFlag;		 // 구매대상 여부(Y=발주대상, N=내부사용)
+    private int defaultLeadDays;
     
 }

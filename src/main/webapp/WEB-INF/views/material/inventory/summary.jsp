@@ -73,6 +73,38 @@
           
     <!-- 재고 목록 테이블 -->      
 	<div class="col-12">
+	
+		<!-- 상태별 탭 -->
+		<div class="d-flex justify-content-between align-items-center mb-3">
+		    <ul class="nav nav-underline-custom" id="statusTab" role="tablist">
+		        <li class="nav-item">
+		            <a class="nav-link ${empty param.status ? 'active' : ''}" 
+		               href="/material/inventory/summary?keyword=${param.keyword}&materialType=${param.materialType}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+		                전체 <span class="badge badge-light ms-1">${totalCount}</span>
+		            </a>
+		        </li>
+		        <li class="nav-item">
+		            <a class="nav-link ${param.status eq '정상' ? 'active' : ''}" 
+		               href="/material/inventory/summary?status=정상&keyword=${param.keyword}&materialType=${param.materialType}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+		                정상 <span class="badge badge-light  ms-1">${normalCount}</span>
+		            </a>
+		        </li>
+		        <li class="nav-item">
+		            <a class="nav-link ${param.status eq '부족' ? 'active' : ''}" 
+		               href="/material/inventory/summary?status=부족&keyword=${param.keyword}&materialType=${param.materialType}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+		                부족 <span class="badge badge-light  ms-1">${shortageCount}</span>
+		            </a>
+		        </li>
+		        <li class="nav-item">
+		            <a class="nav-link ${param.status eq '소진' ? 'active' : ''}" 
+		               href="/material/inventory/summary?status=소진&keyword=${param.keyword}&materialType=${param.materialType}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+		                소진 <span class="badge badge-light ms-1">${exhaustedCount}</span>
+		            </a>
+		        </li>
+		
+		    </ul>
+		</div>
+	
 	  <div id="table_content" class="table-responsive">
 		<table class="table table-hover">
 			<thead style="background-color: #1C355E; color: white; border-top: none;">
@@ -178,19 +210,21 @@
 			          <td>${inv.materialType}</td>
 			          <td class="text-end"><fmt:formatNumber value="${inv.quantity}" pattern="#,###"/></td>
 			          <td class="text-end"><fmt:formatNumber value="${inv.safetyStock}" pattern="#,###"/></td>
-			          <td>
-						  <c:choose>
-						    <c:when test="${inv.quantity >= inv.safetyStock}">
-						      <span class="badge badge-success">정상</span>
-						    </c:when>
-						    <c:when test="${inv.quantity > 0}">
-						      <span class="badge badge-warning">부족</span>
-						    </c:when>
-						    <c:otherwise>
-						      <span class="badge badge-danger">위험</span>
-						    </c:otherwise>
-						  </c:choose>
-						</td>
+					  <td>
+					    <c:choose>
+					        <c:when test="${inv.stockStatus == '정상'}">
+					            <span class="badge badge-success">정상</span>
+					        </c:when>
+					        <c:when test="${inv.stockStatus == '부족'}">
+					            <span class="badge badge-warning">부족</span>
+					        </c:when>
+					        <c:when test="${inv.stockStatus == '소진'}">
+					            <span class="badge badge-danger">소진</span>
+					        </c:when>
+					        <c:otherwise>
+					        </c:otherwise>
+					    </c:choose>
+					  </td>
 			          <td>${inv.unit}</td>
 					  <td>
 			          	  <fmt:formatDate value="${inv.expirationDate}" pattern="yyyy-MM-dd" />

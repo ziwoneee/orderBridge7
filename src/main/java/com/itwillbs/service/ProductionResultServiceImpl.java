@@ -87,25 +87,24 @@ public class ProductionResultServiceImpl implements ProductionResultService {
             vo.setEndedAt(new Date());
         }
         
-        // 4-1)  등록 전 현재 누적량 조회
+        // 4-1) 🆕 등록 전 현재 누적량 조회
         int currentProduced = productionResultMapper.selectTotalProducedQty(vo.getOrderId());
         
-        // 4-2)  이번 실적으로 인한 새로운 누적량 계산
+        // 4-2) 🆕 이번 실적으로 인한 새로운 누적량 계산
         int thisNetQty = nvlInt(vo.getActualQty()) - nvlInt(vo.getDefectQty());
         int newCumulativeQty = currentProduced + thisNetQty;
         
-        // 4-3)  진행률 계산
+        // 4-3) 🆕 진행률 계산
         int orderQty = Integer.parseInt(asString(wo.get("order_qty")));
         double progressRate = orderQty > 0 ? (double) newCumulativeQty / orderQty * 100.0 : 0.0;
         
-        // 4-4)  VO에 계산된 값 설정
+        // 4-4) 🆕 VO에 계산된 값 설정
         vo.setProgressRate(progressRate);
         vo.setCumulativeQty(newCumulativeQty);
         
-        
         // 5) 생산결과 INSERT
         productionResultDAO.insertResult(vo);
-        log.info("생산결과 등록 완료: resultId={}, lotNo={}", resultId, lotNo);
+        log.info("생산결과 등록 완료: resultId={}, lotNo={}, 진행률={}%", resultId, lotNo, progressRate);
 
         // 6) 작업지시 상태 자동 반영(양품 누적 기준: 목표 달성 시 COMPLETED)
         workOrderMapper.applyResultToWorkOrder(vo.getOrderId());
@@ -234,5 +233,29 @@ public class ProductionResultServiceImpl implements ProductionResultService {
             throw new IllegalArgumentException("존재하지 않는 생산실적입니다: " + resultId);
         }
         return result;
+    }
+
+    // ==================== LOT별 상세 조회 (develop 브랜치에서 추가) ====================
+    @Override
+    @Transactional(readOnly = true)
+    public ProductionResultDTO getLatestDetailByLot(String lotNo) {
+        if (lotNo == null || lotNo.trim().isEmpty()) return null;
+        String rid = productionResultDAO.getLatestResultIdByLot(lotNo.trim());
+        if (rid == null) return null;
+        ProductionResultDTO dto = productionResultDAO.getDetailByResultId(rid);
+        computeDerived(dto);
+        return dto;
+    }
+
+    /** 달성률/불량률 계산만 수행 (불량목록 없음) */
+    private void computeDerived(ProductionResultDTO dto) {
+        if (dto == null) return;
+        int actual = dto.getActualQty() == null ? 0 : dto.getActualQty();
+        int defect = dto.getDefectQty() == null ? 0 : dto.getDefectQty();
+        int plan   = dto.getOrderQty()  == null ? 0 : dto.getOrderQty();
+
+        int total = actual + defect;
+        dto.setDefectRate(total > 0 ? (defect * 100.0 / total) : null);
+        dto.setAchievementRate(plan  > 0 ? (actual * 100.0 / plan) : null);
     }
 }

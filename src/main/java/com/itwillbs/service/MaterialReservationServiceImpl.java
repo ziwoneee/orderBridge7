@@ -31,6 +31,9 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
     
     @Inject 
     private MaterialOutboundDAO outboundDAO;
+    
+    /** 시스템 기본 리드타임(일) — supplier_item/material에 값이 없을 때 사용 */
+    private static final int DEFAULT_LEAD_DAYS = 3;
 
     /**
      * [도우미] WO의 필요자재 목록 조회 (materialId, requiredQty)
@@ -118,7 +121,7 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
      */
     @Override
     @Transactional
-    public String createShortageDraftPO(String workOrderId, String userId) throws Exception {
+    public String createShortageDraftPO(String workOrderId, String userId, Integer overrideLeadDays) throws Exception {
     	// 0) 기존 로직: 부족 자재 산출 (+ 물 제외)
         List<Map<String,Object>> mats = getWoMaterials(workOrderId);
         List<Map<String,Object>> shortages = new ArrayList<>();
@@ -151,7 +154,38 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
             reservationDAO.resolveIfAllReserved(workOrderId);
             return null;
         }
+        
+	     // === [A] 리드타임/자재납기일 계산 추가 ===
+	
+	     // 1) 작업지시 납기일 조회 (java.util.Date로 받음)
+	     java.util.Date woDue = reservationDAO.selectWorkOrderDueDate(workOrderId);
+	     if (woDue == null) {
+	         throw new IllegalStateException("작업지시 납기일(due_date)을 찾을 수 없습니다: " + workOrderId);
+	     }
+	
+	     // util.Date -> LocalDate 변환 (sql.Date면 그대로, 아니면 Instant 경유)
+	     java.time.LocalDate dueDate =
+	             (woDue instanceof java.sql.Date)
+	             ? ((java.sql.Date) woDue).toLocalDate()
+	             : woDue.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+	
+	     // 2) 리드타임 결정: override > (자재/거래처 기준 max) > DEFAULT
+	     Integer maxLead = reservationDAO.selectMaxLeadDaysForShortagePO(workOrderId, DEFAULT_LEAD_DAYS);
+	     int leadDays = (overrideLeadDays != null) ? overrideLeadDays
+	                  : (maxLead != null ? maxLead : DEFAULT_LEAD_DAYS);
+	     if (leadDays < 0) leadDays = 0;
+	
+	     // 3) 자재 납기일 = 작업지시 납기일 - 리드타임
+	     java.time.LocalDate expectedDate = dueDate.minusDays(leadDays);
+	     // (선택) 오늘 이전이면 오늘로 보정
+	     // if (expectedDate.isBefore(java.time.LocalDate.now())) expectedDate = java.time.LocalDate.now();
+	
+	     // DB insert/update에 쓸 java.sql.Date로 변환
+	     java.sql.Date expectedArrivedDate = java.sql.Date.valueOf(expectedDate);
 
+
+        
+        
         // 1) 자재별 후보 협력사/단가/창고 조회
         List<String> mids = shortages.stream()
                 .map(x -> (String)x.get("materialId"))
@@ -217,10 +251,12 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
             header.put("orderStatus", "초안");          // 혹은 "DRAFT" -> 매퍼에서 COALESCE 처리
             header.put("createdBy",   userId);
             header.put("workOrderId", workOrderId);
-            // header.put("expectedArrivedDate", ...);  // 필요시 리드타임 계산해서 넣기
-            // header.put("note", null);
+            
+            // ★ 핵심: 자재 납기일 세팅
+            header.put("expectedArrivedDate", expectedArrivedDate);
+            header.put("note", "[자동] 부족분 발주 (리드타임 " + leadDays + "일, WO납기 " + dueDate + ")");
 
-            orderDAO.insertOrderHeaderDraft(header);
+            orderDAO.insertOrderHeaderDraft(header); // 매퍼가 expected_arrived_date 받아서 넣도록 수정(아래 3) 참고)
 
             // 방금 생성된 orderId 회수 (selectKey BEFORE 덕분에 header에 값 들어있음)
             String orderId = (String) header.get("orderId");

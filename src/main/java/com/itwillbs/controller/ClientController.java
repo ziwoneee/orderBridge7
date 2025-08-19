@@ -67,9 +67,11 @@ public class ClientController {
         model.addAttribute("clientList", clientList);
         model.addAttribute("pageMaker", pageMaker);
         model.addAttribute("cri", cri); // 검색 조건 유지용
+        
 
         // ✅ 사이드바 메뉴 활성화용
         model.addAttribute("menu", "basic");
+ 
 
         return "client/list";
     }

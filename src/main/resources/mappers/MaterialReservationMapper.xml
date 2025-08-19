@@ -119,6 +119,22 @@
 		  WHERE o.outbound_id = #{_parameter}
 		    AND r.reserved_qty = 0
 		</delete>
+		
+		<!-- 작업지시 납기일 -->
+		<select id="selectWorkOrderDueDate" parameterType="string" resultType="java.util.Date">
+		  SELECT due_date FROM work_order WHERE order_id = #{_parameter}
+		</select>
+		
+		<!-- workOrderId 기준: 자재 리드타임 최대값(없으면 defaultLeadDays) -->
+		<select id="selectMaxLeadDaysForShortagePO" parameterType="map" resultType="int">
+		  SELECT COALESCE(MAX(COALESCE(si.lead_days, m.default_lead_days, #{defaultLeadDays})),
+		                  #{defaultLeadDays})
+		  FROM work_order_material wom
+		  JOIN material m ON m.material_id = wom.material_id
+		  LEFT JOIN supplier_item si ON si.material_id = wom.material_id
+		  WHERE wom.work_order_id = #{workOrderId}
+		</select>
+		
 				
 	  
 

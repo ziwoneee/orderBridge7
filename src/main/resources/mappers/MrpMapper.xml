@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<!--
+  목적: BOM 전개를 통해 자재별 "총소요량(gross requirement)"을 계산
+  입력: productId(제품ID), orderQty(주문/작업지시 수량)
+  로직:
+    - 활성 BOM(bom_master.status = 'ACTIVE')만 사용
+    - bom_detail.qty × orderQty (= 제품 1EA당 소요 × 주문수량)
+    - material 테이블을 조인해서 자재명/단위 같이 반환(선택)
+-->  
+<mapper namespace="com.itwillbs.mapper.MrpMapper">
+
+
+	 <!-- 결과: [{materialId, materialName, unit, gross_req}, ...] -->
+	  <select id="selectGrossRequirements" resultType="hashmap">
+	    SELECT
+	      bd.material_id              AS materialId,     -- 자재 ID
+	      m.material_name             AS materialName,   -- 자재명(표시용)
+	      m.unit                      AS unit,           -- 기본 단위(kg, EA 등)
+	      SUM(bd.qty * #{orderQty})   AS gross_req       -- 총소요량 = (BOM 수량 × 주문수량)
+	    FROM bom_master bm
+	    JOIN bom_detail bd ON bd.bom_id = bm.bom_id
+	    LEFT JOIN material m ON m.material_id = bd.material_id
+	    WHERE bm.product_id = #{productId}
+	      AND bm.status     = 'ACTIVE'                  -- 활성 BOM만 전개
+	    GROUP BY bd.material_id, m.material_name, m.unit
+	    ORDER BY materialId
+	  </select>
+	  
+	  
+	  
+	    <!--
+		    2단계: 가용/순소요(Netting)
+		    입력: productId, orderQty
+		    로직:
+		      1) BOM 전개해서 자재별 총소요량(gross_req) 산출
+		      2) material_inventory에서 자재별 재고합계(on_hand) 집계
+		      3) material_reservation에서 자재별 예약합계(reserved) 집계
+		      4) available = on_hand - reserved
+		      5) net_req  = GREATEST(gross_req - available, 0)
+		    주의:
+		      - 창고/로케이션/LOT 단위 재고라면 SUM으로 자재별 집계
+		      - 수량 타입은 DECIMAL 권장(정밀도)
+		  -->
+	  <select id="selectNetting" resultType="hashmap">
+	    SELECT
+	      g.materialId                                 AS materialId,     -- 자재ID
+	      m.material_name                              AS materialName,   -- 자재명(표시용)
+	      m.unit                                       AS unit,           -- 단위
+	      g.gross_req                                  AS gross_req,      -- 총소요
+	      IFNULL(inv.on_hand, 0)                       AS on_hand,        -- 재고합계
+	      IFNULL(rsv.reserved, 0)                      AS reserved,       -- 예약합계
+	      (IFNULL(inv.on_hand, 0) - IFNULL(rsv.reserved, 0)) AS available, -- 가용
+	      GREATEST(g.gross_req - (IFNULL(inv.on_hand,0) - IFNULL(rsv.reserved,0)), 0) AS net_req -- 순소요(최소 0)
+	    FROM (
+	      /* 1) BOM 전개 → 총소요 */
+	      SELECT
+	        bd.material_id        AS materialId,
+	        SUM(bd.qty * #{orderQty}) AS gross_req
+	      FROM bom_master bm
+	      JOIN bom_detail bd ON bd.bom_id = bm.bom_id
+	      WHERE bm.product_id = #{productId}
+	        AND bm.status     = 'ACTIVE'
+	      GROUP BY bd.material_id
+	    ) g
+	    /* 2) 자재 마스터(표시용 정보) */
+	    LEFT JOIN material m ON m.material_id = g.materialId
+	    /* 3) 재고합계(on_hand): LOT/창고 행을 자재별로 집계 */
+	    LEFT JOIN (
+	      SELECT material_id, SUM(quantity) AS on_hand
+	      FROM material_inventory
+	      GROUP BY material_id
+	    ) inv ON inv.material_id = g.materialId
+	    /* 4) 예약합계(reserved): WO×자재 예약을 자재별로 집계 */
+	    LEFT JOIN (
+	      SELECT material_id, SUM(reserved_qty) AS reserved
+	      FROM material_reservation
+	      GROUP BY material_id
+	    ) rsv ON rsv.material_id = g.materialId
+	    ORDER BY net_req DESC, materialId
+	  </select>
+	  
+	  
+	    <!--
+    3-1) 부족분 리스트
+    - 2단계(Netting) 쿼리를 재사용하되, net_req > 0 인 자재만 필터링해서
+      화면/다음 단계(발주 추천)의 입력으로 전달한다.
+  -->
+  <select id="selectShortages" resultType="hashmap">
+    WITH gross AS (
+      SELECT
+        bd.material_id              AS materialId,
+        SUM(bd.qty * #{orderQty})   AS gross_req
+      FROM bom_master bm
+      JOIN bom_detail bd ON bd.bom_id = bm.bom_id
+      WHERE bm.product_id = #{productId}
+        AND bm.status     = 'ACTIVE'
+      GROUP BY bd.material_id
+    ),
+    inv AS (
+      SELECT material_id, SUM(quantity) AS on_hand
+      FROM material_inventory
+      GROUP BY material_id
+    ),
+    rsv AS (
+      SELECT material_id, SUM(reserved_qty) AS reserved
+      FROM material_reservation
+      GROUP BY material_id
+    )
+    SELECT
+      g.materialId                                 AS materialId,
+      m.material_name                              AS materialName,
+      m.unit                                       AS unit,
+      g.gross_req                                  AS gross_req,
+      IFNULL(inv.on_hand, 0)                       AS on_hand,
+      IFNULL(rsv.reserved, 0)                      AS reserved,
+      (IFNULL(inv.on_hand, 0) - IFNULL(rsv.reserved, 0)) AS available,
+      GREATEST(g.gross_req - (IFNULL(inv.on_hand,0) - IFNULL(rsv.reserved,0)), 0) AS net_req
+    FROM gross g
+    LEFT JOIN material m ON m.material_id = g.materialId
+    LEFT JOIN inv ON inv.material_id = g.materialId
+    LEFT JOIN rsv ON rsv.material_id = g.materialId
+    WHERE GREATEST(g.gross_req - (IFNULL(inv.on_hand,0) - IFNULL(rsv.reserved,0)), 0) > 0
+    ORDER BY net_req DESC, materialId;
+  </select>
+
+  <!--
+    3-2) 발주 추천 초안 (Recommend PO)
+    목적:
+      - '부족분 리스트'를 기반으로, 공급사-자재(supplier_item)에서
+        "가장 빠른 리드타임 → 단가" 우선순위로 1곳을 고르고,
+        계획 발주수량/예상입고일/금액을 계산해준다.
+    가정:
+      - supplier_item 컬럼: supplier_id, material_id, unit_price, lead_days, supply_available ('Y'/'N')
+      - MOQ/LOT 컬럼이 없다면 순수 shortage 수량으로 계획 수량 = net_req (필요시 Service에서 라운딩 가능)
+      - MySQL 8 이상(윈도 함수 사용) 가정
+  -->
+	  <select id="selectRecommendPO" resultType="hashmap">
+	    WITH gross AS (
+	      SELECT bd.material_id AS materialId,
+	             SUM(bd.qty * #{orderQty}) AS gross_req
+	      FROM bom_master bm
+	      JOIN bom_detail bd ON bd.bom_id = bm.bom_id
+	      WHERE bm.product_id = #{productId}
+	        AND bm.status     = 'ACTIVE'
+	      GROUP BY bd.material_id
+	    ),
+	    inv AS (
+	      SELECT material_id, SUM(quantity) AS on_hand
+	      FROM material_inventory
+	      GROUP BY material_id
+	    ),
+	    rsv AS (
+	      SELECT material_id, SUM(reserved_qty) AS reserved
+	      FROM material_reservation
+	      GROUP BY material_id
+	    ),
+	    need AS (
+	      /* net_req > 0 인 자재만 */
+	      SELECT
+	        g.materialId,
+	        m.material_name AS materialName,
+	        m.unit          AS unit,
+	        g.gross_req,
+	        IFNULL(inv.on_hand,0) AS on_hand,
+	        IFNULL(rsv.reserved,0) AS reserved,
+	        (IFNULL(inv.on_hand,0) - IFNULL(rsv.reserved,0)) AS available,
+	        GREATEST(g.gross_req - (IFNULL(inv.on_hand,0) - IFNULL(rsv.reserved,0)), 0) AS net_req
+	      FROM gross g
+	      LEFT JOIN material m ON m.material_id = g.materialId
+	      LEFT JOIN inv ON inv.material_id = g.materialId
+	      LEFT JOIN rsv ON rsv.material_id = g.materialId
+	      WHERE GREATEST(g.gross_req - (IFNULL(inv.on_hand,0) - IFNULL(rsv.reserved,0)), 0) > 0
+	    ),
+	    cand AS (
+	      /* 공급사 후보 + 우선순위(리드타임, 단가) 부여 */
+	      SELECT
+	        si.material_id,
+	        si.supplier_id,
+	        si.unit_price,
+	        si.lead_days,
+	        /* 공급 가능(Y)만 우선. 컬럼이 없으면 조건 제거 가능 */
+	        CASE WHEN IFNULL(si.supply_available,'Y') = 'Y' THEN 0 ELSE 1 END AS available_rank
+	      FROM supplier_item si
+	    ),
+	    ranked AS (
+	      SELECT
+	        n.materialId,
+	        n.materialName,
+	        n.unit,
+	        n.net_req,
+	        c.supplier_id,
+	        c.unit_price,
+	        c.lead_days,
+	        ROW_NUMBER() OVER(
+	          PARTITION BY n.materialId
+	          ORDER BY c.available_rank ASC, c.lead_days ASC, c.unit_price ASC, c.supplier_id ASC
+	        ) AS rn
+	      FROM need n
+	      LEFT JOIN cand c ON c.material_id = n.materialId
+	    )
+	    SELECT
+	      r.materialId,
+	      r.materialName,
+	      r.unit,
+	      r.net_req,                              -- 부족수량
+	      /* 계획 발주수량: MOQ/LOT 없으면 net_req 그대로 */
+	      r.net_req            AS planned_qty,
+	      r.supplier_id        AS supplier_id,
+	      r.unit_price         AS unit_price,
+	      r.lead_days          AS lead_days,
+	      DATE_ADD(CURDATE(), INTERVAL IFNULL(CEIL(r.lead_days), 3) DAY) AS expected_inbound_date,
+	      (r.net_req * IFNULL(r.unit_price,0)) AS total_cost,
+	      /* 상태: 공급사 없으면 NO_SUPPLIER */
+	      CASE WHEN r.supplier_id IS NULL THEN 'NO_SUPPLIER' ELSE 'OK' END AS plan_status
+	    FROM ranked r
+	    WHERE r.rn = 1                         -- 자재별 1순위 공급사만 선택
+	    ORDER BY plan_status DESC, r.materialId;
+	  </select>
+		  
+	    <!--
+		    4-1) 오늘 날짜 기준 PO 채번
+		    - 형식: PO-YYYYMMDD-### (일자별 001부터)
+		    - DB에 맞춰 SUBSTRING/LPAD 부분은 필요시 조정
+		  -->
+		  <select id="selectNextPoId" resultType="string">
+		    SELECT CONCAT(
+		      'PO-',
+		      DATE_FORMAT(NOW(), '%Y%m%d'),
+		      '-',
+		      LPAD(
+		        COALESCE(
+		          MAX(CAST(SUBSTRING_INDEX(order_id, '-', -1) AS UNSIGNED)), 0
+		        ) + 1,
+		        3, '0'
+		      )
+		    )
+		    FROM material_order
+		    WHERE order_id LIKE CONCAT('PO-', DATE_FORMAT(NOW(), '%Y%m%d'), '-%')
+		  </select>
+		
+		  <!--
+		    4-2) PO 헤더 INSERT
+		    필수 컬럼 예시: order_id, supplier_id, status, expected_inbound(헤더 기준), created_at
+		    - status는 초안이므로 'DRAFT' 고정(필요시 ENUM/코드표에 맞춰 변경)
+		    - expected_inbound는 아이템별 상이하면 NULL로 두거나 가장 늦은 값으로
+		  -->
+		  <insert id="insertMaterialOrderHeader">
+		    INSERT INTO material_order (
+		      order_id, supplier_id, status, expected_inbound, created_at
+		    ) VALUES (
+		      #{orderId}, #{supplierId}, 'DRAFT', #{expectedInbound}, NOW()
+		    )
+		  </insert>
+		
+		  <!--
+		    4-3) PO 아이템 INSERT (배치)
+		    필수 컬럼 예시: order_id, material_id, qty, unit_price, expected_inbound_date
+		  -->
+		  <insert id="insertMaterialOrderItems">
+		    INSERT INTO material_order_item (
+		      order_id, material_id, quantity, unit_price, expected_inbound_date
+		    ) VALUES
+		    <foreach collection="items" item="it" separator=",">
+		      (#{orderId}, #{it.materialId}, #{it.qty}, #{it.unitPrice}, #{it.expectedInboundDate})
+		    </foreach>
+		  </insert>
+	  
+	  
+
+
+</mapper>
