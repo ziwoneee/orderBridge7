@@ -220,19 +220,30 @@
     
     <!-- 목록 조회 (자재 발주관리 등록 폼에서 필요) -->
     <select id="selectAllSuppliers" resultType="com.itwillbs.domain.SupplierVO">
-    	SELECT * FROM supplier ORDER BY supplier_name
+   	  SELECT supplier_id AS supplierId,
+	  	supplier_name AS supplierName
+	  FROM supplier
+	  WHERE status = '활성'
+	  ORDER BY supplier_name
 	</select>
     
     
-    <!-- 거래처가 공급하는 자재 목록 조회 (자재 발주관리) -->
-	<select id="getMaterialsBySupplier" parameterType="string" resultType="com.itwillbs.domain.MaterialVO">
-	    SELECT m.*
-	    FROM supplier_item si
-	    JOIN material m ON si.material_id = m.material_id
-	    WHERE si.supplier_id = #{supplierId}
-	    <if test="keyword != null and keyword != ''">
-	        AND m.material_name LIKE CONCAT('%', #{keyword}, '%')
-	    </if>
+    <!-- 거래처가 공급하는 자재(활성 거래처 + 공급가능 + 구매가능/사용중 자재만) -->
+	<select id="getMaterialsBySupplier" parameterType="map"
+	        resultType="com.itwillbs.domain.MaterialVO">
+	  SELECT m.*
+	  FROM supplier_item si
+	  JOIN material m ON m.material_id = si.material_id
+	  JOIN supplier s ON s.supplier_id = si.supplier_id
+	  WHERE si.supplier_id = #{supplierId}
+	    AND s.status = '활성'
+	    AND si.supply_available = 'Y'
+	    AND m.use_yn = 'Y'
+	    AND m.purchasable_flag = 'Y'
+	  <if test="keyword != null and keyword != ''">
+	    AND m.material_name LIKE CONCAT('%', #{keyword}, '%')
+	  </if>
+	  ORDER BY m.material_name
 	</select>
 	    
     
@@ -246,9 +257,9 @@
     
     
     <!-- 협력사 메일 -->
-<select id="findEmailById" parameterType="string" resultType="string">
-  SELECT email FROM supplier WHERE supplier_id = #{supplierId}
-</select>
+	<select id="findEmailById" parameterType="string" resultType="string">
+	  SELECT email FROM supplier WHERE supplier_id = #{supplierId}
+	</select>
     
     
 
