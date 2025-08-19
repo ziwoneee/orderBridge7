@@ -9,30 +9,16 @@ import com.itwillbs.dto.ProductionResultDTO;
  */
 public interface ProductionResultService {
     
-    // ===========================
-    // 아름님 흐름: 완제품 입고 연동
-    // ===========================
+    // 아름 흐름: 완제품 입고 연동
+	// 등록(LOT 자동생성 + 실적저장 + 상태자동반영 + 자동입고)
     void insertResult(ProductionResultVO vo);
-    void saveAllToInbound();
     
-    // ===========================
+	// 일괄 자동입고
+    void saveAllToInbound();
+
     // 태현 흐름: 목록/조회
-    // ===========================
     List<ProductionResultDTO> getList(SearchCriteria cri);
     int getTotalCount(SearchCriteria cri);
     ProductionResultDTO getDetail(String resultId);
     
-    // ===========================
-    // ✅ 보완생산 관련 추가
-    // ===========================
-    
-    /**
-     * 보완생산 필요 여부 체크
-     */
-    boolean checkNeedSupplement(String orderId);
-    
-    /**
-     * 부족 수량 계산
-     */
-    int getShortageQty(String orderId);
 }

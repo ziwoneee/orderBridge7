@@ -190,12 +190,6 @@ public class WorkOrderServiceImpl implements WorkOrderService {
     }
 
     // ================= 실적 입력용 조회 =================
-    /** READY + IN_PROGRESS (보완생산/실적 입력 화면) */
-    @Override
-    public List<WorkOrderDTO> getReadyAndInProgressOrders() {
-        log.debug("실적 입력용 목록 조회 (READY + IN_PROGRESS)");
-        return workOrderMapper.selectReadyAndInProgressOrders();
-    }
 
     /** IN_PROGRESS만 (일반 등록용) */
     @Override
@@ -232,4 +226,5 @@ public class WorkOrderServiceImpl implements WorkOrderService {
             throw new RuntimeException("작업지시번호 생성 실패: " + e.getMessage());
         }
     }
+
 }

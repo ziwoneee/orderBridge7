@@ -547,30 +547,6 @@
   <!-- =============================================================== -->
   <!-- 실적 입력용 목록                                                -->
   <!-- =============================================================== -->
-  <select id="selectReadyAndInProgressOrders" resultType="com.itwillbs.dto.WorkOrderDTO">
-    SELECT 
-      wo.order_id    AS orderId,
-      wo.product_id  AS productId,
-      p.product_name AS productName,
-      pl.line_name   AS lineName,
-      wo.order_qty   AS orderQty,
-      wo.status,
-      COALESCE(pr_sum.produced_qty, 0) AS producedQty,
-      GREATEST(wo.order_qty - COALESCE(pr_sum.produced_qty, 0), 0) AS remainingQty
-    FROM work_order wo
-    LEFT JOIN product p        ON wo.product_id = p.product_id  
-    LEFT JOIN production_line pl ON wo.line_id = pl.line_id
-    LEFT JOIN (
-      SELECT 
-        order_id,
-        SUM(GREATEST(actual_qty - COALESCE(defect_qty,0), 0)) AS produced_qty
-      FROM production_result 
-      GROUP BY order_id
-    ) pr_sum ON wo.order_id = pr_sum.order_id
-    WHERE wo.status IN ('READY', 'IN_PROGRESS')
-      AND wo.is_deleted = FALSE
-    ORDER BY wo.created_at DESC
-  </select>
 
   <select id="selectInProgressOnlyOrders" resultType="com.itwillbs.dto.WorkOrderDTO">
     SELECT 
@@ -601,23 +577,23 @@
   <!-- 실적 반영: 완료만 자동 전환 (IN_PROGRESS 자동전환 제거)         -->
   <!-- =============================================================== -->
   <update id="applyResultToWorkOrder" parameterType="string">
-    <![CDATA[
-    UPDATE work_order w
-    LEFT JOIN (
-      SELECT pr.order_id,
-             COALESCE(SUM(GREATEST(pr.actual_qty - COALESCE(pr.defect_qty,0),0)), 0) AS good_sum
-      FROM production_result pr
-      WHERE pr.order_id = #{orderId}
-      GROUP BY pr.order_id
-    ) r ON r.order_id = w.order_id
-    SET w.status = CASE
-                     WHEN COALESCE(r.good_sum, 0) >= w.order_qty THEN 'COMPLETED'
-                     ELSE w.status
-                   END,
-        w.updated_at = NOW()
-    WHERE w.order_id = #{orderId}
-    ]]>
-  </update>
+	  <![CDATA[
+	  UPDATE work_order w
+	  LEFT JOIN (
+	    SELECT pr.order_id,
+	           COALESCE(SUM(GREATEST(pr.actual_qty - COALESCE(pr.defect_qty,0),0)), 0) AS good_sum
+	    FROM production_result pr
+	    WHERE pr.order_id = #{orderId}
+	    GROUP BY pr.order_id
+	  ) r ON r.order_id = w.order_id
+	  SET w.status = CASE
+	                   WHEN COALESCE(r.good_sum, 0) >= w.order_qty THEN 'COMPLETED'
+	                   ELSE w.status
+	                 END,
+	      w.updated_at = NOW()
+	  WHERE w.order_id = #{orderId}
+	  ]]>
+	</update>
 
   <!-- 단건 조회(상태 검증용) -->
   <select id="selectWorkOrderById" parameterType="string" resultType="map">

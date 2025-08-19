@@ -1,5 +1,6 @@
 package com.itwillbs.controller;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
@@ -22,122 +23,87 @@ import com.itwillbs.domain.ProductionResultVO;
 import com.itwillbs.service.ProductionResultService;
 import com.itwillbs.service.WorkOrderService;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Controller
 @RequestMapping("/production/result")
 public class ProductionResultController {
-    
+
     @Inject
     private ProductionResultService productionResultService;
-    
+
     @Inject
     private WorkOrderService workOrderService;
-    
+
     // ======================= 목록 =========================
     @GetMapping("/list")
     public String list(@ModelAttribute SearchCriteria cri, Model model) {
+        // 기본 정렬 (최신순)
         if (cri.getSortColumn() == null || cri.getSortColumn().isEmpty()) {
             cri.setSortColumn("created_at");
             cri.setSortOrder("desc");
         }
-        
+        // 여기서는 'WAITING' 실적은 나오지 않는 게 정상 (서비스/쿼리에서 이미 필터링 권장)
         var list = productionResultService.getList(cri);
         int total = productionResultService.getTotalCount(cri);
-        
-        PageMaker pageMaker = new PageMaker(cri, total);
-        
+
         model.addAttribute("list", list);
-        model.addAttribute("pageMaker", pageMaker);
+        model.addAttribute("pageMaker", new PageMaker(cri, total));
         model.addAttribute("cri", cri);
-        
         return "production/result/list";
     }
-    
+
     // ======================= 등록 폼 =========================
     @GetMapping("/form")
     public String form(Model model) {
-        List<WorkOrderDTO> workOrderList = workOrderService.getInProgressOrders();
-        
-        System.out.println("=== 디버깅 정보 ===");
-        System.out.println("진행중/완료 작업지시 목록 크기: " + (workOrderList != null ? workOrderList.size() : 0));
-        if (workOrderList != null) {
-            for (WorkOrderDTO order : workOrderList) {
-                System.out.println("작업지시: " + order.getOrderId() + ", 상태: " + order.getStatus() + ", 제품: " + order.getProductName());
-            }
-        }
-        
+        // 보완모드 / READY 포함 없음. IN_PROGRESS 작업지시만 노출.
+        List<WorkOrderDTO> workOrderList = workOrderService.getInProgressOnlyOrders();
         model.addAttribute("workOrderList", workOrderList);
+        
+        // 현재 날짜를 yyyyMMdd 형식으로 포맷팅하여 JSP에 전달
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+        String todayStr = sdf.format(new Date());
+        model.addAttribute("todayStr", todayStr);
+        
         return "production/result/form";
     }
-    
-    // ======================= 상세 페이지 =========================
+
+    // ======================= 상세 =========================
     @GetMapping("/detail")
-    public String detail(@RequestParam("resultId") String resultId, Model model) {
+    public String detail(@RequestParam("resultId") String resultId,
+                         Model model,
+                         RedirectAttributes ra) {
         try {
             ProductionResultDTO result = productionResultService.getDetail(resultId);
             model.addAttribute("result", result);
-            
             return "production/result/detail";
         } catch (IllegalArgumentException e) {
-            model.addAttribute("errorMessage", e.getMessage());
+            ra.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/production/result/list";
         } catch (Exception e) {
-            model.addAttribute("errorMessage", "상세 정보를 조회하는 중 오류가 발생했습니다.");
+            ra.addFlashAttribute("errorMessage", "상세 정보를 조회하는 중 오류가 발생했습니다.");
             return "redirect:/production/result/list";
         }
-    }
-    
-    // ======================= 생산 실적 등록 =========================
-    @PostMapping("/register")
-    public String registerProductionResult(ProductionResultVO vo, 
-                                         RedirectAttributes redirectAttributes) {
-        try {
-            vo.setCreatedAt(new Date());
-            if (vo.getDefectQty() == null) {
-                vo.setDefectQty(0);
-            }
-            
-            // ✅ 기존 등록 로직
-            productionResultService.insertResult(vo);
-            
-            // ✅ 보완생산 필요 여부 체크
-            boolean needSupplement = productionResultService.checkNeedSupplement(vo.getOrderId());
-            int shortageQty = productionResultService.getShortageQty(vo.getOrderId());
-            
-            if (needSupplement && shortageQty > 0) {
-                redirectAttributes.addFlashAttribute("supplementMessage", 
-                    "보완생산이 필요합니다. 부족수량: " + shortageQty + "개");
-                redirectAttributes.addFlashAttribute("orderId", vo.getOrderId());
-                redirectAttributes.addFlashAttribute("shortageQty", shortageQty);
-                return "redirect:/production/result/supplement-alert?orderId=" + vo.getOrderId();
-            }
-            
-            redirectAttributes.addFlashAttribute("successMessage", "생산 실적이 등록되었습니다.");
-            
-        } catch (Exception e) {
-            System.err.println("생산 실적 등록 오류: " + e.getMessage());
-            e.printStackTrace();
-            redirectAttributes.addFlashAttribute("errorMessage", "생산 실적 등록 중 오류가 발생했습니다.");
-        }
-        
-        return "redirect:/production/result/list";
     }
 
-    // ✅ 보완생산 알림 페이지
-    @GetMapping("/supplement-alert")
-    public String supplementAlert(@RequestParam String orderId, Model model) {
+    // ======================= 생산 실적 등록 =========================
+    @PostMapping("/register")
+    public String registerProductionResult(ProductionResultVO vo, RedirectAttributes ra) {
         try {
-            // 작업지시 정보 조회
-            WorkOrderDTO workOrder = workOrderService.getWorkOrderDetail(orderId);
-            int shortageQty = productionResultService.getShortageQty(orderId);
+            log.info("등록 요청 데이터: {}", vo);
             
-            model.addAttribute("workOrder", workOrder);
-            model.addAttribute("shortageQty", shortageQty);
-            model.addAttribute("orderId", orderId);
+            // 기본값 보정
+            vo.setCreatedAt(new Date());
+            if (vo.getDefectQty() == null) vo.setDefectQty(0);
+
+            productionResultService.insertResult(vo);
+            ra.addFlashAttribute("successMessage", "생산 실적이 등록되었습니다.");
             
-            return "production/result/supplement-alert";
         } catch (Exception e) {
-            model.addAttribute("errorMessage", "작업지시 정보를 조회할 수 없습니다.");
-            return "redirect:/production/result/list";
+            log.error("생산 실적 등록 실패: {}", e.getMessage(), e);
+            ra.addFlashAttribute("errorMessage", "생산 실적 등록 중 오류가 발생했습니다: " + e.getMessage());
         }
+        return "redirect:/production/result/list";
     }
 }

@@ -58,8 +58,6 @@ public interface WorkOrderMapper {
     int deleteWorkOrder(@Param("orderId") String orderId);
 
     // ======================= 생산실적 입력용 조회 =======================
-    /** READY + IN_PROGRESS 조회 (실적 입력 화면용) */
-    List<WorkOrderDTO> selectReadyAndInProgressOrders();
 
     /** IN_PROGRESS만 조회 */
     List<WorkOrderDTO> selectInProgressOnlyOrders();

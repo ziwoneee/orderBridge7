@@ -40,8 +40,6 @@ public interface WorkOrderService {
     int startProduction(String orderId);
 
     // ================= 실적 입력용 조회 =================
-    /** READY + IN_PROGRESS (실적 입력 화면용) */
-    List<WorkOrderDTO> getReadyAndInProgressOrders();
 
     /** IN_PROGRESS만 (일반 등록용) */
     List<WorkOrderDTO> getInProgressOnlyOrders();

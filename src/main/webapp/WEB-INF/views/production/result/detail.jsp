@@ -1,8 +1,10 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="c"   uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
+<c:set var="cpath" value="${pageContext.request.contextPath}" />
 
 <div class="container-scroller">
   <%@ include file="/WEB-INF/views/main/top.jsp" %>
@@ -18,19 +20,16 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h3 class="mb-0">생산 실적 상세</h3>
           <div>
-            <a href="/production/result/list" class="btn btn-light me-2">
+            <a href="${cpath}/production/result/list" class="btn btn-outline-secondary">
               <i class="ti-arrow-left"></i> 목록으로
             </a>
-            <button type="button" class="btn btn-warning" onclick="editResult()">
-              <i class="ti-pencil"></i> 수정
-            </button>
           </div>
         </div>
 
         <!-- 기본 정보 섹션 -->
         <div class="card-section">
           <h5 class="section-title">기본 정보</h5>
-          
+
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
@@ -38,7 +37,7 @@
                 <input type="text" class="form-control" value="${result.resultId}" readonly>
               </div>
             </div>
-            
+
             <div class="col-md-6">
               <div class="form-group">
                 <label class="form-label">작업지시번호</label>
@@ -54,7 +53,7 @@
                 <input type="text" class="form-control" value="${result.productName}" readonly>
               </div>
             </div>
-            
+
             <div class="col-md-6">
               <div class="form-group">
                 <label class="form-label">라인명</label>
@@ -70,17 +69,17 @@
                 <input type="text" class="form-control" value="${result.workerName}" readonly>
               </div>
             </div>
-            
+
             <div class="col-md-6">
               <div class="form-group">
                 <label class="form-label">상태</label>
-                <div class="form-control" style="background-color: #f8f9fa;">
+                <div class="form-control" style="background-color:#f8f9fa;">
                   <c:choose>
-                    <c:when test="${result.status == 'IN_PROGRESS'}">
-                      <span class="badge badge-warning">생산중</span>
+                    <c:when test="${result.status eq 'IN_PROGRESS'}">
+                      <span class="badge badge-info">생산중</span>
                     </c:when>
-                    <c:when test="${result.status == 'DONE'}">
-                      <span class="badge badge-success">완료</span>
+                    <c:when test="${result.status eq 'COMPLETED'}">
+                      <span class="badge badge-success">생산 완료</span>
                     </c:when>
                     <c:otherwise>
                       <span class="badge badge-secondary">${result.status}</span>
@@ -92,60 +91,80 @@
           </div>
         </div>
 
-        <!-- 수량 정보 섹션 -->
-        <div class="card-section">
-          <h5 class="section-title">수량 정보</h5>
-          
-          <div class="row">
-            <div class="col-md-3">
-              <div class="form-group">
-                <label class="form-label">계획수량</label>
-                <input type="text" class="form-control" value="<fmt:formatNumber value='${result.orderQty}' pattern='#,###' />" readonly>
-              </div>
-            </div>
-            
-            <div class="col-md-3">
-              <div class="form-group">
-                <label class="form-label">생산수량</label>
-                <input type="text" class="form-control" value="<fmt:formatNumber value='${result.actualQty}' pattern='#,###' />" readonly>
-              </div>
-            </div>
-            
-            <div class="col-md-3">
-              <div class="form-group">
-                <label class="form-label">불량품수량</label>
-                <input type="text" class="form-control" value="<fmt:formatNumber value='${result.defectQty}' pattern='#,###' />" readonly>
-              </div>
-            </div>
+      <!-- 수량 정보 섹션 -->
+<div class="card-section">
+  <h5 class="section-title">수량 정보</h5>
+  
+  <div class="row">
+    <!-- 계획수량 -->
+    <div class="col-md-3">
+      <div class="form-group">
+        <label class="form-label">계획수량</label>
+        <input type="text" class="form-control"
+               value="<fmt:formatNumber value='${result.orderQty}' pattern='#,###'/>" readonly>
+      </div>
+    </div>
 
-            <div class="col-md-3">
-              <div class="form-group">
-                <label class="form-label">달성률</label>
-                <input type="text" class="form-control" 
-                       value="<c:if test='${result.orderQty > 0}'><fmt:formatNumber value='${(result.actualQty / result.orderQty) * 100}' pattern='#0.0' />%</c:if>" readonly>
-              </div>
-            </div>
-          </div>
-        </div>
+    <!-- 🔥 이번 생산수량 (메인) -->
+    <div class="col-md-3">
+      <div class="form-group">
+        <label class="form-label" style="color:#007bff;">생산수량</label>
+        <input type="text" class="form-control"
+               value="<fmt:formatNumber value='${result.actualQty}' pattern='#,###'/>" readonly
+               style="background-color:#e3f2fd;font-weight:bold;color:#1976d2;">
+      </div>
+    </div>
+
+    <!-- 불량수량 -->
+    <div class="col-md-3">
+      <div class="form-group">
+        <label class="form-label">불량수량</label>
+        <input type="text" class="form-control"
+               value="<fmt:formatNumber value='${result.defectQty}' pattern='#,###'/>" readonly>
+      </div>
+    </div>
+
+    <!-- 🆕 등록시점 진행률 -->
+    <div class="col-md-3">
+      <div class="form-group">
+        <label class="form-label" style="color:#28a745;">등록시점 진행률</label>
+        <input type="text" class="form-control"
+               value="<c:choose>
+                        <c:when test='${not empty result.progressRate}'>
+                          <fmt:formatNumber value='${result.progressRate}' pattern='#0.0'/>%
+                        </c:when>
+                        <c:otherwise>-</c:otherwise>
+                      </c:choose>" readonly
+               style="background-color:#d4edda;font-weight:bold;color:#155724;">
+      </div>
+    </div>
+  </div>
+</div>
 
         <!-- 시간 정보 섹션 -->
         <div class="card-section">
           <h5 class="section-title">작업 시간</h5>
-          
+
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
                 <label class="form-label">작업시작시간</label>
-                <input type="text" class="form-control" 
-                       value="<fmt:formatDate value='${result.startedAt}' pattern='yyyy-MM-dd HH:mm' />" readonly>
+                <input type="text" class="form-control"
+                       value="<c:choose>
+                                <c:when test='${not empty result.startedAt}'><fmt:formatDate value='${result.startedAt}' pattern='yyyy-MM-dd HH:mm' /></c:when>
+                                <c:otherwise>-</c:otherwise>
+                              </c:choose>" readonly>
               </div>
             </div>
-            
+
             <div class="col-md-6">
               <div class="form-group">
                 <label class="form-label">작업종료시간</label>
-                <input type="text" class="form-control" 
-                       value="<fmt:formatDate value='${result.endedAt}' pattern='yyyy-MM-dd HH:mm' />" readonly>
+                <input type="text" class="form-control"
+                       value="<c:choose>
+                                <c:when test='${not empty result.endedAt}'><fmt:formatDate value='${result.endedAt}' pattern='yyyy-MM-dd HH:mm' /></c:when>
+                                <c:otherwise>-</c:otherwise>
+                              </c:choose>" readonly>
               </div>
             </div>
           </div>
@@ -154,7 +173,7 @@
         <!-- LOT 정보 섹션 -->
         <div class="card-section">
           <h5 class="section-title">LOT 정보</h5>
-          
+
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
@@ -162,23 +181,25 @@
                 <input type="text" class="form-control" value="${result.lotNo}" readonly>
               </div>
             </div>
-            
+
             <div class="col-md-6">
               <div class="form-group">
                 <label class="form-label">등록일시</label>
-                <input type="text" class="form-control" 
-                       value="<fmt:formatDate value='${result.createdAt}' pattern='yyyy-MM-dd HH:mm:ss' />" readonly>
+                <input type="text" class="form-control"
+                       value="<c:choose>
+                                <c:when test='${not empty result.createdAt}'><fmt:formatDate value='${result.createdAt}' pattern='yyyy-MM-dd HH:mm:ss' /></c:when>
+                                <c:otherwise>-</c:otherwise>
+                              </c:choose>" readonly>
               </div>
             </div>
           </div>
         </div>
 
-
         <!-- 불량 기록 섹션 (있는 경우) -->
         <c:if test="${not empty defectList}">
           <div class="card-section">
             <h5 class="section-title">불량 기록</h5>
-            
+
             <div class="table-responsive">
               <table class="table table-bordered">
                 <thead class="table-header-dark">
@@ -208,11 +229,3 @@
     <!-- 본문 끝 -->
   </div>
 </div>
-
-<script>
-function editResult() {
-  if (confirm('생산 실적을 수정하시겠습니까?')) {
-    location.href = '/production/result/edit?resultId=${result.resultId}';
-  }
-}
-</script>
