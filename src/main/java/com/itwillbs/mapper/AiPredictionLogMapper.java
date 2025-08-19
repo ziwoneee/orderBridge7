@@ -5,17 +5,25 @@ import java.util.List;
 
 import org.apache.ibatis.annotations.Param;
 
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.AiPredictionLogDTO;
 
 public interface AiPredictionLogMapper {
 	
 	void insert(AiPredictionLogDTO log);
 
-    List<AiPredictionLogDTO> search(
-        @Param("q") String q,                 // workOrderId / requestType like
-        @Param("from") Date from,             // 시작일
-        @Param("to") Date to,                 // 종료일
-        @Param("limit") int limit             // 최대 N건
+    // 페이징용 새 메서드들
+    int getLogCount(
+        @Param("q") String q,
+        @Param("from") Date from,
+        @Param("to") Date to
+    );
+    
+    List<AiPredictionLogDTO> searchWithPaging(
+        @Param("q") String q,
+        @Param("from") Date from,
+        @Param("to") Date to,
+        @Param("cri") SearchCriteria cri
     );
 
 }

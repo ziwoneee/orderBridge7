@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.AiPredictionLogDTO;
 import com.itwillbs.mapper.AiPredictionLogMapper;
 
@@ -23,9 +24,14 @@ public class AiPredictionLogServiceImpl implements AiPredictionLogService {
 		mapper.insert(dto);
 	}
 	
+	// 페이징용 새 메서드들
+	@Override
+	public int getLogCount(String q, Date from, Date to) {
+		return mapper.getLogCount(q, from, to);
+	}
 	
-	@Override public List<AiPredictionLogDTO> search(String q, Date from, Date to, int limit){
-	  return mapper.search(q, from, to, limit);
-   }
-
+	@Override
+	public List<AiPredictionLogDTO> searchWithPaging(String q, Date from, Date to, SearchCriteria cri) {
+		return mapper.searchWithPaging(q, from, to, cri);
+	}
 }

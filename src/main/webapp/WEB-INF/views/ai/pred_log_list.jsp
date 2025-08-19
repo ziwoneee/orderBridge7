@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
 
@@ -28,7 +29,7 @@
 			
 			<!-- 검색 영역 -->
 			<div class="col-12 mb-3">
-			  <form class="forms-sample" method="get">
+			  <form class="forms-sample" method="get" id="searchForm">
 			    <div class="row align-items-end">
 			      <div class="col-md-3 form-group">
 			        <label class="form-label text-muted small">키워드 검색</label>
@@ -46,8 +47,20 @@
 			        <label class="form-label text-muted small">종료일</label>
 			        <input type="date" name="to" value="<fmt:formatDate value='${to}' pattern='yyyy-MM-dd'/>" class="form-control"/>
 			      </div>
+			      
+			      <div class="col-md-2 form-group">
+			        <label class="form-label text-muted small">페이지당</label>
+			        <select name="perPageNum" class="form-control"
+			                onchange="this.form.submit();"> <!-- ✅ 간단하게 변경 -->
+			          <c:set var="sizes" value="${fn:split('10,25,50,100,200', ',')}"/>
+			          <c:forEach var="n" items="${sizes}">
+			            <option value="${n}" <c:if test="${cri.perPageNum == n}">selected</c:if>>${n}</option>
+			          </c:forEach>
+			        </select>
+			      </div>
+			      
 			      <div class="col-md-3 form-group">
-			        <button type="submit" class="btn btn-primary me-2" style="background-color: #1C355E; border-color: #1C355E;">
+			        <button type="submit" class="btn btn-primary me-2">
 			          <i class="ti-search"></i> 검색
 			        </button>
 			        <a href="${pageContext.request.contextPath}/ai/pred-logs" class="btn btn-light">

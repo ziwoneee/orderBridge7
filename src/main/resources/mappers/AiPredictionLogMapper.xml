@@ -6,39 +6,55 @@
   
 <mapper namespace="com.itwillbs.mapper.AiPredictionLogMapper">
 
-  <resultMap id="LogMap" type="com.itwillbs.dto.AiPredictionLogDTO">
-    <id     column="log_id"                property="logId"/>
-    <result column="requested_by"          property="requestedBy"/>
-    <result column="request_type"          property="requestType"/>
-    <result column="input_data_json"       property="inputDataJson"/>
-    <result column="prediction_result_json" property="predictionResultJson"/>
-    <result column="created_at"            property="createdAt"/>
-  </resultMap>
-
-  <insert id="insert"
-          parameterType="com.itwillbs.dto.AiPredictionLogDTO"
-          useGeneratedKeys="true"
-          keyProperty="logId"
-          keyColumn="log_id">
+  <!-- 로그 저장 -->
+  <insert id="insert" parameterType="com.itwillbs.dto.AiPredictionLogDTO">
     INSERT INTO ai_prediction_log
-      (requested_by, request_type, input_data_json, prediction_result_json)
+      (requested_by, request_type, input_data_json, prediction_result_json, created_at)
     VALUES
-      (#{requestedBy}, #{requestType}, #{inputDataJson}, #{predictionResultJson})
+      (#{requestedBy}, #{requestType}, #{inputDataJson}, #{predictionResultJson}, NOW())
   </insert>
 
-  <select id="search" resultMap="LogMap">
-    SELECT log_id, requested_by, request_type, input_data_json, prediction_result_json, created_at
+  <!-- 전체 카운트 -->
+  <select id="getLogCount" resultType="int">
+    SELECT COUNT(*)
     FROM ai_prediction_log
     <where>
       <if test="q != null and q != ''">
-        (request_type LIKE CONCAT('%',#{q},'%')
-         OR input_data_json LIKE CONCAT('%',#{q},'%'))
+        (requested_by LIKE CONCAT('%', #{q}, '%')
+         OR request_type LIKE CONCAT('%', #{q}, '%')
+         OR input_data_json LIKE CONCAT('%', #{q}, '%')
+         OR prediction_result_json LIKE CONCAT('%', #{q}, '%'))
       </if>
-      <if test="from != null"> AND created_at &gt;= #{from} </if>
-      <if test="to != null">   AND created_at &lt;= #{to}   </if>
+      <if test="from != null">
+        AND created_at &gt;= #{from}
+      </if>
+      <if test="to != null">
+        AND created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)
+      </if>
     </where>
-    ORDER BY created_at DESC
-    LIMIT #{limit}
   </select>
 
+  <!-- 페이징된 목록 -->
+  <select id="searchWithPaging" resultType="com.itwillbs.dto.AiPredictionLogDTO">
+    SELECT log_id, requested_by, request_type,
+           input_data_json, prediction_result_json, created_at
+    FROM ai_prediction_log
+    <where>
+      <if test="q != null and q != ''">
+        (requested_by LIKE CONCAT('%', #{q}, '%')
+         OR request_type LIKE CONCAT('%', #{q}, '%')
+         OR input_data_json LIKE CONCAT('%', #{q}, '%')
+         OR prediction_result_json LIKE CONCAT('%', #{q}, '%'))
+      </if>
+      <if test="from != null">
+        AND created_at &gt;= #{from}
+      </if>
+      <if test="to != null">
+        AND created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)
+      </if>
+    </where>
+    ORDER BY created_at DESC
+    LIMIT #{cri.perPageNum} OFFSET #{cri.pageStart}
+  </select>
+  
 </mapper>
