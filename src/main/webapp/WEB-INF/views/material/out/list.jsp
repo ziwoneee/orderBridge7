@@ -198,19 +198,21 @@
 						  <!-- 일수 차이 계산 -->
 						  <c:set var="daysDiff" value="${(due0.time - today0.time) / (1000*60*60*24)}"/>
 						
-						  <c:choose>
-						    <c:when test="${daysDiff == 0}">
-						      <span class="badge badge-info badge-pill">오늘</span>
-						    </c:when>
-						    <c:when test="${daysDiff > 0 && daysDiff <= 2}">
-							  <span class="badge badge-warning badge-pill">
-							    D-<fmt:formatNumber value="${daysDiff}" pattern="#"/>
-							  </span>
-							</c:when>
-						    <c:when test="${daysDiff < 0}">
-						      <span class="badge badge-danger badge-pill">지연</span>
-						    </c:when>
-						  </c:choose>
+						   <c:if test="${item.statusCode ne 'ISSUED'}">
+							  <c:choose>
+							    <c:when test="${daysDiff == 0}">
+							      <span class="badge badge-info badge-pill">오늘</span>
+							    </c:when>
+							    <c:when test="${daysDiff > 0 && daysDiff <= 2}">
+							      <span class="badge badge-warning badge-pill">
+							        D-<fmt:formatNumber value="${daysDiff}" pattern="#"/>
+							      </span>
+							    </c:when>
+							    <c:when test="${daysDiff < 0}">
+							      <span class="badge badge-danger badge-pill">지연</span>
+							    </c:when>
+							  </c:choose>
+							</c:if>
 						</td>
 
 
