@@ -202,6 +202,7 @@
 		        </tr>
 			</thead>
 			
+			
 			<tbody>
 				 <c:forEach var="inv" items="${summaryList}">
 			        <tr>
