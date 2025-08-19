@@ -158,10 +158,10 @@
                           입고관리번호 
                            <c:choose>
 						      <c:when test="${cri.sortColumn == 'inbound_id'}">
-						        <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+						        <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 						      </c:when>
 						      <c:otherwise>
-						        ⇅
+						        <span class="neutral-arrow">⇅</span>
 						      </c:otherwise>
 						   </c:choose>
                         </a>
@@ -172,10 +172,10 @@
                           입고일자
                            <c:choose>
 						      <c:when test="${cri.sortColumn == 'inbound_date'}">
-						        <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+						        <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 						      </c:when>
 						      <c:otherwise>
-						        ⇅
+						        <span class="neutral-arrow">⇅</span>
 						      </c:otherwise>
 						   </c:choose>
                         </a>
@@ -191,10 +191,10 @@
                           예상입고일
                            <c:choose>
 						      <c:when test="${cri.sortColumn == 'expected_arrived_date'}">
-						        <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+						        <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 						      </c:when>
 						      <c:otherwise>
-						        ⇅
+						        <span class="neutral-arrow">⇅</span>
 						      </c:otherwise>
 						   </c:choose>
                         </a>

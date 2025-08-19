@@ -116,9 +116,9 @@
 			            자재코드
 			            <c:choose>
 			              <c:when test="${cri.sortColumn == 'material_id'}">
-			                <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+			                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 			              </c:when>
-			              <c:otherwise>⇅</c:otherwise>
+			              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
 			            </c:choose>
 			          </a>
 			        </th>
@@ -130,9 +130,9 @@
 			            자재명
 			            <c:choose>
 			              <c:when test="${cri.sortColumn == 'material_name'}">
-			                <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+			                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 			              </c:when>
-			              <c:otherwise>⇅</c:otherwise>
+			              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
 			            </c:choose>
 			          </a>
 			        </th>
@@ -144,9 +144,9 @@
 			            유형
 			            <c:choose>
 			              <c:when test="${cri.sortColumn == 'material_type'}">
-			                <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+			                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 			              </c:when>
-			              <c:otherwise>⇅</c:otherwise>
+			              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
 			            </c:choose>
 			          </a>
 			        </th>
@@ -158,9 +158,9 @@
 			            현재고
 			            <c:choose>
 			              <c:when test="${cri.sortColumn == 'quantity'}">
-			                <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+			                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 			              </c:when>
-			              <c:otherwise>⇅</c:otherwise>
+			              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
 			            </c:choose>
 			          </a>
 			        </th>
@@ -176,9 +176,9 @@
 			            유통기한
 			            <c:choose>
 			              <c:when test="${cri.sortColumn == 'expiration_date'}">
-			                <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+			                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 			              </c:when>
-			              <c:otherwise>⇅</c:otherwise>
+			              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
 			            </c:choose>
 			          </a>
 			        </th>
@@ -190,9 +190,9 @@
 			            최근입출고일
 			            <c:choose>
 			              <c:when test="${cri.sortColumn == 'last_movement_date'}">
-			                <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+			                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 			              </c:when>
-			              <c:otherwise>⇅</c:otherwise>
+			              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
 			            </c:choose>
 			          </a>
 			        </th>

@@ -108,10 +108,10 @@
                           출고관리번호 
                            <c:choose>
 						      <c:when test="${cri.sortColumn == 'outbound_id'}">
-						        <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+						        <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 						      </c:when>
 						      <c:otherwise>
-						        ⇅
+						        <span class="neutral-arrow">⇅</span>
 						      </c:otherwise>
 						   </c:choose>
                         </a>
@@ -122,10 +122,10 @@
                           출고일자
                            <c:choose>
 						      <c:when test="${cri.sortColumn == 'outbound_date'}">
-						        <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+						        <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 						      </c:when>
 						      <c:otherwise>
-						        ⇅
+						        <span class="neutral-arrow">⇅</span>
 						      </c:otherwise>
 						   </c:choose>
                         </a>
@@ -138,10 +138,10 @@
                           납기일자
                            <c:choose>
 						      <c:when test="${cri.sortColumn == 'due_date'}">
-						        <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+						        <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 						      </c:when>
 						      <c:otherwise>
-						        ⇅
+						        <span class="neutral-arrow">⇅</span>
 						      </c:otherwise>
 						   </c:choose>
                         </a>
