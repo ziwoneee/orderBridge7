@@ -1,8 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
     
-	<!-- 입고처리 모달 -->
-	<!-- 미입고 발주 모달 -->
+	<!-- 미입고 발주 목록 보기 모달 -->
 	<div class="modal fade" id="unreceivedOrdersModal" tabindex="-1" role="dialog" aria-hidden="true">
 	  <div class="modal-dialog modal-xl" role="document">
 	    <div class="modal-content">
@@ -45,6 +44,7 @@
 	    </div>
 	  </div>
 	</div>
+
 
 	<!-- 발주 상세 모달 (재사용) -->
 	<div class="modal fade" id="orderDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
@@ -105,6 +105,7 @@
 	
 	
 	
+	
 	<!-- 입고 처리 모달 -->
 	<div class="modal fade" id="inboundModal" tabindex="-1" role="dialog" aria-hidden="true">
 	  <div class="modal-dialog" role="document">
@@ -145,10 +146,80 @@
 	        </div>
 	      </div>
 	      <div class="modal-footer">
-	        <button id="btnSaveInbound" class="btn btn-success">저장</button>
+	        <button id="btnSaveInbound" type="button" class="btn btn-success">저장</button>
 	        <button class="btn btn-secondary" data-dismiss="modal">닫기</button>
 	      </div>
 	    </div>
 	  </div>
 	</div>
 	
+	
+	
+	<!-- 입고관리 상세 모달 -->
+	<div class="modal fade" id="inboundDetailModal" tabindex="-1" role="dialog" aria-labelledby="modalTitle" aria-hidden="true">
+	  <div class="modal-dialog modal-lg" role="document">
+	    <div class="modal-content">
+	
+	      <div class="modal-header" style="background-color: #1c355e; color: #ffffff;">
+	        <h5 class="modal-title">입고관리 상세</h5>
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          <span aria-hidden="true">&times;</span>
+	        </button>
+	      </div>
+	
+	      <div class="modal-body">
+	        <!-- 기본 정보 -->
+	        <table class="table table-bordered">
+	          <tbody>
+	            <tr>
+	              <th class="bg-light">발주관리번호</th>
+	              <td id="orderId"></td>
+	              <th class="bg-light">예상입고일</th>
+	              <td id="expectedArrivedDate"></td>
+	            </tr>
+	            <tr>
+	              <th class="bg-light">발주일자</th>
+	              <td id="orderDate"></td>
+	              <th class="bg-light">거래처</th>
+			              <td id="supplierName"></td>
+	            </tr>
+	            <tr>
+	              <th class="bg-light">입고관리번호</th>
+	              <td id="inboundId"></td>
+	              <th class="bg-light">입고진행현황</th>
+	              <td id="modalStatus"></td>
+	            </tr>
+	            <tr>
+	              <th class="bg-light">입고일자</th>
+	              <td id="inboundDate"></td>
+	              <th class="bg-light">입고담당자</th>
+	              <td id="handledBy"></td>
+	            </tr>
+	          </tbody>
+	        </table>
+	
+	        <!-- 자재 입고 정보 -->
+	        <h6 class="mt-4">자재 입고 정보</h6>
+	         <table class="table table-bordered text-center">
+	          <thead style="background-color: #1C355E; color: white;">
+	            <tr>
+	              <th>품목코드</th>
+	              <th>품명</th>
+	              <th>발주수량</th>
+	              <th>입고수량</th>
+	              <th>처리</th>
+	            </tr>
+	          </thead>
+	          <tbody id="inboundInfo">
+	            <!-- JS로 추가 -->
+	          </tbody>
+	        </table>
+	      </div>
+	
+	      <div class="modal-footer">
+	        <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
+	      </div>
+	
+	    </div>
+	  </div>
+	</div>

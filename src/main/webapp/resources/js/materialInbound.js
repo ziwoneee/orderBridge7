@@ -130,8 +130,21 @@ function openInboundModal(itemOrId) {
 	  var orderedQty = item.orderQuantity || 0;
 	  var currentReceivedQty = item.quantity || 0;  // 기입고
 	  var remainingQty = Math.max(orderedQty - currentReceivedQty, 0);
-	  $('#inboundModal #quantity').val(remainingQty > 0 ? remainingQty : 1);
+	  
+	  // === 여기부터 추가 ===
+	  // 수량 입력 제한: 최소 1, 최대 '남은 수량'
+	  const $qty = $('#inboundModal #quantity');
+	  const maxQty = remainingQty > 0 ? remainingQty : (orderedQty || 1);
 
+	  $qty.attr({ min: 1, max: maxQty });
+
+	  // 기본 표시값도 제한 범위에 맞춰 보정
+	  const initVal = remainingQty > 0 ? remainingQty : 1;
+	  $qty.val(initVal);
+
+	  // 남은 수량 0이면 읽기전용(완납 상태 보호)
+	  $qty.prop('readonly', remainingQty <= 0);
+	  
 	  // ★ 창고 우선 세팅 (서버에서 내려온 값 우선)
 	  $('#inboundModal #warehouseCode').val(item.warehouseCode || 'WH001');
 	  $('#inboundModal #inboundId').val(item.inboundId || '');
@@ -236,19 +249,16 @@ function processInboundItem() {
     contentType: 'application/json',
     data: JSON.stringify(inboundItemData),
     success: function () {
-      // 알럿 대신 토스트/배지 업데이트 권장. 일단 간단히 처리
-      // alert('입고 처리가 완료되었습니다.');
-      $('#inboundModal').modal('hide'); // ← 입력 모달만 닫기 
+	  // 입력 모달 닫고
+	  $('#inboundModal').modal('hide');
 
-      // 상세 모달이 열려있으면 그대로 재렌더링해서 최신 상태 반영
-      if ($('#inboundDetailModal').is(':visible')) {
-        loadInboundDetail(inboundId);
-      } else {
-        // 상세 모달이 아닌 메인 목록에서 열었을 때는 페이지 리프레시
-        // (여유되면 해당 행만 부분 업데이트로 교체 가능)
-        location.reload();
-      }
-    },
+	  // 상세 모달이 열려있으면 그쪽만 최신화
+	  if ($('#inboundDetailModal').is(':visible')) {
+	    loadInboundDetail($('#inboundModal #inboundId').val());
+	  } else {
+	    location.reload();
+	  }
+	},
     error: function (xhr) {
       console.error('입고 처리 실패:', xhr.responseText);
       alert('입고 처리 중 오류가 발생했습니다.\n' + xhr.responseText);
@@ -544,36 +554,134 @@ $(document).on('show.bs.modal', '.modal', function () {
   }, 0);
 });
 
-//✅ [A] 모달 저장 버튼 유효성 토글
+//✅ [A] 모달 저장 버튼 유효성 토글 (유통기한 >= 오늘)
 function validateInboundInputs() {
-  const lotNo = $.trim($('#inboundModal #lotNo').val());
-  const expirationDate = $.trim($('#inboundModal #expirationDate').val());
-  const quantity = parseInt($('#inboundModal #quantity').val(), 10);
-  const warehouseCode = $.trim($('#inboundModal #warehouseCode').val());
-  const materialId = $.trim($('#inboundModal #materialId').val());
-  const inboundId = $.trim($('#inboundModal #inboundId').val());
+  const lotNo        = $.trim($('#inboundModal #lotNo').val());
+  const expiration   = $.trim($('#inboundModal #expirationDate').val());
+  
+  const $qty = $('#inboundModal #quantity');
+  const quantity = parseInt($qty.val(), 10);
+  const maxAttr  = parseInt($qty.attr('max') || '0', 10);
+  const minAttr  = parseInt($qty.attr('min') || '1', 10);
+  
+  const warehouse    = $.trim($('#inboundModal #warehouseCode').val());
+  const materialId   = $.trim($('#inboundModal #materialId').val());
+  const inboundId    = $.trim($('#inboundModal #inboundId').val());
 
-  const ok = !!(lotNo && expirationDate && warehouseCode && materialId && inboundId && quantity > 0);
+  // 오늘 yyyy-mm-dd (로컬)
+  const now = new Date(); 
+  now.setHours(0,0,0,0);
+  const yyyy = now.getFullYear();
+  const mm   = String(now.getMonth()+1).padStart(2,'0');
+  const dd   = String(now.getDate()).padStart(2,'0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+
+  // 유통기한은 오늘 이상이어야 함
+  const expOk = !!expiration && expiration >= todayStr;
+  
+  //수량: 숫자이며 min 이상, (max가 있으면) max 이하여야 함
+  const qtyOk = Number.isFinite(quantity)
+             && quantity >= minAttr
+             && (!maxAttr || quantity <= maxAttr);
+
+  const ok = !!(lotNo && expOk && warehouse && materialId && inboundId && qtyOk);
   $('#btnSaveInbound').prop('disabled', !ok);
   return ok;
 }
 
-// ✅ [B] 모달 열릴 때 필드 세팅 후 즉시 검증 & 버튼 활성화 시도
+//✅ [B] 모달 열릴 때 필드 세팅 후 즉시 검증 & 버튼 활성화 시도
 $('#inboundModal').on('shown.bs.modal', function () {
   console.log('입고 모달이 표시되었습니다.');
+
+  // 오늘 yyyy-mm-dd (로컬)
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth()+1).padStart(2,'0');
+  const dd = String(today.getDate()).padStart(2,'0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+
+  // 유통기한 최소값 = 오늘
+  const $exp = $('#inboundModal #expirationDate');
+  $exp.attr('min', todayStr);
+
+  // 과거값으로 열리면 즉시 보정
+  if ($exp.val() && $exp.val() < todayStr) {
+    $exp.val(todayStr);
+  }
+
   // 혹시 HTML에 disabled나 .disabled가 박혀있으면 제거
   $('#btnSaveInbound').prop('disabled', false).removeClass('disabled');
+
   validateInboundInputs();
 });
 
-// ✅ [C] 입력이 바뀔 때마다 재검증
-$(document).on('input change', '#inboundModal input, #inboundModal select', validateInboundInputs);
+//=== [수량 입력 단계 방어] 음수/문자/휠 입력 차단 ===
 
-// ✅ [D] 저장 버튼은 위임 바인딩으로(안전)
+//숫자만 허용 & min/max 즉시 반영
+$(document).on('input', '#inboundModal #quantity', function () {
+let v = $(this).val().replace(/[^\d]/g, ''); // 숫자만 남김
+if (v === '') v = '1';
+const min = parseInt($(this).attr('min') || '1', 10);
+const max = parseInt($(this).attr('max') || '0', 10);
+let n = parseInt(v, 10);
+
+if (!Number.isFinite(n) || n < min) n = min;
+if (max && n > max) n = max;
+
+$(this).val(n);
+
+// 입력 바뀌면 버튼 토글
+if (typeof validateInboundInputs === 'function') validateInboundInputs();
+});
+
+//'-', '+', 'e', 'E', '.' 입력 자체 차단
+$(document).on('keydown', '#inboundModal #quantity', function (e) {
+const blocked = ['e', 'E', '-', '+', '.'];
+if (blocked.includes(e.key)) e.preventDefault();
+});
+
+//포커스 상태에서 마우스 휠로 값 변조 방지
+$(document).on('wheel', '#inboundModal #quantity', function (e) {
+if ($(this).is(':focus')) e.preventDefault();
+});
+
+
+//✅ [D] 저장 버튼 클릭 핸들러 (유통기한 2중 방어 포함)
 $(document).on('click', '#btnSaveInbound', function () {
+  // 유통기한 최소값 재확인
+  const $exp = $('#inboundModal #expirationDate');
+  const min  = $exp.attr('min');
+  const val  = $exp.val();
+  if (min && val && val < min) {
+    alert('유통기한은 오늘 이후로 입력해야 합니다.');
+    return;
+  }
+  
+  // === 수량 min/max 최종 방어 ===
+  const $q = $('#inboundModal #quantity');
+  const qVal = parseInt($q.val() || '0', 10);
+  const qMin = parseInt($q.attr('min') || '1', 10);
+  const qMax = parseInt($q.attr('max') || '0', 10);
+
+  if (!Number.isFinite(qVal) || qVal < qMin) {
+    alert(`입고 수량은 최소 ${qMin.toLocaleString()} 이상이어야 합니다.`);
+    $q.val(qMin);
+    return;
+  }
+  if (qMax && qVal > qMax) {
+    alert(`입고 수량은 남은 수량(${qMax.toLocaleString()})을 초과할 수 없습니다.`);
+    $q.val(qMax);
+    return;
+  }
+
   if (!validateInboundInputs()) {
     alert('필수 항목을 모두 입력해주세요.');
     return;
   }
+
   processInboundItem();
 });
+
+//입력이 바뀔 때마다 저장 버튼 활성/비활성 재평가
+$(document).on('input change', '#inboundModal input, #inboundModal select', validateInboundInputs);
