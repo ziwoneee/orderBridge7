@@ -70,7 +70,7 @@ public class WorkOrderController {
         model.addAttribute("workOrder", workOrder);
         model.addAttribute("bomList", bomList);
         model.addAttribute("lineList", lineList);
-        return "/workOrder/detail-modal";
+        return "workOrder/detail-modal";
     }
     
     // ========================================================================
@@ -192,10 +192,6 @@ public class WorkOrderController {
     // ========================================================================
     // 상태 변경 & 생산 시작
     // ========================================================================
-    /**
-     * 상태 변경(AJAX). 
-     * ※ IN_PROGRESS 전환은 전용 API(/start/{orderId})를 사용하도록 막음.
-     */
     @PostMapping("/updateStatus")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updateWorkOrderStatus(
@@ -214,16 +210,12 @@ public class WorkOrderController {
             response.put("success", result > 0);
             response.put("message", result > 0 ? "상태가 변경되었습니다." : "상태 변경에 실패했습니다.");
         } catch (Exception e) {
-            
             response.put("success", false);
             response.put("message", "시스템 오류가 발생했습니다.");
         }
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * READY → IN_PROGRESS 전환(생산 시작 버튼)
-     */
     @PostMapping("/start/{orderId}")
     @ResponseBody
     public Map<String, Object> startProduction(@PathVariable String orderId) {
@@ -246,13 +238,13 @@ public class WorkOrderController {
                 return res;
             }
 
-            int updated = workOrderService.updateWorkOrderStatus(orderId, "IN_PROGRESS");
+            int updated = workOrderService.startProduction(orderId);
             res.put("success", updated > 0);
             res.put("message", updated > 0 ? "생산을 시작했습니다." : "상태 변경에 실패했습니다.");
             return res;
         } catch (Exception e) {
             res.put("success", false);
-            res.put("message", "시스템 오류가 발생했습니다.");
+            res.put("message", "시스템 오류가 발생했습니다: " + e.getMessage());
             return res;
         }
     }

@@ -74,6 +74,29 @@
     </div>
   </div>
 
+<<<<<<< HEAD
+
+  <!-- 작업지시 설정 -->
+<div class="card">
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <label>생산라인 <span class="text-danger">*</span></label>
+        <select class="form-control" name="lineId" required>
+		  <option value="">라인을 선택하세요</option>
+		  <c:forEach var="line" items="${availableLines}">
+		    <c:if test="${line.status == 'ACTIVE'}">
+		      <option value="${line.lineId}">
+		        ${line.lineName} 
+		        <c:if test="${not empty line.availableProduct}">
+		          (${line.availableProduct})
+		        </c:if>
+		      </option>
+		    </c:if>
+		  </c:forEach>
+		</select>
+      </div>
+=======
   <!-- 작업지시 설정 -->
   <div class="card">
     <div class="card-body">
@@ -86,6 +109,7 @@
             </c:forEach>
           </select>
         </div>
+>>>>>>> branch '110-라인-관리' of https://github.com/ziwoneee/orderBridge7.git
         <div class="col-md-6">
           <label>우선순위 <span class="text-danger">*</span></label>
           <select class="form-control" name="priority" required>

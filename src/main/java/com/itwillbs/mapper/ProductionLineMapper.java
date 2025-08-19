@@ -1,8 +1,8 @@
 package com.itwillbs.mapper;
 
 import java.util.List;
-
 import com.itwillbs.domain.ProductionLineVO;
+import com.itwillbs.dto.WorkOrderDTO;
 
 public interface ProductionLineMapper {
 
@@ -11,5 +11,42 @@ public interface ProductionLineMapper {
      * @return 생산 라인 목록
      */
     List<ProductionLineVO> selectAvailableLines();
+    
+    /**
+     * 모든 생산라인 조회 (ACTIVE + INACTIVE)
+     * @return 생산 라인 목록
+     */
+    List<ProductionLineVO> selectAllLines();
 
+    /**
+     * 상태별 개수 조회
+     * @param status 상태
+     * @return 개수
+     */
+    int selectCountByStatus(String status);
+
+    /**
+     * 생산라인 상세 조회
+     * @param lineId 라인ID
+     * @return 생산라인 정보
+     */
+    ProductionLineVO selectProductionLineDetail(String lineId);
+
+    /**
+     * 상태 변경
+     * @param lineId 라인ID
+     * @param status 상태
+     * @return 변경 건수
+     */
+    int updateStatus(String lineId, String status);
+
+    /**
+     * 특정 라인의 진행 중 작업 1건
+     */
+    WorkOrderDTO selectCurrentWorkByLineId(String lineId);
+
+    /**
+     * 특정 라인의 대기 중 작업 목록
+     */
+    List<WorkOrderDTO> selectWaitingWorksByLineId(String lineId);
 }

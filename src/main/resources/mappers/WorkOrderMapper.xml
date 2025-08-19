@@ -514,7 +514,7 @@
      WHERE order_id = #{orderId}
   </update>
 
-  <!-- =============================================================== -->
+    <!-- =============================================================== -->
   <!-- 생산라인별 대기/준비/진행 목록                                  -->
   <!-- =============================================================== -->
   <select id="selectWorkOrdersByLine" parameterType="string"
@@ -543,11 +543,19 @@
       END,
       w.due_date ASC
   </select>
+  
+  <!-- 라인별 진행중 개수 -->
+  <select id="selectInProgressCountByLine" parameterType="string" resultType="int">
+    SELECT COUNT(*)
+    FROM work_order
+    WHERE line_id = #{lineId}
+      AND status = 'IN_PROGRESS'
+      AND is_deleted = FALSE
+  </select>
 
   <!-- =============================================================== -->
   <!-- 실적 입력용 목록                                                -->
   <!-- =============================================================== -->
-
   <select id="selectInProgressOnlyOrders" resultType="com.itwillbs.dto.WorkOrderDTO">
     SELECT 
       wo.order_id    AS orderId,
@@ -601,14 +609,6 @@
     FROM work_order 
     WHERE order_id = #{orderId}
   </select>
-
-  <!-- 라인별 진행중 개수 -->
-  <select id="selectInProgressCountByLine" parameterType="string" resultType="int">
-    SELECT COUNT(*)
-    FROM work_order
-    WHERE line_id = #{lineId}
-      AND status = 'IN_PROGRESS'
-      AND is_deleted = FALSE
-  </select>
+  
 
 </mapper>

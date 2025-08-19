@@ -1,26 +1,70 @@
-// 경로: com.itwillbs.service.ProductionLineServiceImpl.java
 package com.itwillbs.service;
 
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.itwillbs.domain.ProductionLineVO;
+import com.itwillbs.dto.WorkOrderDTO;
 import com.itwillbs.mapper.ProductionLineMapper;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class ProductionLineServiceImpl implements ProductionLineService {
 
     @Autowired
     private ProductionLineMapper productionLineMapper;
 
-    /**
-     * 사용 가능한 생산 라인 전체 조회
-     */
     @Override
     public List<ProductionLineVO> getAvailableLines() {
+        log.debug("사용 가능한 생산라인 조회 (ACTIVE만)");
         return productionLineMapper.selectAvailableLines();
     }
 
+    @Override
+    public List<ProductionLineVO> getAllLines() {
+        log.debug("모든 생산라인 조회 (ACTIVE + INACTIVE)");
+        return productionLineMapper.selectAllLines();
+    }
+
+    @Override
+    public int getCountByStatus(String status) {
+        log.debug("상태별 생산라인 개수 조회 - 상태: {}", status);
+        return productionLineMapper.selectCountByStatus(status);
+    }
+
+    @Override
+    public ProductionLineVO getProductionLineDetail(String lineId) {
+        log.debug("생산라인 상세 조회 - ID: {}", lineId);
+        return productionLineMapper.selectProductionLineDetail(lineId);
+    }
+
+    @Override
+    @Transactional
+    public int updateStatus(String lineId, String status) {
+        log.info("생산라인 상태 변경 - ID: {}, 상태: {}", lineId, status);
+        
+        int result = productionLineMapper.updateStatus(lineId, status);
+        if (result == 0) {
+            throw new RuntimeException("해당 생산라인을 찾을 수 없습니다: " + lineId);
+        }
+        
+        return result;
+    }
+    
+    @Override
+    public WorkOrderDTO getCurrentWorkByLine(String lineId) {
+        log.debug("라인 진행중 작업 조회 - lineId: {}", lineId);
+        return productionLineMapper.selectCurrentWorkByLineId(lineId);
+    }
+
+    @Override
+    public List<WorkOrderDTO> getWaitingWorksByLine(String lineId) {
+        log.debug("라인 대기중 작업 조회 - lineId: {}", lineId);
+        return productionLineMapper.selectWaitingWorksByLineId(lineId);
+    }
 }

@@ -182,16 +182,47 @@ public class WorkOrderServiceImpl implements WorkOrderService {
     @Override
     @Transactional
     public int startProduction(String orderId) {
+        log.info("=== 생산 시작 요청 시작 === orderId: {}", orderId);
+
+        // 1. 해당 작업지시 상세 조회
+        WorkOrderDTO workOrder = workOrderMapper.selectWorkOrderDetail(orderId);
+        if (workOrder == null) {
+            log.error("작업지시를 찾을 수 없음: {}", orderId);
+            throw new IllegalArgumentException("작업지시를 찾을 수 없음: " + orderId);
+        }
+
+        String lineId = workOrder.getLineId();
+
+        // 2. 같은 라인에 이미 생산중(IN_PROGRESS) 작업이 있는지 체크
+        int activeCount = workOrderMapper.selectInProgressCountByLine(lineId);
+        log.info("라인 [{}]의 진행중 작업 개수: {}", lineId, activeCount);
+
+        if (activeCount > 0) {
+            List<WorkOrderDTO> inProgressOrders = workOrderMapper.selectWorkOrdersByLine(lineId);
+            for (WorkOrderDTO order : inProgressOrders) {
+                if ("IN_PROGRESS".equals(order.getStatus())) {
+                    log.warn("- 진행중 작업: {} (상태: {})", order.getOrderId(), order.getStatus());
+                }
+            }
+            throw new IllegalStateException("라인 [" + lineId + "] 은 이미 생산 중입니다.");
+        }
+
+        log.info("라인 [{}]에 진행중인 작업 없음. 생산 시작 진행", lineId);
+
+        // 3. 상태 변경 실행 (READY → IN_PROGRESS)
         int updated = workOrderMapper.startProduction(orderId);
+        log.info("상태 변경 결과: {} (0이면 실패)", updated);
+
         if (updated == 0) {
+            log.error("상태 변경 실패 - READY 상태가 아니거나 해당 작업지시 없음: {}", orderId);
             throw new IllegalStateException("READY 상태에서만 생산 시작 가능: " + orderId);
         }
+
+        log.info("=== 생산 시작 완료 === orderId: {}", orderId);
         return updated;
     }
 
     // ================= 실적 입력용 조회 =================
-
-    /** IN_PROGRESS만 (일반 등록용) */
     @Override
     public List<WorkOrderDTO> getInProgressOnlyOrders() {
         log.debug("실적 입력용 목록 조회 (IN_PROGRESS)");
@@ -199,7 +230,6 @@ public class WorkOrderServiceImpl implements WorkOrderService {
     }
 
     // ================= 실적 연동 =================
-    /** 양품 누적 기준으로 COMPLETED 자동 반영 */
     @Override
     @Transactional
     public void refreshStatusByResults(String orderId) {
