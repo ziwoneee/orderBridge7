@@ -107,12 +107,18 @@ public class ProductStockServiceImpl implements ProductStockService {
     }
 
 
-    //
+    //로트번호별 재고현황
     @Override
     public ProductStockVO getLotSummary(String lotNo) {
         return productStockDAO.getLotSummary(lotNo);
     }
 
    
+    //제품별 재고현황
+    @Override
+    public List<ProductStockVO> getProductStockSummaryList() {
+        return productStockDAO.getProductStockSummaryList();
+    }
+
     
 }

@@ -497,9 +497,57 @@ GREATEST(
 </select>
 
 
+<!-- 제품별 재고 현황 -->
+<select id="getProductStockSummaryList" resultType="com.itwillbs.domain.ProductStockVO">
+SELECT
+  p.product_id,
+  p.product_name,
+  p.unit,
+  
+  COALESCE(res.reserved_qty, 0) AS reserved_qty,  
+  (
+    COALESCE(inb.inbound_qty, 0)   
+    - COALESCE(outb.outbound_qty, 0)
+    - COALESCE(res.reserved_qty, 0)
+  ) AS available_qty
+
+FROM product p
 
 
+LEFT JOIN (
+  SELECT product_id, SUM(inbound_qty) AS inbound_qty
+  FROM product_inbound
+  GROUP BY product_id
+) inb ON p.product_id = inb.product_id
 
+
+LEFT JOIN (
+  SELECT product_id, SUM(outbound_qty) AS outbound_qty
+  FROM product_outbound
+  GROUP BY product_id
+) outb ON p.product_id = outb.product_id
+
+
+LEFT JOIN (
+  SELECT product_id, SUM(qty) AS cancel_qty
+  FROM product_transaction
+  WHERE type = '취소'
+  GROUP BY product_id
+) can ON p.product_id = can.product_id
+
+
+LEFT JOIN (
+  SELECT product_id, SUM(reserved_qty) AS reserved_qty
+  FROM stock_reservation
+  GROUP BY product_id
+) res ON p.product_id = res.product_id
+
+
+WHERE p.product_status = '생산'
+
+ORDER BY p.product_name ASC;
+
+</select>
  
 
 </mapper>

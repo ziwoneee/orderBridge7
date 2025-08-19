@@ -44,14 +44,20 @@ public class ProductStockController {
             cri.setSortOrder("desc");
         }
 
-        // ✅ 데이터 조회
+        // ✅ LOT별 재고 리스트 + 페이징
         List<ProductStockVO> stockList = productStockService.getStockList(cri);
         int totalCount = productStockService.getStockCount(cri);
         cri.setTotalCount(totalCount);
 
         PageMaker pageMaker = new PageMaker(cri, totalCount);
         model.addAttribute("pageMaker", pageMaker);
+        model.addAttribute("stockList", stockList);
+        model.addAttribute("cri", cri);
         model.addAttribute("menu", "product");
+
+        // ✅ 제품별 요약 리스트 조회 추가
+        List<ProductStockVO> summaryList = productStockService.getProductStockSummaryList();
+        model.addAttribute("summaryList", summaryList);  // 요약 테이블 출력용
 
         // 날짜 계산
         LocalDate today = LocalDate.now();
@@ -108,6 +114,9 @@ public class ProductStockController {
     public List<LotStockDTO> getAvailableLots(@RequestParam("productId") String productId) {
         return productStockService.getAvailableLotsOrdered(productId);
     }
+    
+    
+
 
 
 }

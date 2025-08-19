@@ -1,5 +1,6 @@
 package com.itwillbs.controller;
 
+import com.itwillbs.domain.AdminUserVO;
 import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.StockReservationVO;
@@ -23,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import javax.servlet.http.HttpSession;
 
 
 @Controller
@@ -133,22 +136,39 @@ public class ClientDeliveryController {
 
 
 
- // ✅ 예약 등록
     @PostMapping("/reserve")
-    public String reserveStock(@RequestParam("clOrderId") String clOrderId, RedirectAttributes rttr) {
-        boolean success = reservationService.reserveStockByOrderId(clOrderId);
+    public String reserveStock(@RequestParam("clOrderId") String clOrderId,
+                               HttpSession session,
+                               RedirectAttributes rttr) {
+
+        // ✅ 세션에서 로그인된 관리자 객체 꺼냄
+        AdminUserVO loginAdmin = (AdminUserVO) session.getAttribute("loginAdmin");
+
+     // ✅ 로그인 안 되어 있으면 접근 차단
+        if (loginAdmin == null) {
+            rttr.addFlashAttribute("message", "로그인이 필요합니다.");
+            rttr.addFlashAttribute("messageType", "warning");
+            return "redirect:/login";  // 로그인 페이지 경로에 맞게 수정
+        }
+
+        // ✅ 관리자 이름 사용
+        String managerName = loginAdmin.getName();
+
+        // ✅ 예약 처리 (이름 함께 전달)
+        boolean success = reservationService.reserveStockByOrderId(clOrderId, managerName);
 
         if (success) {
             rttr.addFlashAttribute("message", "수주번호 [" + clOrderId + "] 예약이 완료되었습니다.");
-            rttr.addFlashAttribute("messageType", "success"); // ✅ 성공
+            rttr.addFlashAttribute("messageType", "success");
         } else {
             rttr.addFlashAttribute("message", "수주번호 [" + clOrderId + "] 예약이 실패되었습니다: 재고 부족 또는 이미 예약됨");
-            rttr.addFlashAttribute("messageType", "danger"); // ✅ 실패
-            rttr.addFlashAttribute("reserveFailedId", clOrderId);  // ✅ 실패한 ID 전달
+            rttr.addFlashAttribute("messageType", "danger");
+            rttr.addFlashAttribute("reserveFailedId", clOrderId);
         }
 
         return "redirect:/shipment/list?tab=pending";
     }
+
 
 
     // ✅ 예약 해지 

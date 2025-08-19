@@ -155,6 +155,10 @@ public class ProductStockDAOImpl implements ProductStockDAO {
         return sqlSession.selectList(NAMESPACE + ".getStockDetail", lotNo);
     }
 
-    
+   //제품별 재고현황
+    @Override
+    public List<ProductStockVO> getProductStockSummaryList() {
+        return sqlSession.selectList("com.itwillbs.mapper.ProductStockMapper.getProductStockSummaryList");
+    }
     
 }
