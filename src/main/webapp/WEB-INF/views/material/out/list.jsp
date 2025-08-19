@@ -182,18 +182,38 @@
 			 	         <!-- 작업지시번호 -->
 			 	         <td>${item.workOrderId}</td>
 				
-				         <!-- 납기일자 + D-Day -->
-				         <td>
-				           <fmt:formatDate value="${item.dueDate}" pattern="yyyy-MM-dd"/>
-				           <c:set var="today" value="<%=new java.util.Date()%>"/>
-				           <c:set var="daysDiff" value="${(item.dueDate.time - today.time) / (1000 * 60 * 60 * 24)}"/>
-				           <c:if test="${daysDiff <= 2 && daysDiff >= 0}">
-				             <span class="badge badge-warning badge-pill">D-${Math.ceil(daysDiff)}</span>
-				           </c:if>
-				           <c:if test="${daysDiff < 0}">
-				             <span class="badge badge-danger badge-pill">지연</span>
-				           </c:if>
-				         </td>
+						<!-- 납기일자 + D-Day -->
+						<td>
+						  <fmt:formatDate value="${item.dueDate}" pattern="yyyy-MM-dd"/>
+						  
+						  <!-- 오늘 날짜 (시분초 제거해서 0시 기준) -->
+						  <jsp:useBean id="__now" class="java.util.Date" />
+						  <fmt:formatDate value="${__now}" pattern="yyyy-MM-dd" var="todayStr"/>
+						  <fmt:parseDate value="${todayStr}" pattern="yyyy-MM-dd" var="today0"/>
+						  
+						  <!-- 납기 날짜 (시분초 제거) -->
+						  <fmt:formatDate value="${item.dueDate}" pattern="yyyy-MM-dd" var="dueStr"/>
+						  <fmt:parseDate value="${dueStr}" pattern="yyyy-MM-dd" var="due0"/>
+						  
+						  <!-- 일수 차이 계산 -->
+						  <c:set var="daysDiff" value="${(due0.time - today0.time) / (1000*60*60*24)}"/>
+						
+						  <c:choose>
+						    <c:when test="${daysDiff == 0}">
+						      <span class="badge badge-info badge-pill">오늘</span>
+						    </c:when>
+						    <c:when test="${daysDiff > 0 && daysDiff <= 2}">
+							  <span class="badge badge-warning badge-pill">
+							    D-<fmt:formatNumber value="${daysDiff}" pattern="#"/>
+							  </span>
+							</c:when>
+						    <c:when test="${daysDiff < 0}">
+						      <span class="badge badge-danger badge-pill">지연</span>
+						    </c:when>
+						  </c:choose>
+						</td>
+
+
 				         
 				         <!-- 담당자 -->
 				         <td>${item.handledBy}</td>
