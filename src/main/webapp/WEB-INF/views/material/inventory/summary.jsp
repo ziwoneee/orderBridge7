@@ -80,7 +80,7 @@
 		        <li class="nav-item">
 		            <a class="nav-link ${empty param.status ? 'active' : ''}" 
 		               href="/material/inventory/summary?keyword=${param.keyword}&materialType=${param.materialType}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
-		                전체 <span class="badge badge-light ms-1">${totalCount}</span>
+		                전체
 		            </a>
 		        </li>
 		        <li class="nav-item">
