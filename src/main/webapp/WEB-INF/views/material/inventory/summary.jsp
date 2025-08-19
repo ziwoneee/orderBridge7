@@ -227,10 +227,16 @@
 					  </td>
 			          <td>${inv.unit}</td>
 					  <td>
-			          	  <fmt:formatDate value="${inv.expirationDate}" pattern="yyyy-MM-dd" />
-						  <c:if test="${inv.expirationDate.time - now.time le 3 * 24 * 60 * 60 * 1000}">
-						    <span class="badge badge-danger ml-1">임박</span>
-						  </c:if>
+			          	<fmt:formatDate value="${inv.expirationDate}" pattern="yyyy-MM-dd" />
+						<c:set var="today" value="<%=new java.util.Date()%>" />
+						<c:set var="diff" value="${(inv.expirationDate.time - today.time) / (1000*60*60*24)}" />
+						
+						<c:if test="${diff <= 3 && diff >= 0}">
+						  <span class="badge badge-danger ml-1">임박</span>
+						</c:if>
+						<c:if test="${diff < 0}">
+						  <span class="badge badge-secondary ml-1">만료</span>
+						</c:if>
 		          	  </td>
 			          <td><fmt:formatDate value="${inv.lastMovementDate}" pattern="yyyy-MM-dd" /></td>
 			          <td>${inv.warehouseCode}</td>

@@ -59,52 +59,64 @@
 	<select id="selectInventorySummaryList"
 	        parameterType="com.itwillbs.domain.SearchCriteria"
 	        resultType="com.itwillbs.domain.MaterialInventoryVO">
-	  SELECT
-	    m.material_id,                       -- 자재 ID
-	    m.material_name,                     -- 자재명
-	    m.material_type,                     -- 자재 유형
-	    m.unit,                              -- 단위
-	    m.safety_stock AS safetyStock,       -- 안전재고
-	    COALESCE(SUM(mi.quantity), 0) AS quantity,           -- LOT 합계
-	    MIN(mi.expiration_date) AS expirationDate,           -- 가장 빠른 유통기한
-	    CASE
-	      WHEN COALESCE(SUM(mi.quantity),0) &lt;= 0 THEN '소진'
-	      WHEN COALESCE(SUM(mi.quantity),0) &lt; m.safety_stock THEN '부족'
-	      ELSE '정상'
-	    END AS stockStatus,
-	    CASE
-	      WHEN MAX(outbound_dates.latest_outbound) IS NOT NULL THEN
-	        GREATEST(
-	          COALESCE(MAX(inbound_dates.latest_inbound), '1900-01-01'),
-	          MAX(outbound_dates.latest_outbound)
-	        )
-	      ELSE MAX(inbound_dates.latest_inbound)
-	    END AS lastMovementDate,
-	    GROUP_CONCAT(DISTINCT mi.warehouse_code SEPARATOR ', ') AS warehouseCode
-	  FROM material m
-	  /* ★ 폐기 LOT 제외는 ON 절에 */
-	  LEFT JOIN material_inventory mi
-	    ON mi.material_id = m.material_id
-	   AND (mi.is_discarded = 0 OR mi.is_discarded IS NULL)
-	  LEFT JOIN (
-	    SELECT ii.material_id, MAX(i.inbound_date) AS latest_inbound
-	    FROM material_inbound_item ii
-	    JOIN material_inbound i ON i.inbound_id = ii.inbound_id
-	    WHERE i.inbound_status = '입고완료'
-	    GROUP BY ii.material_id
-	  ) inbound_dates ON inbound_dates.material_id = m.material_id
-	  LEFT JOIN (
-	    SELECT oi.material_id, MAX(o.outbound_date) AS latest_outbound
-	    FROM material_outbound_item oi
-	    JOIN material_outbound o ON o.outbound_id = oi.outbound_id
-	    WHERE o.status = 'ISSUED'
-	    GROUP BY oi.material_id
-	  ) outbound_dates ON outbound_dates.material_id = m.material_id
-	  WHERE 1=1
-	    /* ★ 활성 자재만 */
-	    AND m.use_yn = 'Y'
-	    /* ★ 필요하면 같이 사용 (원하면 빼도 됨) */
-	    AND m.purchasable_flag = 'Y'
+	 SELECT
+	  m.material_id,
+	  m.material_name,
+	  m.material_type,
+	  m.unit,
+	  m.safety_stock AS safetyStock,
+	  COALESCE(SUM(mi.quantity), 0) AS quantity,       -- 총 재고(0 포함)
+	  nx.next_expiration            AS expirationDate, -- ✅ 남은 LOT 중 최솟값
+	  CASE
+	    WHEN COALESCE(SUM(mi.quantity),0) &lt;= 0 THEN '소진'
+	    WHEN COALESCE(SUM(mi.quantity),0) &lt; m.safety_stock THEN '부족'
+	    ELSE '정상'
+	  END AS stockStatus,
+	  CASE
+	    WHEN MAX(outbound_dates.latest_outbound) IS NOT NULL THEN
+	      GREATEST(
+	        COALESCE(MAX(inbound_dates.latest_inbound), '1900-01-01'),
+	        MAX(outbound_dates.latest_outbound)
+	      )
+	    ELSE MAX(inbound_dates.latest_inbound)
+	  END AS lastMovementDate,
+	  GROUP_CONCAT(DISTINCT
+	    CASE WHEN COALESCE(mi.quantity,0) > 0 THEN mi.warehouse_code END
+	    SEPARATOR ', ') AS warehouseCode
+	FROM material m
+	LEFT JOIN material_inventory mi
+	  ON mi.material_id = m.material_id
+	 AND (mi.is_discarded = 0 OR mi.is_discarded IS NULL)
+	
+	-- ✅ 남아있는 LOT의 최솟값만 따로 구해서 붙임
+	LEFT JOIN (
+	  SELECT material_id, MIN(expiration_date) AS next_expiration
+	  FROM material_inventory
+	  WHERE COALESCE(quantity,0) > 0
+	    AND (is_discarded = 0 OR is_discarded IS NULL)
+	    -- 상태 컬럼 쓰는 경우:
+	    -- AND (status IS NULL OR status IN ('정상','IN_STOCK','PARTIAL'))
+	  GROUP BY material_id
+	) nx ON nx.material_id = m.material_id
+	
+	LEFT JOIN (
+	  SELECT ii.material_id, MAX(i.inbound_date) AS latest_inbound
+	  FROM material_inbound_item ii
+	  JOIN material_inbound i ON i.inbound_id = ii.inbound_id
+	  WHERE i.inbound_status = '입고완료'
+	  GROUP BY ii.material_id
+	) inbound_dates ON inbound_dates.material_id = m.material_id
+	
+	LEFT JOIN (
+	  SELECT oi.material_id, MAX(o.outbound_date) AS latest_outbound
+	  FROM material_outbound_item oi
+	  JOIN material_outbound o ON o.outbound_id = oi.outbound_id
+	  WHERE o.status = 'ISSUED'
+	  GROUP BY oi.material_id
+	) outbound_dates ON outbound_dates.material_id = m.material_id
+	
+	WHERE m.use_yn = 'Y'
+	  AND m.purchasable_flag = 'Y'
 	    <if test="keyword != null and keyword != ''">
 	      AND (
 	        m.material_id   LIKE CONCAT('%', #{keyword}, '%')
