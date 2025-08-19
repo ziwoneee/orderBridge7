@@ -2,7 +2,6 @@ package com.itwillbs.persistence;
 
 import java.util.List;
 
-import org.apache.ibatis.annotations.Mapper;
 
 import com.itwillbs.domain.ProductionResultVO;
 import com.itwillbs.domain.SearchCriteria;

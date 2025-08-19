@@ -139,7 +139,7 @@
 
 <script>
   const mergedOrders = JSON.parse('${clOrderIdsJson}');
-  console.log("✅ 병합된 수주:", mergedOrders);
+  console.log(" 병합된 수주:", mergedOrders);
 </script>
 <script>
 function loadBom(productId, orderQty) {
@@ -244,16 +244,16 @@ $(document).ready(function () {
       data: JSON.stringify(data),
       success: function (res) {
         if (res.success) {
-          alert("✅ 등록 성공!");
+          alert(" 등록 성공!");
           window.close();
         } else {
-          alert("❌ 등록 실패: " + res.message);
+          alert(" 등록 실패: " + res.message);
           isSubmitting = false;
           $('button[type="submit"]').prop('disabled', false).text("등록");
         }
       },
       error: function (err) {
-        alert("❌ 서버 오류 발생");
+        alert(" 서버 오류 발생");
         console.error(err);
         isSubmitting = false;
         $('button[type="submit"]').prop('disabled', false).text("등록");

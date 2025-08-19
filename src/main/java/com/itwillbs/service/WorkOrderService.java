@@ -7,113 +7,44 @@ import com.itwillbs.dto.BomItemDTO;
 import com.itwillbs.dto.WorkOrderDTO;
 
 /**
- * 작업지시 관련 서비스 인터페이스
+ * 작업지시 서비스
+ * 상태: WAITING → READY → IN_PROGRESS → COMPLETED
+ * - READY→IN_PROGRESS : startProduction() (버튼)
+ * - COMPLETED : applyResultToWorkOrder(orderId)로 자동 반영
  */
 public interface WorkOrderService {
-    
-    /**
-     * 작업지시 목록 조회 (검색, 페이징 포함)
-     * @param cri 검색 조건
-     * @return 작업지시 목록
-     */
+
+    // ================= 목록/카운트 =================
     List<WorkOrderDTO> getWorkOrderList(SearchCriteria cri);
-    
-    /**
-     * 작업지시 전체 개수 조회 (검색 조건 포함)
-     * @param cri 검색 조건
-     * @return 전체 개수
-     */
     int getWorkOrderTotalCount(SearchCriteria cri);
-    
-    /**
-     * 전체 작업지시 개수 조회 (검색 조건 없음)
-     * @return 전체 개수
-     */
     int getAllCount();
-    
-    /**
-     * 상태별 작업지시 개수 조회
-     * 상태별 작업지시 개수 조회
-     */
     int getCountByStatus(String status);
-    
-    
-    /**
-     * 확정 수주 목록 조회 (작업지시 등록용)
-     * @param cri 검색 조건
-     * @return 확정 수주 목록
-     */
-    List<WorkOrderDTO> getConfirmedOrders(SearchCriteria cri);
-    
-    /**
-     * 확정 수주 개수 조회
-     * @param cri 검색 조건
-     * @return 확정 수주 개수
-     */
-    int getConfirmedOrdersCount(SearchCriteria cri);
-    
-    /**
-     * 작업지시 등록 서비스
-     * - 병합된 수주 정보 포함
-     * - 자재 소요량 계산 및 저장 포함
-     * 
-     * @param workOrderDTO 작업지시 정보 (제품, 수량, 병합 수주 리스트 등)
-     * @return 등록 성공 여부
-     */
-    int registerWorkOrder(WorkOrderDTO workOrderDTO);
-    
-    /**
-     * 작업지시 등록 시, BOM 기준 자재 소요량 계산
-     * @param productId 제품 ID
-     * @param orderQty 지시 수량
-     * @return 자재 소요량 목록 (자재명, 단위, 수량 포함)
-     */
-    List<BomItemDTO> calculateMaterialUsage(String productId, int orderQty);
-    
-    
-    
-    /**
-     * 작업지시 상태 변경
-     * @param orderId 작업지시번호
-     * @param status 변경할 상태
-     * @return 변경 성공 여부 (1: 성공, 0: 실패)
-     */
-    int updateWorkOrderStatus(String orderId, String status);
-    
-    /**
-     * 작업지시 상세 조회
-     * @param orderId 작업지시 번호
-     * @return 작업지시 상세 정보
-     */
+
+    // ================= 작업지시 상세/등록/수정/삭제 ==============
     WorkOrderDTO getWorkOrderDetail(String orderId);
-    
-    
-    /**
-     * 작업지시 수정
-     * @param dto 수정할 작업지시 정보
-     */
+    int registerWorkOrder(WorkOrderDTO workOrderDTO);
     void updateWorkOrder(WorkOrderDTO dto);
-    
-    /**
-     * 작업지시 삭제
-     * @param orderId 작업지시번호
-     */
     void deleteWorkOrder(String orderId);
-    
-    
-    // 수주 상세 정보 조회 (작업지시 등록용)
+
+    // ================= 수주/자재/BOM =================
+    List<WorkOrderDTO> getConfirmedOrders(SearchCriteria cri);
+    int getConfirmedOrdersCount(SearchCriteria cri);
     WorkOrderDTO getOrderDetail(String clOrderId, String productId);
-    
- 
+    List<BomItemDTO> calculateMaterialUsage(String productId, int orderQty);
 
-    
-    /**
-     * 생산실적 등록 가능한 작업지시 목록 조회 (진행중 + 완료)
-     * @return 작업지시 목록
-     */
-    List<WorkOrderDTO> getInProgressOrders();
-    
-    // 작업지시 실적 반영(누적 합산 후 상태 자동 갱신)
+    // ================= 상태 변경 =================
+    /** 공용 상태 변경 (필요 시 직접 사용) */
+    int updateWorkOrderStatus(String orderId, String status);
+
+    /** READY → IN_PROGRESS : 생산 시작 버튼 */
+    int startProduction(String orderId);
+
+    // ================= 실적 입력용 조회 =================
+
+    /** IN_PROGRESS만 (일반 등록용) */
+    List<WorkOrderDTO> getInProgressOnlyOrders();
+
+    // ================= 실적 연동 =================
+    /** 실적 집계로 완료 자동 반영 (양품 누적 >= 목표) */
     void refreshStatusByResults(String orderId);
-
 }

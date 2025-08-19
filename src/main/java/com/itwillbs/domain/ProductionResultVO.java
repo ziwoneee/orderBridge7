@@ -16,6 +16,8 @@ public class ProductionResultVO {
     private Integer defectQty;          // 불량 수량 (총 불량 수량)
     private String productId;  
     private String workerName;      // 작업자명
+    private Double progressRate;      // 등록 시점 진행률
+    private Integer cumulativeQty;    // 등록 시점 누적량
     
     @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
     private Date startedAt;         // 작업 시작 시간
