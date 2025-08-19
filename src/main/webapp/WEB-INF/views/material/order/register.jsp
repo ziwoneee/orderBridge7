@@ -146,7 +146,10 @@
           <!-- 버튼 -->
           <div class="text-right">
             <button type="submit" class="btn btn-primary">등록</button>
-            <a href="/material/order/list" class="btn btn-outline-secondary">목록</a>
+            <a href="/material/order/register" class="btn btn-light">
+               <i class="ti-reload"></i> 초기화
+            </a>
+            <a href="/material/order/list" class="btn btn-secondary">취소</a>
           </div>
 
         </form>

@@ -102,17 +102,11 @@
                       입고완료 <span class="badge badge-light ms-1">${completedCount}</span>
                     </a>
                   </li>
-                  <li class="nav-item">
-                    <a class="nav-link ${param.status eq '취소' ? 'active' : ''}" 
-                       href="/material/order/list?status=취소&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
-                      취소 <span class="badge badge-light ms-1">${canceledCount}</span>
-                    </a>
-                  </li>
                 </ul>
               </div>
 
               <!-- 테이블 -->
-              <div class="table-responsive">
+              <div classtable-responsive">
                 <table class="table table-hover">
                   <thead style="background-color: #1C355E; color: white; border-top: none;">
                     <tr>
@@ -209,7 +203,6 @@
 						    <c:when test="${order.orderStatus eq '요청'}"><span class="badge badge-warning">요청</span></c:when>
 						    <c:when test="${order.orderStatus eq '승인'}"><span class="badge badge-primary">승인</span></c:when>
 						    <c:when test="${order.orderStatus eq '입고완료'}"><span class="badge badge-success">입고완료</span></c:when>
-						    <c:when test="${order.orderStatus eq '취소'}"><span class="badge badge-danger">취소</span></c:when>
 						    <c:when test="${order.orderStatus eq '초안'}"><span class="badge badge-secondary">초안</span></c:when>
 						    <c:otherwise><span class="badge badge-secondary">${order.orderStatus}</span></c:otherwise>
 						  </c:choose>
