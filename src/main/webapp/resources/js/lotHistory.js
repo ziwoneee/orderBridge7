@@ -53,11 +53,12 @@ function openLotHistoryModal(lotNo, productId) {
     success: function (response) {
       console.log("✅ 서버 응답:", response);
       console.log("✅ 유통기한 확인:", response.expireDate);
+      console.log(response.availableQty);
       
    // 1) 배열/객체 응답 모두 대응: history 확보
       const records = Array.isArray(response) ? response : (response.history || []);
 
-      // 2) 합계 계산 (입고/출고/취소)
+   // 2) 합계 계산 (입고/출고/취소)
       const sumBy = (pred) =>
         records.reduce((acc, e) => (pred(e) ? acc + (Number(e.qty) || 0) : acc), 0);
 
@@ -65,21 +66,26 @@ function openLotHistoryModal(lotNo, productId) {
       const isOutbound = (e) => e.type === 'OUTBOUND' || e.type === '출고';
       const isCancel   = (e) => e.type === 'CANCEL'   || e.type === '취소';
 
-      const inboundQty       = sumBy(isInbound);
-      const totalOutboundQty = sumBy(isOutbound);
-      const cancelQty        = sumBy(isCancel);
+      const inboundQty  = sumBy(isInbound);
+      const outboundQty = sumBy(isOutbound);
+      const cancelQty   = sumBy(isCancel);
+      console.log("출고수량"+outboundQty);
+      console.log("취소수량"+cancelQty);
+            
 
-      // 3) 예약 수량/유통기한: 객체 응답이면 그대로, 배열이면 기본값
+      // 3) 예약 수량과 유통기한
       const reservedQty = Array.isArray(response) ? 0 : (response.reservedQty || 0);
-      const availableQty = inboundQty - totalOutboundQty + cancelQty - reservedQty;
+      const availableQty = Array.isArray(response) ? 0 : (response.availableQty || 0);
+     console.log("가용수량"+availableQty);
       const expireDate = Array.isArray(response) ? null : response.expireDate;
-
+      
+     
       // 4) 헤더 영역 채우기
       $('#modal-lot-no').text(lotNo);
       $('#modal-product-name').text(productId || '-');
       
       $('#modal-inboundQty').text(inboundQty);
-      $('#modal-totalOutboundQty').text(totalOutboundQty);
+      $('#modal-totalOutboundQty').text(outboundQty);
       $('#modal-reservedQty').text(reservedQty);
       $('#modal-availableQty').text(availableQty);
       $('#modal-expireDate').text(expireDate ? formatDate(expireDate) : '-');
@@ -159,3 +165,5 @@ function openLotHistoryModal(lotNo, productId) {
     }
   });
 }
+
+

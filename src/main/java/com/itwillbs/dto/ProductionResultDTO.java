@@ -37,6 +37,10 @@ public class ProductionResultDTO {
     private String  orderManager;  // work_order.order_manager
     private String  status;        // work_order.status
     private String  priority;      // work_order.priority (필요시)
+    
+    // ====== 파생(계산) 컬럼 ======
+    private Double defectRate;      // 불량률 = (defect / (actual+defect)) * 100
+    private Double achievementRate; // 달성률 = (actual / order_qty) * 100
 
     // ====== 집계 컬럼 ======
     private Integer producedQty;    // 누적 양품

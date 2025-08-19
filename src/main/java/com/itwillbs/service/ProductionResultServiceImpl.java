@@ -104,7 +104,7 @@ public class ProductionResultServiceImpl implements ProductionResultService {
         
         // 5) 생산결과 INSERT
         productionResultDAO.insertResult(vo);
-        log.info("생산결과 등록 완료: resultId={}, lotNo={}, 진행률={}%", resultId, lotNo, progressRate);
+        //log.info("생산결과 등록 완료: resultId={}, lotNo={}, 진행률={}%", resultId, lotNo, progressRate);
 
         // 6) 작업지시 상태 자동 반영(양품 누적 기준: 목표 달성 시 COMPLETED)
         workOrderMapper.applyResultToWorkOrder(vo.getOrderId());

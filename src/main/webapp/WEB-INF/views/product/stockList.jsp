@@ -71,13 +71,7 @@
          href="${pageContext.request.contextPath}/product/stocklist?status=정상&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}">
         정상
       </a>
-    </li>    
-    <li class="nav-item">
-      <a class="nav-link ${param.status == '부족' ? 'active' : ''}"
-         href="${pageContext.request.contextPath}/product/stocklist?status=부족&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}">
-        부족
-      </a>
-    </li>
+    </li>       
     <li class="nav-item">
       <a class="nav-link ${param.status == '완료' ? 'active' : ''}"
          href="${pageContext.request.contextPath}/product/stocklist?status=완료&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}">
@@ -98,8 +92,7 @@
 				    <th>LOT 번호</th>
 				    <th>현재고</th>
 				    <th>예약수량</th>
-				    <th>가용수량</th>
-				    <th>안전재고</th>
+				    <th>가용수량</th>				    
 				    <th>생산일자</th>
 				    <th>유통기한</th>            
 				    <th>재고상태</th>
@@ -113,18 +106,14 @@
 				      <td>${item.lotNo}</td>
 				      <td>${item.stockQty}</td>
 				      <td>${item.reservedQty}</td>
-				      <td>${item.availableQty}</td>
-				      <td>${item.safeQty}</td>
+				      <td>${item.availableQty}</td>				      
                       <td><fmt:formatDate value="${item.regDate}" pattern="yyyy-MM-dd"/></td>
                       <td><fmt:formatDate value="${item.expireDate}" pattern="yyyy-MM-dd"/></td>
                       <td>
                         <c:choose>  
   <c:when test="${item.availableQty == 0}">
-    <span class="badge badge-secondary">완료</span>
-  </c:when>  
-  <c:when test="${item.availableQty > 0 && item.availableQty lt item.safeQty}">
-    <span class="badge badge-danger">부족</span>
-  </c:when> 
+    <span class="badge badge-secondary">완료</span> 
+  </c:when>   
   <c:otherwise>
     <span class="badge badge-success">정상</span>
   </c:otherwise>

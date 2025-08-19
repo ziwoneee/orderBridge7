@@ -29,6 +29,7 @@ public class ProductStockController {
 
     @GetMapping("/product/stocklist")
     public String stockList(SearchCriteria cri, Model model) {
+    	System.out.println("cri"+cri);
 
         // ✅ 허용된 정렬 컬럼
         List<String> allowedSortColumns = Arrays.asList("product_name", "lot_no", "reg_date", "expire_date");
@@ -79,7 +80,7 @@ public class ProductStockController {
 
         // 2. 상단에 표시할 LOT별 수치 정보
         ProductStockVO summary = productStockService.getLotSummary(lotNo);
-        System.out.println(summary);
+        System.out.println("@@@@@@@@@@@@@@@@@"+summary);
         if (summary != null) {
             result.put("inboundQty", summary.getInboundQty());
             result.put("totalOutboundQty", summary.getOutboundQty());
