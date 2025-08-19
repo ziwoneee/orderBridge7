@@ -236,10 +236,18 @@ function processInboundItem() {
     contentType: 'application/json',
     data: JSON.stringify(inboundItemData),
     success: function () {
-      alert('입고 처리가 완료되었습니다.');
-      $('#inboundModal').modal('hide');
-      $('#inboundDetailModal').modal('hide');
-      location.reload();
+      // 알럿 대신 토스트/배지 업데이트 권장. 일단 간단히 처리
+      // alert('입고 처리가 완료되었습니다.');
+      $('#inboundModal').modal('hide'); // ← 입력 모달만 닫기 
+
+      // 상세 모달이 열려있으면 그대로 재렌더링해서 최신 상태 반영
+      if ($('#inboundDetailModal').is(':visible')) {
+        loadInboundDetail(inboundId);
+      } else {
+        // 상세 모달이 아닌 메인 목록에서 열었을 때는 페이지 리프레시
+        // (여유되면 해당 행만 부분 업데이트로 교체 가능)
+        location.reload();
+      }
     },
     error: function (xhr) {
       console.error('입고 처리 실패:', xhr.responseText);

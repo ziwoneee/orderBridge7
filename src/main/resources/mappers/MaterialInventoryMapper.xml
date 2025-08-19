@@ -59,16 +59,14 @@
 	    m.material_name,                     -- 자재명
 	    m.material_type,                     -- 자재 유형
 	    m.unit,                              -- 단위
-	    m.safety_stock,                      -- 안전재고 기준
-	    SUM(mi.quantity) AS quantity,        -- 전체 보유 수량 합계
+	    m.safety_stock     AS safetyStock,   -- 안전재고 기준
+	    COALESCE(SUM(mi.quantity),0) AS quantity,        -- 전체 보유 수량 합계
 	    MIN(mi.expiration_date) AS expirationDate, -- 가장 빠른 유통기한
 	    
 	    -- 재고 상태 판정
 	    CASE 
 	      WHEN SUM(mi.quantity) &lt;= 0 THEN '소진'
 	      WHEN SUM(mi.quantity) &lt; m.safety_stock THEN '부족'
-	      WHEN MIN(mi.expiration_date) IS NOT NULL 
-	           AND MIN(mi.expiration_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN '임박'
 	      ELSE '정상'
 	    END AS stockStatus,
 	    
@@ -130,7 +128,6 @@
 	        <when test="status == '정상'">
 	          AND SUM(mi.quantity) > 0 
 	          AND SUM(mi.quantity) >= m.safety_stock
-	          AND (MIN(mi.expiration_date) IS NULL OR MIN(mi.expiration_date) > DATE_ADD(CURDATE(), INTERVAL 30 DAY))
 	        </when>
 	        <when test="status == '부족'">
 	          AND SUM(mi.quantity) &gt; 0 

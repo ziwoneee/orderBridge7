@@ -58,7 +58,7 @@
 			      <option value="N" ${cri.lotFlag == 'N' ? 'selected' : ''}>N</option>
 			    </select>
 			
-			    <button type="submit" class="btn btn-primary mr-2 mb-2">검색</button>
+			    <button type="submit" class="btn btn-primary mr-2 mb-2"><i class="ti-search"></i>검색</button>
 			    <a href="/material/list" class="btn btn-light mb-2"><i class="ti-reload"></i> 초기화</a>
 			  </form>
 			
