@@ -3,6 +3,62 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
+<!-- ✅ 최소한의 보조 스타일 -->
+<style>
+  .kv { display:flex; gap:.75rem; align-items:center; }
+  .kv .key { min-width: 84px; color:#6c757d; font-size:.9rem; }
+  .kv .val { flex:1; }
+  
+  
+
+  .modal-content { opacity: 1 !important; filter: none !important; }  
+
+/* 모달 내부 전용 스코프 */
+.production-modal * { box-sizing: border-box; }
+
+/* 제목 바(모달 타이틀 영역이 아니라 본문 첫 카드/섹션 타이틀용) */
+.production-modal .section-title {
+  display:flex; align-items:center; gap:.5rem;
+  font-weight:700; font-size:1rem; color:#0f172a;
+  margin:0 0 .75rem 0;
+}
+.production-modal .section-title::before{
+  content:""; width:6px; height:18px; border-radius:4px; 
+  background:#0d6efd; /* 포인트 색 */
+}
+
+/* 카드 대비 강화 */
+.production-modal .card {
+  border:1px solid #cbd5e1 !important;            /* 선명한 테두리 */
+  box-shadow:0 6px 18px rgba(2,6,23,.10) !important; /* 강한 음영 */
+  border-radius:14px;
+}
+
+/* 헤더 카드(요약 바)는 진한 배경 + 흰 글씨 */
+.production-modal .card.card--header .card-body {
+  background:#1f3a5f; color:#fff;
+  border-radius:12px;
+}
+
+/* 섹션 헤더 바 (작업 시간 등) */
+.production-modal .card-header {
+  background:#1f3a5f !important; color:#fff !important;
+  border-bottom:none; font-weight:700;
+}
+
+/* 레이블/값 가독성 */
+.production-modal .kv .key { color:#334155; font-weight:600; min-width:84px; }
+.production-modal .kv .val { color:#0f172a; }
+
+/* 구분선 */
+.production-modal .divider { height:1px; background:#d1d5db; margin:12px 0; }
+
+/* 혹시 상위 투명도 있으면 제거 */
+.modal-content { opacity:1 !important; filter:none !important; }
+</style>
+  
+
+
 <% java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
     String today = sdf.format(new java.util.Date());%>
 
@@ -179,74 +235,118 @@
       </div>
 <div class="modal-body">
 
-  <!-- ✅ 기본 정보 -->
-  <table class="table table-bordered table-sm mb-4 align-middle text-center">
-   
-    <tbody>
-      <tr>
-        <th class="bg-light">실적번호</th>
-        <td id="rd-resultId"></td>
-        <th class="bg-light">작업지시번호</th>
-        <td id="rd-orderId"></td>
-        <th class="bg-light">제품명</th>
-        <td id="rd-productName"></td>
-        <th class="bg-light">라인명</th>
-        <td id="rd-lineName"></td>
-      </tr>
-      <tr>
-        <th class="bg-light">작업자명</th>
-        <td id="rd-workerName"></td>
-        <th class="bg-light">상태</th>
-        <td colspan="1">
-          <span id="rd-statusBadge" class="badge bg-secondary"></span>
-        </td>
-        <th class="bg-light">LOT번호</th>
-        <td id="rd-lotNo"></td>
-        <th class="bg-light">등록일시</th>
-        <td id="rd-createdAt"></td>
-      </tr>
-    </tbody>
-  </table>
+ <div class="modal-body production-modal"><!-- ← 스코프 클래스 추가 -->
 
-  <!-- ✅ 수량 정보 -->
-  <table class="table table-bordered table-sm mb-4 align-middle text-center">
-    <thead class="table-primary">
-      <tr>
-        <th colspan="8" class="text-start ps-3">수량 정보</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <th class="bg-light">계획수량</th>
-        <td id="rd-orderQty"></td>
-        <th class="bg-light">생산수량</th>
-        <td id="rd-actualQty"></td>
-        <th class="bg-light">불량수량</th>
-        <td id="rd-defectQty"></td>
-        <th class="bg-light">달성률</th>
-        <td id="rd-achievement"></td>
-      </tr>
-    </tbody>
-  </table>
+  <!-- ✅ 1) 헤더 카드: 기본 정보 요약 (진한 바 느낌) -->
+  <div class="card card--header shadow-lg mb-3">
+    <div class="card-body py-3">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center flex-wrap gap-3">       
 
-  <!-- ✅ 작업 시간 -->
-  <table class="table table-bordered table-sm mb-1 align-middle text-center">
-    <thead class="table-primary">
-      <tr>
-        <th colspan="4" class="text-start ps-3">작업 시간</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <th class="bg-light">작업 시작시간</th>
-        <td id="rd-startedAt"></td>
-        <th class="bg-light">작업 종료시간</th>
-        <td id="rd-endedAt"></td>
-      </tr>
-    </tbody>
-  </table>
+          <div class="d-flex align-items-center gap-2 text-white">
+            <span class="fw-semibold">실적번호</span>
+            <strong id="rd-resultId" class="ms-1"></strong>
+            <span class="vr mx-2 d-none d-md-inline bg-white opacity-50" style="width:1px;height:16px;"></span>
+            <span class="fw-semibold">작업지시</span>
+            <strong id="rd-orderId" class="ms-1"></strong>
+          </div>
+        </div>
+
+        <div class="text-end">
+          <div class="small text-white-50">등록일시</div>
+          <div id="rd-createdAt" class="fw-semibold text-white"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ 2) 그리드: 제품/라인/작업자/LOT -->
+  <div class="row g-3 mb-3">
+    <div class="col-12 col-md-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body py-3">
+          <div class="section-title">기본 정보</div>
+          <div class="kv"><div class="key">제품명</div><div id="rd-productName" class="val fw-semibold"></div></div>
+          <div class="kv mt-2"><div class="key">라인명</div><div id="rd-lineName" class="val"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body py-3">
+          <div class="section-title">작업/LOT</div>
+          <div class="kv"><div class="key">작업자명</div><div id="rd-workerName" class="val"></div></div>
+          <div class="kv mt-2"><div class="key">LOT번호</div><div id="rd-lotNo" class="val"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ 3) KPI 카드 + 달성률 -->
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3">
+      <div class="card text-center shadow-sm h-100">
+        <div class="card-body py-3">
+          <div class="small fw-semibold text-dark">계획수량</div>
+          <div id="rd-orderQty" class="display-6 fw-bold text-dark"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card text-center shadow-sm h-100">
+        <div class="card-body py-3">
+          <div class="small fw-semibold text-dark">생산수량</div>
+          <div id="rd-actualQty" class="display-6 fw-bold text-dark"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card text-center shadow-sm h-100">
+        <div class="card-body py-3">
+          <div class="small fw-semibold text-dark">불량수량</div>
+          <div id="rd-defectQty" class="display-6 fw-bold text-dark"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body py-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="small fw-semibold text-dark">달성률</div>
+            <strong id="rd-achievement" class="small text-dark">0%</strong>
+          </div>
+          <div class="progress">
+            <div id="rd-achievementBar" class="progress-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ 4) 작업 시간 (구분이 확 되는 진한 헤더) -->
+  <div class="card shadow">
+    <div class="card-header py-2">
+      <i class="bi bi-clock-history me-1"></i> 작업 시간
+    </div>
+    <div class="card-body py-3">
+      <div class="row g-3">
+        <div class="col-12 col-md-6">
+          <div class="kv"><div class="key">작업 시작</div><div id="rd-startedAt" class="val fw-semibold"></div></div>
+        </div>
+        <div class="col-12 col-md-6">
+          <div class="kv"><div class="key">작업 종료</div><div id="rd-endedAt" class="val fw-semibold"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
 </div>
+
+
+</div>
+
+
 
 <!-- ✅ 모달 닫기 버튼 -->
 <div class="modal-footer">
@@ -307,6 +407,55 @@
     color: #ccc;
   }
 </style>
+
+
+<script>
+(function () {
+  function setAchievementBarFromText() {
+    const txt = document.getElementById('rd-achievement');
+    const bar = document.getElementById('rd-achievementBar');
+    if (!txt || !bar) return;
+
+    const n = parseFloat((txt.textContent || '0').replace('%','')) || 0;
+    const p = Math.max(0, Math.min(100, n));
+
+    bar.style.width = p + '%';
+    bar.setAttribute('aria-valuenow', p.toFixed(1));
+
+    // 색상 초기화 후 구간별 지정
+    bar.classList.remove('bg-success','bg-warning','bg-danger');
+    // 부트스트랩 5는 CSS 변수 기반이라 변수도 덮어줍니다
+    bar.style.removeProperty('--bs-progress-bar-bg');
+
+    if (p >= 70) {
+      bar.classList.add('bg-success');
+      bar.style.setProperty('--bs-progress-bar-bg', '#198754');
+    } else if (p >= 40) {
+      bar.classList.add('bg-warning');
+      bar.style.setProperty('--bs-progress-bar-bg', '#ffc107');
+    } else {
+      bar.classList.add('bg-danger');
+      bar.style.setProperty('--bs-progress-bar-bg', '#dc3545');
+    }
+  }
+
+  // 1) 최초 1회
+  setAchievementBarFromText();
+
+  // 2) 모달이 열릴 때마다 다시 계산 (Ajax 완료 후 텍스트가 채워진 경우 대비)
+  const modal = document.getElementById('resultDetailModal');
+  if (modal) {
+    modal.addEventListener('shown.bs.modal', setAchievementBarFromText);
+  }
+
+  // 3) 텍스트가 Ajax로 바뀌는 순간도 감지
+  const ach = document.getElementById('rd-achievement');
+  if (ach) {
+    const obs = new MutationObserver(setAchievementBarFromText);
+    obs.observe(ach, { childList: true, characterData: true, subtree: true });
+  }
+})();
+</script>
 
 <script src="<c:url value='/resources/js/date-range-sync.js'/>"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

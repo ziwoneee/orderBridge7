@@ -6,6 +6,7 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
 
+
 <div class="container-scroller">
   <%@ include file="/WEB-INF/views/main/top.jsp" %>      
   <div class="container-fluid page-body-wrapper">
@@ -20,7 +21,10 @@
           <div class="col-12 mb-4">
             <h3 class="font-weight-bold">실시간 재고 조회</h3>
           </div>
-                              
+             
+             
+            
+                       
 
           <!-- 검색 영역 -->
           <div class="col-12 mb-3">
@@ -52,8 +56,15 @@
 			    ⟳ 실시간 업데이트
 			  </a>
 			</div>
+			
+			 <!-- 제품별 재고현황 -->
+
+<button type="button" class="btn btn-info" data-toggle="modal" data-target="#stockSummaryModal">
+  재고 요약 보기
+</button>
            
-            </form>            
+            </form> 
+                       
           </div>
           
       
@@ -71,13 +82,7 @@
          href="${pageContext.request.contextPath}/product/stocklist?status=정상&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}">
         정상
       </a>
-    </li>    
-    <li class="nav-item">
-      <a class="nav-link ${param.status == '부족' ? 'active' : ''}"
-         href="${pageContext.request.contextPath}/product/stocklist?status=부족&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}">
-        부족
-      </a>
-    </li>
+    </li>       
     <li class="nav-item">
       <a class="nav-link ${param.status == '완료' ? 'active' : ''}"
          href="${pageContext.request.contextPath}/product/stocklist?status=완료&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}">
@@ -98,8 +103,7 @@
 				    <th>LOT 번호</th>
 				    <th>현재고</th>
 				    <th>예약수량</th>
-				    <th>가용수량</th>
-				    <th>안전재고</th>
+				    <th>가용수량</th>				    
 				    <th>생산일자</th>
 				    <th>유통기한</th>            
 				    <th>재고상태</th>
@@ -113,18 +117,14 @@
 				      <td>${item.lotNo}</td>
 				      <td>${item.stockQty}</td>
 				      <td>${item.reservedQty}</td>
-				      <td>${item.availableQty}</td>
-				      <td>${item.safeQty}</td>
+				      <td>${item.availableQty}</td>				      
                       <td><fmt:formatDate value="${item.regDate}" pattern="yyyy-MM-dd"/></td>
                       <td><fmt:formatDate value="${item.expireDate}" pattern="yyyy-MM-dd"/></td>
                       <td>
                         <c:choose>  
   <c:when test="${item.availableQty == 0}">
-    <span class="badge badge-secondary">완료</span>
-  </c:when>  
-  <c:when test="${item.availableQty > 0 && item.availableQty lt item.safeQty}">
-    <span class="badge badge-danger">부족</span>
-  </c:when> 
+    <span class="badge badge-secondary">완료</span> 
+  </c:when>   
   <c:otherwise>
     <span class="badge badge-success">정상</span>
   </c:otherwise>
@@ -154,6 +154,8 @@
             </div>
           </div>
  </div> <!-- row -->
+ 
+ 
  <!-- 모달 영역 -->
 <!-- LOT 상세 모달 -->
 <div class="modal fade" id="lotHistoryModal" tabindex="-1" role="dialog">
@@ -228,6 +230,56 @@
 </div>
    </div>
  </div>
+ 
+
+ 
+<!-- ✅ 제품 재고 요약 모달 -->
+<div class="modal fade" id="stockSummaryModal" tabindex="-1" role="dialog" aria-labelledby="stockSummaryModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document"> 
+    <div class="modal-content">  
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fs-4" id="stockSummaryModalLabel">제품별 재고 요약</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="닫기">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body fs-5"> <!-- ✅ 전체 본문 글자 크기 증가 -->
+
+        <!-- ✅ 카드 리스트 시작 (가운데 정렬 적용됨) -->
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+          <c:forEach var="item" items="${summaryList}">
+            <div class="card border rounded-4 shadow-sm mr-3 mb-3" style="width: 500px;">
+              <div class="card-body d-flex justify-content-between align-items-center px-4 py-3">
+                <div>
+                  <h4 class="fw-bold fs-4">${item.productName}</h4> 
+                  <h6 class="mb-1">예약: ${item.reservedQty}</h6>
+                  <h6 class="mb-0">가용: ${item.availableQty}</h6>
+                </div>
+                <div>
+                  <c:choose>
+                    <c:when test="${item.availableQty >= 50}">
+                      <span class="badge badge-success px-3 py-2 fs-6">정상</span>
+                    </c:when>
+                    <c:otherwise>
+                      <span class="badge badge-danger px-3 py-2 fs-6">부족</span>
+                    </c:otherwise>
+                  </c:choose>
+                </div>
+              </div>
+            </div>
+          </c:forEach>
+        </div>
+        <!-- ✅ 카드 리스트 끝 -->
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
  
            <!-- ✅ 페이징 영역 -->
 <!-- ✅ 페이징 영역 (필터 유지 + 안전 링크) -->

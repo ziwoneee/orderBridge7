@@ -14,7 +14,7 @@
     p.product_name,
     p.unit,
     pi.lot_no,
-    GREATEST(
+  GREATEST(
       pi.inbound_qty - IFNULL((
         SELECT SUM(po.outbound_qty)
         FROM product_outbound po
@@ -28,13 +28,10 @@
   JOIN product p ON pi.product_id = p.product_id
 
   <where>
-    <!-- 🔍 키워드 검색 -->
     <if test="keyword != null and keyword != ''">
       (p.product_name LIKE CONCAT('%', #{keyword}, '%')
        OR pi.lot_no LIKE CONCAT('%', #{keyword}, '%'))
     </if>
-
-    <!-- 📅 날짜 필터 -->
     <if test="startDate != null and startDate != ''">
       AND pi.reg_date <![CDATA[ >= ]]> #{startDate}
     </if>
@@ -42,64 +39,41 @@
       AND pi.reg_date <![CDATA[ <= ]]> #{endDate}
     </if>
 
-<!-- ✅ 상태 필터 (재고 상태: 완료, 부족, 정상) -->
-<if test="status != null and status != 'all'">
-  <choose>
-
-    <!-- ✅ 정상: 가용수량 >= 50 -->
-    <when test="status == '정상'">
-      AND (
-        pi.inbound_qty
-        - IFNULL((SELECT SUM(po.outbound_qty)
-                  FROM product_outbound po
-                  WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no), 0)
-        - IFNULL((SELECT SUM(sr.reserved_qty)
-                  FROM stock_reservation sr
-                  WHERE sr.product_id = pi.product_id AND sr.lot_no = pi.lot_no), 0)
-      ) &gt;= 50
-    </when>
-
-   <!-- ⚠️ 부족: 가용수량 < 50 AND 현재고 > 0 -->
-<when test="status == '부족'">
-  AND (
-    (
-      pi.inbound_qty
-      - IFNULL((SELECT SUM(po.outbound_qty)
-                FROM product_outbound po
-                WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no), 0)
-      - IFNULL((SELECT SUM(sr.reserved_qty)
-                FROM stock_reservation sr
-                WHERE sr.product_id = pi.product_id AND sr.lot_no = pi.lot_no), 0)
-    ) BETWEEN 1 AND 49
-  )
-</when>
-
-
-
-    <!-- ⛔ 완료: 가용수량 = 0 -->
-<when test="status == '완료'">
-  AND (
-    (
-      pi.inbound_qty
-      - IFNULL((SELECT SUM(po.outbound_qty)
-                FROM product_outbound po
-                WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no), 0)
-      - IFNULL((SELECT SUM(sr.reserved_qty)
-                FROM stock_reservation sr
-                WHERE sr.product_id = pi.product_id AND sr.lot_no = pi.lot_no), 0)
-    ) = 0
-  )
-</when>
-
-
-  </choose>
-</if>
-
-
-
+    <if test="status != null and status != 'all'">
+      <choose>
+        <when test="status == '정상'">
+          AND (
+            pi.inbound_qty 
+            - IFNULL((SELECT SUM(po.outbound_qty)
+                      FROM product_outbound po
+                      WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no), 0)
+           
+            - IFNULL((SELECT SUM(sr.reserved_qty)
+                      FROM stock_reservation sr
+                      WHERE sr.product_id = pi.product_id AND sr.lot_no = pi.lot_no), 0)
+          ) &gt; 0
+        </when>
+        <when test="status == '완료'">
+          AND (
+            pi.inbound_qty 
+            - IFNULL((SELECT SUM(po.outbound_qty)
+                      FROM product_outbound po
+                      WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no), 0)
+           
+            - IFNULL((SELECT SUM(sr.reserved_qty)
+                      FROM stock_reservation sr
+                      WHERE sr.product_id = pi.product_id AND sr.lot_no = pi.lot_no), 0)
+          ) = 0
+        </when>
+      </choose>
+    </if>
   </where>
 
   ORDER BY pi.reg_date DESC
+
+  <if test="perPageNum != null and perPageNum &gt; 0">
+    LIMIT #{pageStart}, #{perPageNum}
+  </if>
 </select>
 
 
@@ -113,15 +87,27 @@
     SELECT 
       pi.product_id,
       pi.lot_no,
-      GREATEST(
-        pi.inbound_qty - IFNULL((
-          SELECT SUM(po.outbound_qty)
-          FROM product_outbound po
-          WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no
-        ), 0), 0
+      (
+        pi.inbound_qty 
+        - IFNULL((
+            SELECT SUM(po.outbound_qty)
+            FROM product_outbound po
+            WHERE po.product_id = pi.product_id AND po.lot_no = pi.lot_no
+          ), 0)
+        + IFNULL((
+            SELECT SUM(pt.qty)
+            FROM product_transaction pt
+            WHERE pt.product_id = pi.product_id AND pt.lot_no = pi.lot_no AND pt.type = '취소'
+          ), 0)
+        - IFNULL((
+            SELECT SUM(sr.reserved_qty)
+            FROM stock_reservation sr
+            WHERE sr.product_id = pi.product_id AND sr.lot_no = pi.lot_no
+          ), 0)
       ) AS stock_qty
     FROM product_inbound pi
     JOIN product p ON pi.product_id = p.product_id
+
     <where>
       <if test="keyword != null and keyword != ''">
         (p.product_name LIKE CONCAT('%', #{keyword}, '%')
@@ -138,19 +124,17 @@
   <where>
     <if test="status != null and status != 'all'">
       <choose>
+        <when test="status == '정상'">
+          stock_qty &gt; 0
+        </when>
         <when test="status == '완료'">
           stock_qty = 0
-        </when>
-        <when test="status == '부족'">
-          stock_qty &lt; 50 AND stock_qty &gt; 0
-        </when>
-        <when test="status == '정상'">
-          stock_qty &gt;= 50
         </when>
       </choose>
     </if>
   </where>
 </select>
+
 
 
   <!-- ✅ 3. 입고 시: 있으면 +, 없으면 INSERT -->
@@ -161,7 +145,6 @@
     stock_qty  = stock_qty + #{qty},
     expire_date = DATE_ADD(NOW(), INTERVAL 1 YEAR)
 </insert>
-
 
 
   <!-- ✅ 4. 출고 시: 수량 감소 (음수 방지) -->
@@ -326,64 +309,99 @@ WHERE po.lot_no = #{lotNo}
 
 
 
+
 <!-- LOT별 수치 요약 + 입출고 이력 포함 -->
 <select id="getLotSummary" parameterType="String" resultMap="LotSummaryMap">
   SELECT
     S.product_id,
     P.product_name,
     S.lot_no,
-    S.first_reg_date      AS reg_date,
-    S.expire_date         AS expire_date,
-    (S.inbound_qty - IFNULL(O.outbound_qty, 0))                       AS stock_qty,
-    IFNULL(R.reserved_qty, 0)                                         AS reserved_qty,
-    (S.inbound_qty - IFNULL(O.outbound_qty, 0) - IFNULL(R.reserved_qty, 0)) AS available_qty,
-  S.inbound_qty         AS inbound_qty,
-    IFNULL(O.outbound_qty, 0) AS outbound_qty,
-  PT.type,
+    S.first_reg_date       AS reg_date,
+    S.expire_date          AS expire_date,
+    S.inbound_qty,
+<!--     IFNULL(O.outbound_qty, 0)   AS outbound_qty, -->
+    IFNULL(C.cancel_qty, 0)     AS cancel_qty,
+    IFNULL(R.reserved_qty, 0)   AS reserved_qty,
+
+   
+    <!-- ✅ 실제 출고량 (음수 방지) -->
+CASE 
+  WHEN IFNULL(O.outbound_qty, 0) - IFNULL(C.cancel_qty, 0) &lt; 0 THEN 0
+  ELSE IFNULL(O.outbound_qty, 0) - IFNULL(C.cancel_qty, 0)
+END AS outbound_qty,
+
+
+    <!-- ✅ 가용 재고 계산 -->
+    
+GREATEST(
+  S.inbound_qty - IFNULL(O.outbound_qty, 0) - IFNULL(R.reserved_qty, 0),
+  0
+) AS available_qty,
+
+
+    <!-- ✅ 입출고 이력 정보 -->
+    PT.type,
     PT.qty,
-    PT.reg_date           AS transaction_date,
+    PT.reg_date             AS transaction_date,
     PT.remark,
-    C.client_name,
+    C2.client_name,
     PT.inbound_id,
     PT.outbound_id
-  FROM
-     (
-      SELECT
-        pi.product_id,
-        pi.lot_no,
-        SUM(pi.inbound_qty)        AS inbound_qty,
-        MIN(pi.reg_date)           AS first_reg_date,
-        MAX(pi.expire_date)        AS expire_date
-      FROM product_inbound pi
-      WHERE pi.lot_no = #{lotNo}
-      GROUP BY pi.product_id, pi.lot_no
-    ) S
+
+  FROM (
+    SELECT
+      pi.product_id,
+      pi.lot_no,
+      SUM(pi.inbound_qty)        AS inbound_qty,
+      MIN(pi.reg_date)           AS first_reg_date,
+      MAX(pi.expire_date)        AS expire_date
+    FROM product_inbound pi
+    WHERE pi.lot_no = #{lotNo}
+    GROUP BY pi.product_id, pi.lot_no
+  ) S
+
   LEFT JOIN (
-      SELECT po.product_id, po.lot_no, SUM(po.outbound_qty) AS outbound_qty
-      FROM product_outbound po
-      WHERE po.lot_no = #{lotNo}
-      GROUP BY po.product_id, po.lot_no
-    ) O ON O.product_id = S.product_id AND O.lot_no = S.lot_no
+    SELECT
+      po.product_id,
+      po.lot_no,
+      SUM(po.outbound_qty) AS outbound_qty
+    FROM product_outbound po
+    WHERE po.lot_no = #{lotNo}
+    GROUP BY po.product_id, po.lot_no
+  ) O ON O.product_id = S.product_id AND O.lot_no = S.lot_no
 
-    
-    LEFT JOIN (
-      SELECT sr.product_id, sr.lot_no, SUM(sr.reserved_qty) AS reserved_qty
-      FROM stock_reservation sr
-      WHERE sr.lot_no = #{lotNo}
-      GROUP BY sr.product_id, sr.lot_no
-    ) R ON R.product_id = S.product_id AND R.lot_no = S.lot_no
+  LEFT JOIN (
+    SELECT
+      pt.product_id,
+      pt.lot_no,
+      SUM(pt.qty) AS cancel_qty
+    FROM product_transaction pt
+    WHERE pt.type = '취소'
+      AND pt.lot_no = #{lotNo}
+    GROUP BY pt.product_id, pt.lot_no
+  ) C ON C.product_id = S.product_id AND C.lot_no = S.lot_no
 
-   
-    LEFT JOIN product P ON P.product_id = S.product_id
+  LEFT JOIN (
+    SELECT
+      sr.product_id,
+      sr.lot_no,
+      SUM(sr.reserved_qty) AS reserved_qty
+    FROM stock_reservation sr
+    WHERE sr.lot_no = #{lotNo}
+    GROUP BY sr.product_id, sr.lot_no
+  ) R ON R.product_id = S.product_id AND R.lot_no = S.lot_no
 
-    
-    LEFT JOIN product_transaction PT
-      ON PT.lot_no = S.lot_no
-     AND PT.type NOT IN ('RESERVE','CANCEL_RESERVE')
+  LEFT JOIN product P ON P.product_id = S.product_id
 
-   
-    LEFT JOIN client C ON C.client_id = PT.client_id
+  LEFT JOIN product_transaction PT
+    ON PT.lot_no = S.lot_no
+   AND PT.type NOT IN ('RESERVE', 'CANCEL_RESERVE')
+
+  LEFT JOIN client C2 ON C2.client_id = PT.client_id
 </select>
+
+
+
 
 
 <resultMap id="LotSummaryMap" type="com.itwillbs.domain.ProductStockVO">
@@ -446,6 +464,17 @@ WHERE po.lot_no = #{lotNo}
   WHERE product_id = #{productId} AND lot_no = #{lotNo}
 </update>
 
+<!-- 출하 취소 계산 다시 -->
+<insert id="insertCancelTransaction" parameterType="com.itwillbs.domain.ProductStockTransactionVO">
+  INSERT INTO product_transaction (
+    lot_no, type, qty, client_id, product_id, reg_date, manager, remark,
+    inbound_id, outbound_id, cl_order_id
+  ) VALUES (
+    #{lotNo}, '취소', #{qty}, #{clientId}, #{productId}, NOW(), #{manager}, #{remark},
+    #{inboundId}, #{outboundId}, #{clOrderId}
+  )
+</insert>
+
 <!-- 취소 중복방지-->
 <select id="existsTransaction" resultType="boolean" parameterType="map">
   SELECT COUNT(*) > 0
@@ -468,9 +497,57 @@ WHERE po.lot_no = #{lotNo}
 </select>
 
 
+<!-- 제품별 재고 현황 -->
+<select id="getProductStockSummaryList" resultType="com.itwillbs.domain.ProductStockVO">
+SELECT
+  p.product_id,
+  p.product_name,
+  p.unit,
+  
+  COALESCE(res.reserved_qty, 0) AS reserved_qty,  
+  (
+    COALESCE(inb.inbound_qty, 0)   
+    - COALESCE(outb.outbound_qty, 0)
+    - COALESCE(res.reserved_qty, 0)
+  ) AS available_qty
+
+FROM product p
 
 
+LEFT JOIN (
+  SELECT product_id, SUM(inbound_qty) AS inbound_qty
+  FROM product_inbound
+  GROUP BY product_id
+) inb ON p.product_id = inb.product_id
 
+
+LEFT JOIN (
+  SELECT product_id, SUM(outbound_qty) AS outbound_qty
+  FROM product_outbound
+  GROUP BY product_id
+) outb ON p.product_id = outb.product_id
+
+
+LEFT JOIN (
+  SELECT product_id, SUM(qty) AS cancel_qty
+  FROM product_transaction
+  WHERE type = '취소'
+  GROUP BY product_id
+) can ON p.product_id = can.product_id
+
+
+LEFT JOIN (
+  SELECT product_id, SUM(reserved_qty) AS reserved_qty
+  FROM stock_reservation
+  GROUP BY product_id
+) res ON p.product_id = res.product_id
+
+
+WHERE p.product_status = '생산'
+
+ORDER BY p.product_name ASC;
+
+</select>
  
 
 </mapper>

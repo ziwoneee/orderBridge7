@@ -400,7 +400,7 @@
                         <td>
                           <fmt:formatDate value="${group.productList[0].createdAt}" pattern="yyyy-MM-dd" var="createdDate" />
                           <c:choose>
-                            <c:when test="${createdDate == today and currentHour lt 16}">
+                            <c:when test="${createdDate == today and currentHour lt 18}">
                               <form method="post" action="/shipment/cancel" style="display: inline;" onsubmit="return confirm('정말로 출하를 취소하시겠습니까?');">
                                 <input type="hidden" name="deliveryId" value="${group.productList[0].deliveryId}" />
                                 <button type="submit" class="btn btn-sm btn-outline-danger">출하 취소</button>

@@ -181,7 +181,7 @@ public class StockReservationServiceImpl implements StockReservationService {
      */
     @Transactional
     @Override
-    public boolean reserveStockByOrderId(String clOrderId) {
+    public boolean reserveStockByOrderId(String clOrderId,String manager) {
         // 기존 예약 삭제
         reservationDAO.deleteByOrderId(clOrderId);
 
@@ -211,7 +211,7 @@ public class StockReservationServiceImpl implements StockReservationService {
                 reservation.setClientId(detail.getClientId());
                 reservation.setLotNo(lot.getLotNo());
                 reservation.setReservedQty(allocQty);
-                reservation.setManager("SYSTEM");
+                reservation.setManager(manager);
                 reservation.setCreatedAt(new Date());
 
                 reservationDAO.insertReservation(reservation);
@@ -225,7 +225,7 @@ public class StockReservationServiceImpl implements StockReservationService {
                         allocQty,
                         productId,
                         detail.getClientId(),
-                        "SYSTEM",         
+                        manager,         
                         null,
                         null,
                         clOrderId

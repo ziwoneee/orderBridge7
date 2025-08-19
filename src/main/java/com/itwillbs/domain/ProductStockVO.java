@@ -19,6 +19,7 @@ public class ProductStockVO {
     private Date expireDate;      // 유통기한
     private int reservedQty;   // 예약 수량
     private int availableQty;  // 가용 수량 = 현재고 - 예약수량
+    private int cancelQty;  //취소수량
     
     // ✅ MyBatis가 매핑할 실제 필드
     private Integer inboundQty;   // 입고 총합 (쿼리에서 별칭 inbound_qty)

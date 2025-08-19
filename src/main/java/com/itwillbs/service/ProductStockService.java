@@ -33,6 +33,7 @@ public interface ProductStockService {
        void insertTransaction(String type, String lotNo, int qty, String productId, String clientId, String manager,
 			String inboundId, String outboundId, String clOrderId);
 	
-     
+     //제품별 재고 현황
+       List<ProductStockVO> getProductStockSummaryList();
        
 }

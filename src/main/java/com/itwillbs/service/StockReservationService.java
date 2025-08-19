@@ -45,7 +45,7 @@ public interface StockReservationService {
      * 수주번호 기준 재고 예약 수행 + 재고 차감
      * @return 
      */
-    boolean reserveStockByOrderId(String clOrderId); // 예약 등록 (수주 전체) + 재고 차감
+    boolean reserveStockByOrderId(String clOrderId, String manager); // 예약 등록 (수주 전체) + 재고 차감
 
     /**
      * 제품 기준 유통기한 오름차순 LOT 가용 재고 목록 조회

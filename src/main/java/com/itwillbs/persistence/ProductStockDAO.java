@@ -47,4 +47,8 @@ public interface ProductStockDAO {
     
  // 모달용: 입·출고 이력 (입고번호/출고번호/수주번호 포함)
 	List<ProductStockTransactionVO> getStockDetail(String lotNo);
+	
+	//제품별 재고현황
+	List<ProductStockVO> getProductStockSummaryList();
+	
 }

@@ -29,6 +29,7 @@ public class ProductStockController {
 
     @GetMapping("/product/stocklist")
     public String stockList(SearchCriteria cri, Model model) {
+    	System.out.println("cri"+cri);
 
         // ✅ 허용된 정렬 컬럼
         List<String> allowedSortColumns = Arrays.asList("product_name", "lot_no", "reg_date", "expire_date");
@@ -43,14 +44,20 @@ public class ProductStockController {
             cri.setSortOrder("desc");
         }
 
-        // ✅ 데이터 조회
+        // ✅ LOT별 재고 리스트 + 페이징
         List<ProductStockVO> stockList = productStockService.getStockList(cri);
         int totalCount = productStockService.getStockCount(cri);
         cri.setTotalCount(totalCount);
 
         PageMaker pageMaker = new PageMaker(cri, totalCount);
         model.addAttribute("pageMaker", pageMaker);
+        model.addAttribute("stockList", stockList);
+        model.addAttribute("cri", cri);
         model.addAttribute("menu", "product");
+
+        // ✅ 제품별 요약 리스트 조회 추가
+        List<ProductStockVO> summaryList = productStockService.getProductStockSummaryList();
+        model.addAttribute("summaryList", summaryList);  // 요약 테이블 출력용
 
         // 날짜 계산
         LocalDate today = LocalDate.now();
@@ -79,7 +86,7 @@ public class ProductStockController {
 
         // 2. 상단에 표시할 LOT별 수치 정보
         ProductStockVO summary = productStockService.getLotSummary(lotNo);
-        System.out.println(summary);
+        System.out.println("@@@@@@@@@@@@@@@@@"+summary);
         if (summary != null) {
             result.put("inboundQty", summary.getInboundQty());
             result.put("totalOutboundQty", summary.getOutboundQty());
@@ -107,6 +114,9 @@ public class ProductStockController {
     public List<LotStockDTO> getAvailableLots(@RequestParam("productId") String productId) {
         return productStockService.getAvailableLotsOrdered(productId);
     }
+    
+    
+
 
 
 }
