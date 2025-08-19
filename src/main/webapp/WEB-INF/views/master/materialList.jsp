@@ -58,7 +58,7 @@
 			      <option value="N" ${cri.lotFlag == 'N' ? 'selected' : ''}>N</option>
 			    </select>
 			
-			    <button type="submit" class="btn btn-primary mr-2 mb-2">검색</button>
+			    <button type="submit" class="btn btn-primary mr-2 mb-2"><i class="ti-search"></i>검색</button>
 			    <a href="/material/list" class="btn btn-light mb-2"><i class="ti-reload"></i> 초기화</a>
 			  </form>
 			
@@ -82,9 +82,9 @@
 				        자재ID
 				        <c:choose>
 				          <c:when test="${cri.sortColumn == 'material_id'}">
-				            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+				            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 				          </c:when>
-				          <c:otherwise>⇅</c:otherwise>
+				          <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
 				        </c:choose>
 				      </a>
 		            </th>
@@ -95,9 +95,9 @@
 				        자재명
 				        <c:choose>
 				          <c:when test="${cri.sortColumn == 'material_name'}">
-				            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+				            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 				          </c:when>
-				          <c:otherwise>⇅</c:otherwise>
+				          <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
 				        </c:choose>
 				      </a>
 		            </th>
@@ -107,9 +107,9 @@
 				        유형
 				        <c:choose>
 				          <c:when test="${cri.sortColumn == 'material_type'}">
-				            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+				            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 				          </c:when>
-				          <c:otherwise>⇅</c:otherwise>
+				          <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
 				        </c:choose>
 				      </a>
 				    </th>
@@ -120,9 +120,9 @@
 				        단가
 				        <c:choose>
 				          <c:when test="${cri.sortColumn == 'unit_price'}">
-				            <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+				            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 				          </c:when>
-				          <c:otherwise>⇅</c:otherwise>
+				          <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
 				        </c:choose>
 				      </a>
 				    </th>

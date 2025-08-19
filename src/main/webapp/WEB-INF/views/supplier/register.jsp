@@ -37,7 +37,7 @@
 			    	<input type="text" class="form-control" name="businessNumber" id="businessNumber" placeholder="ex) 123-45-67890" required
 			    		   value="${supplierVO.businessNumber}">
 			    	<div class="input-group-append">
-			      		<button type="button" class="btn btn-outline-primary" id="checkBizBtn">중복확인</button>
+			      		<button type="button" class="btn btn-primary" id="checkBizBtn">중복확인</button>
 			   		 </div>
 			  	</div>
 			  <small id="bizCheckMsg" class="form-text text-muted"></small>
@@ -75,7 +75,7 @@
 		   		<input type="text" class="form-control" id="postcode" name="zipcode" readonly value="${supplierVO.zipcode}">
 		     </div>
 		  	 <div class="col-md-2 mb-2 d-flex align-items-end">
-		   	    <button type="button" id="findAddressBtn" class="btn btn-outline-primary w-100">주소검색</button>
+		   	    <button type="button" id="findAddressBtn" class="btn btn-primary w-100">주소검색</button>
 		     </div>
 		 	 <div class="col-md-4 mb-2">
 		  	 	<label>주소</label>
@@ -152,7 +152,7 @@
         <!-- 버튼 -->
         <div class="text-right">
           <button type="submit" class="btn btn-primary mr-2">등록</button>
-          <a href="/supplier/list" class="btn btn-secondary">목록</a>
+          <a href="/supplier/list" class="btn btn-secondary">취소</a>
         </div>
         
 		<input type="hidden" id="errorMsg" value="${errorMsg}">

@@ -35,7 +35,9 @@
 			
 			    <input type="text" name="keyword" value="${keyword}" class="form-control mr-2 mb-2" placeholder="검색어 입력" style="min-width: 200px;" />
 			
-			    <button type="submit" class="btn btn-primary mb-2">검색</button>
+			    <button type="submit" class="btn btn-primary me-2"><i class="ti-search"></i> 검색</button>
+			    <a href="/supplier/list" class="btn btn-light"><i class="ti-reload"></i> 초기화 </a>
+			    
 			  </form>
 			
 			  <!-- 오른쪽: 신규 등록 버튼 -->

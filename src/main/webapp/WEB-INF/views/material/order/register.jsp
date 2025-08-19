@@ -85,60 +85,60 @@
               
               <!-- 항목 테이블의 첫 번째 행도 수정 -->
 				<tbody>
-  <c:choose>
-    <c:when test="${not empty orderDTO.orderItems}">
-      <c:forEach var="item" items="${orderDTO.orderItems}" varStatus="i">
-        <tr>
-          <td>
-            <select name="orderItems[${i.index}].materialId" class="form-control" disabled>
-              <option value="${item.materialId}">${item.materialName}</option>
-            </select>
-            <input type="hidden" name="orderItems[${i.index}].materialId" value="${item.materialId}">
-          </td>
-          <td>
-            <input type="number" name="orderItems[${i.index}].orderQuantity"
-                   class="form-control" value="${item.orderQuantity}" min="1"
-                   onchange="calculateTotal(this)" required>
-          </td>
-          <td>
-            <input type="number" name="orderItems[${i.index}].unitPrice"
-                   class="form-control" value="${item.unitPrice}" min="0"
-                   onchange="calculateTotal(this)" required>
-          </td>
-          <td>
-            <input type="number" class="form-control" value="${item.totalPrice}" readonly>
-            <input type="hidden" name="orderItems[${i.index}].totalPrice" value="${item.totalPrice}">
-          </td>
-          <td>
-            <input type="text" name="orderItems[${i.index}].warehouseCode"
-                   class="form-control" value="${item.warehouseCode}" readonly>
-          </td>
-          <td>
-            <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button>
-          </td>
-        </tr>
-      </c:forEach>
-    </c:when>
-
-    <c:otherwise>
-      <tr>
-        <td>
-          <select name="orderItems[0].materialId" class="form-control" required>
-            <option value="">거래처를 먼저 선택하세요</option>
-          </select>
-        </td>
-        <td><input type="number" name="orderItems[0].orderQuantity" class="form-control" min="1" onchange="calculateTotal(this)" required></td>
-        <td><input type="number" name="orderItems[0].unitPrice" class="form-control" min="0" onchange="calculateTotal(this)" required></td>
-        <td>
-          <input type="number" class="form-control" value="0" readonly>
-          <input type="hidden" name="orderItems[0].totalPrice" value="0">
-        </td>
-        <td><input type="text" name="orderItems[0].warehouseCode" class="form-control" readonly></td>
-        <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button></td>
-      </tr>
-    </c:otherwise>
-  </c:choose>
-</tbody>
+				  <c:choose>
+				    <c:when test="${not empty orderDTO.orderItems}">
+				      <c:forEach var="item" items="${orderDTO.orderItems}" varStatus="i">
+				        <tr>
+				          <td>
+				            <select name="orderItems[${i.index}].materialId" class="form-control" disabled>
+				              <option value="${item.materialId}">${item.materialName}</option>
+				            </select>
+				            <input type="hidden" name="orderItems[${i.index}].materialId" value="${item.materialId}">
+				          </td>
+				          <td>
+				            <input type="number" name="orderItems[${i.index}].orderQuantity"
+				                   class="form-control" value="${item.orderQuantity}" min="1"
+				                   onchange="calculateTotal(this)" required>
+				          </td>
+				          <td>
+				            <input type="number" name="orderItems[${i.index}].unitPrice"
+				                   class="form-control" value="${item.unitPrice}" min="0"
+				                   onchange="calculateTotal(this)" required>
+				          </td>
+				          <td>
+				            <input type="number" class="form-control" value="${item.totalPrice}" readonly>
+				            <input type="hidden" name="orderItems[${i.index}].totalPrice" value="${item.totalPrice}">
+				          </td>
+				          <td>
+				            <input type="text" name="orderItems[${i.index}].warehouseCode"
+				                   class="form-control" value="${item.warehouseCode}" readonly>
+				          </td>
+				          <td>
+				            <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button>
+				          </td>
+				        </tr>
+				      </c:forEach>
+				    </c:when>
+				
+				    <c:otherwise>
+				      <tr>
+				        <td>
+				          <select name="orderItems[0].materialId" class="form-control" required>
+				            <option value="">거래처를 먼저 선택하세요</option>
+				          </select>
+				        </td>
+				        <td><input type="number" name="orderItems[0].orderQuantity" class="form-control" min="1" onchange="calculateTotal(this)" required></td>
+				        <td><input type="number" name="orderItems[0].unitPrice" class="form-control" min="0" onchange="calculateTotal(this)" required></td>
+				        <td>
+				          <input type="number" class="form-control" value="0" readonly>
+				          <input type="hidden" name="orderItems[0].totalPrice" value="0">
+				        </td>
+				        <td><input type="text" name="orderItems[0].warehouseCode" class="form-control" readonly></td>
+				        <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button></td>
+				      </tr>
+				    </c:otherwise>
+				  </c:choose>
+				</tbody>
 
             </table>
           </div>
@@ -146,7 +146,10 @@
           <!-- 버튼 -->
           <div class="text-right">
             <button type="submit" class="btn btn-primary">등록</button>
-            <a href="/material/order/list" class="btn btn-outline-secondary">목록</a>
+            <a href="/material/order/register" class="btn btn-light">
+               <i class="ti-reload"></i> 초기화
+            </a>
+            <a href="/material/order/list" class="btn btn-secondary">취소</a>
           </div>
 
         </form>
@@ -156,7 +159,7 @@
 		  <div class="modal-dialog modal-lg" role="document">
 		    <div class="modal-content">
 		
-		      <div class="modal-header">
+		      <div class="modal-header" style="background-color: #1c355e; color: #ffffff;">
 		        <h5 class="modal-title" id="supplierSearchModalLabel">자재 기준 거래처 검색</h5>
 		        <button type="button" class="close" data-dismiss="modal" aria-label="닫기">
 		          <span aria-hidden="true">&times;</span>
@@ -169,7 +172,7 @@
 		        </div>
 		        <div class="table-responsive">
 		          <table class="table table-bordered table-hover">
-		            <thead class="thead-light">
+		            <thead>
 		              <tr>
 		                <th>자재명</th>
 		                <th>공급 거래처</th>

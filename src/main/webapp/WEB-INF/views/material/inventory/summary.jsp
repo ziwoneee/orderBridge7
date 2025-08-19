@@ -80,7 +80,7 @@
 		        <li class="nav-item">
 		            <a class="nav-link ${empty param.status ? 'active' : ''}" 
 		               href="/material/inventory/summary?keyword=${param.keyword}&materialType=${param.materialType}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
-		                전체 <span class="badge badge-light ms-1">${totalCount}</span>
+		                전체
 		            </a>
 		        </li>
 		        <li class="nav-item">
@@ -116,9 +116,9 @@
 			            자재코드
 			            <c:choose>
 			              <c:when test="${cri.sortColumn == 'material_id'}">
-			                <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+			                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 			              </c:when>
-			              <c:otherwise>⇅</c:otherwise>
+			              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
 			            </c:choose>
 			          </a>
 			        </th>
@@ -130,9 +130,9 @@
 			            자재명
 			            <c:choose>
 			              <c:when test="${cri.sortColumn == 'material_name'}">
-			                <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+			                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 			              </c:when>
-			              <c:otherwise>⇅</c:otherwise>
+			              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
 			            </c:choose>
 			          </a>
 			        </th>
@@ -144,9 +144,9 @@
 			            유형
 			            <c:choose>
 			              <c:when test="${cri.sortColumn == 'material_type'}">
-			                <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+			                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 			              </c:when>
-			              <c:otherwise>⇅</c:otherwise>
+			              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
 			            </c:choose>
 			          </a>
 			        </th>
@@ -158,9 +158,9 @@
 			            현재고
 			            <c:choose>
 			              <c:when test="${cri.sortColumn == 'quantity'}">
-			                <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+			                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 			              </c:when>
-			              <c:otherwise>⇅</c:otherwise>
+			              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
 			            </c:choose>
 			          </a>
 			        </th>
@@ -176,9 +176,9 @@
 			            유통기한
 			            <c:choose>
 			              <c:when test="${cri.sortColumn == 'expiration_date'}">
-			                <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+			                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 			              </c:when>
-			              <c:otherwise>⇅</c:otherwise>
+			              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
 			            </c:choose>
 			          </a>
 			        </th>
@@ -190,9 +190,9 @@
 			            최근입출고일
 			            <c:choose>
 			              <c:when test="${cri.sortColumn == 'last_movement_date'}">
-			                <i class="ti-arrow-${cri.sortOrder == 'asc' ? 'up' : 'down'}"></i>
+			                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
 			              </c:when>
-			              <c:otherwise>⇅</c:otherwise>
+			              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
 			            </c:choose>
 			          </a>
 			        </th>
@@ -201,6 +201,7 @@
 			        <th>LOT 번호</th>
 		        </tr>
 			</thead>
+			
 			
 			<tbody>
 				 <c:forEach var="inv" items="${summaryList}">
@@ -227,10 +228,16 @@
 					  </td>
 			          <td>${inv.unit}</td>
 					  <td>
-			          	  <fmt:formatDate value="${inv.expirationDate}" pattern="yyyy-MM-dd" />
-						  <c:if test="${inv.expirationDate.time - now.time le 3 * 24 * 60 * 60 * 1000}">
-						    <span class="badge badge-danger ml-1">임박</span>
-						  </c:if>
+			          	<fmt:formatDate value="${inv.expirationDate}" pattern="yyyy-MM-dd" />
+						<c:set var="today" value="<%=new java.util.Date()%>" />
+						<c:set var="diff" value="${(inv.expirationDate.time - today.time) / (1000*60*60*24)}" />
+						
+						<c:if test="${diff <= 3 && diff >= 0}">
+						  <span class="badge badge-danger ml-1">임박</span>
+						</c:if>
+						<c:if test="${diff < 0}">
+						  <span class="badge badge-secondary ml-1">만료</span>
+						</c:if>
 		          	  </td>
 			          <td><fmt:formatDate value="${inv.lastMovementDate}" pattern="yyyy-MM-dd" /></td>
 			          <td>${inv.warehouseCode}</td>

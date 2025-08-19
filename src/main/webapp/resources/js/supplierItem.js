@@ -65,6 +65,7 @@ $(document).ready(function () {
 	  $("#itemForm")[0].reset();
 	  $("#itemForm").attr("data-mode", "create");
 	  $("#itemModal .modal-title").text("공급 품목 등록");
+	  $("#btnAddItemSubmit").text("등록");
 	  
 	  // ✅ select2가 있다면 먼저 파괴
 	  const $select = $('#materialId');
@@ -213,6 +214,7 @@ $(document).on("click", ".btn-edit", function () {
       $("#itemForm")[0].reset();
       $("#itemForm").attr("data-mode", "edit");
       $("#itemModal .modal-title").text("공급 품목 수정");
+      $("#btnAddItemSubmit").text("저장");
 
       // select2 초기화
       const $select = $('#materialId');

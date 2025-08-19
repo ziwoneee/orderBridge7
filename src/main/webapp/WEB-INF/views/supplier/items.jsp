@@ -54,7 +54,7 @@
 				      <c:when test="${empty itemList}">
 				        <tr>
 				          <td colspan="7" class="text-center text-muted">등록된 공급 품목이 없습니다.</td>
-				        </tr>22-9999	2025-07-23	
+				        </tr>
 				      </c:when>
 				      <c:otherwise>
 				        <c:forEach var="item" items="${itemList}">
@@ -195,7 +195,7 @@
         </div>
         <div class="modal-footer">
           <button type="submit" id="btnAddItemSubmit" class="btn btn-primary">등록</button>
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">취소</button>
         </div>
       </form>
     </div>

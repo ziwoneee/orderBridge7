@@ -8,112 +8,118 @@
 
 
 	<!-- 자재 재고 전체 건수 조회 (페이징용) - 상태 필터 추가 -->
-	<select id="selectInventoryCount" resultType="int" parameterType="com.itwillbs.domain.SearchCriteria">
+	<select id="selectInventoryCount" resultType="int"
+	        parameterType="com.itwillbs.domain.SearchCriteria">
 	  SELECT COUNT(*) FROM (
-	    SELECT m.material_id
-	    FROM material_inventory mi
-	    JOIN material m ON mi.material_id = m.material_id
+	    SELECT
+	      m.material_id,
+	      COALESCE(SUM(mi.quantity),0) AS total_qty,
+	      m.safety_stock
+	    FROM material m
+	    LEFT JOIN material_inventory mi
+	      ON mi.material_id = m.material_id
+	     AND (mi.is_discarded = 0 OR mi.is_discarded IS NULL)
 	    WHERE 1=1
+	      AND m.use_yn = 'Y'
+	      AND m.purchasable_flag = 'Y'
 	      <if test="keyword != null and keyword != ''">
-	        AND (mi.material_id LIKE CONCAT('%', #{keyword}, '%')
-	             OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
-	             OR m.material_type LIKE CONCAT('%', #{keyword}, '%'))
+	        AND (
+	          m.material_id   LIKE CONCAT('%', #{keyword}, '%')
+	          OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
+	          OR m.material_type LIKE CONCAT('%', #{keyword}, '%')
+	        )
 	      </if>
-	      <!-- 상태별 필터링 추가 -->
+	      <if test="materialType != null and materialType != ''">
+	        AND m.material_type = #{materialType}
+	      </if>
+	    GROUP BY m.material_id, m.safety_stock
+	    HAVING 1=1
 	      <if test="status != null and status != ''">
 	        <choose>
 	          <when test="status == '정상'">
-	            AND EXISTS (
-	              SELECT 1 FROM material_inventory mi2 
-	              WHERE mi2.material_id = m.material_id 
-	              AND COALESCE(mi2.quantity, 0) &gt; 0
-	              AND COALESCE(mi2.quantity, 0) &gt;= m.safety_stock
-	            )
+	            AND total_qty &gt;= m.safety_stock
 	          </when>
 	          <when test="status == '부족'">
-	            AND (
-	              SELECT COALESCE(SUM(mi2.quantity), 0) 
-	              FROM material_inventory mi2 
-	              WHERE mi2.material_id = m.material_id
-	            ) &lt; m.safety_stock
+	            AND total_qty &gt; 0 AND total_qty &lt; m.safety_stock
 	          </when>
 	          <when test="status == '소진'">
-	            AND (
-	              SELECT COALESCE(SUM(mi2.quantity), 0) 
-	              FROM material_inventory mi2 
-	              WHERE mi2.material_id = m.material_id
-	            ) &lt;= 0
+	            AND total_qty &lt;= 0
 	          </when>
 	        </choose>
 	      </if>
-	    GROUP BY m.material_id
-	  ) AS grouped
+	  ) t
 	</select>
+
+
 	
 	
 	
 	<!-- 자재별 요약 재고 현황 조회 (상태 필터 추가) -->
-	<select id="selectInventorySummaryList" resultType="com.itwillbs.domain.MaterialInventoryVO" parameterType="com.itwillbs.domain.SearchCriteria">
-	  SELECT
-	    m.material_id,                       -- 자재 ID
-	    m.material_name,                     -- 자재명
-	    m.material_type,                     -- 자재 유형
-	    m.unit,                              -- 단위
-	    m.safety_stock,                      -- 안전재고 기준
-	    SUM(mi.quantity) AS quantity,        -- 전체 보유 수량 합계
-	    MIN(mi.expiration_date) AS expirationDate, -- 가장 빠른 유통기한
-	    
-	    -- 재고 상태 판정
-	    CASE 
-	      WHEN SUM(mi.quantity) &lt;= 0 THEN '소진'
-	      WHEN SUM(mi.quantity) &lt; m.safety_stock THEN '부족'
-	      WHEN MIN(mi.expiration_date) IS NOT NULL 
-	           AND MIN(mi.expiration_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) THEN '임박'
-	      ELSE '정상'
-	    END AS stockStatus,
-	    
-	    --  최근입출고일: 입고일과 출고일 중 가장 최근 날짜 (출고이력 없으면 입고일만)
-	    CASE 
-	      WHEN MAX(outbound_dates.latest_outbound) IS NOT NULL THEN
-	        GREATEST(
-	          COALESCE(MAX(inbound_dates.latest_inbound), '1900-01-01'),
-	          MAX(outbound_dates.latest_outbound)
-	        )
-	      ELSE MAX(inbound_dates.latest_inbound)
-	    END AS lastMovementDate,
-	    
-	    GROUP_CONCAT(DISTINCT mi.warehouse_code SEPARATOR ', ') AS warehouseCode -- 보관창고 목록
-	  FROM
-	    material_inventory mi
-	  JOIN
-	    material m ON mi.material_id = m.material_id
-	    
-	  -- 자재별 최근 입고일 조회
-	  LEFT JOIN (
-	    SELECT 
-	      ii.material_id,
-	      MAX(i.inbound_date) AS latest_inbound
-	    FROM material_inbound_item ii
-	    JOIN material_inbound i ON i.inbound_id = ii.inbound_id
-	    WHERE i.inbound_status = '입고완료'
-	    GROUP BY ii.material_id
-	  ) inbound_dates ON inbound_dates.material_id = m.material_id
-	  
-	  -- 자재별 최근 출고일 조회
-	  LEFT JOIN (
-	    SELECT 
-	      oi.material_id,
-	      MAX(o.outbound_date) AS latest_outbound
-	    FROM material_outbound_item oi
-	    JOIN material_outbound o ON o.outbound_id = oi.outbound_id
-	    WHERE o.status = 'ISSUED'
-	    GROUP BY oi.material_id
-	  ) outbound_dates ON outbound_dates.material_id = m.material_id
-	    
-	  WHERE 1=1
+	<!-- 자재별 요약 재고 현황 조회 (임박 제거 / 합계 기준 / LEFT JOIN 통일) -->
+	<select id="selectInventorySummaryList"
+	        parameterType="com.itwillbs.domain.SearchCriteria"
+	        resultType="com.itwillbs.domain.MaterialInventoryVO">
+	 SELECT
+	  m.material_id,
+	  m.material_name,
+	  m.material_type,
+	  m.unit,
+	  m.safety_stock AS safetyStock,
+	  COALESCE(SUM(mi.quantity), 0) AS quantity,       -- 총 재고(0 포함)
+	  nx.next_expiration            AS expirationDate, -- ✅ 남은 LOT 중 최솟값
+	  CASE
+	    WHEN COALESCE(SUM(mi.quantity),0) &lt;= 0 THEN '소진'
+	    WHEN COALESCE(SUM(mi.quantity),0) &lt; m.safety_stock THEN '부족'
+	    ELSE '정상'
+	  END AS stockStatus,
+	  CASE
+	    WHEN MAX(outbound_dates.latest_outbound) IS NOT NULL THEN
+	      GREATEST(
+	        COALESCE(MAX(inbound_dates.latest_inbound), '1900-01-01'),
+	        MAX(outbound_dates.latest_outbound)
+	      )
+	    ELSE MAX(inbound_dates.latest_inbound)
+	  END AS lastMovementDate,
+	  GROUP_CONCAT(DISTINCT
+	    CASE WHEN COALESCE(mi.quantity,0) > 0 THEN mi.warehouse_code END
+	    SEPARATOR ', ') AS warehouseCode
+	FROM material m
+	LEFT JOIN material_inventory mi
+	  ON mi.material_id = m.material_id
+	 AND (mi.is_discarded = 0 OR mi.is_discarded IS NULL)
+	
+	-- ✅ 남아있는 LOT의 최솟값만 따로 구해서 붙임
+	LEFT JOIN (
+	  SELECT material_id, MIN(expiration_date) AS next_expiration
+	  FROM material_inventory
+	  WHERE COALESCE(quantity,0) > 0
+	    AND (is_discarded = 0 OR is_discarded IS NULL)
+	    -- 상태 컬럼 쓰는 경우:
+	    -- AND (status IS NULL OR status IN ('정상','IN_STOCK','PARTIAL'))
+	  GROUP BY material_id
+	) nx ON nx.material_id = m.material_id
+	
+	LEFT JOIN (
+	  SELECT ii.material_id, MAX(i.inbound_date) AS latest_inbound
+	  FROM material_inbound_item ii
+	  JOIN material_inbound i ON i.inbound_id = ii.inbound_id
+	  WHERE i.inbound_status = '입고완료'
+	  GROUP BY ii.material_id
+	) inbound_dates ON inbound_dates.material_id = m.material_id
+	
+	LEFT JOIN (
+	  SELECT oi.material_id, MAX(o.outbound_date) AS latest_outbound
+	  FROM material_outbound_item oi
+	  JOIN material_outbound o ON o.outbound_id = oi.outbound_id
+	  WHERE o.status = 'ISSUED'
+	  GROUP BY oi.material_id
+	) outbound_dates ON outbound_dates.material_id = m.material_id
+	
+	WHERE m.use_yn = 'Y'
+	  AND m.purchasable_flag = 'Y'
 	    <if test="keyword != null and keyword != ''">
 	      AND (
-	        mi.material_id LIKE CONCAT('%', #{keyword}, '%')
+	        m.material_id   LIKE CONCAT('%', #{keyword}, '%')
 	        OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
 	        OR m.material_type LIKE CONCAT('%', #{keyword}, '%')
 	      )
@@ -121,90 +127,85 @@
 	    <if test="materialType != null and materialType != ''">
 	      AND m.material_type = #{materialType}
 	    </if>
-	   GROUP BY
-	    m.material_id, m.material_name, m.material_type, m.unit, m.safety_stock
-	   HAVING 1=1
-	    <!-- 상태별 필터링 (HAVING 절에서 집계 후 필터링) -->
+	  GROUP BY m.material_id, m.material_name, m.material_type, m.unit, m.safety_stock
+	  HAVING 1=1
 	    <if test="status != null and status != ''">
 	      <choose>
 	        <when test="status == '정상'">
-	          AND SUM(mi.quantity) > 0 
-	          AND SUM(mi.quantity) >= m.safety_stock
-	          AND (MIN(mi.expiration_date) IS NULL OR MIN(mi.expiration_date) > DATE_ADD(CURDATE(), INTERVAL 30 DAY))
+	          AND COALESCE(SUM(mi.quantity),0) &gt;= m.safety_stock
 	        </when>
 	        <when test="status == '부족'">
-	          AND SUM(mi.quantity) &gt; 0 
-	          AND SUM(mi.quantity) &lt; m.safety_stock
+	          AND COALESCE(SUM(mi.quantity),0) &gt; 0
+	          AND COALESCE(SUM(mi.quantity),0) &lt; m.safety_stock
 	        </when>
 	        <when test="status == '소진'">
-	          AND SUM(mi.quantity) &lt;= 0
+	          AND COALESCE(SUM(mi.quantity),0) &lt;= 0
 	        </when>
 	      </choose>
 	    </if>
 	  <choose>
-	  <when test="sortColumn != null and sortOrder != null">
-	    ORDER BY
-	    <choose>
-	      <when test="sortColumn == 'material_id'"> m.material_id </when>
-	      <when test="sortColumn == 'material_name'"> m.material_name </when>
-	      <when test="sortColumn == 'material_type'"> m.material_type </when>
-	      <when test="sortColumn == 'quantity'"> quantity </when>
-	      <when test="sortColumn == 'expiration_date'"> expirationDate </when>
-	      <when test="sortColumn == 'last_movement_date'"> lastMovementDate </when>
-	      <when test="sortColumn == 'stock_status'"> stockStatus </when>
-	      <otherwise> m.material_id </otherwise>
-	    </choose>
-	    ${sortOrder}
-	  </when>
-	  <otherwise>
-	    ORDER BY m.material_id ASC
-	  </otherwise>
-	</choose>
+	    <when test="sortColumn != null and sortOrder != null">
+	      ORDER BY
+	      <choose>
+	        <when test="sortColumn == 'material_id'">         m.material_id </when>
+	        <when test="sortColumn == 'material_name'">       m.material_name </when>
+	        <when test="sortColumn == 'material_type'">       m.material_type </when>
+	        <when test="sortColumn == 'quantity'">            quantity </when>
+	        <when test="sortColumn == 'expiration_date'">     expirationDate </when>
+	        <when test="sortColumn == 'last_movement_date'">  lastMovementDate </when>
+	        <when test="sortColumn == 'stock_status'">        stockStatus </when>
+	        <otherwise>                                       m.material_id </otherwise>
+	      </choose>
+	      ${sortOrder}
+	    </when>
+	    <otherwise>
+	      ORDER BY m.material_id ASC
+	    </otherwise>
+	  </choose>
 	  LIMIT #{pageStart}, #{perPageNum}
 	</select>
+
 	
 	
-	<!-- 상태별 카운트 조회 -->
-	<select id="selectStatusCounts" resultType="java.util.Map">
+	<!-- 상태별 카운트 조회
+		/* 소진: 합계 <= 0 */
+		/* 부족: 0 < 합계 < 안전재고 */
+		/* 정상: 합계 >= 안전재고 */
+	 -->
+	<select id="selectStatusCounts" resultType="java.util.Map"
+	        parameterType="com.itwillbs.domain.SearchCriteria">
 	  SELECT 
-	    SUM(CASE 
-	      WHEN total_qty &lt;= 0 THEN 1 
-	      ELSE 0 
-	    END) AS exhausted,
-	    
-	    SUM(CASE 
-	      WHEN total_qty &gt; 0 AND total_qty &lt; safety_stock THEN 1 
-	      ELSE 0 
-	    END) AS shortage,
-	    
-	    SUM(CASE 
-	      WHEN total_qty &gt; 0 
-	           AND earliest_expiration IS NOT NULL 
-	           AND earliest_expiration BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) 
-	      THEN 1 
-	      ELSE 0 
-	    END) AS expiring,
-	    
-	    SUM(CASE 
-	      WHEN total_qty &gt; 0 
-	           AND total_qty &gt;= safety_stock 
-	           AND (earliest_expiration IS NULL OR earliest_expiration &gt; DATE_ADD(CURDATE(), INTERVAL 30 DAY))
-	      THEN 1 
-	      ELSE 0 
-	    END) AS normal,
-	    
+	    SUM(CASE WHEN total_qty &lt;= 0 THEN 1 ELSE 0 END) AS exhausted,
+	    SUM(CASE WHEN total_qty &gt; 0 AND total_qty &lt; safety_stock THEN 1 ELSE 0 END) AS shortage,
+	    SUM(CASE WHEN total_qty &gt;= safety_stock THEN 1 ELSE 0 END) AS normal,
 	    COUNT(*) AS total
 	  FROM (
 	    SELECT 
 	      m.material_id,
 	      m.safety_stock,
-	      COALESCE(SUM(mi.quantity), 0) AS total_qty,
-	      MIN(mi.expiration_date) AS earliest_expiration
+	      COALESCE(SUM(mi.quantity), 0) AS total_qty
 	    FROM material m
-	    LEFT JOIN material_inventory mi ON m.material_id = mi.material_id
+	    LEFT JOIN material_inventory mi
+	      ON mi.material_id = m.material_id
+	     AND (mi.is_discarded = 0 OR mi.is_discarded IS NULL)
+	    WHERE 1=1
+	      AND m.use_yn = 'Y'
+	      AND m.purchasable_flag = 'Y'
+	      <if test="keyword != null and keyword != ''">
+	        AND (
+	          m.material_id   LIKE CONCAT('%', #{keyword}, '%')
+	          OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
+	          OR m.material_type LIKE CONCAT('%', #{keyword}, '%')
+	        )
+	      </if>
+	      <if test="materialType != null and materialType != ''">
+	        AND m.material_type = #{materialType}
+	      </if>
 	    GROUP BY m.material_id, m.safety_stock
-	  ) AS material_status
+	  ) t
 	</select>
+
+
 	
 	
 
@@ -274,24 +275,5 @@
 	
 
 
-
-
-
-
-
 </mapper>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
