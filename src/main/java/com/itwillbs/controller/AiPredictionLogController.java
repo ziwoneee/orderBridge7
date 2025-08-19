@@ -56,6 +56,8 @@ public class AiPredictionLogController {
         model.addAttribute("q", q);
         model.addAttribute("from", from);
         model.addAttribute("to", to);
+        
+        model.addAttribute("menu", "ai");
 
         return "ai/pred_log_list";
     }

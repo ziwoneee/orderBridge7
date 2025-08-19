@@ -39,6 +39,7 @@ public class AiPredictionController {
         // ETA 대상 목록 (기본 200건, 검색어 q 있으면 like)
         model.addAttribute("workOrders", workOrderQueryService.findEligibleForEta(q, 200));
         model.addAttribute("q", q);
+        model.addAttribute("menu", "ai");
         return "ai/predict_eta";
     }
 
