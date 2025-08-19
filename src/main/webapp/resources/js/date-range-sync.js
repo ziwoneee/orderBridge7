@@ -173,11 +173,6 @@
 	    setText('rd-lineName', d.lineName);
 	    setText('rd-workerName', d.workerName);
 
-	    let badge = '대기';
-	    if (d.status === 'IN_PROGRESS') badge = '생산중';
-	    else if (d.status === 'DONE') badge = '완료';
-	    setText('rd-statusBadge', badge);
-
 	    const orderQty = Number(d.orderQty || 0);
 	    const actualQty = Number(d.actualQty || 0);
 	    const defectQty = Number(d.defectQty || 0);
