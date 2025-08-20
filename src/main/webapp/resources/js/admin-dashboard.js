@@ -24,7 +24,7 @@
    * 대시보드 초기화
    */
   function initDashboard() {
-    console.log('📊 개선된 대시보드 초기화 시작');
+    console.log(' 개선된 대시보드 초기화 시작');
     
     // 초기 데이터 로드
     loadDashboardData();
@@ -38,7 +38,7 @@
     // 수동 새로고침 버튼
     bindRefreshButton();
     
-    console.log('✅ 개선된 대시보드 초기화 완료');
+    console.log(' 개선된 대시보드 초기화 완료');
   }
 
   /**
@@ -46,7 +46,7 @@
    */
   function loadDashboardData() {
     if (isLoading) {
-      console.log('⏳ 이미 로딩 중입니다.');
+      console.log('이미 로딩 중입니다.');
       return;
     }
 
@@ -56,13 +56,13 @@
     fetch(CONFIG.DASHBOARD_API)
       .then(handleResponse)
       .then(function(data) {
-        console.log('📈 대시보드 데이터 수신:', data);
+        console.log(' 대시보드 데이터 수신:', data);
         retryCount = 0;
         bindDashboard(data);
         hideLoadingState();
       })
       .catch(function(error) {
-        console.error('❌ 대시보드 데이터 로딩 실패:', error);
+        console.error('대시보드 데이터 로딩 실패:', error);
         handleLoadError(error);
       })
       .finally(function() {
@@ -87,10 +87,10 @@
     retryCount++;
     
     if (retryCount <= MAX_RETRY) {
-      console.log(`🔄 재시도 ${retryCount}/${MAX_RETRY} 후 ${CONFIG.REFRESH_INTERVAL/1000}초`);
+      console.log(`재시도 ${retryCount}/${MAX_RETRY} 후 ${CONFIG.REFRESH_INTERVAL/1000}초`);
       setTimeout(loadDashboardData, 5000);
     } else {
-      console.error('💥 최대 재시도 횟수 초과');
+      console.error('최대 재시도 횟수 초과');
       showErrorState('데이터를 불러올 수 없습니다. 페이지를 새로고침해 주세요.');
       stopAutoRefresh();
     }
@@ -116,10 +116,10 @@
       // 마지막 업데이트 시간 표시
       updateLastRefreshTime();
       
-      console.log('✅ UI 업데이트 완료');
+      console.log(' UI 업데이트 완료');
       
     } catch (error) {
-      console.error('❌ UI 업데이트 중 오류:', error);
+      console.error(' UI 업데이트 중 오류:', error);
       showErrorState('화면 업데이트 중 오류가 발생했습니다.');
     }
   }
@@ -147,11 +147,13 @@
   }
 
   /**
-   * 라인 현황 가로 배치 업데이트 (강제 3열)
+   * 라인 현황 가로 배치 업데이트 (강제 3열) - 수정된 버전
    */
   function updateLineStatusHorizontal(lines) {
     const container = getElementById('cards-lines');
     if (!container) return;
+    
+    container.innerHTML = ''; // 먼저 싹 비우고 시작 (남아있는 placeholder로 인해 1칸 붕괴 방지)
 
     // 실제 라인 데이터가 없을 때
     if (!lines || lines.length === 0) {
@@ -181,29 +183,32 @@
         producedQty: 0,
         progressRate: 0,
         readyCount: 0,
-        waitingCount: 0
+        waitingCount: 0,
+        isEmpty: true // 빈 라인 표시용
       });
     }
 
-    // HTML 생성 - 무조건 3개의 col-md-4 카드
-    const html = displayLines.map(function(line, index) {
+    // 🔥 수정: JSP에 이미 row가 있으므로 row 추가하지 않음
+    let html = '';
+    
+    displayLines.forEach(function(line, index) {
       const statusInfo = getLineStatusInfo(line.state);
       const progress = line.progressRate ? Math.round(line.progressRate) : 0;
       
-      return '<div class="col-md-4 col-12 mb-3 fade-in">' +
+      html += '<div class="col-lg-4 col-md-6 col-12 mb-3 fade-in">' +
         '<div class="line-card ' + statusInfo.cardClass + '">' +
           '<div class="d-flex justify-content-between align-items-center mb-3">' +
             '<h5 class="mb-0 font-weight-bold text-dark">' + esc(line.lineName || `${index + 1}라인`) + '</h5>' +
             '<span class="badge ' + statusInfo.badgeClass + '">' + statusInfo.text + '</span>' +
           '</div>' +
           
-          (line.workOrderId ? 
+          (line.workOrderId && !line.isEmpty ? 
             createLineWorkOrderInfoHorizontal(line, progress, statusInfo) :
-            createLineIdleInfoHorizontal()
+            createLineIdleInfoHorizontal(line.isEmpty)
           ) +
         '</div>' +
       '</div>';
-    }).join('');
+    });
     
     container.innerHTML = html;
   }
@@ -236,16 +241,16 @@
           'title="' + progress + '% 완료"></div>' +
       '</div>' +
       
-      '<div class="row">' +
-        '<div class="col-4 text-center">' +
+      '<div class="row text-center">' +
+        '<div class="col-4">' +
           '<small class="text-muted d-block">양품</small>' +
           '<strong class="text-success">' + formatNumber(line.producedQty || 0) + '</strong>' +
         '</div>' +
-        '<div class="col-4 text-center">' +
+        '<div class="col-4">' +
           '<small class="text-muted d-block">진행률</small>' +
           '<strong class="' + statusInfo.textClass + '">' + progress + '%</strong>' +
         '</div>' +
-        '<div class="col-4 text-center">' +
+        '<div class="col-4">' +
           '<small class="text-muted d-block">대기</small>' +
           '<strong class="text-warning">' + ((line.readyCount || 0) + (line.waitingCount || 0)) + '</strong>' +
         '</div>' +
@@ -253,12 +258,15 @@
   }
 
   /**
-   * 라인 유휴 정보 생성 (가로용)
+   * 라인 미생산 정보 생성 (가로용) - 용어 변경
    */
-  function createLineIdleInfoHorizontal() {
-    return '<div class="text-center text-muted py-3">' +
-      '<i class="mdi mdi-pause-circle mdi-48px mb-3 d-block"></i>' +
-      '<h6 class="mb-0">현재 생산 작업이 없습니다</h6>' +
+  function createLineIdleInfoHorizontal(isEmpty) {
+    const message = isEmpty ? '라인 정보가 없습니다' : '현재 생산 작업이 없습니다';
+    const icon = isEmpty ? 'mdi-information-outline' : 'mdi-pause-circle';
+    
+    return '<div class="text-center text-muted py-4">' +
+      '<i class="mdi ' + icon + ' mdi-48px mb-3 d-block"></i>' +
+      '<h6 class="mb-0">' + message + '</h6>' +
     '</div>';
   }
 
@@ -518,6 +526,9 @@
     }
   }
 
+  /**
+   * 라인 상태 정보 가져오기 - 미생산 용어 통일
+   */
   function getLineStatusInfo(state) {
     const status = (state || '').toUpperCase();
     switch(status) {
@@ -547,7 +558,7 @@
         };
       default:
         return {
-          text: '미생산중',
+          text: '미생산', // 🔥 "유휴"에서 "미생산"으로 통일
           badgeClass: 'badge-secondary',
           cardClass: 'line-idle',
           progressClass: 'bg-secondary',
