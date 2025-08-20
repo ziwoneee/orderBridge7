@@ -33,6 +33,7 @@ import com.itwillbs.dto.PurchaseDraftRequest;
 import com.itwillbs.dto.PurchaseDraftRequest.ShortageItem;
 import com.itwillbs.dto.PurchaseDraftResult;
 import com.itwillbs.dto.SupplierItemDTO;
+import com.itwillbs.mapper.AdminUserMapper;
 import com.itwillbs.mapper.MaterialOutboundMapper;
 import com.itwillbs.persistence.ApprovalTokenDAO;
 import com.itwillbs.persistence.MaterialOrderDAO;
@@ -58,7 +59,8 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
 	@Inject
 	private ApprovalTokenDAO approvalTokenDAO;
 
-	
+	@Inject
+	private AdminUserMapper adminUserMapper;  
 
 	@Inject
 	private MailService mailService;
@@ -347,8 +349,39 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
     public Map<String, Object> getOrderHeader(String orderId) throws Exception {
         Map<String,Object> h = mOrderDAO.selectOrderHeader(orderId);
         if (h == null) throw new IllegalStateException("발주가 존재하지 않습니다.");
+
+        String handlerName   = asStr(h.get("handlerName"));
+        String handledBy     = asStr(h.get("handledBy"));
+        String createdByName = asStr(h.get("createdByName"));
+        String createdBy     = asStr(h.get("createdBy"));
+
+        // 1) handlerName 비면 handledBy(ID)로 admin_user에서 보충
+        if (isEmpty(handlerName) && !isEmpty(handledBy)) {
+            var u = adminUserMapper.findByAdminId(handledBy);
+            if (u != null && !isEmpty(u.getName())) handlerName = u.getName();
+        }
+
+        // 2) 그래도 비면 createdByName/ID로 보충
+        if (isEmpty(handlerName)) {
+            if (!isEmpty(createdByName)) handlerName = createdByName;
+            else if (!isEmpty(createdBy)) {
+                var u2 = adminUserMapper.findByAdminId(createdBy);
+                if (u2 != null && !isEmpty(u2.getName())) handlerName = u2.getName();
+            }
+        }
+
+        if (!isEmpty(handlerName)) {
+            h.put("handlerName", handlerName);
+            // 입고쪽 JS 폴백 키도 같이 채워두면 더 안전
+            if (h.get("handledByName") == null) h.put("handledByName", handlerName);
+        }
+
         return h;
     }
+    
+    // --- 아래 헬퍼 2개를 클래스 안에 추가 ---
+    private static boolean isEmpty(String s) { return s == null || s.trim().isEmpty(); }
+    private static String asStr(Object v) { return v == null ? null : String.valueOf(v); }
     
     // 주문 아이템 목록
     @Override

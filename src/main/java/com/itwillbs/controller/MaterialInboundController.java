@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Random;
 
 import javax.inject.Inject;
+import javax.servlet.http.HttpSession;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,8 +118,10 @@ public class MaterialInboundController {
 	 */
 	@PostMapping("/insert-unreceived")
 	@ResponseBody
-	public ResponseEntity<String> insertUnreceivedOrders(@RequestParam(required = false) String[] orderIds) {
+	public ResponseEntity<String> insertUnreceivedOrders(@RequestParam(required = false) String[] orderIds,
+			 											HttpSession session) {
 	    try {
+	    	String adminId = (String) session.getAttribute("admin_id");
 	        if (orderIds == null || orderIds.length == 0) {
 	            // 파라미터가 없으면 전체 미입고건 처리 (기존 방식)
 	            miService.insertUnreceivedOrders();
@@ -143,8 +146,10 @@ public class MaterialInboundController {
 	 */
 	@PostMapping("/process")
 	@ResponseBody
-	public ResponseEntity<String> processInbound(@RequestParam("inboundId") String inboundId) {
+	public ResponseEntity<String> processInbound(@RequestParam("inboundId") String inboundId,
+												HttpSession session) {
 	    try {
+	    	String adminId = (String) session.getAttribute("admin_id");
 	        miService.processInbound(inboundId); // 서비스 호출
 	        return ResponseEntity.ok("입고 처리 완료");
 	    } catch (Exception e) {

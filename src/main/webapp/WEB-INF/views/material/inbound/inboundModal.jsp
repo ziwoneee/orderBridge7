@@ -70,7 +70,7 @@
 	            </tr>
 	            <tr>
 	              <th>발주상태</th><td id="modalOrderStatus"></td>
-	              <th>담당자</th><td id="modalCreatedBy"></td>
+	              <th>담당자</th><td id="modalHandler"></td>
 	            </tr>
 	            <tr>
 	              <th>비고</th><td colspan="3" id="modalNote"></td>

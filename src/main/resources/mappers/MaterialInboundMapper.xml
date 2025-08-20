@@ -143,29 +143,48 @@
 
 	<!-- =================================================================== -->
 	<!-- 미입고 발주 목록 조회 - 페이징 처리 -->
-	<select id="selectUnreceivedOrdersPaging" parameterType="com.itwillbs.domain.SearchCriteria"
+	<select id="selectUnreceivedOrdersPaging"
+        parameterType="com.itwillbs.domain.SearchCriteria"
         resultType="com.itwillbs.dto.UnreceivedOrderDTO">
-	   SELECT 
-		  mo.order_id,
-		  mo.supplier_id,
-		  mo.expected_arrived_date,
-		  mo.created_by AS handled_by,
-		  GROUP_CONCAT(m.material_name SEPARATOR ', ') as material_names,
-		  SUM(moi.order_quantity) as total_order_quantity
-		FROM material_order mo
-		JOIN material_order_item moi ON mo.order_id = moi.order_id
-		JOIN material m ON moi.material_id = m.material_id
-		LEFT JOIN material_inbound_item mii ON moi.order_item_id = mii.order_item_id
-		WHERE mo.order_status = '승인'
-		  AND mii.order_item_id IS NULL
-		GROUP BY 
-		  mo.order_id,
-		  mo.supplier_id,
-		  mo.expected_arrived_date,
-		  mo.created_by    
-		ORDER BY mo.order_id DESC
-		LIMIT 0, 10
-	</select>
+		  SELECT
+		    mo.order_id              AS orderId,
+		    mo.supplier_id           AS supplierId,
+		    mo.expected_arrived_date AS expectedArrivedDate,
+		    
+		    mo.handled_by            AS handledBy,
+		    mo.created_by            AS createdBy,
+		    
+		    hu.name                  AS handledByName,
+   		    cu.name                  AS createdByName,
+    
+		    GROUP_CONCAT(DISTINCT m.material_name ORDER BY m.material_name SEPARATOR ', ')
+		                             AS materialNames,
+		    SUM(moi.order_quantity)  AS totalOrderQuantity
+		  FROM material_order mo
+		  JOIN material_order_item moi ON mo.order_id = moi.order_id
+		  JOIN material m              ON moi.material_id = m.material_id
+		  LEFT JOIN material_inbound_item mii ON moi.order_item_id = mii.order_item_id
+		  
+		  LEFT JOIN admin_user hu ON hu.admin_id = mo.handled_by
+  		  LEFT JOIN admin_user cu ON cu.admin_id = mo.created_by
+  
+		  WHERE mo.order_status = '승인'
+		    AND mii.order_item_id IS NULL
+		  <if test="keyword != null and keyword != ''">
+		    AND (
+		      mo.order_id   LIKE CONCAT('%', #{keyword}, '%')
+		      OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
+		      OR mo.created_by   LIKE CONCAT('%', #{keyword}, '%')
+		      OR mo.handled_by   LIKE CONCAT('%', #{keyword}, '%')
+		    )
+		  </if>
+		  GROUP BY
+		    mo.order_id, mo.supplier_id, mo.expected_arrived_date,
+		    mo.handled_by, mo.created_by
+		  ORDER BY mo.order_id DESC
+		  LIMIT #{pageStart}, #{perPageNum}
+		</select>
+
 
 
 	<!-- 미입고 발주 개수 조회 -->

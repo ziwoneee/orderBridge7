@@ -33,10 +33,12 @@ public class MaterialReservationController {
     private MaterialReservationService reservationService;
 
     /** 로그인 사용자ID 꺼내는 헬퍼(없으면 'system') */
-    private String getUserId(HttpSession session) {
-        Object uid = session != null ? session.getAttribute("loginId") : null;
-        return (uid != null) ? uid.toString() : "system";
-    }
+	private String getUserId(HttpSession session) {
+	    if (session == null) return null;
+	    Object uid = session.getAttribute("admin_id");
+	    if (uid == null) uid = session.getAttribute("loginId");  // 프로젝트에 맞게 추가 후보도 넣어도 됨: member_id 등
+	    return (uid != null) ? uid.toString() : null;            // ← 더 이상 "system" 강제 X
+	}
 
     /**
      * [등록 버튼]
