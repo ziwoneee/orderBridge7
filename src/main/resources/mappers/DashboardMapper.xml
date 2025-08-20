@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itwillbs.mapper.DashboardMapper">
+
+  <!-- ==== KPI 6개 ==== -->
+
+  <!-- 오늘 수주 건수: client_order.cl_order_date = today -->
+  <select id="countTodayOrders" resultType="int">
+    SELECT COUNT(*) FROM client_order
+    WHERE cl_order_date = CURDATE()
+  </select>
+
+  <!-- 오늘 출하(실적) 건수: client_delivery.delivery_date = today -->
+  <select id="countTodayDeliveries" resultType="int">
+    SELECT COUNT(*) FROM client_delivery
+    WHERE DATE(delivery_date) = CURDATE()
+  </select>
+
+  <!-- 진행중 지시: 오늘 상태 변경이 IN_PROGRESS(업데이트 시각 기준) -->
+  <select id="countTodayWoInProgress" resultType="int">
+    SELECT COUNT(*) FROM work_order
+    WHERE status = 'IN_PROGRESS'
+      AND DATE(updated_at) = CURDATE()
+  </select>
+
+  <!-- 완료 지시: 오늘 상태가 COMPLETED(업데이트 시각 기준) -->
+  <select id="countTodayWoCompleted" resultType="int">
+    SELECT COUNT(*) FROM work_order
+    WHERE status = 'COMPLETED'
+      AND DATE(updated_at) = CURDATE()
+  </select>
+
+  <!-- 오늘 계획 수량: work_order.created_at = today -->
+  <select id="sumTodayPlanQty" resultType="int">
+    SELECT IFNULL(SUM(order_qty),0) FROM work_order
+    WHERE DATE(created_at) = CURDATE()
+  </select>
+
+  <!-- 오늘 실적 수량: production_result.created_at = today -->
+  <select id="sumTodayActualQty" resultType="int">
+    SELECT IFNULL(SUM(actual_qty),0) FROM production_result
+    WHERE DATE(created_at) = CURDATE()
+  </select>
+
+  <!-- 자재 부족 품목 수: 오늘 요구량 vs 현재 보유수량 -->
+  <select id="countMaterialShortageToday" resultType="int">
+    SELECT COUNT(*) FROM (
+      SELECT wom.material_id,
+             SUM(wom.required_qty) AS req,
+             IFNULL(mi.total_qty, 0) AS avail
+      FROM work_order_material wom
+      LEFT JOIN (
+        SELECT material_id, SUM(quantity) AS total_qty
+        FROM material_inventory
+        -- 필요시 상태 필터: WHERE (is_discarded IS NULL OR is_discarded = 0)
+        GROUP BY material_id
+      ) mi ON mi.material_id = wom.material_id
+      WHERE DATE(wom.created_at) = CURDATE()
+      GROUP BY wom.material_id
+      HAVING (req - avail) > 0
+    ) t
+  </select>
+
+  <!-- ==== 리스트 2개 ==== -->
+
+  <!-- 자재 부족 TOP5: 최근 3일 요구량 vs 현재 보유량 -->
+  <select id="selectTopShortages" resultType="com.itwillbs.dto.MaterialShortageItem">
+    SELECT m.material_id AS materialId,
+           m.material_name AS materialName,
+           m.unit AS unit,
+           t.req AS requiredQty,
+           IFNULL(mi.total_qty,0) AS availableQty,
+           GREATEST(t.req - IFNULL(mi.total_qty,0),0) AS shortageQty
+    FROM (
+      SELECT material_id, SUM(required_qty) AS req
+      FROM work_order_material
+      WHERE created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)
+      GROUP BY material_id
+    ) t
+    JOIN material m ON m.material_id = t.material_id
+    LEFT JOIN (
+      SELECT material_id, SUM(quantity) AS total_qty
+      FROM material_inventory
+      -- 필요시 상태 필터 추가 가능
+      GROUP BY material_id
+    ) mi ON mi.material_id = t.material_id
+    WHERE (t.req - IFNULL(mi.total_qty,0)) > 0
+    ORDER BY shortageQty DESC
+    LIMIT #{limit}
+  </select>
+
+  <!-- 납기 위험 TOP5: 7일 이내 납기 & 진행률 < 80% -->
+  <select id="selectTopDueRisks" resultType="com.itwillbs.dto.DueRiskItem">
+    SELECT
+      wo.order_id           AS orderId,
+      c.client_name         AS clientName,
+      p.product_name        AS productName,
+      DATE_FORMAT(co.cl_delivery_date, '%Y-%m-%d') AS dueDate,
+      ROUND( IFNULL(SUM(pr.actual_qty),0) / NULLIF(SUM(wo.order_qty),0,1) * 100 ) AS progressPct
+    FROM work_order_client_order wco
+    JOIN client_order co ON co.cl_order_id = wco.cl_order_id
+    JOIN work_order wo ON wo.order_id = wco.work_order_id
+    JOIN client c ON c.client_id = co.client_id
+    JOIN product p ON p.product_id = wo.product_id
+    LEFT JOIN production_result pr ON pr.order_id = wo.order_id
+    WHERE co.cl_delivery_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+    GROUP BY wo.order_id, c.client_name, p.product_name, co.cl_delivery_date
+    HAVING progressPct < 80
+    ORDER BY co.cl_delivery_date ASC, progressPct ASC
+    LIMIT #{limit}
+  </select>
+
+  <!-- ==== 차트 1개(7일 계획 vs 실적) ==== -->
+
+  <select id="selectWeeklyPlanSeries" resultType="com.itwillbs.dto.DailyQty">
+    SELECT DATE_FORMAT(created_at,'%Y-%m-%d') AS ymd,
+           SUM(order_qty) AS qty
+    FROM work_order
+    WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+    GROUP BY DATE(created_at)
+    ORDER BY ymd
+  </select>
+
+  <select id="selectWeeklyActualSeries" resultType="com.itwillbs.dto.DailyQty">
+    SELECT DATE_FORMAT(created_at,'%Y-%m-%d') AS ymd,
+           SUM(actual_qty) AS qty
+    FROM production_result
+    WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+    GROUP BY DATE(created_at)
+    ORDER BY ymd
+  </select>
+
+</mapper>

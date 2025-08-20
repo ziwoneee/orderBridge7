@@ -1,42 +1,37 @@
+// com.itwillbs.service.DashboardServiceImpl
 package com.itwillbs.service;
 
-import java.util.Arrays;
-import java.util.List;
-
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.itwillbs.dto.DashboardDTO;
+import com.itwillbs.mapper.DashboardMapper;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class DashboardServiceImpl implements DashboardService {
 
+  @Autowired private DashboardMapper mapper;
 
-    @Override
-    public int getTodayPlanCount() {
-        // 실제로는 DB 조회 필요
-        return 3; // 예시: 오늘 생산 계획 3건
-    }
+  @Override
+  public DashboardDTO getDashboard() {
+    DashboardDTO d = new DashboardDTO();
+    // KPI
+    d.setTodayOrders(mapper.countTodayOrders());
+    d.setTodayDeliveries(mapper.countTodayDeliveries());
+    d.setTodayWoInProgress(mapper.countTodayWoInProgress());
+    d.setTodayWoCompleted(mapper.countTodayWoCompleted());
+    d.setTodayPlanQty(mapper.sumTodayPlanQty());
+    d.setTodayActualQty(mapper.sumTodayActualQty());
+    d.setMaterialShortageCount(mapper.countMaterialShortageToday());
 
-    @Override
-    public int getShortageMaterialCount() {
-        // 실제 자재 재고 테이블에서 부족 수량 계산 필요
-        return 2; // 예시: 2종 자재 부족
-    }
+    // 리스트
+    d.setTopShortages(mapper.selectTopShortages(5));
+    d.setTopDueRisks(mapper.selectTopDueRisks(5));
 
-    @Override
-    public int getDelayedDeliveryCount() {
-        // 납기 지연 예상 건수 조회 필요
-        return 1; // 예시: 1건 지연 예상
-    }
-
-    @Override
-    public List<String> getMonthLabels() {
-        // 예시: 최근 6개월
-        return Arrays.asList("3월", "4월", "5월", "6월", "7월", "8월");
-    }
-
-    @Override
-    public List<Integer> getMonthlyPlanCounts() {
-        // 예시: 각 월별 생산 계획 수량
-        return Arrays.asList(20, 25, 18, 30, 22, 27);
-    }
-    
+    // 차트
+    d.setWeeklyPlanSeries(mapper.selectWeeklyPlanSeries());
+    d.setWeeklyActualSeries(mapper.selectWeeklyActualSeries());
+    return d;
+  }
 }
