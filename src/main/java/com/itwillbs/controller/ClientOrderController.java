@@ -92,11 +92,18 @@ public class ClientOrderController {
     	    return "clientOrder/register";
     	}
 
-
-        // 2. adminId 세팅
+    	  // ✅ 로그인한 관리자 ID 가져오기
         String adminId = (String) session.getAttribute("adminId");
-        if (adminId == null) adminId = "ADMIN_TEST";
+        String adminName = (String) session.getAttribute("adminName");
+        
+
+        if (adminId == null) {
+            // 로그인되지 않은 경우 → 로그인 페이지로 리다이렉트
+            return "redirect:/admin/login";
+        }
+        
         orderVO.setAdminId(adminId);
+        orderVO.setAdminName(adminName);
 
         // 3. 총금액 계산
         int totalPrice = 0;

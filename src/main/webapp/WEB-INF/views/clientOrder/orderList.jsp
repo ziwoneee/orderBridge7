@@ -171,7 +171,7 @@
         </c:choose>
       </a>
     </th>
-
+    <th>담당자</th>
     <th>메모</th>
     <th>상세내역</th>
   </tr>
@@ -210,6 +210,7 @@
                               </c:otherwise>
                             </c:choose>
                           </td>
+                         <td>${order.adminName}</td> 
                           <td>${order.clOrderMemo}</td>
                           <td>
                             <a href="${pageContext.request.contextPath}/clientorder/detail?clOrderId=${order.clOrderId}" class="btn btn-sm btn-outline-info">상세</a>
