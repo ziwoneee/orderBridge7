@@ -2,7 +2,9 @@ package com.itwillbs.controller;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.inject.Inject;
@@ -153,6 +155,16 @@ public class ClientController {
                 rttr.addFlashAttribute("error", "수정 중 오류가 발생했습니다.");
                 return "redirect:/client/edit?clientId=" + client.getClientId();
             }
+        }
+        
+
+     // 사업자번호 중복확인
+        @GetMapping("/client/checkBizNo")
+        @ResponseBody
+        public Map<String, Boolean> checkBusinessNumber(@RequestParam("businessNumber") String businessNumber)
+                throws Exception {
+            boolean exists = clientService.isBusinessNumberExists(businessNumber);
+            return Collections.singletonMap("exists", exists);
         }
 
 

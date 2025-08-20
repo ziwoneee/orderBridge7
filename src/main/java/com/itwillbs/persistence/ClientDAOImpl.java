@@ -56,7 +56,14 @@ public class ClientDAOImpl implements ClientDAO {
         return sqlSession.selectList(NAMESPACE + ".getActiveClients");
     }
 
-    
+    //사업자번호 중복확인
+    @Override
+    public boolean isBusinessNumberExists(String businessNumber) {
+        Integer count = sqlSession.selectOne(NAMESPACE + ".checkBusinessNumber", businessNumber);
+        return count != null && count > 0;
+    }
+
+
     
     
 }
