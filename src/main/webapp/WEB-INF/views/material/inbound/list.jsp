@@ -253,20 +253,33 @@
                         <!-- 발주관리번호 -->
                         <td>${inbound.orderId}</td>
                         
-                        <!-- 예상입고일 + D-Day -->
-                        <td>
-                          <c:if test="${inbound.expectedArrivedDate != null}">
-                            <fmt:formatDate value="${inbound.expectedArrivedDate}" pattern="yyyy-MM-dd"/>
-                            <c:set var="today" value="<%=new java.util.Date()%>"/>
-                            <c:set var="daysDiff" value="${(inbound.expectedArrivedDate.time - today.time) / (1000 * 60 * 60 * 24)}"/>
-                            <c:if test="${daysDiff <= 2 && daysDiff >= 0}">
-                              <span class="badge badge-warning badge-pill">D-${Math.ceil(daysDiff)}</span>
-                            </c:if>
-                            <c:if test="${daysDiff < 0 && inbound.status ne '입고완료'}">
-                              <span class="badge badge-danger badge-pill">지연</span>
-                            </c:if>
-                          </c:if>
-                        </td>
+						<!-- 예상입고일 + D-Day -->
+						<td>
+						  <fmt:formatDate value="${inbound.expectedArrivedDate}" pattern="yyyy-MM-dd"/>
+						
+						  <!-- 오늘 날짜 -->
+						  <c:set var="today" value="<%=new java.util.Date()%>" />
+						  <c:set var="daysDiff" value="${(inbound.expectedArrivedDate.time - today.time) / (1000*60*60*24)}" />
+						
+						  <!-- D-Day 뱃지 (입고완료 제외) -->
+						  <c:if test="${inbound.status != '입고완료'}">
+						    
+						    <!-- 임박 -->
+						    <c:if test="${daysDiff <= 2 && daysDiff >= 0}">
+						      <span class="badge badge-warning badge-pill">
+						        D-<fmt:formatNumber value="${daysDiff}" maxFractionDigits="0" />
+						      </span>
+						    </c:if>
+						
+						    <!-- 지연 -->
+						    <c:if test="${daysDiff < 0}">
+						      <span class="badge badge-danger badge-pill">지연</span>
+						    </c:if>
+						
+						  </c:if>
+						</td>
+
+
                         
                         <!-- 담당자 -->
                         <td>${inbound.handledBy}</td>
