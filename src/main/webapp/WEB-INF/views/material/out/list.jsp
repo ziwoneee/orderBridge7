@@ -310,7 +310,7 @@
 			              <th class="bg-light">작업지시</th><td id="modalWorkOrderId"></td>
 			            </tr>
 			            <tr>
-			              <th class="bg-light">출고일시</th><td id="modalIssuedAt"></td>
+			              <th class="bg-light">출고일자</th><td id="modalIssuedAt"></td>
 			              <th class="bg-light">담당자</th><td id="modalHandledBy"></td>
 			            </tr>
 			            <tr>

@@ -6,7 +6,23 @@
  ************************************/
 
 /** ===== 전역 유틸 ===== */
-window.formatYMD = d => !d ? '-' : new Date(d).toISOString().slice(0,10);
+const pad = n => String(n).padStart(2,'0');
+
+ window.formatYMD = (d) => {
+   if (!d) return '-';
+   // 백엔드가 'YYYY-MM-DD' 문자열을 주면 그대로 사용
+   if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+   const dt = new Date(d); // 로컬 타임존으로 생성
+   return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
+ };
+
+ // 상세에서 "날짜+시간"이 필요하면 같이 추가(선택)
+ window.formatYMDHM = (d) => {
+   if (!d) return '-';
+   const dt = new Date(d);
+   return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+ };
+
 window.calcRowTotal = (row) => {
   const qty = +((row.querySelector("input[name$='.orderQuantity']")||{}).value||0);
   const unit= +((row.querySelector("input[name$='.unitPrice']")||{}).value||0);
@@ -41,13 +57,12 @@ $(document).on('click', '.btnOrderDetail', function(){
   $.get(ctx + '/material/order/detail', { orderId: id })
     .done(res => {
       const h = res.header || {};
-      const fmt = d => !d ? '-' : new Date(d).toISOString().slice(0,10);
       $('#modalOrderId').text(h.orderId || '-');
       $('#modalSupplierId').text(h.supplierName || h.supplierId || '-');
-      $('#modalOrderDate').text(fmt(h.orderDate));
-      $('#modalExpectedDate').text(fmt(h.expectedArrivedDate));
+      $('#modalOrderDate').text(window.formatYMD(h.orderDate));
+      $('#modalExpectedDate').text(window.formatYMD(h.expectedArrivedDate));
       $('#modalOrderStatus').text(h.orderStatus || '-');
-      $('#modalCreatedBy').text(h.createdBy || '-');
+      $('#modalHandler').text(h.handlerName || h.handledBy || '-');
       $('#modalNote').text(h.note || '');
       const $tbody = $('#orderItemsInfo').empty();
       (res.items || []).forEach(it => {
