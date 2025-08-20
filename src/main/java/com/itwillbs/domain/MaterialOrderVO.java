@@ -14,6 +14,13 @@ public class MaterialOrderVO {
     private String createdBy;                // 작성자 (발주서 작성자 ID 또는 이름)
     private String note;                     // 비고 (기타 비고사항)
     private String workOrderId;
+    private String handledBy;				 // 당자 admin_id
+    
+    // 표시용(조인 결과)
+    private String handlerName;   // 담당자 이름
+
+    // (있으면 편한 옵션)
+    private String creatorName;   // 생성자 이름
     
 	// 화면 표시용 추가 필드들
     private String materialName;   			 // 대표 자재명
