@@ -2,35 +2,34 @@
  * materialInbound.js 
  */
 
-// 수정된 날짜 포맷 함수 (timezone 이슈 해결)
+// 타임존 안전 버전: YYYY-MM-DD로 통일
 function formatDateString(v) {
   if (!v) return '-';
 
-  // 문자열이면서 YYYY-MM-DD 형식이면 그대로 반환
+  // 1) 순수 날짜 문자열이면 그대로
   if (typeof v === 'string') {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
-    
-    // ISO 형식 문자열인 경우 (예: "2024-08-11T00:00:00.000Z")
-    if (/^\d{4}-\d{2}-\d{2}T/.test(v)) {
-      return v.substring(0, 10); // YYYY-MM-DD 부분만 추출
-    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;          // "2025-08-20"
+    if (/^\d{4}-\d{2}-\d{2}T/.test(v)) return v.slice(0,10); // "2025-08-20T..."(Z/오프셋 유무 상관없이 앞 10자리)
   }
 
-  // Date 객체로 변환 후 UTC 기준으로 날짜 추출 (timezone 이슈 방지)
+  // 2) 숫자 타임스탬프/Date 객체 등은 KST로 포맷
   const d = new Date(v);
-  
-  // Invalid Date 체크
-  if (isNaN(d.getTime())) {
+  if (isNaN(d)) {
     console.warn('Invalid date:', v);
     return '-';
   }
-  
-  // UTC 기준으로 날짜 추출하여 timezone 이슈 방지
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(d.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+
+  // en-CA 포맷은 "YYYY-MM-DD"로 떨어집니다.
+  const ymdSeoul = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(d);
+
+  return ymdSeoul; // 예: "2025-08-20"
 }
+
 
 /* [1] 입고 상세 모달 불러오기 */
 function loadInboundDetail(inboundId) {

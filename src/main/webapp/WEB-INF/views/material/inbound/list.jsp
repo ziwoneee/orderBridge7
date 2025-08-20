@@ -70,49 +70,7 @@
 			</div>
 			</div>
 			
-			<!-- 그리고 바로 아래에 미입고 발주 테이블 섹션 추가 -->
-			<!-- 미입고 발주 목록 섹션 -->
-			<div class="col-12 mb-4" id="unreceivedOrdersSection" style="display: none;">
-			  <div class="card">
-			    <div class="card-header d-flex justify-content-between align-items-center">
-			      <h5 class="mb-0">미입고 발주 목록</h5>
-			      <div>
-			        <button id="btn-insert-unreceived" class="btn btn-outline-success btn-sm">
-			          <i class="ti-upload"></i> 선택된 발주 입고등록
-			        </button>
-			        <button class="btn btn-outline-secondary btn-sm" onclick="$('#unreceivedOrdersSection').hide()">
-			          <i class="ti-close"></i> 닫기
-			        </button>
-			      </div>
-			    </div>
-			    <div class="card-body">
-			      <!-- 미입고 발주 테이블 -->
-			      <div class="table-responsive">
-			        <table class="table table-hover" id="unreceivedOrderTable">
-			          <thead style="background-color: #f8f9fa;">
-			            <tr>
-			              <th width="40px">
-			                <input type="checkbox" id="checkAll" onchange="toggleAllCheckboxes(this)">
-			              </th>
-			              <th>발주관리번호</th>
-			              <th>품명</th>
-			              <th>발주수량</th>
-			              <th>예상입고일</th>
-			              <th>발주담당자</th>
-			              <th>상세</th>
-			            </tr>
-			          </thead>
-			          <tbody>
-			            <!-- JavaScript로 동적 생성 -->
-			          </tbody>
-			        </table>
-			      </div>
-			      
-			      <!-- 미입고 페이징 영역 -->
-			      <div class="mt-3 d-flex justify-content-center" id="unreceivedPagination"></div>
-			    </div>
-			  </div>
-			</div>
+			
 			
             
             <!-- 자재 입고 목록 -->
@@ -253,20 +211,33 @@
                         <!-- 발주관리번호 -->
                         <td>${inbound.orderId}</td>
                         
-                        <!-- 예상입고일 + D-Day -->
-                        <td>
-                          <c:if test="${inbound.expectedArrivedDate != null}">
-                            <fmt:formatDate value="${inbound.expectedArrivedDate}" pattern="yyyy-MM-dd"/>
-                            <c:set var="today" value="<%=new java.util.Date()%>"/>
-                            <c:set var="daysDiff" value="${(inbound.expectedArrivedDate.time - today.time) / (1000 * 60 * 60 * 24)}"/>
-                            <c:if test="${daysDiff <= 2 && daysDiff >= 0}">
-                              <span class="badge badge-warning badge-pill">D-${Math.ceil(daysDiff)}</span>
-                            </c:if>
-                            <c:if test="${daysDiff < 0 && inbound.status ne '입고완료'}">
-                              <span class="badge badge-danger badge-pill">지연</span>
-                            </c:if>
-                          </c:if>
-                        </td>
+						<!-- 예상입고일 + D-Day -->
+						<td>
+						  <fmt:formatDate value="${inbound.expectedArrivedDate}" pattern="yyyy-MM-dd"/>
+						
+						  <!-- 오늘 날짜 -->
+						  <c:set var="today" value="<%=new java.util.Date()%>" />
+						  <c:set var="daysDiff" value="${(inbound.expectedArrivedDate.time - today.time) / (1000*60*60*24)}" />
+						
+						  <!-- D-Day 뱃지 (입고완료 제외) -->
+						  <c:if test="${inbound.status != '입고완료'}">
+						    
+						    <!-- 임박 -->
+						    <c:if test="${daysDiff <= 2 && daysDiff >= 0}">
+						      <span class="badge badge-warning badge-pill">
+						        D-<fmt:formatNumber value="${daysDiff}" maxFractionDigits="0" />
+						      </span>
+						    </c:if>
+						
+						    <!-- 지연 -->
+						    <c:if test="${daysDiff < 0}">
+						      <span class="badge badge-danger badge-pill">지연</span>
+						    </c:if>
+						
+						  </c:if>
+						</td>
+
+
                         
                         <!-- 담당자 -->
                         <td>${inbound.handledBy}</td>

@@ -16,6 +16,8 @@
 			mo.order_status AS orderStatus,
 			mo.expected_arrived_date AS expectedArrivedDate,
 			mo.created_by AS createdBy,
+			mo.handled_by AS handledBy,
+			hu.name       AS handlerName,
 			mo.note,
 			<!-- 대표 품명: 자재가 1건이면 그대로, 2건 이상이면 "외 N건" -->
 			CASE 
@@ -29,6 +31,7 @@
 		JOIN material_order_item moi ON mo.order_id = moi.order_id
 		JOIN material m ON moi.material_id = m.material_id
 		JOIN supplier s ON mo.supplier_id = s.supplier_id 
+		LEFT JOIN admin_user hu ON hu.admin_id = mo.handled_by
 		<where>
 			<!-- 검색 조건 -->
 			<if test="keyword != null and keyword != ''">
@@ -47,7 +50,8 @@
 			</if>
 		</where>
 		GROUP BY mo.order_id, mo.supplier_id, s.supplier_name, mo.order_date, 
-				 mo.order_status, mo.expected_arrived_date, mo.created_by, mo.note
+				 mo.order_status, mo.expected_arrived_date, mo.created_by, mo.note,
+				 mo.handled_by, hu.name
 		
 		<choose>
 			<when test="sortColumn == 'order_id'">
@@ -140,7 +144,7 @@
 	<insert id="insertOrder" parameterType="com.itwillbs.domain.MaterialOrderVO">
 		INSERT INTO material_order (
 			order_id, supplier_id, order_date, order_status,
-			expected_arrived_date, created_by, note, work_order_id
+			expected_arrived_date, created_by, handled_by, note, work_order_id
 		) VALUES (
 			#{orderId}, 
 			#{supplierId}, 
@@ -148,6 +152,7 @@
 			#{orderStatus},
 			#{expectedArrivedDate, jdbcType=DATE}, 
 			#{createdBy}, 
+			#{handledBy},
 			#{note},
 			#{workOrderId}
 		)
@@ -249,7 +254,7 @@
 		
 		INSERT INTO material_order (
 			order_id, supplier_id, order_date, order_status,
-			expected_arrived_date, created_by, note, work_order_id
+			expected_arrived_date, created_by, handled_by, note, work_order_id
 		) VALUES (
 			#{orderId}, 
 			#{supplierId}, 
@@ -257,6 +262,7 @@
 			COALESCE(#{orderStatus}, '초안'),
 			#{expectedArrivedDate, jdbcType=DATE}, 
 			#{createdBy}, 
+			#{handledBy},
 			#{note},
 			#{workOrderId}
 		)
@@ -361,11 +367,13 @@
 	    mo.order_date             AS orderDate,
 	    mo.expected_arrived_date  AS expectedArrivedDate,
 	    mo.order_status           AS orderStatus,
-	    mo.created_by             AS createdBy,
+	    mo.handled_by             AS handledBy,
+	    hu.name                   AS handlerName,
 	    mo.note                   AS note,
 	    mo.work_order_id 		  AS workOrderId
 	  FROM material_order mo
 	  JOIN supplier s ON s.supplier_id = mo.supplier_id
+	  LEFT JOIN admin_user hu ON hu.admin_id = mo.handled_by
 	  WHERE mo.order_id = #{orderId}
 	</select>
 	

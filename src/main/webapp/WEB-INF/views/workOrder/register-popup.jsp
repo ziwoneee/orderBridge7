@@ -77,11 +77,12 @@
 <div class="card">
   <div class="card-body">
     <div class="row">
+      <!-- 생산라인: 선택 가능 -->
       <div class="col-md-6">
         <label>생산라인 <span class="text-danger">*</span></label>
         <select class="form-control" name="lineId" id="lineId" required>
           <option value="">라인을 선택하세요</option>
-     
+
           <c:choose>
             <c:when test="${not empty availableLines}">
               <c:forEach var="line" items="${availableLines}">
@@ -89,14 +90,14 @@
                   <option value="${line.lineId}"
                     <c:if test="${not empty autoLine and autoLine.lineId == line.lineId}">selected</c:if>>
                     ${line.lineName}
-                    <c:if test="${not empty line.availableProduct}">
-                      (${line.availableProduct})
-                    </c:if>
+
+                    <c:if test="${not empty line.availableProduct}">(${line.availableProduct})</c:if>
+
                   </option>
                 </c:if>
               </c:forEach>
             </c:when>
-  
+
             <c:when test="${not empty lineList}">
               <c:forEach var="line" items="${lineList}">
                 <option value="${line.lineId}">${line.lineName}</option>
@@ -165,7 +166,6 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="${pageContext.request.contextPath}/resources/vendors/js/vendor.bundle.base.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-
 
 <script>
 (function() {
