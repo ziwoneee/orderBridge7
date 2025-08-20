@@ -256,6 +256,7 @@
                       <th>거래처</th>
                       <th>예약수량</th>
                       <th>예약일시</th>
+                      <th>담당자</th>
                       <th>상태</th>
                       <th>상세내역</th>
                     </tr>
@@ -269,6 +270,7 @@
                         <td>${item.clientName}</td>
                         <td class="text-end"><fmt:formatNumber value="${item.reservedQty}" pattern="#,###"/></td>
                         <td><fmt:formatDate value="${item.reservedAt}" pattern="yyyy-MM-dd HH:mm" /></td>
+                        <td>${item.manager}</td>
                         <td><span class="badge bg-warning text-dark">예약</span></td>
                         <td>
                           <button class="btn btn-sm btn-outline-info btn-reservation-detail"
