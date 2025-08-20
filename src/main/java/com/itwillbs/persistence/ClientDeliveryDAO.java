@@ -80,6 +80,6 @@ public interface ClientDeliveryDAO {
     //주문 수량 합계(박스 계산용)
     int getTotalOrderQtyByOrderId(String clOrderId);
 
-	
-    
+	//배송완료 변경
+    int updateDeliveriesToCompletedAfter3Days();
 }

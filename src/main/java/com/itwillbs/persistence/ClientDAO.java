@@ -18,4 +18,6 @@ public interface ClientDAO {
     void updateClient(ClientVO client);//고객사 수정
 
     List<ClientVO> getActiveClients();  // 활성화 상태인 고객 목록
+    
+    boolean isBusinessNumberExists(String businessNumber); //사업자번호 중복확인
 }

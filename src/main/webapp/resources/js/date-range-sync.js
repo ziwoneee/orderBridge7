@@ -166,7 +166,11 @@
 
 	  function fillResultModal(d) {
 	    const setText = (id, val) => { const el = $(id); if (el) el.innerText = val || '-'; };
-
+	    console.log('[DEBUG] Ajax 응답 데이터:', d);
+	    console.log('[DEBUG] progressRate:', d.progressRate);
+	    console.log('[DEBUG] progress_rate:', d.progress_rate);
+	    
+	    
 	    setText('rd-resultId', d.resultId);
 	    setText('rd-orderId', d.orderId);
 	    setText('rd-productName', d.productName);
@@ -176,7 +180,9 @@
 	    const orderQty = Number(d.orderQty || 0);
 	    const actualQty = Number(d.actualQty || 0);
 	    const defectQty = Number(d.defectQty || 0);
-	    const achievement = orderQty > 0 ? ((actualQty / orderQty) * 100).toFixed(1) + '%' : '-';
+	    const progressRate = d.progressRate != null ? d.progressRate : d.progress_rate;
+	    const achievement = progressRate != null ? progressRate + '%' : '-';
+	   
 
 	    setText('rd-orderQty', fmtNumber(orderQty));
 	    setText('rd-actualQty', fmtNumber(actualQty));

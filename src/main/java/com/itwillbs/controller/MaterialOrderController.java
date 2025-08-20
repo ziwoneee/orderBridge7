@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
+import javax.servlet.http.HttpSession;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.itwillbs.domain.AdminUserVO;
 import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.MaterialVO;
@@ -104,8 +106,18 @@ public class MaterialOrderController {
 	
 	// 자재 발주 등록 페이지 이동 (GET)
 	@GetMapping("/register")
-	public String registerForm(Model model) throws Exception {
+	public String registerForm(Model model, HttpSession session) throws Exception {
 	    logger.debug("GET /material/order/register → 발주 등록 폼 이동");
+	    
+	    // ▼ 로그인 사용자 정보 모델에 주입 (JSP가 이 값만 쓰게)
+	    AdminUserVO login = (AdminUserVO) session.getAttribute("adminUser");
+	    if (login != null) {
+	        model.addAttribute("loginId",   login.getAdminId());
+	        model.addAttribute("loginName", login.getName());
+	    } else {
+	        model.addAttribute("loginId",   "");  // 세션 없으면 빈값
+	        model.addAttribute("loginName", "");
+	    }
 
 	    List<SupplierVO> supplierList = supplierService.getAllSuppliers();
 	    List<MaterialVO> materialList = materialService.getAllMaterials();
@@ -119,7 +131,10 @@ public class MaterialOrderController {
 
 	// 자재 발주 등록 처리 (POST)
 	@PostMapping("/register")
-	public String registerOrder(@ModelAttribute MaterialOrderDTO orderDTO, Model model) throws Exception {
+	public String registerOrder(@ModelAttribute MaterialOrderDTO orderDTO,
+								Model model,
+								HttpSession session) throws Exception {
+		
 		logger.info("registerOrder 컨트롤러 진입");
 		logger.debug("등록된 발주 데이터: " + orderDTO);
 
@@ -127,9 +142,19 @@ public class MaterialOrderController {
 	    List<MaterialOrderItemVO> itemList = orderDTO.getOrderItems();
 	    String workOrderId = order.getWorkOrderId();
 	    
+		// ✅ 로그인 사용자 → createdBy / handledBy 세팅
+	    AdminUserVO login = (AdminUserVO) session.getAttribute("adminUser");
+	    if (login == null || login.getAdminId() == null || login.getAdminId().isBlank()) {
+	        throw new IllegalStateException("로그인 세션이 만료되었습니다. 다시 로그인 해 주세요.");
+	    }
+	    String loginId = login.getAdminId();
+	    
+	    // handledBy는 무조건 로그인 사용자로 강제
+	    order.setHandledBy(loginId);
+	    
 	    // 필수값 검증 및 기본값 설정
 	    if (order.getOrderStatus() == null || order.getOrderStatus().isEmpty()) {
-	        order.setOrderStatus("요청");
+	        order.setOrderStatus("초안");
 	    }
 	    
 	    // 발주일이 없으면 현재 날짜로 설정

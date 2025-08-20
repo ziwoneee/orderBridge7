@@ -185,7 +185,10 @@ public class ClientDeliveryDAOImpl implements ClientDeliveryDAO {
         return sqlSession.selectOne(NAMESPACE + ".getTotalOrderQtyByOrderId", clOrderId);
     }
 
-
-
+    //배송완료 변경
+    @Override
+    public int updateDeliveriesToCompletedAfter3Days() {
+        return sqlSession.update(NAMESPACE + ".updateDeliveriesToCompletedAfter3Days");
+    }
     
 }

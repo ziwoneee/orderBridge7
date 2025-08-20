@@ -20,5 +20,8 @@ public class MaterialInboundVO {
     private Date orderDate;            // 발주일자
     private String supplierId;         // 거래처 ID
     private String supplierName;
+    
+    private String handlerName;   // 담당자 이름
+
 
 }

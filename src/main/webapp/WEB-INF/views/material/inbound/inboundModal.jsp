@@ -13,9 +13,6 @@
 	      <div class="modal-body">
 	        <div class="d-flex justify-content-between align-items-center mb-2">
 	          <small class="text-muted">체크 후 “입고등록” 클릭</small>
-	          <button id="btn-insert-unreceived-modal" class="btn btn-outline-success btn-sm">
-	            <i class="ti-upload"></i> 선택된 발주 입고등록
-	          </button>
 	        </div>
 	
 	        <div class="table-responsive">
@@ -39,7 +36,10 @@
 	      </div>
 	
 	      <div class="modal-footer">
-	        <button class="btn btn-secondary" data-dismiss="modal">닫기</button>
+    	    <button id="btn-insert-unreceived-modal" class="btn btn-primary">
+	            <i class="ti-upload"></i> 선택된 발주 입고등록
+	        </button>
+	        <button class="btn btn-secondary" data-dismiss="modal">취소</button>
 	      </div>
 	    </div>
 	  </div>
@@ -126,7 +126,7 @@
 	        </div>
 	
 	        <div class="form-group">
-	          <label>LOT No</label>
+	          <label>LOT 번호</label>
 	          <input id="lotNo" class="form-control">
 	        </div>
 	
@@ -146,8 +146,8 @@
 	        </div>
 	      </div>
 	      <div class="modal-footer">
-	        <button id="btnSaveInbound" type="button" class="btn btn-success">저장</button>
-	        <button class="btn btn-secondary" data-dismiss="modal">닫기</button>
+	        <button id="btnSaveInbound" type="button" class="btn btn-primary">저장</button>
+	        <button class="btn btn-secondary" data-dismiss="modal">취소</button>
 	      </div>
 	    </div>
 	  </div>

@@ -167,7 +167,8 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
    //출하 완료 항목
     @Override
     public List<ShipmentCompletedDTO> searchCompletedShipmentList(SearchCriteria cri) {
-         return deliveryDAO.searchCompletedShipmentList(cri);
+    	deliveryDAO.updateDeliveriesToCompletedAfter3Days(); 
+    	return deliveryDAO.searchCompletedShipmentList(cri);
     }
    
 
