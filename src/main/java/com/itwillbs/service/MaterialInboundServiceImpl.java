@@ -106,7 +106,7 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
                 itemVO.setOrderItemId(item.getOrderItemId());
                 itemVO.setMaterialId(item.getMaterialId());
                 itemVO.setOrderQuantity(item.getOrderQuantity());
-                itemVO.setReceivedQuantity(0);
+                itemVO.setQuantity(0);
                 miDAO.insertMaterialInboundItem(itemVO);
             }
         }

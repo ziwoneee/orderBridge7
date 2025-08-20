@@ -49,7 +49,8 @@ function loadInboundDetail(inboundId) {
       $('#inboundDetailModal #orderDate').text(formatDateString(data.inbound.orderDate));
       $('#inboundDetailModal #supplierName').text(data.inbound.supplierName || data.inbound.supplierId || '-');
       $('#inboundDetailModal #inboundDate').text(formatDateString(data.inbound.inboundDate));
-      $('#inboundDetailModal #handledBy').text(data.inbound.handledBy || '-');
+      $('#inboundDetailModal #handledBy')
+      .text(data.inbound.handledByName || data.inbound.handledBy || '-');
       $('#inboundDetailModal #modalStatus').text(data.inbound.inboundStatus || '-');
 
       // 항목 정보 렌더링
