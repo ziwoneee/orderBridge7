@@ -237,10 +237,15 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
             	orderParams.put("expectedArrivedDate", java.sql.Date.valueOf(eta));
 
             	// ★ 담당자 ID 결정 (request DTO에 필드가 없으면 임시로 'admin' 등 ID 문자열 사용)
-            	String requestedBy = (request.getRequestedBy() != null && !request.getRequestedBy().isEmpty())
-            	        ? request.getRequestedBy() : "system";
+            	// ✅ 수정 코드: 세션 없으면 401 성격의 에러, 있으면 그 ID를 반드시 사용
+            	String handlerId = java.util.Optional.ofNullable(request.getRequestedBy())
+            	        .map(String::trim)
+            	        .filter(s -> !s.isEmpty())
+            	        .orElseThrow(() -> new IllegalStateException("로그인 세션이 만료됐거나 권한이 없습니다. 다시 로그인 후 시도하세요."));
 
-    	        orderParams.put("handledBy",   requestedBy);
+            	orderParams.put("handledBy", handlerId);
+            	
+            	logger.info("발주 초안 handledBy = {}", handlerId);
     	        
             	orderParams.put("note", "작업지시 " + request.getWorkOrderId() + " 부족분 자동 생성");
             	orderParams.put("workOrderId", request.getWorkOrderId()); // (선택) 헤더에도 연계
