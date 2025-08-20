@@ -144,11 +144,13 @@ public class MaterialOrderController {
 	    
 		// ✅ 로그인 사용자 → createdBy / handledBy 세팅
 	    AdminUserVO login = (AdminUserVO) session.getAttribute("adminUser");
-	    String adminId = (login != null) ? login.getAdminId() : "admin";
-	    order.setCreatedBy(adminId);
-	    if (order.getHandledBy() == null || order.getHandledBy().isEmpty()) {
-	        order.setHandledBy(adminId);
+	    if (login == null || login.getAdminId() == null || login.getAdminId().isBlank()) {
+	        throw new IllegalStateException("로그인 세션이 만료되었습니다. 다시 로그인 해 주세요.");
 	    }
+	    String loginId = login.getAdminId();
+	    
+	    // handledBy는 무조건 로그인 사용자로 강제
+	    order.setHandledBy(loginId);
 	    
 	    // 필수값 검증 및 기본값 설정
 	    if (order.getOrderStatus() == null || order.getOrderStatus().isEmpty()) {
