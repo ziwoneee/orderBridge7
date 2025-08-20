@@ -55,7 +55,7 @@
   <table class="table table-bordered text-center">
     <thead>
       <tr>
-        <th>고객사ID</th>
+        <th>고객사코드</th>
         <!-- 고객사명 정렬 -->
         <th>
           <a href="?page=1&sortColumn=clientName&sortOrder=${cri.sortColumn eq 'clientname' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&keyword=${fn:escapeXml(cri.keyword)}">
@@ -73,12 +73,12 @@
 
         <th>사업자등록번호</th>
         <th>대표자명</th>
-        <th>연락처</th>
+        <th>담당자 연락처</th>
 
         <!-- 등록일 정렬 -->
         <th>
           <a href="?page=1&sortColumn=createdAt&sortOrder=${cri.sortColumn eq 'createdat' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&keyword=${fn:escapeXml(cri.keyword)}">
-            등록일
+            등록일자
             <c:choose>
               <c:when test="${cri.sortColumn eq 'createdat'}">
                 <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
@@ -93,7 +93,7 @@
         <!-- 상태 정렬 -->
         <th>
           <a href="?page=1&sortColumn=statusCode&sortOrder=${cri.sortColumn eq 'statuscode' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}&keyword=${fn:escapeXml(cri.keyword)}">
-            상태
+            거래상태
             <c:choose>
               <c:when test="${cri.sortColumn eq 'statuscode'}">
                 <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
