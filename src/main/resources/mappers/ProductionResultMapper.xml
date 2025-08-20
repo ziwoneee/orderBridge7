@@ -18,7 +18,8 @@
       worker_name,
       started_at,
       ended_at,
-      created_at
+      created_at,
+      progress_rate AS progressRate
     FROM production_result
     WHERE 1=1
       <if test="keyword != null and keyword != ''">
@@ -83,7 +84,7 @@
       started_at,
       ended_at,
       created_at,
-      progress_rate,
+      progress_rate AS progressRate,
       cumulative_qty 
     ) VALUES (
       #{resultId},
@@ -141,6 +142,7 @@
       pr.started_at    AS startedAt,
       pr.ended_at      AS endedAt,
       pr.created_at    AS createdAt,
+      pr.progress_rate AS progressRate,
 
       p.product_name   AS productName,
 
@@ -189,7 +191,7 @@
       -- production_result
       pr.result_id, pr.order_id, pr.product_id, pr.lot_no,
       pr.actual_qty, pr.defect_qty, pr.worker_name,
-      pr.started_at, pr.ended_at, pr.created_at,
+      pr.started_at, pr.ended_at, pr.created_at, pr.progress_rate,
 
       -- work_order
       wo.status, wo.order_qty, wo.order_manager AS orderManager,

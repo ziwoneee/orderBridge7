@@ -81,26 +81,36 @@ function saveStatus(bomId) {
 			</div>
 
   
-    <table class="table table-bordered text-center" >
-    <tr><th>BOM ID</th> <td>${bomMaster.bomId}</td></tr>
-    <tr><th>대상제품</th> <td>${bomMaster.productName}</td></tr>
-    <tr><th>BOM명</th> <td>${bomMaster.bomName}</td></tr>
+ <table class="table table-bordered text-center align-middle">
+  <thead>
+    <tr style="background-color:#1c355e; color:white;">
+      <th>BOM ID</th>
+      <th>대상제품</th>
+      <th>BOM명</th>
+      <th>상태</th>
+      <th>비고</th>
+    </tr>
+  </thead>
+  <tbody>
     <tr>
-    <th>상태</th>
-    <td>
-    <div class="d-flex justify-content-center">
-        <div class="form-inline">
+      <td>${bomMaster.bomId}</td>
+      <td>${bomMaster.productName}</td>
+      <td>${bomMaster.bomName}</td>
+      <td>
+        <div class="d-flex justify-content-center">
+          <div class="form-inline">
             <select id="statusSelect" class="form-control form-control-sm mr-2" style="width:auto;">
-                <option value="ACTIVE" <c:if test="${bomMaster.status eq 'ACTIVE'}">selected</c:if>>활성</option>
-                <option value="INACTIVE" <c:if test="${bomMaster.status eq 'INACTIVE'}">selected</c:if>>비활성</option>
+              <option value="ACTIVE" <c:if test="${bomMaster.status eq 'ACTIVE'}">selected</c:if>>활성</option>
+              <option value="INACTIVE" <c:if test="${bomMaster.status eq 'INACTIVE'}">selected</c:if>>비활성</option>
             </select>
-            <button id="statusSaveBtn" class="btn btn-success btn-sm" type="button" onclick="saveStatus('${bomMaster.bomId}')">저장</button>
+            <button id="statusSaveBtn" class="btn btn-success btn-sm" 
+                    type="button" onclick="saveStatus('${bomMaster.bomId}')">저장</button>
+          </div>
         </div>
-        </div>
-    </td>
-</tr>
-
-    <tr><th>비고</th> <td>${bomMaster.bomEtc}</td></tr>
+      </td>
+      <td>${bomMaster.bomEtc}</td>
+    </tr>
+  </tbody>
 </table>
 
     <!-- 육수용 원자재 테이블 -->

@@ -52,6 +52,12 @@ public class ClientServiceImpl implements ClientService {
     public List<ClientVO> getActiveClients() {
         return clientDao.getActiveClients();
     }
+    
+    //사업자번호 중복확인
+    @Override
+    public boolean isBusinessNumberExists(String businessNumber) {
+        return clientDao.isBusinessNumberExists(businessNumber);
+    }
 
     
     

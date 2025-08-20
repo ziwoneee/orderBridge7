@@ -24,6 +24,8 @@ public class ProductMasterController {
     public String getProductList(Model model) {
         List<ProductVO> productList = productMasterService.getAllProducts();
         model.addAttribute("productList", productList);
+        model.addAttribute("menu", "basic");
+        
         return "master/productList"; // JSP or Thymeleaf view name
     }
     

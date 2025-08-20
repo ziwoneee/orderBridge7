@@ -22,14 +22,16 @@
 			<div class="col-12 mb-4">
 			  <h3 class="font-weight-bold">수주상세 정보</h3>
               <h6 class="font-weight-normal mb-0">수주상세 정보 화면입니다.</h6>
-			</div>
+			</div>		
           
           <div class="col-md-12 grid-margin">
             <div class="row">
               <div class="contentbody"> 
 
     <!-- 수주 마스터 정보 -->
-      <div id="table_content"  style="width:1200px;">
+      <div id="table_content"  style="width:1200px;"><div class="text-right">
+ <span class="badge bg-primary">수주 담당자: ${adminName}</span>
+  </div>
     <table class="table table-bordered mb-4" style="table-layout: fixed; width: 100%;">
     <colgroup>
     <col style="width:20%">
@@ -95,10 +97,12 @@
     </td>
     <th class="table-active">메모</th>
     <td>${order.clOrderMemo}</td>
+       
 </tr>
 
         </tbody>
     </table>
+    
  
   <c:if test="${not empty message}">
   <div class="alert alert-success">${message}</div>

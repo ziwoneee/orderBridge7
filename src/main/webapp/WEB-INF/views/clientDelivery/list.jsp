@@ -256,6 +256,7 @@
                       <th>거래처</th>
                       <th>예약수량</th>
                       <th>예약일시</th>
+                      <th>담당자</th>
                       <th>상태</th>
                       <th>상세내역</th>
                     </tr>
@@ -269,6 +270,7 @@
                         <td>${item.clientName}</td>
                         <td class="text-end"><fmt:formatNumber value="${item.reservedQty}" pattern="#,###"/></td>
                         <td><fmt:formatDate value="${item.reservedAt}" pattern="yyyy-MM-dd HH:mm" /></td>
+                        <td>${item.manager}</td>
                         <td><span class="badge bg-warning text-dark">예약</span></td>
                         <td>
                           <button class="btn btn-sm btn-outline-info btn-reservation-detail"
@@ -333,7 +335,7 @@
                   <thead>
                     <tr>
                       <th>
-                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=cl_order_id&sortOrder=${cri.sortColumn eq 'cl_order_id' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
+                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=clOrderId&sortOrder=${cri.sortColumn eq 'cl_order_id' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
                            class="text-white text-decoration-none">
                           수주번호
                           <c:choose>
@@ -347,7 +349,7 @@
                         </a>
                       </th>
                       <th>
-                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=client_name&sortOrder=${cri.sortColumn eq 'client_name' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
+                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=clientName&sortOrder=${cri.sortColumn eq 'client_name' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
                            class="text-white text-decoration-none">
                           거래처명
                           <c:choose>
@@ -361,7 +363,7 @@
                         </a>
                       </th>
                       <th>
-                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=delivery_date&sortOrder=${cri.sortColumn eq 'delivery_date' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
+                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=deliveryDate&sortOrder=${cri.sortColumn eq 'delivery_date' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
                            class="text-white text-decoration-none">
                           출하일자
                           <c:choose>
@@ -491,7 +493,23 @@
                   <td>${item.lotNo}</td>
                   <td class="text-end"><fmt:formatNumber value="${item.deliveryQty}" pattern="#,###"/></td>
                   <td>${item.trackingNumber}</td>
-                  <td><span class="badge bg-success text-white">${item.deliveryStatus}</span></td>
+				   <td>
+				  <c:choose>
+				    <c:when test="${item.deliveryStatus == '배송준비'}">
+				      <span class="badge bg-warning text-dark">${item.deliveryStatus}</span>
+				    </c:when>
+				    <c:when test="${item.deliveryStatus == '배송완료'}">
+				      <span class="badge bg-success text-white">${item.deliveryStatus}</span>
+				    </c:when>
+				    <c:when test="${item.deliveryStatus == 'CANCELLED'}">
+				      <span class="badge bg-secondary text-white">${item.deliveryStatus}</span>
+				    </c:when>
+				    <c:otherwise>
+				      <span class="badge bg-light text-dark">${item.deliveryStatus}</span>
+				    </c:otherwise>
+				  </c:choose>
+				</td>
+
                 </tr>
               </c:forEach>
             </tbody>
