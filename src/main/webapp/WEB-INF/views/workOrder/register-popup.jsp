@@ -82,7 +82,7 @@
         <label>생산라인 <span class="text-danger">*</span></label>
         <select class="form-control" name="lineId" id="lineId" required>
           <option value="">라인을 선택하세요</option>
-      
+
           <c:choose>
             <c:when test="${not empty availableLines}">
               <c:forEach var="line" items="${availableLines}">
@@ -90,18 +90,20 @@
                   <option value="${line.lineId}"
                     <c:if test="${not empty autoLine and autoLine.lineId == line.lineId}">selected</c:if>>
                     ${line.lineName}
+
                     <c:if test="${not empty line.availableProduct}">(${line.availableProduct})</c:if>
+
                   </option>
                 </c:if>
               </c:forEach>
             </c:when>
-      
+
             <c:when test="${not empty lineList}">
               <c:forEach var="line" items="${lineList}">
                 <option value="${line.lineId}">${line.lineName}</option>
               </c:forEach>
             </c:when>
-      
+
             <c:otherwise>
               <option value="" disabled>등록된 라인이 없습니다</option>
             </c:otherwise>
