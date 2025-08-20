@@ -245,18 +245,19 @@ function renderMaterialRows(items) {
     String(a.materialId || '').localeCompare(String(b.materialId || ''), 'en', { numeric: true })
   );
 
-  if (!items || items.length === 0) {
-    $tbody.append('<tr><td colspan="6" class="text-center text-muted">자재 정보가 없습니다.</td></tr>');
-    return;
+  if (!sorted.length) {
+	  $tbody.append('<tr><td colspan="7" class="text-center text-muted">자재 정보가 없습니다.</td></tr>');
+	  return;
   }
 
-  const promises = (items || []).map(function(item) {
+  const promises = sorted.map(function(item, idx) {
     const workOrderId = $('#workOrderIdHidden').val()
                      || new URLSearchParams(location.search).get('workOrderId');
     const required = Number(item.requiredQty) || 0;
 
     return $.get(ctx + '/material/inventory/lot-details', { materialId: item.materialId })
 	.then(function(resp) {
+		
 	// ✅ 다양한 래핑 대응
 	    var lots = [];
 	    if (Array.isArray(resp)) lots = resp;
@@ -335,6 +336,7 @@ function renderMaterialRows(items) {
         var defaultWh   = item.defaultWarehouseCode || item.warehouseCode || 'WH003';
 
         var $row = $('<tr>')
+          .attr('data-order', idx)
           .attr('data-material', item.materialId)
           .attr('data-lot-required', lotRequired)
           .attr('data-default-warehouse', defaultWh)
@@ -436,6 +438,7 @@ function renderMaterialRows(items) {
     .fail(function(xhr) { // LOT API 자체 실패
       console.error('자재 정보 로드 실패:', item.materialId, xhr);
       var $row = $('<tr>')
+        .attr('data-order', idx)
         .attr('data-material', item.materialId)
         .attr('data-lot-required', 'Y')
         .attr('data-default-warehouse', 'WH003')
@@ -461,6 +464,12 @@ function renderMaterialRows(items) {
 
   // 모든 행 렌더링 이후 자동배정 + 검증
   Promise.all(promises).then(function () {
+	// ★ 로딩이 끝난 뒤, data-order 기준으로 DOM 재정렬
+	const rows = $tbody.children('tr').get().sort(function(a,b){
+	  return (parseInt(a.dataset.order)||0) - (parseInt(b.dataset.order)||0);
+	});
+	$tbody.append(rows);
+	  
     autoAllocateAll(false);
     // 물 특례 동기화
     $('#materialLotBody tr').each(function () {
