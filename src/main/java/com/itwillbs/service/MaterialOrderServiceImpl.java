@@ -230,13 +230,20 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
             List<Map<String, Object>> supplierMappings = entry.getValue();
 
             try {
-                Map<String, Object> orderParams = new HashMap<>();
-                orderParams.put("supplierId", supplierId);
-                orderParams.put("orderStatus", "초안");
-                java.time.LocalDate eta = java.time.LocalDate.now().plusDays(7);
-                orderParams.put("expectedArrivedDate", java.sql.Date.valueOf(eta));
-                orderParams.put("createdBy", "system");
-                orderParams.put("note", "작업지시 " + request.getWorkOrderId() + " 부족분 자동 생성");
+            	Map<String, Object> orderParams = new HashMap<>();
+            	orderParams.put("supplierId", supplierId);
+            	orderParams.put("orderStatus", "초안");
+            	java.time.LocalDate eta = java.time.LocalDate.now().plusDays(7);
+            	orderParams.put("expectedArrivedDate", java.sql.Date.valueOf(eta));
+
+            	// ★ 담당자 ID 결정 (request DTO에 필드가 없으면 임시로 'admin' 등 ID 문자열 사용)
+            	String requestedBy = (request.getRequestedBy() != null && !request.getRequestedBy().isEmpty())
+            	        ? request.getRequestedBy() : "system";
+
+    	        orderParams.put("handledBy",   requestedBy);
+    	        
+            	orderParams.put("note", "작업지시 " + request.getWorkOrderId() + " 부족분 자동 생성");
+            	orderParams.put("workOrderId", request.getWorkOrderId()); // (선택) 헤더에도 연계
 
                 mOrderDAO.insertOrderHeaderDraft(orderParams);
                 String orderId = (String) orderParams.get("orderId");

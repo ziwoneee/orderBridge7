@@ -254,14 +254,13 @@
 		
 		INSERT INTO material_order (
 			order_id, supplier_id, order_date, order_status,
-			expected_arrived_date, created_by, handled_by, note, work_order_id
+			expected_arrived_date, handled_by, note, work_order_id
 		) VALUES (
 			#{orderId}, 
 			#{supplierId}, 
 			NOW(), 
 			COALESCE(#{orderStatus}, '초안'),
 			#{expectedArrivedDate, jdbcType=DATE}, 
-			#{createdBy}, 
 			#{handledBy},
 			#{note},
 			#{workOrderId}

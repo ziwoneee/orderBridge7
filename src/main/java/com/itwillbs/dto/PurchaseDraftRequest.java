@@ -9,6 +9,9 @@ public class PurchaseDraftRequest {
 	
 	private String workOrderId;              // 화면의 작업지시번호
     private List<ShortageItem> items;        // 부족 자재 목록
+    
+    private String requesterId;
+    private String requestedBy;
 
     @Data
     public static class ShortageItem {
