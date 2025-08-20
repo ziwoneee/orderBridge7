@@ -769,7 +769,7 @@ window.loadOutboundDetail = function(outboundId){
 	      // 3) 헤더 채우기
 	      $('#modalOutboundId').text(h.outboundId || '-');
 	      $('#modalWorkOrderId').text(h.workOrderId || '-');
-	      $('#modalIssuedAt').text(fmtTS(issuedAt));
+	      $('#modalIssuedAt').text(fmtYmd(issuedAt));
 	      $('#modalHandledBy').text(handledBy || '-');
 	      $('#modalStatus').html(badgeStatus(status));
 	      $('#modalNote').text(note || '-');

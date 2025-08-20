@@ -1,19 +1,43 @@
 /* ---------- 출고 상세 조회 (모달) ---------- */
 window.loadOutboundDetail = function(outboundId) {
-  // 작은 헬퍼들 (의존성 없이 내부에서만 사용)
-  function esc(s){ return $('<div>').text(s == null ? '' : s).html(); }
-  function fmtTS(v){
-    if(!v) return '-';
-    if(typeof v==='string') return v.replace('T',' ').slice(0,19);
-    if(v.time) return new Date(v.time).toISOString().replace('T',' ').slice(0,19);
-    try{ return new Date(v).toISOString().replace('T',' ').slice(0,19);}catch(e){ return '-'; }
-  }
-  function fmtYmd(v){
-    if(!v) return '-';
-    if(typeof v==='string') return v.slice(0,10);
-    if(v.time) return new Date(v.time).toISOString().slice(0,10);
-    try{ return new Date(v).toISOString().slice(0,10);}catch(e){ return '-'; }
-  }
+	// 작은 헬퍼들 (의존성 없이 내부에서만 사용)
+	function esc(s){ const div=document.createElement('div'); div.textContent=(s==null?'':s); return div.innerHTML; }
+	function pad(n){ return String(n).padStart(2,'0'); }
+
+	// 'YYYY-MM-DD' 또는 'YYYY-MM-DD HH:mm'로 표시
+	// 시간이 00:00이면 날짜만
+	function fmtTS(v){
+	  if (!v) return '-';
+	  if (typeof v === 'string') {
+	    const m = v.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}):(\d{2})(?::\d{2})?)?/);
+	    if (m) {
+	      const [, d, hh, mm] = m;
+	      if (!hh) return d;
+	      return (hh === '00' && mm === '00') ? d : `${d} ${hh}:${mm}`;
+	    }
+	    return v.slice(0,19).replace('T',' ');
+	  }
+	  const t = (v && typeof v === 'object' && 'time' in v) ? Number(v.time) : Number(v);
+	  if (!Number.isFinite(t)) return '-';
+	  const d = new Date(t);
+	  const Y = d.getFullYear(), M = pad(d.getMonth()+1), D = pad(d.getDate());
+	  const H = pad(d.getHours()), m = pad(d.getMinutes());
+	  return (H === '00' && m === '00') ? `${Y}-${M}-${D}` : `${Y}-${M}-${D} ${H}:${m}`;
+	}
+
+	// 날짜만 필요할 때
+	function fmtYmd(v){
+	  if (!v) return '-';
+	  if (typeof v === 'string') {
+	    const m = v.match(/^(\d{4}-\d{2}-\d{2})/);
+	    if (m) return m[1];
+	  }
+	  const t = (v && typeof v === 'object' && 'time' in v) ? Number(v.time) : Number(v);
+	  if (!Number.isFinite(t)) return '-';
+	  const d = new Date(t);
+	  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+	}
+	
   function badgeStatus(st){
     st = String(st || 'DRAFT').toUpperCase();
     if (st === 'COMPLETED' || st === 'ISSUED') return '<span class="badge badge-success">완료</span>';
@@ -52,7 +76,7 @@ window.loadOutboundDetail = function(outboundId) {
       +   '<th style="width:15%">작업지시</th><td style="width:35%">'+esc(_workOrderId)+'</td>'
       + '</tr>'
       + '<tr>'
-      +   '<th>출고일시</th><td>'+esc(fmtTS(_issuedAt))+'</td>'
+      +   '<th>출고일자</th><td>'+esc(fmtYmd(_issuedAt))+'</td>'
       +   '<th>담당자</th><td>'+esc(_userName)+'</td>'
       + '</tr>'
       + '<tr>'
