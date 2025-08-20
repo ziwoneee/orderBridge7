@@ -240,7 +240,13 @@
 
                         
                         <!-- 담당자 -->
-                        <td>${inbound.handledBy}</td>
+                        <td>
+						  <c:choose>
+						    <c:when test="${not empty inbound.handledByName}">${inbound.handledByName}</c:when>
+						    <c:otherwise>${inbound.handledBy}</c:otherwise>
+						  </c:choose>
+						</td>
+
                         
                         <!-- 상세 -->
                         <td>

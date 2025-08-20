@@ -642,56 +642,45 @@ $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
         location.href = ctx + '/material/outbound/list';
       }
     };
-    // alert가 잘 보이도록 아주 짧게 지연
-    setTimeout(goto, 300);
+    setTimeout(goto, 300); // alert 표시 후 짧게 지연
   };
+
+  // 🔎 화면에서 부족 목록 수집 (이미 있는 util)
+  const items = (window.collectShortages && window.collectShortages()) || [];
+  // 서버가 빈 목록을 에러로 볼 수 있으므로 미리 가드
+  if (!items.length) {
+    alert('부족분이 없습니다. (발주 생성 없이 목록으로 이동합니다)');
+    return goToOrderList([]);
+  }
 
   $btn.prop('disabled', true).text('생성 중...');
 
-  // 1) 부족분 발주 생성
-  $.post(ctx + '/material/reservation/create-shortage-po', { workOrderId })
-    .done(function(res) {
-      const ids = (res && (res.orderIds || (res.orderId ? [res.orderId] : []))) || [];
+  // 1) 부족분 발주 "초안" 생성: /material/order/draft (JSON)
+  $.ajax({
+    url: ctx + '/material/order/draft',
+    method: 'POST',
+    contentType: 'application/json; charset=utf-8',
+    dataType: 'json',
+    // 서버에서 세션으로 handled_by를 주입하므로 items + workOrderId만 보내면 됨
+    data: JSON.stringify({ workOrderId, items }),
+    // 다른 오리진이면 쿠키 동봉 필요 (동일 오리진이면 무시됨)
+    xhrFields: { withCredentials: true }
+  })
+  .done(function (res) {
+    // 응답 호환 처리: {orderIds:[..]} or {orderId:".."} 등
+    const ids = Array.isArray(res && res.orderIds) ? res.orderIds
+               : (res && res.orderId ? [res.orderId] : []);
 
-      if (!(res && res.ok === true)) {
-        alert((res && res.message) ? res.message : '부족분 발주 생성에 실패했습니다.');
-        return restoreBtn();
-      }
+    // 2) 발주 성공 → 예약 수행 (기존 엔드포인트 유지)
+    const doReserve = () => $.post(ctx + '/material/reservation/reserve-only', { workOrderId });
 
-      // 2) 발주 성공 → 예약 수행
-      const doReserve = () => $.post(ctx + '/material/reservation/reserve-only', { workOrderId });
-
-      doReserve()
-        .done(function(r1){
-          if (r1 && r1.ok === true) {
-            alert('부족분 발주가 생성되었고,\n이번 작업지시 기준으로 재고 예약을 완료했습니다.');
-            goToOrderList(ids);
-          } else {
-            // 재시도 1회
-            doReserve()
-              .done(function(r2){
-                if (r2 && r2.ok === true) {
-                  alert('부족분 발주 생성 완료.\n예약은 재시도에서 성공했습니다.');
-                  goToOrderList(ids);
-                } else {
-                  if (confirm('발주는 생성됐지만 예약에 실패했습니다.\n발주 목록으로 이동할까요?')) {
-                    goToOrderList(ids);
-                  } else {
-                    restoreBtn();
-                  }
-                }
-              })
-              .fail(function(){
-                if (confirm('발주는 생성됐지만 예약 호출에 실패했습니다.\n발주 목록으로 이동할까요?')) {
-                  goToOrderList(ids);
-                } else {
-                  restoreBtn();
-                }
-              });
-          }
-        })
-        .fail(function(){
-          // 첫 호출 실패 → 재시도
+    doReserve()
+      .done(function(r1){
+        if (r1 && r1.ok === true) {
+          alert('부족분 발주가 생성되었고,\n이번 작업지시 기준으로 재고 예약을 완료했습니다.');
+          goToOrderList(ids);
+        } else {
+          // 재시도 1회
           doReserve()
             .done(function(r2){
               if (r2 && r2.ok === true) {
@@ -712,14 +701,38 @@ $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
                 restoreBtn();
               }
             });
-        });
-    })
-    .fail(function(xhr) {
-      console.error('부족분 발주 실패:', xhr);
-      const msg = (xhr.responseJSON && xhr.responseJSON.message) || xhr.responseText || '서버 오류';
-      alert('부족분 발주 생성 중 오류가 발생했습니다.\n' + msg);
-      restoreBtn();
-    });
+        }
+      })
+      .fail(function(){
+        // 첫 호출 실패 → 재시도
+        doReserve()
+          .done(function(r2){
+            if (r2 && r2.ok === true) {
+              alert('부족분 발주 생성 완료.\n예약은 재시도에서 성공했습니다.');
+              goToOrderList(ids);
+            } else {
+              if (confirm('발주는 생성됐지만 예약에 실패했습니다.\n발주 목록으로 이동할까요?')) {
+                goToOrderList(ids);
+              } else {
+                restoreBtn();
+              }
+            }
+          })
+          .fail(function(){
+            if (confirm('발주는 생성됐지만 예약 호출에 실패했습니다.\n발주 목록으로 이동할까요?')) {
+              goToOrderList(ids);
+            } else {
+              restoreBtn();
+            }
+          });
+      });
+  })
+  .fail(function (xhr) {
+    console.error('부족분 발주 실패:', xhr);
+    const msg = (xhr.responseJSON && xhr.responseJSON.message) || xhr.responseText || '서버 오류';
+    alert('부족분 발주 생성 중 오류가 발생했습니다.\n' + msg);
+    restoreBtn();
+  });
 });
 
 

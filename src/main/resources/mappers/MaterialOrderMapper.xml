@@ -254,14 +254,13 @@
 		
 		INSERT INTO material_order (
 			order_id, supplier_id, order_date, order_status,
-			expected_arrived_date, created_by, handled_by, note, work_order_id
+			expected_arrived_date, handled_by, note, work_order_id
 		) VALUES (
 			#{orderId}, 
 			#{supplierId}, 
 			NOW(), 
 			COALESCE(#{orderStatus}, '초안'),
 			#{expectedArrivedDate, jdbcType=DATE}, 
-			#{createdBy}, 
 			#{handledBy},
 			#{note},
 			#{workOrderId}
@@ -367,13 +366,21 @@
 	    mo.order_date             AS orderDate,
 	    mo.expected_arrived_date  AS expectedArrivedDate,
 	    mo.order_status           AS orderStatus,
+	
+	    -- 담당자/작성자 ID
 	    mo.handled_by             AS handledBy,
-	    hu.name                   AS handlerName,
+	    mo.created_by             AS createdBy,
+	
+	    -- 담당자/작성자 이름(admin_user.name)
+	    au_h.name                 AS handlerName,
+	    au_c.name                 AS createdByName,
+	
 	    mo.note                   AS note,
-	    mo.work_order_id 		  AS workOrderId
+	    mo.work_order_id          AS workOrderId
 	  FROM material_order mo
-	  JOIN supplier s ON s.supplier_id = mo.supplier_id
-	  LEFT JOIN admin_user hu ON hu.admin_id = mo.handled_by
+	  JOIN supplier      s    ON s.supplier_id = mo.supplier_id
+	  LEFT JOIN admin_user au_h ON au_h.admin_id = mo.handled_by
+	  LEFT JOIN admin_user au_c ON au_c.admin_id = mo.created_by
 	  WHERE mo.order_id = #{orderId}
 	</select>
 	

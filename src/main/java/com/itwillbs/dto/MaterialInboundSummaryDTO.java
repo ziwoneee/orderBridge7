@@ -20,5 +20,7 @@ public class MaterialInboundSummaryDTO {
     private String handledBy;           // 입고 담당자
     private Date inboundDate;           // 입고일자
     private Date expectedArrivedDate;   // 예상 입고일
+    
+    private String handledByName;
 
 }

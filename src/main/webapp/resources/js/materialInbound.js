@@ -49,7 +49,8 @@ function loadInboundDetail(inboundId) {
       $('#inboundDetailModal #orderDate').text(formatDateString(data.inbound.orderDate));
       $('#inboundDetailModal #supplierName').text(data.inbound.supplierName || data.inbound.supplierId || '-');
       $('#inboundDetailModal #inboundDate').text(formatDateString(data.inbound.inboundDate));
-      $('#inboundDetailModal #handledBy').text(data.inbound.handledBy || '-');
+      $('#inboundDetailModal #handledBy')
+      .text(data.inbound.handledByName || data.inbound.handledBy || '-');
       $('#inboundDetailModal #modalStatus').text(data.inbound.inboundStatus || '-');
 
       // 항목 정보 렌더링
@@ -308,7 +309,7 @@ function renderUnreceivedOrdersModal(orderList) {
       <td>${order.materialNames || order.materialName || '-'}</td>
       <td class="text-end">${(order.totalOrderQuantity || order.totalQuantity || 0).toLocaleString()}</td>
       <td>${fmt(order.expectedArrivedDate)} ${dday(order.expectedArrivedDate)}</td>
-      <td>${order.handledBy || order.createdBy || '-'}</td>
+      <td>${order.handledByName || order.createdByName || order.handledBy || order.createdBy || '-'}</td>
       <td><button class="btn btn-sm btn-outline-info" onclick="viewOrderDetail('${order.orderId}')">상세</button></td>
     `;
     tbody.appendChild(tr);
@@ -386,41 +387,74 @@ function renderPagination(pageMaker) {
   container.appendChild(ul);
 }
 
-/* [7] 발주 상세 보기 - 날짜 포맷 함수 적용 */
+/* [7] 발주 상세 보기 - 날짜 포맷 함수 적용 (견고 버전) */
 function viewOrderDetail(orderId) {
-  const fmt = d => !d ? '-' : formatDateString(d);
+  var fmt  = function(d){ return !d ? '-' : formatDateString(d); };
+  var base = window.ctx || '';
 
-  $.get('/material/order/detail', { orderId })
-    .done(res => {
-      const h = res.header || {};
+  $.get(base + '/material/order/detail', { orderId: orderId })
+    .done(function(res){
+      var h = res.header || {};
+      console.debug('[order/detail header]', h); // ← 응답에 뭐가 왔는지 즉시 확인
+
       $('#modalOrderId').text(h.orderId || '-');
       $('#modalSupplierId').text(h.supplierName || h.supplierId || '-');
       $('#modalOrderDate').text(fmt(h.orderDate));
       $('#modalExpectedDate').text(fmt(h.expectedArrivedDate));
       $('#modalOrderStatus').text(h.orderStatus || '-');
-      $('#modalCreatedBy').text(h.createdBy || '-');
+
+      // 이름/ID 폴백
+      var name = h.handledByName || h.handlerName || h.createdByName || '';
+      var id   = h.handledBy     || h.createdBy     || '';
+      var handlerLabel = name || id || '-';
+
+      // ✅ DOM 폴백: id가 없으면 '담당자' th 옆 td를 찾아서 꽂기
+      var $handlerCell = $('#modalHandler');
+      if (!$handlerCell.length) {
+        var $th = $('#orderDetailModal th, #orderDetailModal td').filter(function(){
+          return $(this).text().trim() === '담당자';
+        }).first();
+        $handlerCell = $th.length ? $th.closest('tr').find('td').last() : $('#orderDetailModal td').eq(5);
+      }
+      $handlerCell.text(handlerLabel);
+
+
       $('#modalNote').text(h.note || '');
 
-      const $tbody = $('#orderItemsInfo').empty();
-      (res.items || []).forEach(it => {
-        $tbody.append(
-          `<tr>
-            <td>${it.materialId}</td>
-            <td>${it.materialName || ''}</td>
-            <td class="text-right">${it.orderQuantity}</td>
-            <td class="text-right">${it.unitPrice}</td>
-            <td class="text-right">${it.totalPrice}</td>
-            <td>${it.warehouseCode || '-'}</td>
-          </tr>`
-        );
-      });
+      var $tbody = $('#orderItemsInfo').empty();
+      var items = (res.items && res.items.length) ? res.items : [];
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        var q = Number(it.orderQuantity || 0);
+        var u = Number(it.unitPrice || 0);
+        var t = (it.totalPrice != null) ? Number(it.totalPrice) : (q * u);
+
+        var row =
+          '<tr>' +
+            '<td>' + (it.materialId   || '') + '</td>' +
+            '<td>' + (it.materialName || '') + '</td>' +
+            '<td class="text-right">' + q.toLocaleString() + '</td>' +
+            '<td class="text-right">' + u.toLocaleString() + '</td>' +
+            '<td class="text-right">' + t.toLocaleString() + '</td>' +
+            '<td>' + (it.warehouseCode || '-') + '</td>' +
+          '</tr>';
+        $tbody.append(row);
+      }
 
       $('#orderDetailModal').modal('show');
+
+      // 핸들러 셀 못 찾았으면 콘솔 경고 띄우기 (DOM 문제 즉시 확인)
+      if (!$handlerCell.length) {
+        console.warn('[order/detail] 담당자 셀을 못 찾음. DOM selector를 확인하세요.');
+      }
     })
-    .fail(xhr => {
+    .fail(function(xhr){
       alert('상세 조회 실패: ' + ((xhr.responseJSON && xhr.responseJSON.message) || xhr.statusText));
     });
 }
+
+
+
 
 /* [8] 전체 선택/해제 */
 function toggleAllCheckboxes(checkAllBox) {
