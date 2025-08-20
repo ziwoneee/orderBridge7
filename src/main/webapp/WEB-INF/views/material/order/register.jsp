@@ -20,14 +20,6 @@
         
         <form action="/material/order/register" method="post">
         
-		<%-- 로그인 세션에서 담당자 정보 세팅 (adminUser 우선, 없으면 loginUser) --%>
-		<c:set var="loginId"   value="${not empty sessionScope.adminUser ? sessionScope.adminUser.adminId 
-		                       : (not empty sessionScope.loginUser ? sessionScope.loginUser.adminId : '')}"/>
-		<c:set var="loginName" value="${not empty sessionScope.adminUser ? sessionScope.adminUser.name 
-		                       : (not empty sessionScope.loginUser ? sessionScope.loginUser.name : '')}"/>
-		
-		<input type="hidden" name="order.handledBy" value="${loginId}"/>
-
           <!-- 기본 정보 섹션 -->
 			<div class="card-section">
 			  <h5 class="section-title">기본 정보</h5>
@@ -57,10 +49,16 @@
 				  </div>
 				</div>
 
+				<!-- 전송용: 담당자 ID -->
+				<input type="hidden" name="order.handledBy" value="${sessionScope.loginAdmin.adminId}"/>
+				
+				<!-- 표시용: 이름(없으면 ID) -->
 				<div class="col-md-4 mb-3">
 				  <label>담당자 <span class="text-danger">*</span></label>
-				  <input type="text" class="form-control"
-				         value="${not empty loginName ? loginName : loginId}" readonly>
+				  <input type="text" class="form-control" id="handledByDisplay" readonly
+				         value="${not empty sessionScope.loginAdmin.name
+				                   ? sessionScope.loginAdmin.name
+				                   : sessionScope.loginAdmin.adminId}"/>
 				</div>
 
 
@@ -70,6 +68,7 @@
 			    </div>
 			  </div>
 			</div>
+			
 
           <!-- 항목 정보 -->
           <div class="card-section">
