@@ -126,7 +126,7 @@
 	        </div>
 	
 	        <div class="form-group">
-	          <label>LOT No</label>
+	          <label>LOT 번호</label>
 	          <input id="lotNo" class="form-control">
 	        </div>
 	
@@ -146,8 +146,8 @@
 	        </div>
 	      </div>
 	      <div class="modal-footer">
-	        <button id="btnSaveInbound" type="button" class="btn btn-success">저장</button>
-	        <button class="btn btn-secondary" data-dismiss="modal">닫기</button>
+	        <button id="btnSaveInbound" type="button" class="btn btn-primary">저장</button>
+	        <button class="btn btn-secondary" data-dismiss="modal">취소</button>
 	      </div>
 	    </div>
 	  </div>
