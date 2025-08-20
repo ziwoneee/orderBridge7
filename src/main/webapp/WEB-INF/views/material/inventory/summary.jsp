@@ -67,6 +67,7 @@
 			    <input type="hidden" name="sortOrder" value="${cri.sortOrder}">
 			    <input type="hidden" name="page" value="1">
 			    <input type="hidden" name="perPageNum" value="${cri.perPageNum}">
+			    <input type="hidden" name="status" value="${param.status}">
 			  </form>
 			</div>
           
@@ -104,6 +105,16 @@
 		
 		    </ul>
 		</div>
+
+	<c:set var="baseQ" value="keyword=${fn:escapeXml(param.keyword)}&materialType=${fn:escapeXml(param.materialType)}&perPageNum=${cri.perPageNum}" />
+	<c:choose>
+	  <c:when test="${not empty param.status}">
+	    <c:set var="q" value="${baseQ}&status=${param.status}" />
+	  </c:when>
+	  <c:otherwise>
+	    <c:set var="q" value="${baseQ}" />
+	  </c:otherwise>
+	</c:choose>
 	
 	  <div id="table_content" class="table-responsive">
 		<table class="table table-hover">
@@ -111,7 +122,7 @@
 				<tr>
 			        <!-- 자재코드 (정렬 가능) -->
 			        <th>
-			          <a href="/material/inventory/summary?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&materialType=${cri.materialType}&sortColumn=material_id&sortOrder=${cri.sortColumn == 'material_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+			          <a href="/material/inventory/summary?page=${cri.page}&${q}&sortColumn=material_id&sortOrder=${cri.sortColumn == 'material_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
 			             class="text-white text-decoration-none">
 			            자재코드
 			            <c:choose>
@@ -125,7 +136,7 @@
 			        
 			        <!-- 자재명 (정렬 가능) -->
 			        <th>
-			          <a href="/material/inventory/summary?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&materialType=${cri.materialType}&sortColumn=material_name&sortOrder=${cri.sortColumn == 'material_name' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+			          <a href="/material/inventory/summary?page=${cri.page}&${q}&sortColumn=material_name&sortOrder=${cri.sortColumn == 'material_name' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
 			             class="text-white text-decoration-none">
 			            자재명
 			            <c:choose>
@@ -139,7 +150,7 @@
 			        
 			        <!-- 유형 (정렬 가능) -->
 			        <th>
-			          <a href="/material/inventory/summary?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&materialType=${cri.materialType}&sortColumn=material_type&sortOrder=${cri.sortColumn == 'material_type' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+			          <a href="/material/inventory/summary?page=${cri.page}&${q}&sortColumn=material_type&sortOrder=${cri.sortColumn == 'material_type' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
 			             class="text-white text-decoration-none">
 			            유형
 			            <c:choose>
@@ -153,7 +164,7 @@
 			        
 			        <!-- 현재고 (정렬 가능) -->
 			        <th>
-			          <a href="/material/inventory/summary?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&materialType=${cri.materialType}&sortColumn=quantity&sortOrder=${cri.sortColumn == 'quantity' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+			          <a href="/material/inventory/summary?page=${cri.page}&${q}&sortColumn=quantity&sortOrder=${cri.sortColumn == 'quantity' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
 			             class="text-white text-decoration-none">
 			            현재고
 			            <c:choose>
@@ -171,7 +182,7 @@
 			        
 			        <!-- 유통기한 (정렬 가능) -->
 			        <th>
-			          <a href="/material/inventory/summary?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&materialType=${cri.materialType}&sortColumn=expiration_date&sortOrder=${cri.sortColumn == 'expiration_date' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+			          <a href="/material/inventory/summary?page=${cri.page}&${q}&sortColumn=expiration_date&sortOrder=${cri.sortColumn == 'expiration_date' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
 			             class="text-white text-decoration-none">
 			            유통기한
 			            <c:choose>
@@ -185,7 +196,7 @@
 			        
 			        <!-- 최근입출고일 (정렬 가능) -->
 			        <th>
-			          <a href="/material/inventory/summary?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&materialType=${cri.materialType}&sortColumn=last_movement_date&sortOrder=${cri.sortColumn == 'last_movement_date' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+			          <a href="/material/inventory/summary?page=${cri.page}&${q}&sortColumn=last_movement_date&sortOrder=${cri.sortColumn == 'last_movement_date' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
 			             class="text-white text-decoration-none">
 			            최근입출고일
 			            <c:choose>
@@ -335,35 +346,30 @@
 		<div class="d-flex justify-content-center mt-4">
 		  <nav>
 		    <ul class="pagination justify-content-center mt-4">
-		      
-		      <c:if test="${pageMaker.cri.page > 1}">
-		        <li class="page-item">
-		          <a class="page-link" 
-		             href="/material/inventory/summary?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&materialType=${param.materialType}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
-		            &laquo;
-		          </a>
-		        </li>
-		      </c:if>
-		      
-		      <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
-		        <li class="page-item ${p == cri.page ? 'active' : ''}">
-		          <a class="page-link" 
-		             href="/material/inventory/summary?page=${p}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&materialType=${param.materialType}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
-		            ${p}
-		          </a>
-		        </li>
-		      </c:forEach>
-		      
-		      <c:if test="${pageMaker.cri.page < pageMaker.endPage}">
-		        <li class="page-item">
-		          <a class="page-link" 
-		             href="/material/inventory/summary?page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&materialType=${param.materialType}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
-		            &raquo;
-		          </a>
-		        </li>
-		      </c:if>
-		      
-		    </ul>
+
+			  <!-- 이전 -->
+			  <c:if test="${pageMaker.cri.page > 1}">
+			    <li class="page-item">
+			      <a class="page-link" href="/material/inventory/summary?page=${pageMaker.cri.page - 1}&${q}">&laquo;</a>
+			    </li>
+			  </c:if>
+			
+			  <!-- 숫자 -->
+			  <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+			    <li class="page-item ${p == cri.page ? 'active' : ''}">
+			      <a class="page-link" href="/material/inventory/summary?page=${p}&${q}">${p}</a>
+			    </li>
+			  </c:forEach>
+			
+			  <!-- 다음 -->
+			  <c:if test="${pageMaker.cri.page < pageMaker.endPage}">
+			    <li class="page-item">
+			      <a class="page-link" href="/material/inventory/summary?page=${pageMaker.cri.page + 1}&${q}">&raquo;</a>
+			    </li>
+			  </c:if>
+			
+			</ul>
+
 		  </nav>
 		</div>
 		<!-- 페이징 처리 끝 -->

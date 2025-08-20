@@ -3,6 +3,25 @@
  * workorder.js
  */
 
+// 부모창: 팝업이 postMessage로 알려줄 때 새로고침
+window.addEventListener('message', function(ev) {
+  try {
+    if (ev.origin !== window.location.origin) return; // 보안
+    if (ev.data && ev.data.type === 'WORK_ORDER_CREATED') {
+      location.reload(); // ✅ 리스트 즉시 새로고침
+    }
+  } catch (e) {
+    console.warn('postMessage 처리 중 오류', e);
+  }
+});
+
+// 부모창: localStorage 이벤트로도 새로고침 (팝업이 닫힌 후에도 동작)
+window.addEventListener('storage', function(e) {
+  if (e.key === 'WORK_ORDER_REFRESH') {
+    location.reload(); // ✅ 리스트 즉시 새로고침
+  }
+});
+
 $(document).ready(function () {
     // 검색창 Enter 키 이벤트
     $('input[name="keyword"]').focus().on('keypress', function (e) {

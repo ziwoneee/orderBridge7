@@ -175,27 +175,41 @@
                           <fmt:formatDate value="${order.orderDate}" pattern="yyyy-MM-dd"/>
                         </td>
                         
-                        <!-- 납기일 + D-Day -->
+					    <!-- 납기일 -->
 						<td>
 						  <fmt:formatDate value="${order.expectedArrivedDate}" pattern="yyyy-MM-dd"/>
-						  
-						  <!-- 오늘 날짜 구하기 -->
+						
+						  <!-- 오늘 날짜 -->
 						  <c:set var="today" value="<%=new java.util.Date()%>" />
-						  <c:set var="daysDiff" value="${(order.expectedArrivedDate.time - today.time) / (1000 * 60 * 60 * 24)}" />
+						  <c:set var="daysDiff" value="${(order.expectedArrivedDate.time - today.time) / (1000*60*60*24)}" />
 						
-						  <!-- D-Day 뱃지 -->
-						  <c:if test="${daysDiff <= 2 && daysDiff >= 0}">
-						    <span class="badge badge-warning badge-pill">D-${Math.ceil(daysDiff)}</span>
-						  </c:if>
+						  <!-- D-Day 뱃지 (입고완료 제외) -->
+						  <c:if test="${order.orderStatus != '입고완료'}">
+						    
+						    <!-- 임박 -->
+						    <c:if test="${daysDiff <= 2 && daysDiff >= 0}">
+						      <span class="badge badge-warning badge-pill">
+						        D-<fmt:formatNumber value="${daysDiff}" maxFractionDigits="0" />
+						      </span>
+						    </c:if>
 						
-						  <!-- 지연 뱃지 (단, 입고완료 제외) -->
-						  <c:if test="${daysDiff < 0 && order.orderStatus != '입고완료'}">
-						    <span class="badge badge-danger badge-pill">지연</span>
+						    <!-- 지연 -->
+						    <c:if test="${daysDiff < 0}">
+						      <span class="badge badge-danger badge-pill">지연</span>
+						    </c:if>
+						
 						  </c:if>
 						</td>
+
                         
                         <!-- 담당자 -->
-                        <td>${order.createdBy}</td>
+                        <td>
+						  <c:choose>
+						    <c:when test="${not empty order.handlerName}">${order.handlerName}</c:when>
+						    <c:when test="${not empty order.handledBy}">${order.handledBy}</c:when>
+						    <c:otherwise>-</c:otherwise>
+						  </c:choose>
+						</td>
                         
 						<!-- 상태 -->
 						<td>
@@ -314,7 +328,7 @@
 			              <th class="bg-light">발주상태</th>
 			              <td id="modalOrderStatus"></td>
 			              <th class="bg-light">담당자</th>
-			              <td id="modalCreatedBy"></td>
+			              <td id="modalHandler"></td>
 			            </tr>
 			            <tr>
 			              <th class="bg-light">비고</th>
