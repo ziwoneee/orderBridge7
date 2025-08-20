@@ -62,7 +62,7 @@ $(document).on('click', '.btnOrderDetail', function(){
       $('#modalOrderDate').text(window.formatYMD(h.orderDate));
       $('#modalExpectedDate').text(window.formatYMD(h.expectedArrivedDate));
       $('#modalOrderStatus').text(h.orderStatus || '-');
-      $('#modalCreatedBy').text(h.createdBy || '-');
+      $('#modalHandler').text(h.handlerName || h.handledBy || '-');
       $('#modalNote').text(h.note || '');
       const $tbody = $('#orderItemsInfo').empty();
       (res.items || []).forEach(it => {

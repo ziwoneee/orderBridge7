@@ -173,9 +173,8 @@ document.addEventListener('DOMContentLoaded', function () {
       // 기본 정보 확인
       const supplierId = document.querySelector('select[name="order.supplierId"]').value;
       const expectedDate = document.querySelector('input[name="order.expectedArrivedDate"]').value;
-      const createdBy = document.querySelector('input[name="order.createdBy"]').value;
 
-      if (!supplierId || !expectedDate || !createdBy) {
+      if (!supplierId || !expectedDate) {
         alert('기본 정보를 모두 입력해주세요.');
         e.preventDefault();
         return false;

@@ -203,7 +203,13 @@
 
                         
                         <!-- 담당자 -->
-                        <td>${order.createdBy}</td>
+                        <td>
+						  <c:choose>
+						    <c:when test="${not empty order.handlerName}">${order.handlerName}</c:when>
+						    <c:when test="${not empty order.handledBy}">${order.handledBy}</c:when>
+						    <c:otherwise>-</c:otherwise>
+						  </c:choose>
+						</td>
                         
 						<!-- 상태 -->
 						<td>
@@ -322,7 +328,7 @@
 			              <th class="bg-light">발주상태</th>
 			              <td id="modalOrderStatus"></td>
 			              <th class="bg-light">담당자</th>
-			              <td id="modalCreatedBy"></td>
+			              <td id="modalHandler"></td>
 			            </tr>
 			            <tr>
 			              <th class="bg-light">비고</th>
