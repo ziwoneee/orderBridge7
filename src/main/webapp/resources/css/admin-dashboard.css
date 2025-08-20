@@ -1,0 +1,264 @@
+@charset "UTF-8";
+
+/**
+ * 관리자 대시보드 CSS
+ * @description: 운영 대시보드 전용 스타일시트
+ */
+
+/* ================= 전체 배경 ================= */
+.content-wrapper {
+  background: #f8f9fa !important;
+}
+
+/* ================= 메인 카드 스타일 ================= */
+.dashboard-card {
+  background: #ffffff !important;
+  border: 1px solid #e3e6f0 !important;
+  border-radius: 15px !important;
+  transition: all 0.3s ease !important;
+  min-height: 180px;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ================= 페이지 헤더 ================= */
+.page-header {
+  background: #ffffff !important;
+  border-radius: 15px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid #e3e6f0;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.page-title {
+  color: #5a5c69 !important;
+  font-weight: 600;
+  font-size: 1.5rem !important;
+}
+
+.page-title-icon {
+  background: linear-gradient(45deg, #4e73df, #224abe) !important;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+/* ================= 카드 기본 스타일 ================= */
+.card {
+  background: #ffffff !important;
+  border: 1px solid #e3e6f0 !important;
+  border-radius: 15px !important;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+
+.card-title {
+  color: #5a5c69 !important;
+  font-weight: 600 !important;
+  font-size: 1.2rem !important;
+}
+
+.card-description {
+  color: #858796 !important;
+  font-size: 1rem;
+}
+
+/* ================= 텍스트 스타일 ================= */
+/* 숫자 강조 - 크게 */
+h1, h2, h3 {
+  font-weight: 700 !important;
+}
+
+h2 {
+  font-size: 2.8rem !important;
+}
+
+h3 {
+  font-size: 2.2rem !important;
+}
+
+/* 텍스트 크기 증가 */
+p, .text-muted {
+  font-size: 1rem !important;
+}
+
+.h6 {
+  font-size: 1.1rem !important;
+}
+
+/* ================= 라인 카드 스타일 ================= */
+.line-card {
+  background: #ffffff !important;
+  border: 1px solid #e3e6f0 !important;
+  border-radius: 12px !important;
+  padding: 1.5rem !important;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease !important;
+  height: 100%;
+  min-height: 280px !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.line-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 라인 상태별 배경 */
+.line-active {
+  border-left: 5px solid #1cc88a !important;
+  background: rgba(28, 200, 138, 0.05) !important;
+}
+
+.line-ready {
+  border-left: 5px solid #36b9cc !important;
+  background: rgba(54, 185, 204, 0.05) !important;
+}
+
+.line-waiting {
+  border-left: 5px solid #f6c23e !important;
+  background: rgba(246, 194, 62, 0.05) !important;
+}
+
+.line-idle {
+  border-left: 5px solid #858796 !important;
+  background: rgba(133, 135, 150, 0.05) !important;
+}
+
+/* 빈 라인 카드 스타일 (미생산) */
+.line-card.line-idle {
+  background: rgba(248, 249, 252, 0.8) !important;
+  border: 2px dashed #e3e6f0 !important;
+}
+
+/* ================= 테이블 스타일 ================= */
+.table {
+  color: #5a5c69 !important;
+  background: #ffffff !important;
+  font-size: 1rem !important;
+}
+
+.table th {
+  background: #f8f9fc !important;
+  color: #5a5c69 !important;
+  border: none !important;
+  font-weight: 600 !important;
+  font-size: 1rem !important;
+  padding: 1rem 0.75rem;
+}
+
+.table td {
+  border: 1px solid #e3e6f0 !important;
+  padding: 1rem 0.75rem;
+  vertical-align: middle;
+  font-size: 1rem !important;
+}
+
+.table-hover tbody tr:hover {
+  background: #f8f9fc !important;
+}
+
+/* ================= 배지 스타일 ================= */
+.badge {
+  font-size: 0.875rem !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.badge-primary { background: #4e73df !important; color: white !important; }
+.badge-success { background: #1cc88a !important; color: white !important; }
+.badge-info { background: #36b9cc !important; color: white !important; }
+.badge-warning { background: #f6c23e !important; color: white !important; }
+.badge-danger { background: #e74a3b !important; color: white !important; }
+.badge-secondary { background: #858796 !important; color: white !important; }
+
+.badge-outline-primary { background: transparent !important; border: 2px solid #4e73df !important; color: #4e73df !important; }
+.badge-outline-success { background: transparent !important; border: 2px solid #1cc88a !important; color: #1cc88a !important; }
+
+/* ================= 프로그레스 바 ================= */
+.progress {
+  background: #eaecf4 !important;
+  border-radius: 10px !important;
+  height: 12px !important;
+}
+
+.progress-bar {
+  border-radius: 10px !important;
+  background: linear-gradient(90deg, #4e73df 0%, #224abe 100%) !important;
+}
+
+.bg-success { background: linear-gradient(90deg, #1cc88a 0%, #13855c 100%) !important; }
+.bg-info { background: linear-gradient(90deg, #36b9cc 0%, #258391 100%) !important; }
+.bg-warning { background: linear-gradient(90deg, #f6c23e 0%, #d4a00a 100%) !important; }
+
+/* ================= 텍스트 색상 ================= */
+.text-primary { color: #4e73df !important; }
+.text-success { color: #1cc88a !important; }
+.text-info { color: #36b9cc !important; }
+.text-warning { color: #f6c23e !important; }
+.text-danger { color: #e74a3b !important; }
+.text-muted { color: #858796 !important; }
+.text-dark { color: #5a5c69 !important; }
+
+/* ================= 애니메이션 ================= */
+.fade-in {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== 생산라인: 3열 강제 & 안전 오버라이드 ===== */
+#cards-lines {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+#cards-lines > .col,
+#cards-lines > [class*="col-"] {
+  padding-left: 15px;
+  padding-right: 15px;
+  margin-bottom: 1rem;
+}
+
+/* 데스크톱: 3열 */
+@media (min-width: 992px) {
+  #cards-lines > .col,
+  #cards-lines > [class*="col-"] {
+    flex: 0 0 33.3333% !important;
+    max-width: 33.3333% !important;
+  }
+}
+
+/* 태블릿: 2열 */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  #cards-lines > .col,
+  #cards-lines > [class*="col-"] {
+    flex: 0 0 50% !important;
+    max-width: 50% !important;
+  }
+}
+
+/* 모바일: 1열 */
+@media (max-width: 767.98px) {
+  #cards-lines > .col,
+  #cards-lines > [class*="col-"] {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+}
