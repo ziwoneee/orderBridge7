@@ -84,6 +84,7 @@ public class ClientController {
         @GetMapping("/client/register")
         public String registerForm(Model model) {
             model.addAttribute("client", new ClientVO());
+            model.addAttribute("menu", "basic");
             return "client/register"; // → /WEB-INF/views/client/register.jsp
         }
 
@@ -106,7 +107,9 @@ public class ClientController {
 
                 model.addAttribute("error", "중복된 사업자등록번호입니다. 다시 확인해주세요.");
                 model.addAttribute("client", client);  // 기존 입력값 유지
+                model.addAttribute("menu", "basic");
                 return "client/register"; // ★ 리다이렉트(X) → 뷰 포워딩(O)
+                
 
             } catch (Exception e) {
                 logger.error("고객사 등록 중 오류 발생", e);
@@ -124,6 +127,7 @@ public class ClientController {
         public String clientDetail(@RequestParam("clientId") String clientId, Model model) {
             ClientVO client = clientService.getClientById(clientId);
             model.addAttribute("client", client);
+            model.addAttribute("menu", "basic");
             return "client/detail"; // 예: /WEB-INF/views/client/client_detail.jsp
         }
 
@@ -132,6 +136,7 @@ public class ClientController {
         public String editClientForm(@RequestParam("clientId") String clientId, Model model) {
             ClientVO client = clientService.getClientById(clientId);
             model.addAttribute("client", client);
+            model.addAttribute("menu", "basic");
             return "client/edit"; // /WEB-INF/views/client/edit.jsp
         }
    

@@ -392,7 +392,14 @@
 </select>
 
 
-
+<!-- 3일뒤 배송완료 -->
+<update id="updateDeliveriesToCompletedAfter3Days">
+  UPDATE client_delivery
+  SET delivery_status = '배송완료',
+      updated_at = NOW()
+  WHERE delivery_status = '배송준비'
+    AND delivery_date &lt;= DATE_SUB(NOW(), INTERVAL 3 DAY)
+</update>
 
 
 

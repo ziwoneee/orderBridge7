@@ -491,7 +491,23 @@
                   <td>${item.lotNo}</td>
                   <td class="text-end"><fmt:formatNumber value="${item.deliveryQty}" pattern="#,###"/></td>
                   <td>${item.trackingNumber}</td>
-                  <td><span class="badge bg-success text-white">${item.deliveryStatus}</span></td>
+				   <td>
+				  <c:choose>
+				    <c:when test="${item.deliveryStatus == '배송준비'}">
+				      <span class="badge bg-warning text-dark">${item.deliveryStatus}</span>
+				    </c:when>
+				    <c:when test="${item.deliveryStatus == '배송완료'}">
+				      <span class="badge bg-success text-white">${item.deliveryStatus}</span>
+				    </c:when>
+				    <c:when test="${item.deliveryStatus == 'CANCELLED'}">
+				      <span class="badge bg-secondary text-white">${item.deliveryStatus}</span>
+				    </c:when>
+				    <c:otherwise>
+				      <span class="badge bg-light text-dark">${item.deliveryStatus}</span>
+				    </c:otherwise>
+				  </c:choose>
+				</td>
+
                 </tr>
               </c:forEach>
             </tbody>

@@ -33,7 +33,8 @@ public class BOMMasterController {
         });
         
         
-        model.addAttribute("bomList", bomList);       
+        model.addAttribute("bomList", bomList); 
+        model.addAttribute("menu", "basic");
     
         return "master/bomList";
     }
@@ -46,7 +47,7 @@ public class BOMMasterController {
         List<MaterialVO> materialList = bomMasterService.getAllMaterials();
         model.addAttribute("productList", productList);
         model.addAttribute("materialList", materialList);  	    	
-    	
+        model.addAttribute("menu", "basic");
     	
     	return "master/bomInsert";
     }
@@ -98,6 +99,7 @@ public class BOMMasterController {
         model.addAttribute("soupList", soupList);
         model.addAttribute("solidList", solidList);
         model.addAttribute("packagingList", packagingList); 
+        model.addAttribute("menu", "basic");
 
         return "master/bomDetail";
     }

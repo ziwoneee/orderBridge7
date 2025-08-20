@@ -23,12 +23,12 @@
  <insert id="insertInbound" parameterType="com.itwillbs.domain.ProductInboundVO">
   INSERT INTO product_inbound (
     inbound_id, lot_no, product_id, product_name, inbound_qty,
-    inbound_type, remark, manager, reg_date, created_at,
+    inbound_type, remark, manager, reg_date, created_at,progress_rate,
     expire_date                     
   ) VALUES (
     #{inboundId}, #{lotNo}, #{productId}, #{productName}, #{inboundQty},
     #{inboundType}, #{remark}, #{manager},
-    #{regDate}, #{createdAt},
+    #{regDate}, #{createdAt},#{progressRate},
     DATE_ADD(COALESCE(#{regDate}, NOW()), INTERVAL 1 YEAR)  
   )
 </insert>
@@ -52,7 +52,8 @@
       worker_name,
       started_at,
       ended_at,
-      created_at
+      created_at,
+      progress_rate
     FROM production_result
     ORDER BY created_at DESC
   </select>
