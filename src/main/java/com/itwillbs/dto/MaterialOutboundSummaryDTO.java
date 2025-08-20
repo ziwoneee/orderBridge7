@@ -26,7 +26,5 @@ public class MaterialOutboundSummaryDTO {
     // 대표 품명 + 외 N건 표시용 필드 추가
     private String materialSummary;
     
-    private String handledByName;
-
 
 }

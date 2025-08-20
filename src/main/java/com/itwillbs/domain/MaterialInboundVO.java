@@ -22,6 +22,7 @@ public class MaterialInboundVO {
     private String supplierName;
     
     private String handlerName;   // 담당자 이름
+    private String handledByName;
 
 
 }

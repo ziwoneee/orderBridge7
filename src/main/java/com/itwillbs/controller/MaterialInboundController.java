@@ -110,16 +110,15 @@ public class MaterialInboundController {
     @PostMapping("/insert-unreceived")
     @ResponseBody
     public ResponseEntity<String> insertUnreceivedOrders(
-            @RequestParam(value = "orderIds", required = false) String[] orderIds,
+            @RequestParam(required = false) String[] orderIds,
             HttpSession session) {
         try {
-            String handledBy = getUserId(session); // ★ 세션 사용자
-
+            String adminId = (String) session.getAttribute("admin_id");   // ✅
             if (orderIds == null || orderIds.length == 0) {
-                miService.insertUnreceivedOrders(handledBy);                 // ★ 전달
+                miService.insertUnreceivedOrders(adminId);                 // ✅ 넘김
                 return ResponseEntity.ok("전체 미입고건 DB 저장 성공");
             } else {
-                miService.insertSelectedUnreceivedOrders(orderIds, handledBy); // ★ 전달
+                miService.insertSelectedUnreceivedOrders(orderIds, adminId); // ✅ 넘김
                 return ResponseEntity.ok("선택된 발주건 DB 저장 성공");
             }
         } catch (Exception e) {
