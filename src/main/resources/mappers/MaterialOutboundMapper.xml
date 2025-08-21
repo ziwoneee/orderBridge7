@@ -37,25 +37,36 @@
 	    </if>
 	  </where>
 	  <choose>
-	    <when test="sortColumn != null and sortColumn != ''">
-	      ORDER BY 
-	      <choose>
-	        <when test="sortColumn == 'outbound_id'">o.outbound_id</when>
-	        <when test="sortColumn == 'work_order_id'">o.work_order_id</when>
-	        <when test="sortColumn == 'outbound_date'">o.outbound_date</when>
-	        <when test="sortColumn == 'due_date'">o.due_date</when>
-	        <when test="sortColumn == 'status'">o.status</when>
-	        <otherwise>o.outbound_date</otherwise>
-	      </choose>
-	      <choose>
-	        <when test="sortOrder != null and sortOrder.toLowerCase() == 'asc'">ASC</when>
-	        <otherwise>DESC</otherwise>
-	      </choose>
-	    </when>
-	    <otherwise>
-	      ORDER BY o.outbound_date DESC
-	    </otherwise>
-	  </choose>
+		  <!-- 사용자가 정렬을 요청한 경우 -->
+		  <when test="sortColumn != null and sortColumn != ''">
+		    ORDER BY
+		      /* ✅ 상태 우선순위: ISSUED(출고완료) 맨 뒤 */
+		      (CASE WHEN o.status = 'ISSUED' THEN 2 ELSE 1 END) ASC,
+		      <choose>
+		        <when test="sortColumn == 'outbound_id'">o.outbound_id</when>
+		        <when test="sortColumn == 'work_order_id'">o.work_order_id</when>
+		        <when test="sortColumn == 'outbound_date'">o.outbound_date</when>
+		        <when test="sortColumn == 'due_date'">o.due_date</when>
+		        <!-- 굳이 status 자체로 2차정렬을 하려면 여기서 o.status 말고 날짜 같은 보조정렬을 추천 -->
+		        <when test="sortColumn == 'status'">o.outbound_date</when>
+		        <otherwise>o.outbound_date</otherwise>
+		      </choose>
+		      <choose>
+		        <when test="sortOrder != null and sortOrder.toLowerCase() == 'asc'">ASC</when>
+		        <otherwise>DESC</otherwise>
+		      </choose>
+		  </when>
+		
+		  <!-- 기본 정렬(파라미터 없을 때) -->
+		  <otherwise>
+		    ORDER BY
+		      /* ✅ 기본도 출고완료 맨 뒤 */
+		      (CASE WHEN o.status = 'ISSUED' THEN 2 ELSE 1 END) ASC,
+		      o.outbound_date DESC,
+		      o.outbound_id DESC
+		  </otherwise>
+		</choose>
+
 	  LIMIT #{perPageNum} OFFSET #{pageStart}
 	</select>
 	

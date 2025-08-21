@@ -239,19 +239,25 @@ $(function(){
 /* ---------- 자재 행 렌더링 ---------- */
 function renderMaterialRows(items) {
   const $tbody = $('#materialLotBody').empty();
+  
+  // 자재코드(숫자 섞여도 자연정렬) 기준 정렬
+  const sorted = (items || []).slice().sort((a,b) =>
+    String(a.materialId || '').localeCompare(String(b.materialId || ''), 'en', { numeric: true })
+  );
 
-  if (!items || items.length === 0) {
-    $tbody.append('<tr><td colspan="6" class="text-center text-muted">자재 정보가 없습니다.</td></tr>');
-    return;
+  if (!sorted.length) {
+	  $tbody.append('<tr><td colspan="7" class="text-center text-muted">자재 정보가 없습니다.</td></tr>');
+	  return;
   }
 
-  const promises = (items || []).map(function(item) {
+  const promises = sorted.map(function(item, idx) {
     const workOrderId = $('#workOrderIdHidden').val()
                      || new URLSearchParams(location.search).get('workOrderId');
     const required = Number(item.requiredQty) || 0;
 
     return $.get(ctx + '/material/inventory/lot-details', { materialId: item.materialId })
 	.then(function(resp) {
+		
 	// ✅ 다양한 래핑 대응
 	    var lots = [];
 	    if (Array.isArray(resp)) lots = resp;
@@ -330,6 +336,7 @@ function renderMaterialRows(items) {
         var defaultWh   = item.defaultWarehouseCode || item.warehouseCode || 'WH003';
 
         var $row = $('<tr>')
+          .attr('data-order', idx)
           .attr('data-material', item.materialId)
           .attr('data-lot-required', lotRequired)
           .attr('data-default-warehouse', defaultWh)
@@ -431,6 +438,7 @@ function renderMaterialRows(items) {
     .fail(function(xhr) { // LOT API 자체 실패
       console.error('자재 정보 로드 실패:', item.materialId, xhr);
       var $row = $('<tr>')
+        .attr('data-order', idx)
         .attr('data-material', item.materialId)
         .attr('data-lot-required', 'Y')
         .attr('data-default-warehouse', 'WH003')
@@ -456,6 +464,12 @@ function renderMaterialRows(items) {
 
   // 모든 행 렌더링 이후 자동배정 + 검증
   Promise.all(promises).then(function () {
+	// ★ 로딩이 끝난 뒤, data-order 기준으로 DOM 재정렬
+	const rows = $tbody.children('tr').get().sort(function(a,b){
+	  return (parseInt(a.dataset.order)||0) - (parseInt(b.dataset.order)||0);
+	});
+	$tbody.append(rows);
+	  
     autoAllocateAll(false);
     // 물 특례 동기화
     $('#materialLotBody tr').each(function () {
@@ -477,35 +491,37 @@ function renderMaterialRows(items) {
 /* ---------- 행별 합계 계산 및 상태 업데이트 ---------- */
 function updateRowSumAndValidate($row) {
   const required = Number($row.find('.req').data('req')) || 0;
-  const capData = $row.data('cap');
-  const cap = (capData == null) ? required : Number(capData);
-  const target = Math.min(required, cap);
-  const lotRequired = ($row.data('lot-required') === 'N') ? 'N' : 'Y';
+  const capData  = $row.data('cap');
+  const cap      = (capData == null) ? required : Number(capData);
+  const target   = Math.min(required, cap);
 
+  // 합계 계산
   let sum = 0;
-  $row.find('.lot-qty').each(function () { sum += Number(this.value) || 0; });
+  $row.find('.lot-qty').each(function(){ sum += Number(this.value) || 0; });
   $row.find('.sum').text(sum);
-  
-  //✅ 예상예약 = 등록 시 서버에 예약될 양(선택합계와 target 중 작은 값)
-  const mid = String($row.data('material') || '');
-  const previewReserve = (mid === 'RM-0015') ? '-' : Math.min(sum, target);
-  $row.find('.preview-reserve').text(previewReserve);
 
+  // 예상예약/부족 표시(기존 코드 유지)
+  const mid = String($row.data('material') || '');
+  const previewReserve = (mid === 'RM-0015') ? '-' : Math.min(sum, required);
+  $row.find('.preview-reserve').text(previewReserve);
   const shortageUi = (mid === 'RM-0015') ? 0 : Math.max(0, required - sum);
   $row.find('.shortage').text(shortageUi);
 
-  $row.removeClass('table-success table-warning table-danger');
-  if (lotRequired === 'N') {
-    if (sum >= target && target > 0) $row.addClass('table-success');
-    else if (sum > 0) $row.addClass('table-warning');
-    else $row.addClass('table-danger');
-    return;
+  // 색상 규칙: 충족도 기준
+  $row.removeClass('table-success table-warning table-danger table-secondary');
+  if (required <= 0) {
+    $row.addClass('table-secondary');            // 필요 없음
+  } else if (sum >= required) {
+    $row.addClass('table-success');              // 완전 충족(부족 0)
+  } else if (sum > 0) {
+    $row.addClass('table-warning');              // 일부만 충족(부족 있음)
+  } else {
+    $row.addClass('table-danger');               // 전혀 배정 안 됨
   }
-  if (target === 0 && required > 0) $row.addClass('table-warning'); // 가용 0
-  else if (sum === target) $row.addClass('table-success');
-  else if (sum > 0) $row.addClass('table-warning');
-  else $row.addClass('table-danger');
+  
+  
 }
+
 
 /* ---------- 입력 제한 및 실시간 검증 ---------- */
 $(document).on('wheel', '.lot-qty', function(e) { e.preventDefault(); });
@@ -626,56 +642,45 @@ $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
         location.href = ctx + '/material/outbound/list';
       }
     };
-    // alert가 잘 보이도록 아주 짧게 지연
-    setTimeout(goto, 300);
+    setTimeout(goto, 300); // alert 표시 후 짧게 지연
   };
+
+  // 🔎 화면에서 부족 목록 수집 (이미 있는 util)
+  const items = (window.collectShortages && window.collectShortages()) || [];
+  // 서버가 빈 목록을 에러로 볼 수 있으므로 미리 가드
+  if (!items.length) {
+    alert('부족분이 없습니다. (발주 생성 없이 목록으로 이동합니다)');
+    return goToOrderList([]);
+  }
 
   $btn.prop('disabled', true).text('생성 중...');
 
-  // 1) 부족분 발주 생성
-  $.post(ctx + '/material/reservation/create-shortage-po', { workOrderId })
-    .done(function(res) {
-      const ids = (res && (res.orderIds || (res.orderId ? [res.orderId] : []))) || [];
+  // 1) 부족분 발주 "초안" 생성: /material/order/draft (JSON)
+  $.ajax({
+    url: ctx + '/material/order/draft',
+    method: 'POST',
+    contentType: 'application/json; charset=utf-8',
+    dataType: 'json',
+    // 서버에서 세션으로 handled_by를 주입하므로 items + workOrderId만 보내면 됨
+    data: JSON.stringify({ workOrderId, items }),
+    // 다른 오리진이면 쿠키 동봉 필요 (동일 오리진이면 무시됨)
+    xhrFields: { withCredentials: true }
+  })
+  .done(function (res) {
+    // 응답 호환 처리: {orderIds:[..]} or {orderId:".."} 등
+    const ids = Array.isArray(res && res.orderIds) ? res.orderIds
+               : (res && res.orderId ? [res.orderId] : []);
 
-      if (!(res && res.ok === true)) {
-        alert((res && res.message) ? res.message : '부족분 발주 생성에 실패했습니다.');
-        return restoreBtn();
-      }
+    // 2) 발주 성공 → 예약 수행 (기존 엔드포인트 유지)
+    const doReserve = () => $.post(ctx + '/material/reservation/reserve-only', { workOrderId });
 
-      // 2) 발주 성공 → 예약 수행
-      const doReserve = () => $.post(ctx + '/material/reservation/reserve-only', { workOrderId });
-
-      doReserve()
-        .done(function(r1){
-          if (r1 && r1.ok === true) {
-            alert('부족분 발주가 생성되었고,\n이번 작업지시 기준으로 재고 예약을 완료했습니다.');
-            goToOrderList(ids);
-          } else {
-            // 재시도 1회
-            doReserve()
-              .done(function(r2){
-                if (r2 && r2.ok === true) {
-                  alert('부족분 발주 생성 완료.\n예약은 재시도에서 성공했습니다.');
-                  goToOrderList(ids);
-                } else {
-                  if (confirm('발주는 생성됐지만 예약에 실패했습니다.\n발주 목록으로 이동할까요?')) {
-                    goToOrderList(ids);
-                  } else {
-                    restoreBtn();
-                  }
-                }
-              })
-              .fail(function(){
-                if (confirm('발주는 생성됐지만 예약 호출에 실패했습니다.\n발주 목록으로 이동할까요?')) {
-                  goToOrderList(ids);
-                } else {
-                  restoreBtn();
-                }
-              });
-          }
-        })
-        .fail(function(){
-          // 첫 호출 실패 → 재시도
+    doReserve()
+      .done(function(r1){
+        if (r1 && r1.ok === true) {
+          alert('부족분 발주가 생성되었고,\n이번 작업지시 기준으로 재고 예약을 완료했습니다.');
+          goToOrderList(ids);
+        } else {
+          // 재시도 1회
           doReserve()
             .done(function(r2){
               if (r2 && r2.ok === true) {
@@ -696,14 +701,38 @@ $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
                 restoreBtn();
               }
             });
-        });
-    })
-    .fail(function(xhr) {
-      console.error('부족분 발주 실패:', xhr);
-      const msg = (xhr.responseJSON && xhr.responseJSON.message) || xhr.responseText || '서버 오류';
-      alert('부족분 발주 생성 중 오류가 발생했습니다.\n' + msg);
-      restoreBtn();
-    });
+        }
+      })
+      .fail(function(){
+        // 첫 호출 실패 → 재시도
+        doReserve()
+          .done(function(r2){
+            if (r2 && r2.ok === true) {
+              alert('부족분 발주 생성 완료.\n예약은 재시도에서 성공했습니다.');
+              goToOrderList(ids);
+            } else {
+              if (confirm('발주는 생성됐지만 예약에 실패했습니다.\n발주 목록으로 이동할까요?')) {
+                goToOrderList(ids);
+              } else {
+                restoreBtn();
+              }
+            }
+          })
+          .fail(function(){
+            if (confirm('발주는 생성됐지만 예약 호출에 실패했습니다.\n발주 목록으로 이동할까요?')) {
+              goToOrderList(ids);
+            } else {
+              restoreBtn();
+            }
+          });
+      });
+  })
+  .fail(function (xhr) {
+    console.error('부족분 발주 실패:', xhr);
+    const msg = (xhr.responseJSON && xhr.responseJSON.message) || xhr.responseText || '서버 오류';
+    alert('부족분 발주 생성 중 오류가 발생했습니다.\n' + msg);
+    restoreBtn();
+  });
 });
 
 
@@ -769,7 +798,7 @@ window.loadOutboundDetail = function(outboundId){
 	      // 3) 헤더 채우기
 	      $('#modalOutboundId').text(h.outboundId || '-');
 	      $('#modalWorkOrderId').text(h.workOrderId || '-');
-	      $('#modalIssuedAt').text(fmtTS(issuedAt));
+	      $('#modalIssuedAt').text(fmtYmd(issuedAt));
 	      $('#modalHandledBy').text(handledBy || '-');
 	      $('#modalStatus').html(badgeStatus(status));
 	      $('#modalNote').text(note || '-');

@@ -2,35 +2,34 @@
  * materialInbound.js 
  */
 
-// 수정된 날짜 포맷 함수 (timezone 이슈 해결)
+// 타임존 안전 버전: YYYY-MM-DD로 통일
 function formatDateString(v) {
   if (!v) return '-';
 
-  // 문자열이면서 YYYY-MM-DD 형식이면 그대로 반환
+  // 1) 순수 날짜 문자열이면 그대로
   if (typeof v === 'string') {
-    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
-    
-    // ISO 형식 문자열인 경우 (예: "2024-08-11T00:00:00.000Z")
-    if (/^\d{4}-\d{2}-\d{2}T/.test(v)) {
-      return v.substring(0, 10); // YYYY-MM-DD 부분만 추출
-    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;          // "2025-08-20"
+    if (/^\d{4}-\d{2}-\d{2}T/.test(v)) return v.slice(0,10); // "2025-08-20T..."(Z/오프셋 유무 상관없이 앞 10자리)
   }
 
-  // Date 객체로 변환 후 UTC 기준으로 날짜 추출 (timezone 이슈 방지)
+  // 2) 숫자 타임스탬프/Date 객체 등은 KST로 포맷
   const d = new Date(v);
-  
-  // Invalid Date 체크
-  if (isNaN(d.getTime())) {
+  if (isNaN(d)) {
     console.warn('Invalid date:', v);
     return '-';
   }
-  
-  // UTC 기준으로 날짜 추출하여 timezone 이슈 방지
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(d.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+
+  // en-CA 포맷은 "YYYY-MM-DD"로 떨어집니다.
+  const ymdSeoul = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(d);
+
+  return ymdSeoul; // 예: "2025-08-20"
 }
+
 
 /* [1] 입고 상세 모달 불러오기 */
 function loadInboundDetail(inboundId) {
@@ -50,7 +49,8 @@ function loadInboundDetail(inboundId) {
       $('#inboundDetailModal #orderDate').text(formatDateString(data.inbound.orderDate));
       $('#inboundDetailModal #supplierName').text(data.inbound.supplierName || data.inbound.supplierId || '-');
       $('#inboundDetailModal #inboundDate').text(formatDateString(data.inbound.inboundDate));
-      $('#inboundDetailModal #handledBy').text(data.inbound.handledBy || '-');
+      $('#inboundDetailModal #handledBy')
+      .text(data.inbound.handledByName || data.inbound.handledBy || '-');
       $('#inboundDetailModal #modalStatus').text(data.inbound.inboundStatus || '-');
 
       // 항목 정보 렌더링
@@ -309,7 +309,7 @@ function renderUnreceivedOrdersModal(orderList) {
       <td>${order.materialNames || order.materialName || '-'}</td>
       <td class="text-end">${(order.totalOrderQuantity || order.totalQuantity || 0).toLocaleString()}</td>
       <td>${fmt(order.expectedArrivedDate)} ${dday(order.expectedArrivedDate)}</td>
-      <td>${order.handledBy || order.createdBy || '-'}</td>
+      <td>${order.handledByName || order.createdByName || order.handledBy || order.createdBy || '-'}</td>
       <td><button class="btn btn-sm btn-outline-info" onclick="viewOrderDetail('${order.orderId}')">상세</button></td>
     `;
     tbody.appendChild(tr);
@@ -387,41 +387,74 @@ function renderPagination(pageMaker) {
   container.appendChild(ul);
 }
 
-/* [7] 발주 상세 보기 - 날짜 포맷 함수 적용 */
+/* [7] 발주 상세 보기 - 날짜 포맷 함수 적용 (견고 버전) */
 function viewOrderDetail(orderId) {
-  const fmt = d => !d ? '-' : formatDateString(d);
+  var fmt  = function(d){ return !d ? '-' : formatDateString(d); };
+  var base = window.ctx || '';
 
-  $.get('/material/order/detail', { orderId })
-    .done(res => {
-      const h = res.header || {};
+  $.get(base + '/material/order/detail', { orderId: orderId })
+    .done(function(res){
+      var h = res.header || {};
+      console.debug('[order/detail header]', h); // ← 응답에 뭐가 왔는지 즉시 확인
+
       $('#modalOrderId').text(h.orderId || '-');
       $('#modalSupplierId').text(h.supplierName || h.supplierId || '-');
       $('#modalOrderDate').text(fmt(h.orderDate));
       $('#modalExpectedDate').text(fmt(h.expectedArrivedDate));
       $('#modalOrderStatus').text(h.orderStatus || '-');
-      $('#modalCreatedBy').text(h.createdBy || '-');
+
+      // 이름/ID 폴백
+      var name = h.handledByName || h.handlerName || h.createdByName || '';
+      var id   = h.handledBy     || h.createdBy     || '';
+      var handlerLabel = name || id || '-';
+
+      // ✅ DOM 폴백: id가 없으면 '담당자' th 옆 td를 찾아서 꽂기
+      var $handlerCell = $('#modalHandler');
+      if (!$handlerCell.length) {
+        var $th = $('#orderDetailModal th, #orderDetailModal td').filter(function(){
+          return $(this).text().trim() === '담당자';
+        }).first();
+        $handlerCell = $th.length ? $th.closest('tr').find('td').last() : $('#orderDetailModal td').eq(5);
+      }
+      $handlerCell.text(handlerLabel);
+
+
       $('#modalNote').text(h.note || '');
 
-      const $tbody = $('#orderItemsInfo').empty();
-      (res.items || []).forEach(it => {
-        $tbody.append(
-          `<tr>
-            <td>${it.materialId}</td>
-            <td>${it.materialName || ''}</td>
-            <td class="text-right">${it.orderQuantity}</td>
-            <td class="text-right">${it.unitPrice}</td>
-            <td class="text-right">${it.totalPrice}</td>
-            <td>${it.warehouseCode || '-'}</td>
-          </tr>`
-        );
-      });
+      var $tbody = $('#orderItemsInfo').empty();
+      var items = (res.items && res.items.length) ? res.items : [];
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        var q = Number(it.orderQuantity || 0);
+        var u = Number(it.unitPrice || 0);
+        var t = (it.totalPrice != null) ? Number(it.totalPrice) : (q * u);
+
+        var row =
+          '<tr>' +
+            '<td>' + (it.materialId   || '') + '</td>' +
+            '<td>' + (it.materialName || '') + '</td>' +
+            '<td class="text-right">' + q.toLocaleString() + '</td>' +
+            '<td class="text-right">' + u.toLocaleString() + '</td>' +
+            '<td class="text-right">' + t.toLocaleString() + '</td>' +
+            '<td>' + (it.warehouseCode || '-') + '</td>' +
+          '</tr>';
+        $tbody.append(row);
+      }
 
       $('#orderDetailModal').modal('show');
+
+      // 핸들러 셀 못 찾았으면 콘솔 경고 띄우기 (DOM 문제 즉시 확인)
+      if (!$handlerCell.length) {
+        console.warn('[order/detail] 담당자 셀을 못 찾음. DOM selector를 확인하세요.');
+      }
     })
-    .fail(xhr => {
+    .fail(function(xhr){
       alert('상세 조회 실패: ' + ((xhr.responseJSON && xhr.responseJSON.message) || xhr.statusText));
     });
 }
+
+
+
 
 /* [8] 전체 선택/해제 */
 function toggleAllCheckboxes(checkAllBox) {

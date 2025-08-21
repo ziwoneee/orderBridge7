@@ -22,9 +22,10 @@ public class MaterialOutboundVO {
     private String note;              // 비고 (출고 비고 또는 특이사항)
     private String sourceInboundId;	  // 주 연결 입고ID
     
-    
     private String materialId;
     
+    private String handlerName;   // 담당자 이름
+
     // ====== 출고 등록용: 폼에서 반복 name으로 들어오는 값들 받는 그릇 ======
     // 자재 행 (자재별 필요수량)
     private List<String> materialIdList; // name="materialId"

@@ -67,6 +67,12 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
     public int getUnreceivedOrdersCount() throws Exception {
         return miDAO.getUnreceivedOrdersCount();
     }
+    
+    
+    private String resolveUser(String user) {   // 이름도 user로 바꾸면 헷갈림↓ 줄어듦
+        return (user != null && !user.trim().isEmpty()) ? user : "system";
+    }
+    
 
     /**
      * 전체 미입고 발주건을 입고 테이블(material_inbound / material_inbound_item)에 등록
@@ -74,7 +80,7 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
      * - 항목은 0건 입고상태로 등록
      */
     @Override
-    public void insertUnreceivedOrders() throws Exception {
+    public void insertUnreceivedOrders(String handledBy) throws Exception {
         List<MaterialOrderItemVO> unreceivedItems = miDAO.getUnreceivedOrderItems();
 
         // 발주ID 기준으로 그룹핑
@@ -90,6 +96,7 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
             inbound.setOrderId(orderId);
             inbound.setInboundStatus("미입고");
             inbound.setInboundDate(null);
+            inbound.setHandledBy(resolveUser(handledBy));
             miDAO.insertMaterialInbound(inbound);
 
             // 각 발주 항목을 입고 항목으로 등록 (초기 수량 0)
@@ -99,7 +106,7 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
                 itemVO.setOrderItemId(item.getOrderItemId());
                 itemVO.setMaterialId(item.getMaterialId());
                 itemVO.setOrderQuantity(item.getOrderQuantity());
-                itemVO.setReceivedQuantity(0);
+                itemVO.setQuantity(0);
                 miDAO.insertMaterialInboundItem(itemVO);
             }
         }
@@ -109,7 +116,7 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
      * 선택한 발주ID 배열만 입고 데이터 등록
      */
     @Override
-    public void insertSelectedUnreceivedOrders(String[] orderIds) throws Exception {
+    public void insertSelectedUnreceivedOrders(String[] orderIds, String handledBy) throws Exception {
         Map<String, Boolean> uniqueOrderMap = new HashMap<>();
         for (String orderId : orderIds) {
             if (orderId != null && !orderId.trim().isEmpty()) {
@@ -129,7 +136,7 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
                     inbound.setOrderId(orderId);
                     inbound.setInboundStatus("미입고");
                     inbound.setInboundDate(null);
-                    inbound.setHandledBy("system");
+                    inbound.setHandledBy(resolveUser(handledBy));
                     miDAO.insertMaterialInbound(inbound);
 
                     // 항목 등록 (ID 자동 생성)
@@ -331,7 +338,7 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
      * - 남은 수량만큼 새로운 입고ID + 항목 등록
      */
     @Override
-    public void createAdditionalInbound(String orderItemId) throws Exception {
+    public void createAdditionalInbound(String orderItemId, String handledBy) throws Exception {
         MaterialOrderItemVO orderItem = miDAO.getOrderItemById(orderItemId);
 
         int orderedQty = orderItem.getOrderQuantity();
@@ -346,7 +353,7 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
         inbound.setInboundId(inboundId);
         inbound.setOrderId(orderItem.getOrderId());
         inbound.setInboundStatus("미입고");
-        inbound.setHandledBy("system");
+        inbound.setHandledBy(resolveUser(handledBy));
         inbound.setInboundDate(null);
         miDAO.insertMaterialInbound(inbound);
 
@@ -355,6 +362,7 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
         item.setMaterialId(orderItem.getMaterialId());
         item.setQuantity(remainQty);
         item.setInboundStatus("미입고");
+        inbound.setHandledBy(resolveUser(handledBy));
         item.setOrderItemId(orderItemId);
         item.setWarehouseCode(orderItem.getWarehouseCode());
 
@@ -465,6 +473,11 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
         return statusCounts;
     }
     
+    
+    /* ▼ 하위호환: 기존 시그니처는 내부 위임만 남김 (중복 정의 금지!) */
+    @Override public void insertUnreceivedOrders() throws Exception { insertUnreceivedOrders(null); }
+    @Override public void insertSelectedUnreceivedOrders(String[] orderIds) throws Exception { insertSelectedUnreceivedOrders(orderIds, null); }
+    @Override public void createAdditionalInbound(String orderItemId) throws Exception { createAdditionalInbound(orderItemId, null); }
     
     
     

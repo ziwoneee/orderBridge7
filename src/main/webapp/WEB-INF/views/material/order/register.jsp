@@ -19,7 +19,7 @@
 		</c:if>
         
         <form action="/material/order/register" method="post">
-
+        
           <!-- 기본 정보 섹션 -->
 			<div class="card-section">
 			  <h5 class="section-title">기본 정보</h5>
@@ -49,16 +49,26 @@
 				  </div>
 				</div>
 
-			    <div class="col-md-4 mb-3">
-			      <label>담당자 <span class="text-danger">*</span></label>
-			      <input type="text" name="order.createdBy" class="form-control" placeholder="예: 홍길동" value="${orderDTO.order.createdBy}" required>
-			    </div>
+				<!-- 전송용: 담당자 ID -->
+				<input type="hidden" name="order.handledBy" value="${sessionScope.loginAdmin.adminId}"/>
+				
+				<!-- 표시용: 이름(없으면 ID) -->
+				<div class="col-md-4 mb-3">
+				  <label>담당자 <span class="text-danger">*</span></label>
+				  <input type="text" class="form-control" id="handledByDisplay" readonly
+				         value="${not empty sessionScope.loginAdmin.name
+				                   ? sessionScope.loginAdmin.name
+				                   : sessionScope.loginAdmin.adminId}"/>
+				</div>
+
+
 			    <div class="col-md-12">
 			      <label>비고</label>
 			      <textarea name="order.note" class="form-control" rows="2" placeholder="발주 관련 특이사항을 입력하세요">${orderDTO.order.note}</textarea>
 			    </div>
 			  </div>
 			</div>
+			
 
           <!-- 항목 정보 -->
           <div class="card-section">

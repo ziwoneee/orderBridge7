@@ -36,7 +36,8 @@
 		    <div class="row" style="margin-top:8px;">
 		      <div class="col-sm-3">
 		        <label for="handledBy">담당자</label>
-		        <input type="text" class="form-control input-sm" name="handledBy" id="handledBy" value="admin">
+		        <input type="text" class="form-control input-sm" name="handledBy" id="handledBy" 
+		               value="${handledBy != null ? handledBy : 'admin'}" readonly>
 		      </div>
 		      <div class="col-sm-9 text-right" style="margin-top:24px;">
 		        <a href="/material/outbound/list" class="btn btn-default btn-sm">목록</a>
@@ -53,6 +54,7 @@
 		  <input type="hidden" name="dueDate"     id="dueDateHidden">
 		  <input type="hidden" name="productId"   id="productIdHidden">
 		  <input type="hidden" name="lineId"      id="lineIdHidden">
+		  <input type="hidden" name="handledBy"   id="handledByHidden" value="${handledBy != null ? handledBy : 'admin'}">
 		  
 		  <div class="card">
 		    <div class="card-header bg-light"><b>자재별 필요수량 & LOT 선택 (FEFO)</b></div>

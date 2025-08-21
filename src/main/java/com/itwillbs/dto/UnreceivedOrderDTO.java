@@ -22,4 +22,7 @@ public class UnreceivedOrderDTO {
     private Date createdDate;         // 발주일자
     private int inboundQuantity;    	 // 입고된 수량 (기본 0)
     
+    private String handledByName;
+    private String createdByName;
+    
 }

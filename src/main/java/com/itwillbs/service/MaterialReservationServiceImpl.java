@@ -249,9 +249,8 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
             Map<String,Object> header = new HashMap<>();
             header.put("supplierId",  supplierId);      // ★ 반드시 세팅
             header.put("orderStatus", "초안");          // 혹은 "DRAFT" -> 매퍼에서 COALESCE 처리
-            header.put("createdBy",   userId);
+            header.put("handledBy",   userId);
             header.put("workOrderId", workOrderId);
-            
             // ★ 핵심: 자재 납기일 세팅
             header.put("expectedArrivedDate", expectedArrivedDate);
             header.put("note", "[자동] 부족분 발주 (리드타임 " + leadDays + "일, WO납기 " + dueDate + ")");

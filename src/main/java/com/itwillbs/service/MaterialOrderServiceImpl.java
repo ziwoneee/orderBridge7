@@ -33,6 +33,7 @@ import com.itwillbs.dto.PurchaseDraftRequest;
 import com.itwillbs.dto.PurchaseDraftRequest.ShortageItem;
 import com.itwillbs.dto.PurchaseDraftResult;
 import com.itwillbs.dto.SupplierItemDTO;
+import com.itwillbs.mapper.AdminUserMapper;
 import com.itwillbs.mapper.MaterialOutboundMapper;
 import com.itwillbs.persistence.ApprovalTokenDAO;
 import com.itwillbs.persistence.MaterialOrderDAO;
@@ -58,7 +59,8 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
 	@Inject
 	private ApprovalTokenDAO approvalTokenDAO;
 
-	
+	@Inject
+	private AdminUserMapper adminUserMapper;  
 
 	@Inject
 	private MailService mailService;
@@ -230,13 +232,25 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
             List<Map<String, Object>> supplierMappings = entry.getValue();
 
             try {
-                Map<String, Object> orderParams = new HashMap<>();
-                orderParams.put("supplierId", supplierId);
-                orderParams.put("orderStatus", "초안");
-                java.time.LocalDate eta = java.time.LocalDate.now().plusDays(7);
-                orderParams.put("expectedArrivedDate", java.sql.Date.valueOf(eta));
-                orderParams.put("createdBy", "system");
-                orderParams.put("note", "작업지시 " + request.getWorkOrderId() + " 부족분 자동 생성");
+            	Map<String, Object> orderParams = new HashMap<>();
+            	orderParams.put("supplierId", supplierId);
+            	orderParams.put("orderStatus", "초안");
+            	java.time.LocalDate eta = java.time.LocalDate.now().plusDays(7);
+            	orderParams.put("expectedArrivedDate", java.sql.Date.valueOf(eta));
+
+            	// ★ 담당자 ID 결정 (request DTO에 필드가 없으면 임시로 'admin' 등 ID 문자열 사용)
+            	// ✅ 수정 코드: 세션 없으면 401 성격의 에러, 있으면 그 ID를 반드시 사용
+            	String handlerId = java.util.Optional.ofNullable(request.getRequestedBy())
+            	        .map(String::trim)
+            	        .filter(s -> !s.isEmpty())
+            	        .orElseThrow(() -> new IllegalStateException("로그인 세션이 만료됐거나 권한이 없습니다. 다시 로그인 후 시도하세요."));
+
+            	orderParams.put("handledBy", handlerId);
+            	
+            	logger.info("발주 초안 handledBy = {}", handlerId);
+    	        
+            	orderParams.put("note", "작업지시 " + request.getWorkOrderId() + " 부족분 자동 생성");
+            	orderParams.put("workOrderId", request.getWorkOrderId()); // (선택) 헤더에도 연계
 
                 mOrderDAO.insertOrderHeaderDraft(orderParams);
                 String orderId = (String) orderParams.get("orderId");
@@ -335,8 +349,39 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
     public Map<String, Object> getOrderHeader(String orderId) throws Exception {
         Map<String,Object> h = mOrderDAO.selectOrderHeader(orderId);
         if (h == null) throw new IllegalStateException("발주가 존재하지 않습니다.");
+
+        String handlerName   = asStr(h.get("handlerName"));
+        String handledBy     = asStr(h.get("handledBy"));
+        String createdByName = asStr(h.get("createdByName"));
+        String createdBy     = asStr(h.get("createdBy"));
+
+        // 1) handlerName 비면 handledBy(ID)로 admin_user에서 보충
+        if (isEmpty(handlerName) && !isEmpty(handledBy)) {
+            var u = adminUserMapper.findByAdminId(handledBy);
+            if (u != null && !isEmpty(u.getName())) handlerName = u.getName();
+        }
+
+        // 2) 그래도 비면 createdByName/ID로 보충
+        if (isEmpty(handlerName)) {
+            if (!isEmpty(createdByName)) handlerName = createdByName;
+            else if (!isEmpty(createdBy)) {
+                var u2 = adminUserMapper.findByAdminId(createdBy);
+                if (u2 != null && !isEmpty(u2.getName())) handlerName = u2.getName();
+            }
+        }
+
+        if (!isEmpty(handlerName)) {
+            h.put("handlerName", handlerName);
+            // 입고쪽 JS 폴백 키도 같이 채워두면 더 안전
+            if (h.get("handledByName") == null) h.put("handledByName", handlerName);
+        }
+
         return h;
     }
+    
+    // --- 아래 헬퍼 2개를 클래스 안에 추가 ---
+    private static boolean isEmpty(String s) { return s == null || s.trim().isEmpty(); }
+    private static String asStr(Object v) { return v == null ? null : String.valueOf(v); }
     
     // 주문 아이템 목록
     @Override

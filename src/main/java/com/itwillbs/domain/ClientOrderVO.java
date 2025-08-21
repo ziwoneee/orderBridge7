@@ -34,6 +34,9 @@ public class ClientOrderVO {
     private String managerTel;      // 담당자 전화번호
     private String address;
     private String addressDetail;
+    
+    private String adminName; //관리자 이름
+
 
    
 

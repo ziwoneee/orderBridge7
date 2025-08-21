@@ -10,6 +10,7 @@
       cl_order_id,
       client_id,
       admin_id,
+      admin_name,
       cl_order_num,
       cl_order_date,
       product_id,
@@ -24,6 +25,7 @@
       #{clOrderId},
       #{clientId},
       #{adminId},
+      #{adminName},
       #{clOrderNum},
       #{clOrderDate},
       #{productId},
@@ -53,6 +55,7 @@
         parameterType="com.itwillbs.domain.SearchCriteria">
   SELECT 
       co.*, 
+      co.admin_name,
       c.client_name,
       GROUP_CONCAT(p.product_name SEPARATOR ', ') AS productNames
   FROM

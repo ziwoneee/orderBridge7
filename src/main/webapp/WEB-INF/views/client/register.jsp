@@ -37,11 +37,21 @@
                 <input type="text" name="clientName" class="form-control" required value="${client.clientName}">
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label required">사업자등록번호</label>
-                <input type="text" id="businessNumber" name="businessNumber" class="form-control" required
-       placeholder="예: 123-45-67890"  maxlength="12" pattern="^\d{3}-\d{2}-\d{5}$"  title="형식: 123-45-67890"  value="${client.businessNumber}">
+  <label class="form-label required">사업자등록번호</label>
+  <div class="input-group">
+    <input type="text" id="businessNumber" name="businessNumber" class="form-control" required
+           placeholder="예: 123-45-67890" maxlength="12"
+           pattern="^\d{3}-\d{2}-\d{5}$"
+           title="형식: 123-45-67890"
+           value="${client.businessNumber}">
+            <div class="input-group-append">
+    <button type="button" id="checkBizBtn" class="btn btn-primary" > 중복확인</button>
+  </div>
+   </div>
+  <small id="bizCheckMsg" class="form-text text-muted"></small>
 
-              </div>
+</div>
+
               <div class="col-md-6 mb-3">
                  <label class="form-label required">대표자명</label>
                 <input type="text" name="ceoName" class="form-control" required value="${client.ceoName}">

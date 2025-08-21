@@ -68,6 +68,7 @@ public class ClientOrderController {
     public String registerForm(Model model) {
         List<ProductVO> productList = productService.getAllProducts();
         model.addAttribute("productList", productList);
+        model.addAttribute("menu", "sales");
         return "clientOrder/register"; // JSP 위치: /WEB-INF/views/clientOrder/register.jsp
     }
 
@@ -87,14 +88,22 @@ public class ClientOrderController {
     	    model.addAttribute("errorMessage", "최소 1개 이상의 제품을 선택해야 합니다.");
     	    model.addAttribute("productList", productService.getAllProducts());
     	    model.addAttribute("orderVO", orderVO); // 🔥 사용자 입력값 다시 넘겨줌
+    	    model.addAttribute("menu", "sales");
     	    return "clientOrder/register";
     	}
 
-
-        // 2. adminId 세팅
+    	  // ✅ 로그인한 관리자 ID 가져오기
         String adminId = (String) session.getAttribute("adminId");
-        if (adminId == null) adminId = "ADMIN_TEST";
+        String adminName = (String) session.getAttribute("adminName");
+        
+
+        if (adminId == null) {
+            // 로그인되지 않은 경우 → 로그인 페이지로 리다이렉트
+            return "redirect:/admin/login";
+        }
+        
         orderVO.setAdminId(adminId);
+        orderVO.setAdminName(adminName);
 
         // 3. 총금액 계산
         int totalPrice = 0;
@@ -209,7 +218,7 @@ public class ClientOrderController {
         model.addAttribute("detailList", detailList);
         model.addAttribute("totalPrice", totalPrice); // ✅ JSP에서 출력 가능
         model.addAttribute("deliveryHistory", deliveryService.getDeliveriesByOrderId(clOrderId));
-        
+        model.addAttribute("menu", "sales");
         
         return "clientOrder/orderDetail"; // JSP 경로: /WEB-INF/views/clientOrder/orderDetail.jsp
     }

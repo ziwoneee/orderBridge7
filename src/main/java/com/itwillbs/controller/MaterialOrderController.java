@@ -2,15 +2,20 @@ package com.itwillbs.controller;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
+import javax.servlet.http.HttpSession;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.propertyeditors.CustomDateEditor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.WebDataBinder;
@@ -22,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.itwillbs.domain.AdminUserVO;
 import com.itwillbs.domain.MaterialOrderItemVO;
 import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.MaterialVO;
@@ -100,12 +106,105 @@ public class MaterialOrderController {
 	    
 	    return "material/order/list";
 	}
-
 	
+	/** 로그인 ID 찾기: 실제 세션 키 사용 */
+	private String resolveLoginAdminId(HttpSession session) {
+	    // 1. loginAdmin 키 확인 (실제 사용되는 키)
+	    Object la = session.getAttribute("loginAdmin");
+	    if (la instanceof AdminUserVO) return ((AdminUserVO) la).getAdminId();
+
+	    // 2. 기존 키들도 확인 (호환성)
+	    Object au = session.getAttribute("adminUser");
+	    if (au instanceof AdminUserVO) return ((AdminUserVO) au).getAdminId();
+
+	    Object lu = session.getAttribute("loginUser");
+	    if (lu instanceof AdminUserVO) return ((AdminUserVO) lu).getAdminId();
+
+	    // 3. Spring Security 확인
+	    try {
+	        var auth = org.springframework.security.core.context.SecurityContextHolder
+	                     .getContext().getAuthentication();
+	        if (auth != null && auth.isAuthenticated()) {
+	            var p = auth.getPrincipal();
+	            if (p instanceof AdminUserVO) return ((AdminUserVO) p).getAdminId();
+	            if (p instanceof org.springframework.security.core.userdetails.UserDetails)
+	                return ((org.springframework.security.core.userdetails.UserDetails)p).getUsername();
+	            if (p instanceof String) return (String)p;
+	        }
+	    } catch (Throwable ignored) {}
+	    return null;
+	}
+
+	/** 로그인 사용자 이름 찾기: 실제 세션 키 사용 */
+	private String resolveLoginAdminName(HttpSession session) {
+	    // 1. loginAdmin에서 name 확인 (실제 사용되는 키)
+	    Object la = session.getAttribute("loginAdmin");
+	    if (la instanceof AdminUserVO) {
+	        AdminUserVO loginAdmin = (AdminUserVO) la;
+	        if (loginAdmin.getName() != null && !loginAdmin.getName().trim().isEmpty()) {
+	            return loginAdmin.getName();
+	        }
+	        // name이 없으면 adminId 반환
+	        return loginAdmin.getAdminId();
+	    }
+
+	    // 2. 기존 키들도 확인 (호환성)
+	    Object au = session.getAttribute("adminUser");
+	    if (au instanceof AdminUserVO) {
+	        AdminUserVO adminUser = (AdminUserVO) au;
+	        if (adminUser.getName() != null && !adminUser.getName().trim().isEmpty()) {
+	            return adminUser.getName();
+	        }
+	        return adminUser.getAdminId();
+	    }
+
+	    Object lu = session.getAttribute("loginUser");
+	    if (lu instanceof AdminUserVO) {
+	        AdminUserVO loginUser = (AdminUserVO) lu;
+	        if (loginUser.getName() != null && !loginUser.getName().trim().isEmpty()) {
+	            return loginUser.getName();
+	        }
+	        return loginUser.getAdminId();
+	    }
+
+	    // 3. Spring Security에서 확인
+	    try {
+	        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+	        if (auth != null && auth.isAuthenticated()) {
+	            Object principal = auth.getPrincipal();
+	            if (principal instanceof AdminUserVO) {
+	                AdminUserVO adminUser = (AdminUserVO) principal;
+	                if (adminUser.getName() != null && !adminUser.getName().trim().isEmpty()) {
+	                    return adminUser.getName();
+	                }
+	                return adminUser.getAdminId();
+	            }
+	            if (principal instanceof UserDetails) {
+	                return ((UserDetails) principal).getUsername();
+	            }
+	            if (principal instanceof String) {
+	                return (String) principal;
+	            }
+	        }
+	    } catch (Throwable ignored) {}
+	    
+	    // 4. loginId라도 반환
+	    String loginId = resolveLoginAdminId(session);
+	    return loginId != null ? loginId : "Unknown";
+	}
+
 	// 자재 발주 등록 페이지 이동 (GET)
 	@GetMapping("/register")
-	public String registerForm(Model model) throws Exception {
+	public String registerForm(Model model, HttpSession session) throws Exception {
 	    logger.debug("GET /material/order/register → 발주 등록 폼 이동");
+	    
+	    String loginId = resolveLoginAdminId(session);
+	    String loginName = resolveLoginAdminName(session);
+	    
+	    logger.info("최종 loginId: {}, loginName: {}", loginId, loginName);
+	    
+	    model.addAttribute("loginId", loginId == null ? "" : loginId);
+	    model.addAttribute("loginName", loginName == null ? "" : loginName);
 
 	    List<SupplierVO> supplierList = supplierService.getAllSuppliers();
 	    List<MaterialVO> materialList = materialService.getAllMaterials();
@@ -115,11 +214,13 @@ public class MaterialOrderController {
 	    model.addAttribute("menu", "material");
 	    return "material/order/register";
 	}
-	
 
 	// 자재 발주 등록 처리 (POST)
 	@PostMapping("/register")
-	public String registerOrder(@ModelAttribute MaterialOrderDTO orderDTO, Model model) throws Exception {
+	public String registerOrder(@ModelAttribute MaterialOrderDTO orderDTO,
+								Model model,
+								HttpSession session) throws Exception {
+		
 		logger.info("registerOrder 컨트롤러 진입");
 		logger.debug("등록된 발주 데이터: " + orderDTO);
 
@@ -127,9 +228,20 @@ public class MaterialOrderController {
 	    List<MaterialOrderItemVO> itemList = orderDTO.getOrderItems();
 	    String workOrderId = order.getWorkOrderId();
 	    
+	    // ★ 로그인 ID 확보(다 실패하면 로그 찍고 에러)
+	    String loginId = resolveLoginAdminId(session);
+	    if (loginId == null || loginId.isBlank()) {
+	        logLoginTrace(session); // 어디가 비었는지 기록
+	        throw new IllegalStateException("로그인 세션이 만료되었습니다. 다시 로그인 해 주세요.");
+	    }
+
+	    // ★ 담당자는 무조건 로그인 사용자로
+	    order.setHandledBy(loginId);
+
+	    
 	    // 필수값 검증 및 기본값 설정
 	    if (order.getOrderStatus() == null || order.getOrderStatus().isEmpty()) {
-	        order.setOrderStatus("요청");
+	        order.setOrderStatus("초안");
 	    }
 	    
 	    // 발주일이 없으면 현재 날짜로 설정
@@ -188,6 +300,12 @@ public class MaterialOrderController {
 	}
 	
 	
+	private void logLoginTrace(HttpSession session) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
 	/**
 	 * 자재명으로 거래처 검색 (Ajax)
 	 */

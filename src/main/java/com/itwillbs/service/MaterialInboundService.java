@@ -58,5 +58,13 @@ public interface MaterialInboundService {
 	
 	// 특정 상태의 입고건 개수 조회
 	public Map<String, Integer> getInboundStatusCounts() throws Exception;
+	
+	
+	// ▼ 세 메서드에 담당자(=admin_id) 전달받는 오버로드 추가
+	void insertUnreceivedOrders(String handledBy) throws Exception;
+	void insertSelectedUnreceivedOrders(String[] orderIds, String handledBy) throws Exception;
+	void createAdditionalInbound(String orderItemId, String handledBy) throws Exception;
+
+
 
 }

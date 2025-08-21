@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
+import javax.servlet.http.HttpSession;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.itwillbs.domain.AdminUserVO;
 import com.itwillbs.domain.MaterialOutboundVO;
 import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.SearchCriteria;
@@ -116,13 +118,28 @@ public class MaterialOutboundController {
     	
         return moService.getWaitingOrders();
     }
+    
+    
+    
 
     @GetMapping("/register")
     public String register(
             @RequestParam(value = "workOrderId", required = false) String workOrderId,
             @RequestParam(value = "inboundId",   required = false) String inboundId,
+            HttpSession session,
             Model model
     ) throws Exception {
+
+        // 세션에서 로그인한 사용자 정보 가져오기
+    	AdminUserVO loginUser = (AdminUserVO) session.getAttribute("loginAdmin");
+        String handledBy = "admin"; // 기본값
+        
+        
+        if (loginUser != null && loginUser.getName() != null) {
+            handledBy = loginUser.getName(); // 로그인한 사용자의 이름 사용
+        }
+        
+        model.addAttribute("handledBy", handledBy); // JSP에서 사용할 수 있도록 추가
 
         // 1) workOrderId가 있으면 화면 데이터 세팅
         if (workOrderId != null && !workOrderId.isEmpty()) {
@@ -155,9 +172,25 @@ public class MaterialOutboundController {
     public String register(MaterialOutboundVO vo,
 				    		@RequestParam(value = "inboundIds", required = false) String inboundIdsCsv, // ★추가(복수)
 				            @RequestParam(value = "inboundId",  required = false) String inboundId,  
+				            HttpSession session,
     						RedirectAttributes rttr) throws Exception {
     	
     	logger.info("register workOrderNo={}", vo.getWorkOrderId()); // null이면 바인딩 문제
+    	
+    	// 세션에서 로그인한 사용자 정보 가져오기
+    	AdminUserVO loginUser = (AdminUserVO) session.getAttribute("loginAdmin");
+        String handledBy = "admin"; // 기본값
+	        
+	     // ✅ 디버깅 코드 추가 (POST에서도)
+        logger.info("=== POST 메서드 세션 정보 확인 ===");
+        logger.info("LoginUser 객체: {}", loginUser);
+        
+        if (loginUser != null && loginUser.getName() != null) {
+            handledBy = loginUser.getName(); // 로그인한 사용자의 이름 사용
+        }
+        
+        // VO에 담당자 설정
+        vo.setHandledBy(handledBy);
     	
     	// 1) 출고 헤더/아이템 저장 → DRAFT 생성
     	vo.setStatus("DRAFT");	// 미출고

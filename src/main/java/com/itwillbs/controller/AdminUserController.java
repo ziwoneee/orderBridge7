@@ -85,8 +85,11 @@ public class AdminUserController {
         	System.out.println("로그인 성공 → 세션 저장: " + loginVO.getAdminId() + " / 이름: " + loginVO.getName());
 
         	// 로그인 성공: 세션 저장 + 자동 로그아웃 타이머 설정
-            session.setAttribute("loginAdmin", loginVO);
-            session.setMaxInactiveInterval(30 * 60); // 30분 동안 미사용 시 세션 만료
+        	// 로그인 성공: 세션 저장 + 자동 로그아웃 타이머 설정
+        	session.setAttribute("loginAdmin", loginVO);
+        	session.setAttribute("adminId", loginVO.getAdminId());      
+        	session.setAttribute("adminName", loginVO.getName());        
+        	session.setMaxInactiveInterval(30 * 60); // 30분 동안 미사용 시 세션 만료
            
             // 아이디 저장 체크 여부 확인
             String remember = request.getParameter("remember");
