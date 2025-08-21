@@ -59,6 +59,15 @@
         $('a[href="#mergedOrdersList"] i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
       });
 
+    // 자재 소요량 접기/펼치기 아이콘 토글
+    $('#bomMaterialList')
+      .on('show.bs.collapse', function () {
+        $('a[href="#bomMaterialList"] i').removeClass('fa-chevron-down').addClass('fa-chevron-up');
+      })
+      .on('hide.bs.collapse', function () {
+        $('a[href="#bomMaterialList"] i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+      });
+    
     // ===============================
     // 3) BOM 로딩
     // ===============================

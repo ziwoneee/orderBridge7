@@ -20,8 +20,25 @@
   
   <style>
     body {
-      padding: 20px;
-      background-color: #f8f9fa;
+	  padding: 15px !important; /* 전체적으로 줄이기 */
+	  background-color: #f8f9fa;
+	}
+    
+    /* orderBridge.css 오버라이드 - 컬럼 간격 강제 조정 */
+    .custom-equal-spacing {
+      margin-left: -10px !important;
+      margin-right: -10px !important;
+    }
+    
+    .custom-equal-spacing > .col-md-6 {
+      padding-left: 10px !important;
+      padding-right: 10px !important;
+    }
+    
+    /* 총 생산수량 강조 */
+    #displayOrderQty {
+      font-size: 1.5rem !important;
+      color: #1c355e !important;
     }
   </style>
 </head>
@@ -30,7 +47,7 @@
 <!-- 모달 타이틀 - orderBridge.css 스타일 자동 적용 -->
 <div class="modal-header" style="background-color: #1c355e;">
   <h5 class="modal-title text-white">
-    <i class="fas fa-plus-circle"></i> 작업지시 등록
+    작업지시 등록
   </h5>
 </div>
 
@@ -54,7 +71,7 @@
         </div>
         <div class="col-md-4">
           <small class="text-muted">총 생산수량</small>
-          <p class="font-weight-bold" id="displayOrderQty">${requiredQty}</p>
+          <p class="font-weight-bold h4 text-primary" id="displayOrderQty">${requiredQty}</p>
         </div>
         <div class="col-md-4">
           <small class="text-muted">납기일</small>
@@ -72,9 +89,9 @@
           <table class="table table-sm">
             <thead>
             <tr>
-              <th class="bg-light">수주번호</th>
-              <th class="bg-light">거래처</th>
-              <th class="bg-light text-right">수량</th>
+              <th class="text-white" style="background-color: #1c355e;">수주번호</th>
+              <th class="text-white" style="background-color: #1c355e;">거래처</th>
+              <th class="text-white text-right" style="background-color: #1c355e;">수량</th>
             </tr>
             </thead>
             <tbody id="mergedOrdersTableBody"><!-- 동적 생성 --></tbody>
@@ -88,9 +105,9 @@
   <div class="card-section">
     <h5 class="section-title">작업지시 설정</h5>
     
-    <div class="row">
+    <div class="row" style="margin-left: -10px; margin-right: -10px;">
       <!-- 생산라인: 선택 가능 -->
-      <div class="col-md-6">
+      <div class="col-md-6" style="padding-left: 10px; padding-right: 10px;">
         <label class="form-label required">생산라인</label>
         <select class="form-control" name="lineId" id="lineId" required>
           <option value="">라인을 선택하세요</option>
@@ -119,7 +136,7 @@
       </div>
 
       <!-- 우선순위 -->
-      <div class="col-md-6">
+      <div class="col-md-6" style="padding-left: 10px; padding-right: 10px;">
         <label class="form-label required">우선순위</label>
         <select class="form-control" name="priority" required>
           <option value="HIGH">높음</option>
@@ -137,27 +154,29 @@
 
   <!-- BOM 자재 소요량 -->
   <div class="card mt-3">
-    <div class="card-header bg-info text-white">
-      <i class="fas fa-boxes"></i> 자재 소요량
-    </div>
     <div class="card-body">
-      <table class="table table-bordered table-header-dark">
-        <thead>
-        <tr>
-          <th class="bg-light">자재코드</th>
-          <th class="bg-light">자재명</th>
-          <th class="bg-light">용도</th>
-          <th class="bg-light">10팩당</th>
-          <th class="bg-light">총 소요량</th>
-          <th class="bg-light">단위</th>
-        </tr>
-        </thead>
-        <tbody id="bomTableBody">
-        <tr>
-          <td colspan="6" class="text-center text-muted">불러오는 중...</td>
-        </tr>
-        </tbody>
-      </table>
+      <a href="#bomMaterialList" class="text-primary" data-toggle="collapse" aria-expanded="false" aria-controls="bomMaterialList">
+        <i class="fas fa-chevron-down"></i> 자재 소요량
+      </a>
+      <div class="collapse mt-2" id="bomMaterialList">
+        <table class="table table-bordered table-header-dark">
+          <thead>
+          <tr>
+            <th class="text-white" style="background-color: #1c355e;">자재코드</th>
+            <th class="text-white" style="background-color: #1c355e;">자재명</th>
+            <th class="text-white" style="background-color: #1c355e;">용도</th>
+            <th class="text-white" style="background-color: #1c355e;">10팩당</th>
+            <th class="text-white" style="background-color: #1c355e;">총 소요량</th>
+            <th class="text-white" style="background-color: #1c355e;">단위</th>
+          </tr>
+          </thead>
+          <tbody id="bomTableBody">
+          <tr>
+            <td colspan="6" class="text-center text-muted">불러오는 중...</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 

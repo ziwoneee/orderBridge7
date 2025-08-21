@@ -119,67 +119,96 @@ $(document).ready(function () {
   }
 
   function processMergeOrders() {
-    if (opening) return;  // ✅ 더블클릭 방지
-    opening = true;
-
-    const $selected = $('.order-checkbox:checked');
-
-    try {
-      if ($selected.length === 0) {
-        alert('선택된 수주가 없습니다.');
-        return;
-      }
-
-      const productValidation = validateSameProduct($selected);
-      if (!productValidation.valid) {
-        alert(productValidation.message);
-        return;
-      }
-
-      const mergedData = collectMergedData($selected);
-      if (!mergedData) return;
-
-      const confirmMsg = `
-다음 내용으로 작업지시를 등록하시겠습니까?
-
-▶ 제품: ${mergedData.productName}
-▶ 병합 수주: ${mergedData.clOrderIds.length}건
-▶ 총 수량: ${mergedData.orderQty.toLocaleString()}
-▶ 납기일: ${mergedData.dueDate}
-      `.trim();
-
-      if (!confirm(confirmMsg)) return;
-
-      // ✅ URL 생성 방법 수정
-      const baseUrl = getContextPath() + '/workorder/register-popup';
-      const params = new URLSearchParams();
-      
-      // Spring이 List<String>으로 받을 수 있도록 각각 추가
-      mergedData.clOrderIds.forEach(id => params.append('clOrderIds', id));
-      params.append('productId', mergedData.productId);
-      params.append('orderQty', mergedData.orderQty);
-      params.append('dueDate', mergedData.dueDate);
-
-      const fullUrl = `${baseUrl}?${params.toString()}`;
-      
-      console.log('팝업 URL:', fullUrl); // 디버깅용
-
-      // 동일 창 이름 사용: 중복 창 방지
-      const features = 'width=1000,height=800,scrollbars=yes,menubar=no,toolbar=no,location=no,status=no';
-      if (!popupRef || popupRef.closed) {
-        popupRef = window.open(fullUrl, 'workorder_register_popup', features);
-      } else {
-        popupRef.location.href = fullUrl;
-        popupRef.focus();
-      }
-
-      // 필요하면 현재 선택창 닫기
-      if (popupRef) window.close();
-      else alert('팝업 차단이 되어 있을 수 있습니다. 브라우저 설정을 확인해주세요.');
-    } finally {
-      setTimeout(() => { opening = false; }, 400);
-    }
-  }
+	    if (opening) return;  // ✅ 더블클릭 방지
+	    opening = true;
+	    const $selected = $('.order-checkbox:checked');
+	    try {
+	      if ($selected.length === 0) {
+	        alert('선택된 수주가 없습니다.');
+	        return;
+	      }
+	      const productValidation = validateSameProduct($selected);
+	      if (!productValidation.valid) {
+	        alert(productValidation.message);
+	        return;
+	      }
+	      const mergedData = collectMergedData($selected);
+	      if (!mergedData) return;
+	      const confirmMsg = `
+	다음 내용으로 작업지시를 등록하시겠습니까?
+	▶ 제품: ${mergedData.productName}
+	▶ 병합 수주: ${mergedData.clOrderIds.length}건
+	▶ 총 수량: ${mergedData.orderQty.toLocaleString()}
+	▶ 납기일: ${mergedData.dueDate}
+	      `.trim();
+	      if (!confirm(confirmMsg)) return;
+	      
+	      // ✅ URL 생성 방법 수정
+	      const baseUrl = getContextPath() + '/workorder/register-popup';
+	      const params = new URLSearchParams();
+	      
+	      // Spring이 List<String>으로 받을 수 있도록 각각 추가
+	      mergedData.clOrderIds.forEach(id => params.append('clOrderIds', id));
+	      params.append('productId', mergedData.productId);
+	      params.append('orderQty', mergedData.orderQty);
+	      params.append('dueDate', mergedData.dueDate);
+	      const fullUrl = `${baseUrl}?${params.toString()}`;
+	      
+	      console.log('팝업 URL:', fullUrl); // 디버깅용
+	      
+	      // ✅ 첫 번째 팝업과 동일한 크기와 위치 계산 방식
+	      const width = 1200;
+	      const height = 650;
+	      
+	      // 듀얼 모니터 환경을 고려한 화면 중앙 계산
+	      const screenLeft = window.screenLeft !== undefined ? window.screenLeft : window.screenX;
+	      const screenTop = window.screenTop !== undefined ? window.screenTop : window.screenY;
+	      
+	      const innerWidth = window.innerWidth ? window.innerWidth : 
+	          document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
+	      const innerHeight = window.innerHeight ? window.innerHeight : 
+	          document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
+	      
+	      const left = Math.round(screenLeft + (innerWidth / 2) - (width / 2));
+	      const top = Math.round(screenTop + (innerHeight / 2) - (height / 2));
+	      
+	      const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no,menubar=no,toolbar=no,location=no`;
+	      
+	      if (!popupRef || popupRef.closed) {
+	        popupRef = window.open(fullUrl, 'workorder_register_popup', features);
+	      } else {
+	        popupRef.location.href = fullUrl;
+	        popupRef.focus();
+	      }
+	      
+	      if (!popupRef || popupRef.closed || typeof popupRef.closed === 'undefined') {
+	        alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+	        return;
+	      }
+	      
+	      if (popupRef.focus) {
+	        popupRef.focus();
+	      }
+	      
+	      // 팝업 위치 재조정 (브라우저 호환성)
+	      setTimeout(function() {
+	        if (popupRef && !popupRef.closed) {
+	          popupRef.moveTo(left, top);
+	          popupRef.resizeTo(width, height);
+	          if (popupRef.focus) {
+	            popupRef.focus();
+	          }
+	        }
+	      }, 100);
+	      
+	      // 필요하면 현재 선택창 닫기
+	      if (popupRef) window.close();
+	      else alert('팝업 차단이 되어 있을 수 있습니다. 브라우저 설정을 확인해주세요.');
+	    } finally {
+	      setTimeout(() => { opening = false; }, 400);
+	    }
+	  }
+  
 
   // ✅ 컨텍스트 경로 가져오는 함수 수정
   function getContextPath() {
