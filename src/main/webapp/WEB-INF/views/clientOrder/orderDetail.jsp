@@ -194,9 +194,20 @@
   </tbody>
 </table>
 
-<div class="mt-4">
-        <a href="${pageContext.request.contextPath}/clientorder/list" class="btn btn-outline-secondary">목록으로</a>
-    </div>
+<div class="mt-4 d-flex justify-content-end">
+
+  <a href="${pageContext.request.contextPath}/clientorder/list"
+       class="btn btn-outline-secondary d-inline-block ml-2">
+       목록으로
+    </a>
+    <a href="${pageContext.request.contextPath}/clientorder/pdf/${order.clOrderId}"
+       class="btn btn-warning d-inline-block"
+       target="_blank">
+       PDF 다운로드
+    </a>
+  
+</div>
+
 
 </div>
 
