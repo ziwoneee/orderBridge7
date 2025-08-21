@@ -34,14 +34,14 @@
         function submitEdit(rowId) {
             // 수정 input값 가져오기
             var qty = document.getElementById("edit-qty-" + rowId).value;
-            var unit = document.getElementById("edit-unit-" + rowId).value;
-            var materialName = document.getElementById("edit-materialName-" + rowId).value;
+            //var unit = document.getElementById("edit-unit-" + rowId).value;
+           // var materialName = document.getElementById("edit-materialName-" + rowId).value;
 
             // hidden input에 복사
             var form = document.getElementById("form-" + rowId);
             form.querySelector('input[name="qty"]').value = qty;
-            form.querySelector('input[name="unit"]').value = unit;
-            form.querySelector('input[name="materialName"]').value = materialName;
+           // form.querySelector('input[name="unit"]').value = unit;
+           // form.querySelector('input[name="materialName"]').value = materialName;
 
             form.submit();
         }

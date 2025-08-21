@@ -334,53 +334,56 @@
                 <table class="table table-hover">
                   <thead>
                     <tr>
-                      <th>
-                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=clOrderId&sortOrder=${cri.sortColumn eq 'cl_order_id' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
-                           class="text-white text-decoration-none">
-                          수주번호
-                          <c:choose>
-                            <c:when test="${cri.sortColumn eq 'cl_order_id'}">
-                              <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
-                            </c:when>
-                            <c:otherwise>
-                              <span class="neutral-arrow">⇅</span>
-                            </c:otherwise>
-                          </c:choose>
-                        </a>
-                      </th>
-                      <th>
-                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=clientName&sortOrder=${cri.sortColumn eq 'client_name' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
-                           class="text-white text-decoration-none">
-                          거래처명
-                          <c:choose>
-                            <c:when test="${cri.sortColumn eq 'client_name'}">
-                              <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
-                            </c:when>
-                            <c:otherwise>
-                              <span class="neutral-arrow">⇅</span>
-                            </c:otherwise>
-                          </c:choose>
-                        </a>
-                      </th>
-                      <th>
-                        <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=deliveryDate&sortOrder=${cri.sortColumn eq 'delivery_date' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
-                           class="text-white text-decoration-none">
-                          출하일자
-                          <c:choose>
-                            <c:when test="${cri.sortColumn eq 'delivery_date'}">
-                              <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
-                            </c:when>
-                            <c:otherwise>
-                              <span class="neutral-arrow">⇅</span>
-                            </c:otherwise>
-                          </c:choose>
-                        </a>
-                      </th>
+                       <th>
+      
+      <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=clOrderId&sortOrder=${cri.sortColumn eq 'clOrderId' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
+         class="text-white text-decoration-none">
+        수주번호
+        <c:choose>
+          <c:when test="${cri.sortColumn eq 'clOrderId'}">
+            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+          </c:when>
+          <c:otherwise>
+            <span class="neutral-arrow">⇅</span>
+          </c:otherwise>
+        </c:choose>
+      </a>
+    </th>
+    <th>
+     
+      <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=clientName&sortOrder=${cri.sortColumn eq 'clientName' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
+         class="text-white text-decoration-none">
+        거래처명
+        <c:choose>
+          <c:when test="${cri.sortColumn eq 'clientName'}">
+            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+          </c:when>
+          <c:otherwise>
+            <span class="neutral-arrow">⇅</span>
+          </c:otherwise>
+        </c:choose>
+      </a>
+    </th>
+    <th>
+     
+      <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=deliveryDate&sortOrder=${cri.sortColumn eq 'deliveryDate' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
+         class="text-white text-decoration-none">
+        출하일자
+        <c:choose>
+          <c:when test="${cri.sortColumn eq 'deliveryDate'}">
+            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+          </c:when>
+          <c:otherwise>
+            <span class="neutral-arrow">⇅</span>
+          </c:otherwise>
+        </c:choose>
+      </a>
+    </th>
                       <th>상세내역</th>
                       <th>관리</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody>                 
                     <c:forEach var="group" items="${groupedCompletedList}" varStatus="status">
                       <tr>
                         <td>${group.clOrderId}</td>

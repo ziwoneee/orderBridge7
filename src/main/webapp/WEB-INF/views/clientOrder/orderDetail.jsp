@@ -30,7 +30,7 @@
 
     <!-- 수주 마스터 정보 -->
       <div id="table_content"  style="width:1200px;"><div class="text-right">
- <span class="badge bg-primary">수주 담당자: ${adminName}</span>
+ <span class="badge bg-primary">수주 담당자: ${order.adminName}</span>
   </div>
     <table class="table table-bordered mb-4" style="table-layout: fixed; width: 100%;">
     <colgroup>
