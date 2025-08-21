@@ -42,6 +42,7 @@ public class ProductionLineController {
         model.addAttribute("activeCount", activeCount);
         model.addAttribute("inactiveCount", inactiveCount);
         model.addAttribute("totalCount", lineList.size());
+        model.addAttribute("menu", "production");
 
         log.info("생산라인 목록 조회 완료 - 총 {}건", lineList.size());
         return "line/list";

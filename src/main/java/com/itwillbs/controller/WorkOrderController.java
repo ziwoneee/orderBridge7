@@ -1,5 +1,6 @@
 package com.itwillbs.controller;
 
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,8 @@ public class WorkOrderController {
 
         validateAndConvertSortColumn(cri);
 
+        model.addAttribute("menu", "production");
+        
         int totalCount = workOrderService.getWorkOrderTotalCount(cri);
         cri.setTotalCount(totalCount);
         PageMaker pageMaker = new PageMaker(cri, totalCount);
@@ -121,21 +124,53 @@ public class WorkOrderController {
     @PostMapping("/register")
     @ResponseBody
     public ResponseEntity<?> registerWorkOrder(@RequestBody WorkOrderDTO workOrderDTO, HttpSession session) {
-        log.info("작업지시 등록 요청 - DTO: {}", workOrderDTO);
-
+        log.info("=== 작업지시 등록 요청 시작 ===");
+        log.info("세션 ID: {}", session.getId());
+        
         Map<String, Object> response = new HashMap<>();
         try {
+            // 세션에서 로그인 사용자 정보 확인
             String loginUserName = (String) session.getAttribute("userName");
+            String loginUserId = (String) session.getAttribute("userId");
+            
+            log.info("세션에서 가져온 사용자 정보 - userName: {}, userId: {}", loginUserName, loginUserId);
+            
+            // 세션 속성 전체 확인 (디버깅용)
+            Enumeration<String> attributeNames = session.getAttributeNames();
+            while (attributeNames.hasMoreElements()) {
+                String attrName = attributeNames.nextElement();
+                Object attrValue = session.getAttribute(attrName);
+                log.info("세션 속성 - {}: {}", attrName, attrValue);
+            }
+            
+            if (loginUserName == null || loginUserName.trim().isEmpty()) {
+                log.error("로그인 정보 없음 - 재로그인 필요");
+                response.put("success", false);
+                response.put("message", "로그인 정보가 유효하지 않습니다. 다시 로그인해주세요.");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
             workOrderDTO.setOrderManager(loginUserName);
+            log.info("작업지시자 설정 완료: {}", loginUserName);
+            log.info("등록 요청 데이터: {}", workOrderDTO);
 
             int result = workOrderService.registerWorkOrder(workOrderDTO);
+            
             response.put("success", result > 0);
             response.put("message", result > 0 ? "작업지시 등록이 완료되었습니다." : "작업지시 등록에 실패했습니다.");
+            
+            if (result > 0) {
+                log.info("작업지시 등록 성공 - 등록자: {}", loginUserName);
+            } else {
+                log.warn("작업지시 등록 실패");
+            }
+            
             return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON).body(response);
+            
         } catch (Exception e) {
-            log.error("작업지시 등록 오류", e);
+            log.error("작업지시 등록 중 오류 발생", e);
             response.put("success", false);
-            response.put("message", "오류 발생: " + e.getMessage());
+            response.put("message", "시스템 오류가 발생했습니다: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON).body(response);
         }
     }
@@ -311,6 +346,13 @@ public class WorkOrderController {
         }
         if (productId == null || productId.trim().isEmpty()) {
             throw new IllegalArgumentException("제품ID가 누락되었습니다.");
+        }
+    }
+    
+    private void validateUserSession(HttpSession session) {
+        String userName = (String) session.getAttribute("userName");
+        if (userName == null || userName.trim().isEmpty()) {
+            throw new IllegalStateException("로그인 정보가 유효하지 않습니다.");
         }
     }
 }
