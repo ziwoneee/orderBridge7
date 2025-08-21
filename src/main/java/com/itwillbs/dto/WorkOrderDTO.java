@@ -80,7 +80,7 @@ public class WorkOrderDTO {
     // ---------------------------
     // 병합 수주 관련
     // ---------------------------
-    private List<String> mergedOrders; // 병합 수주 ID 리스트
+    private List<WorkOrderMergedDTO> mergedOrders; // 병합 수주 ID 리스트
     private String clientNames;        // 병합된 거래처명들 (콤마 구분)
     private int    totalOrderQty;      // 병합 총 수량
 

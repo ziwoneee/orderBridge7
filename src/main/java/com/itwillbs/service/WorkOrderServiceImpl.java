@@ -67,6 +67,10 @@ public class WorkOrderServiceImpl implements WorkOrderService {
     @Override
     @Transactional
     public int registerWorkOrder(WorkOrderDTO workOrderDTO) {
+    	
+        log.info("[SERVICE] mergedOrders = {}", workOrderDTO.getMergedOrders());
+        log.info("[SERVICE] productId={}, orderQty={}", workOrderDTO.getProductId(), workOrderDTO.getOrderQty());
+    	
         try {
             // 1) 작업지시번호 생성
             String orderId = generateOrderId();
@@ -80,19 +84,17 @@ public class WorkOrderServiceImpl implements WorkOrderService {
             int result = workOrderMapper.insertWorkOrder(workOrderDTO);
             if (result <= 0) throw new RuntimeException("작업지시 등록 실패");
 
-            // 4) 병합 수주 저장
-            List<String> mergedOrderIds = workOrderDTO.getMergedOrders();
-            String productId = workOrderDTO.getProductId();
-            int orderQty = workOrderDTO.getOrderQty();
+            // 4) 병합 수주 저장 (각 수주의 수량 그대로 저장)
+            List<WorkOrderMergedDTO> mergedItems = workOrderDTO.getMergedOrders();
 
-            if (mergedOrderIds != null && !mergedOrderIds.isEmpty()) {
-                for (String clOrderId : mergedOrderIds) {
-                    WorkOrderMergedDTO merged = new WorkOrderMergedDTO();
-                    merged.setWorkOrderId(orderId);
-                    merged.setClOrderId(clOrderId);
-                    merged.setProductId(productId);
-                    merged.setOrderQty(orderQty);
-                    workOrderMapper.insertMergedOrder(merged);
+            if (mergedItems != null && !mergedItems.isEmpty()) {
+                for (WorkOrderMergedDTO item : mergedItems) {
+                    item.setWorkOrderId(orderId);                      // 부모 작업지시
+                    if (item.getProductId() == null) {
+                        item.setProductId(workOrderDTO.getProductId()); // 안전 보정
+                    }
+                    // item.getOrderQty() == 해당 수주의 실제 수량  ✅
+                    workOrderMapper.insertMergedOrder(item);
                 }
             } else {
                 log.warn("병합 수주 정보 없음 - 저장 생략");
@@ -255,6 +257,10 @@ public class WorkOrderServiceImpl implements WorkOrderService {
             log.error("작업지시번호 생성 실패", e);
             throw new RuntimeException("작업지시번호 생성 실패: " + e.getMessage());
         }
+    }
+    
+    public List<WorkOrderDTO> getOrdersByIds(List<String> clOrderIds, String productId) {
+        return workOrderMapper.selectOrdersByIds(clOrderIds, productId);
     }
 
 }

@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 
 import com.itwillbs.domain.SearchCriteria;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.ProductionLineVO;
 import com.itwillbs.dto.BomItemDTO;
@@ -98,34 +97,34 @@ public class WorkOrderController {
             @RequestParam("productId") String productId,
             @RequestParam("orderQty") int orderQty,
             @RequestParam("dueDate") String dueDate,
-            Model model) {
+            Model model) throws JsonProcessingException {
 
         validateRegistrationParams(clOrderIds, productId);
 
-        WorkOrderDTO orderDetail = workOrderService.getOrderDetail(clOrderIds.get(0), productId);
-        List<ProductionLineVO> lineList = productionLineService.getAvailableLines();
+        // ① 병합된 수주 상세 리스트 (clOrderId, clientName, orderQty, productName 포함)
+        List<WorkOrderDTO> orders = workOrderService.getOrdersByIds(clOrderIds, productId);
 
+        // ② JSON 직렬화 후 JSP로 전달 (JS가 그대로 렌더)
+        String ordersJson = new com.fasterxml.jackson.databind.ObjectMapper()
+                .writeValueAsString(orders);
+
+        model.addAttribute("clOrderIdsJson", ordersJson);
         model.addAttribute("clOrderIds", clOrderIds);
-        try {
-            model.addAttribute("clOrderIdsJson", new ObjectMapper().writeValueAsString(clOrderIds));
-        } catch (JsonProcessingException e) {
-            model.addAttribute("clOrderIdsJson", "[]");
-        }
         model.addAttribute("productId", productId);
-        model.addAttribute("productName", orderDetail.getProductName());
-        model.addAttribute("clientNames", orderDetail.getClientNames());
+        model.addAttribute("productName", orders.isEmpty() ? "" : orders.get(0).getProductName());
         model.addAttribute("requiredQty", orderQty);
         model.addAttribute("dueDate", dueDate);
-        model.addAttribute("lineList", lineList);
-
+        model.addAttribute("lineList", productionLineService.getAvailableLines());
         return "workOrder/register-popup";
     }
+    
     
     @PostMapping("/register")
     @ResponseBody
     public ResponseEntity<?> registerWorkOrder(@RequestBody WorkOrderDTO workOrderDTO, HttpSession session) {
         log.info("=== 작업지시 등록 요청 시작 ===");
         log.info("세션 ID: {}", session.getId());
+        log.info("[REGISTER] mergedOrders from client = {}", workOrderDTO.getMergedOrders());
         
         Map<String, Object> response = new HashMap<>();
         try {
