@@ -172,6 +172,11 @@
 
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  window.CONTEXT_PATH = ''; // 루트 컨텍스트이므로 빈 문자열
+  console.log('Context Path:', window.CONTEXT_PATH);
+</script>
+
 <script src="${pageContext.request.contextPath}/resources/js/select-order.js"></script>
 
 </body>

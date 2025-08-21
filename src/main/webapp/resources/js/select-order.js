@@ -150,14 +150,19 @@ $(document).ready(function () {
 
       if (!confirm(confirmMsg)) return;
 
-      // 쿼리 키: clOrderIds=...&clOrderIds=... (대괄호 X)
-      const clOrderParams = mergedData.clOrderIds.map(id => `clOrderIds=${encodeURIComponent(id)}`).join('&');
-      const productParam  = `productId=${encodeURIComponent(mergedData.productId)}`;
-      const qtyParam      = `orderQty=${mergedData.orderQty}`;
-      const dateParam     = `dueDate=${encodeURIComponent(mergedData.dueDate)}`;
+      // ✅ URL 생성 방법 수정
+      const baseUrl = getContextPath() + '/workorder/register-popup';
+      const params = new URLSearchParams();
+      
+      // Spring이 List<String>으로 받을 수 있도록 각각 추가
+      mergedData.clOrderIds.forEach(id => params.append('clOrderIds', id));
+      params.append('productId', mergedData.productId);
+      params.append('orderQty', mergedData.orderQty);
+      params.append('dueDate', mergedData.dueDate);
 
-      const ctx = (window.contextPath || '${pageContext.request.contextPath}' || '');
-      const fullUrl = `${ctx}/workorder/register-popup?${clOrderParams}&${productParam}&${qtyParam}&${dateParam}`;
+      const fullUrl = `${baseUrl}?${params.toString()}`;
+      
+      console.log('팝업 URL:', fullUrl); // 디버깅용
 
       // 동일 창 이름 사용: 중복 창 방지
       const features = 'width=1000,height=800,scrollbars=yes,menubar=no,toolbar=no,location=no,status=no';
@@ -174,6 +179,32 @@ $(document).ready(function () {
     } finally {
       setTimeout(() => { opening = false; }, 400);
     }
+  }
+
+  // ✅ 컨텍스트 경로 가져오는 함수 수정
+  function getContextPath() {
+    // 1순위: 전역 변수
+    if (window.CONTEXT_PATH !== undefined) {
+      return window.CONTEXT_PATH;
+    }
+    
+    // 2순위: 현재 페이지 경로에서 추출
+    const path = window.location.pathname;
+    
+    // 루트 컨텍스트인 경우 (예: /workorder/select-order)
+    // 첫 번째 세그먼트가 애플리케이션 경로가 아닌 컨트롤러 경로인지 확인
+    if (path.startsWith('/workorder/')) {
+      return ''; // 루트 컨텍스트
+    }
+    
+    // 실제 컨텍스트가 있는 경우 (예: /myapp/workorder/select-order)
+    const segments = path.split('/');
+    if (segments.length > 3 && segments[1] && segments[2] === 'workorder') {
+      return '/' + segments[1];
+    }
+    
+    // 기본값: 빈 문자열 (루트 컨텍스트)
+    return '';
   }
 
   function validateSameProduct($selected) {
@@ -214,9 +245,16 @@ $(document).ready(function () {
 	    const dueDate = parseDueDate(rawDueDate);
 	    if (!dueDate) { alert(`수주 [${clOrderId}]의 납기일이 유효하지 않습니다: ${rawDueDate || '없음'}`); hasError = true; return false; }
 
+	    const clientName = $cb.data('client-name'); // ✅ 거래처명 가져오기
+	    
 	    totalRequired += requiredQty;
 	    clOrderIds.push(clOrderId);
-	    mergedOrders.push({ clOrderId, orderQty: requiredQty }); // ✅ 핵심
+	    mergedOrders.push({ 
+	      clOrderId, 
+	      orderQty: requiredQty,
+	      clientName: clientName, // ✅ 거래처명 추가
+	      dueDate: rawDueDate     // ✅ 납기일도 추가
+	    });
 
 	    if (!earliestDueDate || dueDate < earliestDueDate) earliestDueDate = dueDate;
 	  });
