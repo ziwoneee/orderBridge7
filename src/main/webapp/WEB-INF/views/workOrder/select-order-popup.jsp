@@ -81,6 +81,7 @@
                   data-product-name="${order.productName}"
                   data-client-name="${order.clientName}"
                   data-order-qty="${order.orderQty}"
+                  data-required-qty="${order.requiredQty}"
                   data-due-date="${formattedDueDate}">
               </td>
               <td class="font-weight-bold">${order.clOrderId}</td>
@@ -171,20 +172,12 @@
 
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="${pageContext.request.contextPath}/resources/js/select-order.js"></script>
-
 <script>
-//행 강조 및 검색창 포커스 (보조 UI 효과)
-$(document).ready(function () {
-    // 선택된 행 강조
-    $(document).on('change', '.order-checkbox', function () {
-        $(this).closest('tr').toggleClass('selected', $(this).prop('checked'));
-    });
-
-    // 검색창 자동 포커스
-    $('input[name="keyword"]').focus();
-});
+  window.CONTEXT_PATH = ''; // 루트 컨텍스트이므로 빈 문자열
+  console.log('Context Path:', window.CONTEXT_PATH);
 </script>
+
+<script src="${pageContext.request.contextPath}/resources/js/select-order.js"></script>
 
 </body>
 </html>

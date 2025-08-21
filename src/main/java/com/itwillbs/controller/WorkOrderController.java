@@ -1,5 +1,6 @@
 package com.itwillbs.controller;
 
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 
 import com.itwillbs.domain.SearchCriteria;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.ProductionLineVO;
 import com.itwillbs.dto.BomItemDTO;
@@ -46,6 +46,8 @@ public class WorkOrderController {
 
         validateAndConvertSortColumn(cri);
 
+        model.addAttribute("menu", "production");
+        
         int totalCount = workOrderService.getWorkOrderTotalCount(cri);
         cri.setTotalCount(totalCount);
         PageMaker pageMaker = new PageMaker(cri, totalCount);
@@ -95,50 +97,90 @@ public class WorkOrderController {
             @RequestParam("productId") String productId,
             @RequestParam("orderQty") int orderQty,
             @RequestParam("dueDate") String dueDate,
-            Model model) {
+            Model model) throws JsonProcessingException {
 
         validateRegistrationParams(clOrderIds, productId);
 
-        WorkOrderDTO orderDetail = workOrderService.getOrderDetail(clOrderIds.get(0), productId);
-        List<ProductionLineVO> lineList = productionLineService.getAvailableLines();
+        // ① 병합된 수주 상세 리스트 (clOrderId, clientName, orderQty, productName 포함)
+        List<WorkOrderDTO> orders = workOrderService.getOrdersByIds(clOrderIds, productId);
 
+        // ② JSON 직렬화 후 JSP로 전달 (JS가 그대로 렌더)
+        String ordersJson = new com.fasterxml.jackson.databind.ObjectMapper()
+                .writeValueAsString(orders);
+
+        model.addAttribute("clOrderIdsJson", ordersJson);
         model.addAttribute("clOrderIds", clOrderIds);
-        try {
-            model.addAttribute("clOrderIdsJson", new ObjectMapper().writeValueAsString(clOrderIds));
-        } catch (JsonProcessingException e) {
-            model.addAttribute("clOrderIdsJson", "[]");
-        }
         model.addAttribute("productId", productId);
-        model.addAttribute("productName", orderDetail.getProductName());
-        model.addAttribute("clientNames", orderDetail.getClientNames());
+        model.addAttribute("productName", orders.isEmpty() ? "" : orders.get(0).getProductName());
         model.addAttribute("requiredQty", orderQty);
         model.addAttribute("dueDate", dueDate);
-        model.addAttribute("lineList", lineList);
-
+        model.addAttribute("lineList", productionLineService.getAvailableLines());
         return "workOrder/register-popup";
     }
+    
     
     @PostMapping("/register")
     @ResponseBody
     public ResponseEntity<?> registerWorkOrder(@RequestBody WorkOrderDTO workOrderDTO, HttpSession session) {
-        log.info("작업지시 등록 요청 - DTO: {}", workOrderDTO);
-
+        log.info("=== 작업지시 등록 요청 시작 ===");
+        log.info("세션 ID: {}", session.getId());
+        log.info("[REGISTER] mergedOrders from client = {}", workOrderDTO.getMergedOrders());
+        
         Map<String, Object> response = new HashMap<>();
         try {
-            String loginUserName = (String) session.getAttribute("userName");
+            // 세션에서 로그인 사용자 정보 확인
+            String loginUserName = (String) session.getAttribute("adminName");
+            String loginUserId   = (String) session.getAttribute("adminId");
+            
+            log.info("세션에서 가져온 사용자 정보 - adminName: {}, adminId: {}", loginUserName, loginUserId);
+            
+            // 세션 속성 전체 확인 (디버깅용)
+            Enumeration<String> attributeNames = session.getAttributeNames();
+            while (attributeNames.hasMoreElements()) {
+                String attrName = attributeNames.nextElement();
+                Object attrValue = session.getAttribute(attrName);
+                log.info("세션 속성 - {}: {}", attrName, attrValue);
+            }
+            
+            // 로그인 정보 확인
+            if (loginUserName == null || loginUserName.trim().isEmpty()) {
+                log.error("로그인 정보 없음 - 재로그인 필요");
+                response.put("success", false);
+                response.put("message", "로그인 정보가 유효하지 않습니다. 다시 로그인해주세요.");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+            
+            // 작업지시자 등록
             workOrderDTO.setOrderManager(loginUserName);
+            log.info("작업지시자 설정 완료: {}", loginUserName);
+            log.info("등록 요청 데이터: {}", workOrderDTO);
 
+            // 서비스 호출
             int result = workOrderService.registerWorkOrder(workOrderDTO);
+            
             response.put("success", result > 0);
             response.put("message", result > 0 ? "작업지시 등록이 완료되었습니다." : "작업지시 등록에 실패했습니다.");
-            return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON).body(response);
+            
+            if (result > 0) {
+                log.info("작업지시 등록 성공 - 등록자: {}", loginUserName);
+            } else {
+                log.warn("작업지시 등록 실패");
+            }
+            
+            return ResponseEntity.status(HttpStatus.OK)
+                                 .contentType(MediaType.APPLICATION_JSON)
+                                 .body(response);
+            
         } catch (Exception e) {
-            log.error("작업지시 등록 오류", e);
+            log.error("작업지시 등록 중 오류 발생", e);
             response.put("success", false);
-            response.put("message", "오류 발생: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON).body(response);
+            response.put("message", "시스템 오류가 발생했습니다: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                 .contentType(MediaType.APPLICATION_JSON)
+                                 .body(response);
         }
     }
+    
     
     @PostMapping("/edit")
     @ResponseBody
@@ -313,4 +355,5 @@ public class WorkOrderController {
             throw new IllegalArgumentException("제품ID가 누락되었습니다.");
         }
     }
+
 }

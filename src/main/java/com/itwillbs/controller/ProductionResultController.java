@@ -48,6 +48,7 @@ public class ProductionResultController {
         var list = productionResultService.getList(cri);
         int total = productionResultService.getTotalCount(cri);
 
+        model.addAttribute("menu", "production");
         model.addAttribute("list", list);
         model.addAttribute("pageMaker", new PageMaker(cri, total));
         model.addAttribute("cri", cri);
@@ -65,6 +66,7 @@ public class ProductionResultController {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
         String todayStr = sdf.format(new Date());
         model.addAttribute("todayStr", todayStr);
+        model.addAttribute("menu", "production");
         
         return "production/result/form";
     }
@@ -74,6 +76,9 @@ public class ProductionResultController {
     public String detail(@RequestParam("resultId") String resultId,
                          Model model,
                          RedirectAttributes ra) {
+    	
+    	model.addAttribute("menu", "production");
+    	
         try {
             ProductionResultDTO result = productionResultService.getDetail(resultId);
             model.addAttribute("result", result);

@@ -75,4 +75,7 @@ public interface WorkOrderMapper {
     // ================== 병합 수주 연결 조회 ===================
     List<WorkOrderMergedDTO> selectMergedOrdersByWorkOrderId(
             @Param("workOrderId") String workOrderId);
+    
+    List<WorkOrderDTO> selectOrdersByIds(@Param("clOrderIds") List<String> clOrderIds,
+            @Param("productId") String productId);
 }

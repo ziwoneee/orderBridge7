@@ -47,4 +47,8 @@ public interface WorkOrderService {
     // ================= 실적 연동 =================
     /** 실적 집계로 완료 자동 반영 (양품 누적 >= 목표) */
     void refreshStatusByResults(String orderId);
+    
+	List<WorkOrderDTO> getOrdersByIds(List<String> clOrderIds, String productId);
+    
+    
 }
