@@ -25,26 +25,54 @@
 }
 
 /* ================= 페이지 헤더 ================= */
-.page-header {
-  background: #ffffff !important;
-  border-radius: 15px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  border: 1px solid #e3e6f0;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+/* 헤더 카드 모양 + 한 줄 배치 */
+.page-header{
+  background:#ffffff !important;
+  border-radius:15px;
+  padding:1.5rem;
+  margin-bottom:2rem;
+  border:1px solid #e3e6f0;
+  box-shadow:0 0.125rem 0.25rem rgba(0,0,0,.075);
+  display:flex;               /* ← 추가 */
+  align-items:center;         /* ← 추가 */
+  justify-content:space-between; /* ← 추가 */
+  gap:1rem;                   /* ← 추가 */
+  flex-wrap:wrap;             /* ← 추가 */
 }
 
-.page-title {
-  color: #5a5c69 !important;
-  font-weight: 600;
-  font-size: 1.5rem !important;
+/* 제목 스타일 + 마진 제거 */
+.page-title{
+  color:#5a5c69 !important;
+  font-weight:600;
+  font-size:1.5rem !important;
+  margin:0 !important;       
 }
 
-.page-title-icon {
-  background: linear-gradient(45deg, #4e73df, #224abe) !important;
-  border-radius: 10px;
-  padding: 10px;
+/* 아이콘 캡슐: 기존 그라디언트 유지 + 정중앙 정렬 */
+.page-title-icon{
+  background:linear-gradient(45deg,#4e73df,#224abe) !important;
+  display:inline-flex;       
+  align-items:center;        
+  justify-content:center;     
+  width:40px;                 
+  height:40px;               
+  border-radius:10px;
+  padding:0;                
 }
+
+/* 좁은 화면에서 우측 버튼 그룹 줄바꿈 간격 */
+@media (max-width:576px){
+  .page-header > .d-flex:last-child{ margin-top:.5rem; }
+}
+
+/* 왼쪽: 아이콘 ↔ 제목 간격 */
+.page-header .page-title-icon{ margin-right: .85rem !important; }  /* ≈ 14px */
+
+/* 오른쪽: '마지막 업데이트' ↔ 새로고침 버튼 간격 */
+#last-refresh-time{ margin-right: .8rem !important; }
+
+/* 버튼 안 아이콘이 테두리에 붙지 않게 패딩 보정(이 블록에만 적용) */
+#btn-refresh.btn-sm{ padding: .35rem .7rem; line-height: 1; }
 
 /* ================= 카드 기본 스타일 ================= */
 .card {

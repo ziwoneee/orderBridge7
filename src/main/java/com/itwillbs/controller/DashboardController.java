@@ -14,13 +14,13 @@ public class DashboardController {
 
     private final DashboardService dashboardService;
 
-    // ✅ 뷰만 반환 (요구사항 준수)
+    // 뷰만 반환 (요구사항 준수)
     @GetMapping("/admin/dashboard")
     public String dashboard() {
         return "admin/dashboard";
     }
 
-    // ✅ 대시보드 데이터 JSON (JSP에서 fetch로 호출)
+    // 대시보드 데이터 JSON (JSP에서 fetch로 호출)
     @GetMapping("/admin/dashboard/data")
     @ResponseBody
     public DashboardDTO dashboardData() {

@@ -13,28 +13,24 @@
       <div class="content-wrapper">
         
         <!-- 페이지 헤더 -->
-        <div class="page-header">
-          <h3 class="page-title">
-            <span class="page-title-icon bg-gradient-primary text-white me-2">
-              <i class="mdi mdi-view-dashboard"></i>
-            </span>
-            운영 대시보드
-          </h3>
-          <nav aria-label="breadcrumb">
-            <ul class="breadcrumb">
-              <li class="breadcrumb-item active" aria-current="page">
-                <span></span>실시간 현황 
-              </li>
-            </ul>
-          </nav>
-          <!-- 마지막 업데이트 시간 표시 -->
-          <div class="text-muted">
-            <span id="last-refresh-time">-</span>
-            <button id="btn-refresh" class="btn btn-sm btn-outline-primary ms-2" title="새로고침">
-              <i class="mdi mdi-refresh"></i>
-            </button>
-          </div>
-        </div>
+        <div class="page-header d-flex align-items-center justify-content-between flex-wrap">
+		  <div class="d-flex align-items-center">
+		    <span class="page-title-icon bg-gradient-primary text-white me-3">
+		      <i class="mdi mdi-view-dashboard"></i>
+		    </span>
+		    <div>
+		      <h3 class="page-title mb-0">운영 대시보드</h3>
+		      <small class="text-muted">실시간 현황</small>
+		    </div>
+		  </div>
+		
+		  <div class="d-flex align-items-center">
+		    <small id="last-refresh-time" class="text-muted me-2">-</small>
+		    <button id="btn-refresh" class="btn btn-sm btn-outline-primary" title="새로고침">
+		      <i class="mdi mdi-refresh"></i>
+		    </button>
+		  </div>
+		</div>
 
         <!-- ================= 상단 메트릭 카드 ================= -->
         <div class="row mb-4">

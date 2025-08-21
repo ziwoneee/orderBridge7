@@ -146,73 +146,124 @@
     });
   }
 
-  /**
-   * 라인 현황 가로 배치 업데이트 (강제 3열) - 수정된 버전
-   */
   function updateLineStatusHorizontal(lines) {
-    const container = getElementById('cards-lines');
-    if (!container) return;
-    
-    container.innerHTML = ''; // 먼저 싹 비우고 시작 (남아있는 placeholder로 인해 1칸 붕괴 방지)
+	  const container = getElementById('cards-lines');
+	  if (!container) return;
 
-    // 실제 라인 데이터가 없을 때
-    if (!lines || lines.length === 0) {
-      container.innerHTML = '<div class="col-12 text-center text-muted py-4 h5">운영 중인 라인이 없습니다.</div>';
-      return;
-    }
+	  // 그리드 가드: 어떤 CSS 충돌이 있어도 row/flex 보장
+	  container.classList.add('row');
+	  container.style.display = 'flex';
+	  container.style.flexWrap = 'wrap';
 
-    // 라인이 3개 미만이면 빈 라인으로 채우기
-    const maxLines = 3;
-    const displayLines = [];
-    
-    // 실제 라인 데이터 추가
-    for (let i = 0; i < Math.min(lines.length, maxLines); i++) {
-      displayLines.push(lines[i]);
-    }
-    
-    // 부족한 라인은 빈 라인으로 채우기
-    for (let i = displayLines.length; i < maxLines; i++) {
-      displayLines.push({
-        lineId: `line-${i + 1}`,
-        lineName: `${i + 1}라인`,
-        state: 'IDLE',
-        workOrderId: null,
-        productName: null,
-        orderQty: null,
-        dueDate: null,
-        producedQty: 0,
-        progressRate: 0,
-        readyCount: 0,
-        waitingCount: 0,
-        isEmpty: true // 빈 라인 표시용
-      });
-    }
+	  // 기존 placeholder 제거
+	  container.innerHTML = '';
 
-    // 🔥 수정: JSP에 이미 row가 있으므로 row 추가하지 않음
-    let html = '';
-    
-    displayLines.forEach(function(line, index) {
-      const statusInfo = getLineStatusInfo(line.state);
-      const progress = line.progressRate ? Math.round(line.progressRate) : 0;
-      
-      html += '<div class="col-lg-4 col-md-6 col-12 mb-3 fade-in">' +
-        '<div class="line-card ' + statusInfo.cardClass + '">' +
-          '<div class="d-flex justify-content-between align-items-center mb-3">' +
-            '<h5 class="mb-0 font-weight-bold text-dark">' + esc(line.lineName || `${index + 1}라인`) + '</h5>' +
-            '<span class="badge ' + statusInfo.badgeClass + '">' + statusInfo.text + '</span>' +
-          '</div>' +
-          
-          (line.workOrderId && !line.isEmpty ? 
-            createLineWorkOrderInfoHorizontal(line, progress, statusInfo) :
-            createLineIdleInfoHorizontal(line.isEmpty)
-          ) +
-        '</div>' +
-      '</div>';
-    });
-    
-    container.innerHTML = html;
-  }
+	  if (!Array.isArray(lines) || lines.length === 0) {
+	    const emptyCol = document.createElement('div');
+	    emptyCol.className = 'col-12 text-center text-muted py-4 h5';
+	    emptyCol.textContent = '운영 중인 라인이 없습니다.';
+	    container.appendChild(emptyCol);
+	    return;
+	  }
 
+	  // 3칸 고정(원하면 이 값 늘려도 됨)
+	  const maxLines = 3;
+	  const displayLines = lines.slice(0, maxLines);
+	  while (displayLines.length < maxLines) {
+	    displayLines.push({
+	      lineId: `line-${displayLines.length + 1}`,
+	      lineName: `${displayLines.length + 1}라인`,
+	      state: 'IDLE',
+	      isEmpty: true,
+	      producedQty: 0,
+	      progressRate: 0,
+	      readyCount: 0,
+	      waitingCount: 0
+	    });
+	  }
+
+	  displayLines.forEach((line, idx) => {
+	    const statusInfo = getLineStatusInfo(line.state);
+	    const progress = line.progressRate ? Math.round(line.progressRate) : 0;
+
+	    // ✅ 반드시 .col-* 래퍼를 만든다
+	    const col = document.createElement('div');
+	    col.className = 'col-12 col-md-6 col-lg-4 mb-3 fade-in';
+
+	    // 카드 본문
+	    const card = document.createElement('div');
+	    card.className = `line-card ${statusInfo.cardClass}`;
+
+	    // 헤더
+	    const header = document.createElement('div');
+	    header.className = 'd-flex justify-content-between align-items-center mb-3';
+	    header.innerHTML =
+	      `<h5 class="mb-0 font-weight-bold text-dark">${esc(line.lineName || `${idx + 1}라인`)}</h5>
+	       <span class="badge ${statusInfo.badgeClass}">${statusInfo.text}</span>`;
+
+	    card.appendChild(header);
+
+	    // 본문
+	    if (line.workOrderId && !line.isEmpty) {
+	      const body = document.createElement('div');
+	      body.innerHTML =
+	        `<div class="mb-3">
+	           <div class="row mb-2">
+	             <div class="col-6">
+	               <small class="text-muted">작업지시</small><br>
+	               <strong class="text-primary">${esc(line.workOrderId)}</strong>
+	             </div>
+	             <div class="col-6">
+	               <small class="text-muted">납기</small><br>
+	               <span class="text-dark">${formatDate(line.dueDate)}</span>
+	             </div>
+	           </div>
+	           <div class="mb-3">
+	             <small class="text-muted">제품: </small>
+	             <span class="font-weight-medium">${esc(line.productName || '-')}</span>
+	             ${line.orderQty ? ` (${formatNumber(line.orderQty)})` : ''}
+	           </div>
+	           <div class="progress mb-3" style="height:10px;">
+	             <div class="progress-bar ${statusInfo.progressClass}"
+	                  style="width:${progress}%"
+	                  title="${progress}% 완료"></div>
+	           </div>
+	           <div class="row text-center">
+	             <div class="col-4">
+	               <small class="text-muted d-block">양품</small>
+	               <strong class="text-success">${formatNumber(line.producedQty || 0)}</strong>
+	             </div>
+	             <div class="col-4">
+	               <small class="text-muted d-block">진행률</small>
+	               <strong class="${statusInfo.textClass}">${progress}%</strong>
+	             </div>
+	             <div class="col-4">
+	               <small class="text-muted d-block">대기</small>
+	               <strong class="text-warning">${(line.readyCount || 0) + (line.waitingCount || 0)}</strong>
+	             </div>
+	           </div>
+	         </div>`;
+	      card.appendChild(body);
+	    } else {
+	      const idle = document.createElement('div');
+	      idle.className = 'text-center text-muted py-4';
+	      idle.innerHTML =
+	        `<i class="mdi ${line.isEmpty ? 'mdi-information-outline' : 'mdi-pause-circle'} mdi-48px mb-3 d-block"></i>
+	         <h6 class="mb-0">${line.isEmpty ? '라인 정보가 없습니다' : '현재 생산 작업이 없습니다'}</h6>`;
+	      card.appendChild(idle);
+	    }
+
+	    col.appendChild(card);
+	    container.appendChild(col);
+	  });
+
+	  // ✅ 디버깅 로그(한 번만 확인해봐)
+	  console.log('cards-lines display', getComputedStyle(container).display,
+	              'children', [...container.children].map(c => c.className));
+	}
+
+  
+  
   /**
    * 라인 작업지시 정보 생성 (가로용)
    */
