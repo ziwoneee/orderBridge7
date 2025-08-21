@@ -204,6 +204,15 @@
     <artifactId>javax.mail</artifactId>
     <version>1.6.2</version>
 </dependency>
+
+
+<!-- PDF 파일 생성 -->
+<dependency>
+    <groupId>com.lowagie</groupId>
+    <artifactId>itext</artifactId>
+    <version>2.1.7</version>
+</dependency>
+
 		
 		
 

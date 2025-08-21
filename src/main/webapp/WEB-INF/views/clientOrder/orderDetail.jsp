@@ -14,7 +14,7 @@
       <!-- 본문 시작 -->
       <div class="main-panel">
         <div class="content-wrapper">
-          <div class="row">
+          <div class="row">  
           
                   
           
@@ -30,7 +30,7 @@
 
     <!-- 수주 마스터 정보 -->
       <div id="table_content"  style="width:1200px;"><div class="text-right">
- <span class="badge bg-primary">수주 담당자: ${adminName}</span>
+ <span class="badge bg-primary">수주 담당자: ${order.adminName}</span>
   </div>
     <table class="table table-bordered mb-4" style="table-layout: fixed; width: 100%;">
     <colgroup>
@@ -194,9 +194,20 @@
   </tbody>
 </table>
 
-<div class="mt-4">
-        <a href="${pageContext.request.contextPath}/clientorder/list" class="btn btn-outline-secondary">목록으로</a>
-    </div>
+<div class="mt-4 d-flex justify-content-end">
+
+  <a href="${pageContext.request.contextPath}/clientorder/list"
+       class="btn btn-outline-secondary d-inline-block ml-2">
+       목록으로
+    </a>
+    <a href="${pageContext.request.contextPath}/clientorder/pdf/${order.clOrderId}"
+       class="btn btn-warning d-inline-block"
+       target="_blank">
+       PDF 다운로드
+    </a>
+  
+</div>
+
 
 </div>
 

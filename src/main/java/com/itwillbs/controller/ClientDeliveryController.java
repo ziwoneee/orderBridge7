@@ -124,8 +124,10 @@ public class ClientDeliveryController {
         if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) cri.setSortOrder("desc");
 
         List<ShipmentCompletedDTO> completedList = deliveryService.searchCompletedShipmentList(cri);
+        System.out.println(completedList.size());
         PageMaker completedPage = new PageMaker(cri, completedCount);
         List<ShipmentCompletedGroupDTO> groupedCompletedList = deliveryService.getCompletedGroupedList(cri);
+        System.out.println(groupedCompletedList.size());
 
         model.addAttribute("completedList", completedList);
         model.addAttribute("groupedCompletedList", groupedCompletedList);
