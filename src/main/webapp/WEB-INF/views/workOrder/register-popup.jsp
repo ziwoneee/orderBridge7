@@ -73,11 +73,6 @@
     </div>
   </div>
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-
-=======
->>>>>>> branch 'develop' of https://github.com/ziwoneee/orderBridge7.git
   <!-- 작업지시 설정 -->
 <div class="card">
   <div class="card-body">
@@ -113,34 +108,6 @@
           </c:choose>
         </select>
       </div>
-<<<<<<< HEAD
-=======
-  <!-- 작업지시 설정 -->
-  <div class="card">
-    <div class="card-body">
-      <div class="row">
-        <div class="col-md-6">
-          <label>생산라인 <span class="text-danger">*</span></label>
-          <select class="form-control" name="lineId" required>
-            <c:forEach var="line" items="${lineList}">
-              <option value="${line.lineId}">${line.lineName}</option>
-            </c:forEach>
-          </select>
-        </div>
->>>>>>> branch '110-라인-관리' of https://github.com/ziwoneee/orderBridge7.git
-        <div class="col-md-6">
-          <label>우선순위 <span class="text-danger">*</span></label>
-          <select class="form-control" name="priority" required>
-            <option value="HIGH">높음</option>
-            <option value="NORMAL" selected>보통</option>
-            <option value="LOW">낮음</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group mt-3">
-        <label>특이사항</label>
-        <textarea class="form-control" name="remarks" rows="2"></textarea>
-=======
 
       <!-- 우선순위 -->
       <div class="col-md-6">
@@ -150,7 +117,6 @@
           <option value="NORMAL" selected>보통</option>
           <option value="LOW">낮음</option>
         </select>
->>>>>>> branch 'develop' of https://github.com/ziwoneee/orderBridge7.git
       </div>
     </div>
 
