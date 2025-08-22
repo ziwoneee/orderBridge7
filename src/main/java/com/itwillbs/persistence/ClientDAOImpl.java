@@ -63,7 +63,17 @@ public class ClientDAOImpl implements ClientDAO {
         return count != null && count > 0;
     }
 
+    //이메일가져오기
+    @Override
+    public String findEmailById(String clientId) {
+        return sqlSession.selectOne(NAMESPACE + ".findEmailById", clientId);
+    }
 
+    //이름가져오기
+    @Override
+    public String findNameById(String clientId) {
+        return sqlSession.selectOne(NAMESPACE + ".findNameById", clientId);
+    }
     
     
 }

@@ -20,4 +20,7 @@ public interface ClientService {
     
     boolean isBusinessNumberExists(String businessNumber);// 사업자번호중복확인
 
+    String getClientEmailById(String clientId);
+    
+    String getClientNameById(String clientId);
 }

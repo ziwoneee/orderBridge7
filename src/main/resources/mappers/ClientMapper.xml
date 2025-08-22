@@ -173,6 +173,23 @@
   WHERE business_number = #{businessNumber}
 </select>
 
+ <!-- client_id로 담당자 이메일 조회 -->
+<select id="findEmailById" parameterType="string" resultType="string">
+  SELECT manager_email
+  FROM client
+  WHERE client_id = #{clientId}
+  LIMIT 1
+</select>
+
+<!-- client_id로 고객사명 조회 -->
+<select id="findNameById" parameterType="string" resultType="string">
+  SELECT client_name
+  FROM client
+  WHERE client_id = #{clientId}
+  LIMIT 1
+</select>
+
+
   
 
 </mapper>

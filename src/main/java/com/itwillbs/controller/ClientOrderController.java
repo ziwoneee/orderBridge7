@@ -1,6 +1,7 @@
 package com.itwillbs.controller;
 
 import java.awt.Color;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
@@ -23,9 +24,11 @@ import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.ProductVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.DeliveryHistoryDTO;
+import com.itwillbs.persistence.ClientDAO;
 import com.itwillbs.domain.ClientDeliveryVO;
 import com.itwillbs.domain.ClientOrderDetailVO;
 import com.itwillbs.service.ClientService;
+import com.itwillbs.service.MailService;
 import com.itwillbs.service.ClientDeliveryService;
 import com.itwillbs.service.ClientOrderDetailService;
 import com.itwillbs.service.ClientOrderService;
@@ -62,9 +65,14 @@ public class ClientOrderController {
     @Autowired
     private ClientOrderDetailService clientOrderDetailService;
     
+        @Autowired
+    private ClientDeliveryService deliveryService;
     
     @Autowired
-    private ClientDeliveryService deliveryService;
+    private ClientDAO clientDAO;
+    
+    @Autowired
+    private MailService mailService;
    
     
     // 거래처 리스트 (자동완성/드롭다운용)
@@ -103,7 +111,7 @@ public class ClientOrderController {
         @RequestParam(value = "orderQty", required = false) List<Integer> orderQtyList,
         @RequestParam(value = "unitPrice", required = false) List<Integer> unitPriceList,
         @RequestParam(value = "detailMemo", required = false) List<String> detailMemoList,
-        HttpSession session,
+        HttpSession session, RedirectAttributes rttr,
         Model model
     ) {
         // 1. 제품이 선택되지 않았을 경우 → 등록 폼으로 되돌아감
@@ -139,7 +147,7 @@ public class ClientOrderController {
 
         // 4. 마스터 등록
         clientOrderService.registerOrder(orderVO);
-
+              
         // 5. 상세 등록
         for (int i = 0; i < productIdList.size(); i++) {
             ClientOrderDetailVO detail = new ClientOrderDetailVO();
@@ -152,8 +160,45 @@ public class ClientOrderController {
                 detail.setDetailMemo(detailMemoList.get(i));
             clientOrderService.registerOrderDetail(detail);
         }
+        
+        // 6) ✅ 상세까지 저장된 후 메일 발송
+        try {
+            // 상세 목록 조회 (메일 본문에 포함)
+            List<ClientOrderDetailVO> detailList =
+                    clientOrderService.getOrderDetailList(orderVO.getClOrderId());
+
+            // 수신자/고객명: VO 우선, 없으면 DB 보강
+            String to = (orderVO.getManagerEmail() != null && !orderVO.getManagerEmail().isEmpty())
+                    ? orderVO.getManagerEmail()
+                    : clientDAO.findEmailById(orderVO.getClientId());
+            String clientName = (orderVO.getClientName() != null && !orderVO.getClientName().isEmpty())
+                    ? orderVO.getClientName()
+                    : clientDAO.findNameById(orderVO.getClientId());
+
+            String deliveryDate = (orderVO.getClDeliveryDate() != null)
+                    ? new java.text.SimpleDateFormat("yyyy-MM-dd").format(orderVO.getClDeliveryDate())
+                    : "미정";
+
+            if (to != null && !to.isEmpty()) {
+                mailService.sendOrderRegisteredMail(
+                        to,
+                        (clientName != null && !clientName.isEmpty()) ? clientName : "고객사",
+                        orderVO.getClOrderId(),
+                        deliveryDate,
+                        detailList   // ← 상세 내역 포함 버전 호출
+                );
+                rttr.addFlashAttribute("msg", "수주가 등록되고 고객사에게 안내 메일이 발송되었습니다.");
+            } else {
+                rttr.addFlashAttribute("msg", "수주가 등록되었지만 고객 이메일이 없어 메일은 생략되었습니다.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            rttr.addFlashAttribute("msg", "수주가 등록되었지만 메일 발송 중 오류가 발생했습니다.");
+        }
 
         return "redirect:/clientorder/list";
+        
+       
     }
 
 
@@ -329,13 +374,9 @@ public class ClientOrderController {
         // 문서에 추가
         document.add(headerTable);
         document.add(Chunk.NEWLINE); // 밑에 여백
-
-
-        // ✅ 섹션 제목
-//        Paragraph sectionTitle = new Paragraph("수주 상세정보", titleFont);
-//        sectionTitle.setAlignment(Element.ALIGN_CENTER);
-//        document.add(sectionTitle);
-//        document.add(Chunk.NEWLINE);
+        
+        //날짜 포맷 준비
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
         // 수주 기본 정보 테이블
         PdfPTable masterTable = new PdfPTable(4);
@@ -358,9 +399,9 @@ public class ClientOrderController {
         addCell(masterTable, order.getPostCode(), normalFont);
 
         addCell(masterTable, "수주일자", normalFont);
-        addCell(masterTable, order.getClOrderDate().toString(), normalFont);
+        addCell(masterTable, order.getClOrderDate() != null ? sdf.format(order.getClOrderDate()) : "-", normalFont);
         addCell(masterTable, "납기요청일", normalFont);
-        addCell(masterTable, order.getClDeliveryDate().toString(), normalFont);
+        addCell(masterTable, order.getClDeliveryDate() != null ? sdf.format(order.getClDeliveryDate()) : "-", normalFont);
 
         addCell(masterTable, "수주상태", normalFont);
         addCell(masterTable, order.getClOrderStatus(), normalFont);
@@ -415,7 +456,7 @@ public class ClientOrderController {
             	    s.getProductName() != null ? s.getProductName() : "-", normalFont)));
             shipTable.addCell(String.valueOf(s.getDeliveryQty()));
             shipTable.addCell(s.getLotNo());
-            shipTable.addCell(s.getDeliveryDate().toString());
+            shipTable.addCell(s.getDeliveryDate() != null ? sdf.format(s.getDeliveryDate()) : "-");
             shipTable.addCell(s.getTrackingNumber());
 
             shipTable.addCell(new Phrase(s.getDeliveryStatus(), normalFont));

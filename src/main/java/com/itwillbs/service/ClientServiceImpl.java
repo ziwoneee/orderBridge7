@@ -59,6 +59,14 @@ public class ClientServiceImpl implements ClientService {
         return clientDao.isBusinessNumberExists(businessNumber);
     }
 
-    
+    @Override
+    public String getClientEmailById(String clientId) {
+        return clientDao.findEmailById(clientId);
+    }
+
+    @Override
+    public String getClientNameById(String clientId) {
+        return clientDao.findNameById(clientId);
+    }
     
 }

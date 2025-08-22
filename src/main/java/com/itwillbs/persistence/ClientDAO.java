@@ -20,4 +20,9 @@ public interface ClientDAO {
     List<ClientVO> getActiveClients();  // 활성화 상태인 고객 목록
     
     boolean isBusinessNumberExists(String businessNumber); //사업자번호 중복확인
+    
+    String findEmailById(String clientId);
+    
+    String findNameById(String clientId);
+
 }

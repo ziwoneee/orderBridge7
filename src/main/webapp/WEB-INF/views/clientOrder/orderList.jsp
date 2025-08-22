@@ -18,6 +18,13 @@
     <!-- 본문 시작 -->
     <div class="main-panel">
       <div class="content-wrapper">
+      
+		      <c:if test="${not empty msg}">
+		  <script type="text/javascript">
+		    alert("${msg}");
+		  </script>
+		</c:if>
+      
         <div class="row">
           <!-- 제목 -->
           <div class="col-12 mb-4">

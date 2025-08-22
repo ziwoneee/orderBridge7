@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.itwillbs.domain.ClientOrderVO;
 import com.itwillbs.domain.ClientOrderDetailVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.persistence.ClientDAO;
 import com.itwillbs.persistence.ClientOrderDAO;
 import com.itwillbs.persistence.ClientOrderDetailDAO; // 상세 DAO 필요!
 
@@ -23,6 +24,12 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     @Autowired
     private ClientOrderDetailDAO clientOrderDetailDAO; // 상세 DAO 주입
 
+       
+    @Autowired(required = false)
+    private ClientService clientService; 
+    
+   
+    
     // 수주(마스터) 목록
     @Override
     public List<ClientOrderVO> getOrderList(SearchCriteria cri) {
@@ -53,7 +60,8 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         }
 
         clientOrderDAO.insertOrder(orderVO);
-        // ※ 상세 등록은 Controller에서 for문으로 별도 호출 (일반적)
+           
+        
     }
 
     // 상세(제품별) 등록

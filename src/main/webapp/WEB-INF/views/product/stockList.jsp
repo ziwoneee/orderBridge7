@@ -147,12 +147,8 @@
                 </tbody>
               </table>
             </div>
-
-            <!-- 다운로드 버튼 -->
-            <div class="d-flex justify-content-end mt-3">
-              <a href="#" class="btn btn-warning">+ 목록 다운로드</a>
-            </div>
-          </div>
+            
+            
  </div> <!-- row -->
  
  
