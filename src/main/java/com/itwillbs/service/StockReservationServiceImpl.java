@@ -5,32 +5,28 @@ import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.StockReservationVO;
 import com.itwillbs.dto.LotStockDTO;
 import com.itwillbs.dto.ReservationDetailDTO;
-import com.itwillbs.persistence.ClientDeliveryDAO;
 import com.itwillbs.persistence.ClientOrderDAO;
 import com.itwillbs.persistence.ProductStockDAO;
 import com.itwillbs.persistence.StockReservationDAO;
+import com.itwillbs.util.AlarmMsg;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.itwillbs.domain.ProductStockVO;          // [ALARM] fallback용
+import org.mybatis.spring.SqlSessionTemplate;       // [ALARM]
 
 import java.util.Date;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 @Service
 public class StockReservationServiceImpl implements StockReservationService {
 
     @Autowired
     private StockReservationDAO reservationDAO;
-
-    @Autowired
-    private ClientDeliveryDAO deliveryDAO;
-
-    @Autowired
-    private ProductOutboundService outboundService;
-
-    @Autowired
-    private StockReservationService reservationService;
 
     @Autowired
     private ProductStockDAO stockDAO;
@@ -40,6 +36,13 @@ public class StockReservationServiceImpl implements StockReservationService {
     
     @Autowired
     private ProductStockService productStockService; 
+    
+    // [ALARM] 추가: 알림 서비스 & MyBatis 세션
+    @Autowired private AlarmService alarmService;
+    @Autowired private SqlSessionTemplate sql;
+    
+    // [ALARM] 완제품 임계값 (기본 50)
+    private static final int FG_THRESHOLD = 50;
 
   
 
@@ -112,6 +115,9 @@ public class StockReservationServiceImpl implements StockReservationService {
                 }
                 throw new IllegalStateException("자재 부족: " + productId + ", 부족=" + remaining);
             }
+            
+            // [ALARM] 성공적으로 배정 끝났을 때 1회 체크
+            checkAndNotifyProduct(productId);
             return;
         }
 
@@ -122,6 +128,9 @@ public class StockReservationServiceImpl implements StockReservationService {
             "RESERVE", vo.getLotNo(), reservedQty, productId,
             vo.getClientId(), vo.getManager(), null, null, vo.getClOrderId()
         );
+        
+        // [ALARM]
+        checkAndNotifyProduct(productId);
     }
 
 
@@ -157,6 +166,8 @@ public class StockReservationServiceImpl implements StockReservationService {
             
             }
         }
+        // [ALARM] 해제 후 1회 체크
+        checkAndNotifyProduct(productId);
     }
 
 
@@ -190,7 +201,8 @@ public class StockReservationServiceImpl implements StockReservationService {
 
         // ✅ 임시 저장 리스트 (rollback 시 사용)
         List<StockReservationVO> tempReservations = new java.util.ArrayList<>();
-
+        Set<String> changedProducts = new HashSet<>(); // [ALARM]
+        
         for (ClientOrderDetailVO detail : orderDetails) {
             String productId = detail.getProductId();
             int requiredQty = detail.getOrderQty();
@@ -233,6 +245,7 @@ public class StockReservationServiceImpl implements StockReservationService {
 
                 requiredQty -= allocQty;
                 reserved = true;
+                changedProducts.add(productId); // [ALARM]
             }
 
             if (!reserved || requiredQty > 0) {
@@ -250,6 +263,13 @@ public class StockReservationServiceImpl implements StockReservationService {
             }
         }
 
+        // [ALARM] 성공 시 변경된 제품별 1회씩 가용수량 확인 → 부족이면 MATERIAL 알림
+        if (success) {
+            for (String pid : changedProducts) {
+                checkAndNotifyProduct(pid);
+            }
+        }
+        
         return success;
     }
 
@@ -262,7 +282,8 @@ public class StockReservationServiceImpl implements StockReservationService {
     public void deleteReservation(String clOrderId) {
         // 예약 내역 조회
         List<StockReservationVO> reservations = reservationDAO.getReservationsByOrderId(clOrderId);
-
+        Set<String> changedProducts = new HashSet<>(); // [ALARM]
+        
         for (StockReservationVO r : reservations) {
             // 예약 해제
             reservationDAO.deleteReservation(r.getClOrderId(), r.getProductId());
@@ -283,7 +304,13 @@ public class StockReservationServiceImpl implements StockReservationService {
                 r.getClOrderId()
             );
         
+            changedProducts.add(r.getProductId()); // [ALARM]
         
+        }
+        
+        // [ALARM] 변경된 제품별 1회씩 체크
+        for (String pid : changedProducts) {
+            checkAndNotifyProduct(pid);
         }
     }
 
@@ -328,4 +355,45 @@ public class StockReservationServiceImpl implements StockReservationService {
         return reservationDAO.selectReservationDetailForModal(lotNo, clOrderId);
     }
 
+
+
+// ==========================
+// [ALARM] 내부 헬퍼
+// ==========================
+/** 제품 가용수량 조회 + 임계치 비교 후 MATERIAL에게 알림 */
+    private void checkAndNotifyProduct(String productId) {
+        int available = getAvailableByProduct(productId);
+        if (available < FG_THRESHOLD) {
+            String name = productId;   // 필요하면 제품명으로 교체
+            String unit = "개";        // 필요시 "BOX" 등으로 변경
+
+            alarmService.createAlarm(
+                "FG_SHORTAGE",
+                AlarmMsg.finishedShortage(name, available, FG_THRESHOLD, unit), // ← 이 줄만 변경
+                "MATERIAL",
+                null
+            );
+        }
+    }
+
+/** selectAvailableByProduct가 없으면 getProductStockSummaryList로 대체 조회 */
+private int getAvailableByProduct(String productId) {
+    try {
+        Integer a = sql.selectOne(
+            "com.itwillbs.mapper.ProductStockMapper.selectAvailableByProduct", productId);
+        if (a != null) return a;
+    } catch (Exception ignore) {}
+
+    List<ProductStockVO> list =
+        sql.selectList("com.itwillbs.mapper.ProductStockMapper.getProductStockSummaryList");
+    if (list == null) return 0;
+
+    return list.stream()
+        .filter(v -> productId.equals(v.getProductId()))
+        .map(ProductStockVO::getAvailableQty)   // Integer일 수 있음
+        .filter(Objects::nonNull)               // null이면 제외
+        .mapToInt(Integer::intValue)            // int 스트림으로
+        .findFirst()
+        .orElse(0);
+}
 }
