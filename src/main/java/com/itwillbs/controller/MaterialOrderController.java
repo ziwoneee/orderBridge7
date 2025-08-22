@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.itwillbs.domain.AdminUserVO;
 import com.itwillbs.domain.MaterialOrderItemVO;
@@ -219,7 +220,7 @@ public class MaterialOrderController {
 	@PostMapping("/register")
 	public String registerOrder(@ModelAttribute MaterialOrderDTO orderDTO,
 								Model model,
-								HttpSession session) throws Exception {
+								HttpSession session,RedirectAttributes rttr) throws Exception {
 		
 		logger.info("registerOrder 컨트롤러 진입");
 		logger.debug("등록된 발주 데이터: " + orderDTO);
@@ -288,14 +289,33 @@ public class MaterialOrderController {
 	    }
 	    
 	    try {
-	        mOrderService.insertOrder(orderDTO); // 납기일 유효성 검사 포함
+	    	// 1) 신규 발주 등록
+	        mOrderService.insertOrder(orderDTO); // (납기일 검증 포함)
+
+	        // ★★ 2) 등록 직후 '발주 승인요청' 자동 발송 ★★
+	        //    - insert 시 생성된 order_id가 VO에 설정되어 있어야 합니다
+	        //    - MyBatis: useGeneratedKeys="true" keyProperty="orderId" 확인
+	        String createdOrderId = orderDTO.getOrder().getOrderId();
+	        if (createdOrderId != null && !createdOrderId.isEmpty()) {
+	            mOrderService.sendApprovalRequest(createdOrderId);
+	            logger.info("발주 승인요청 메일 발송 완료. orderId=" + createdOrderId);
+
+	            // ✅ FlashAttribute에 성공 메시지 저장
+	            rttr.addFlashAttribute("mailMsg", "해당 협력사에 승인요청 메일이 전송되었습니다.");
+	        } else {
+	            logger.warn("orderId 없음 → 승인요청 메일은 발송되지 않음");
+	        }
+	        
 	    } catch (IllegalArgumentException e) {
 	        model.addAttribute("error", e.getMessage());
 	        setRegisterPageData(model);
 	        model.addAttribute("orderDTO", orderDTO);
 	        return "material/order/register";
+	    }catch (Exception e) {
+	        // 승인요청 메일 발송 실패 등은 등록 자체는 성공했으므로 로그만 남기고 리스트로 이동
+	        logger.error("발주 승인요청 처리 중 오류: " + e.getMessage(), e);
 	    }
-	    
+
 	    return "redirect:/material/order/list";
 	}
 	
@@ -369,7 +389,7 @@ public class MaterialOrderController {
 	@ResponseBody
 	public String requestOrderApproval(@RequestParam("orderId") String orderId) {
 	    try {
-	        mOrderService.sendApprovalRequest(orderId);  // ✅ 기존 Service에 메서드 추가
+	        mOrderService.sendApprovalRequest(orderId);  
 	        return "success";
 	    } catch (Exception e) {
 	        e.printStackTrace();

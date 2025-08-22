@@ -376,3 +376,12 @@
 
 <script>var ctx='${pageContext.request.contextPath}';</script>
 <script src="${pageContext.request.contextPath}/resources/js/materialOrderList.js"></script>
+<c:if test="${not empty mailMsg}">
+  <script>
+    // 페이지가 그려진 뒤 실행되도록 보장
+    window.addEventListener('DOMContentLoaded', function(){
+      // c:out로 XSS 방지, 템플릿 리터럴로 따옴표 문제 회피
+      alert(`<c:out value='${mailMsg}'/>`);
+    });
+  </script>
+</c:if>
