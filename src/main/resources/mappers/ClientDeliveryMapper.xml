@@ -5,34 +5,78 @@
 <mapper namespace="com.itwillbs.mapper.ClientDeliveryMapper">
 
   <!-- ✅ 출하 대기 그룹 조회 -->
-  <select id="getPendingShipmentGroupedList" resultMap="GroupedShipmentMap">
-    SELECT
-      co.cl_order_id,
-      c.client_name,
-      p.product_id,
-      p.product_name,
-      cod.order_qty,
-      cod.detail_id,
-      COALESCE((
-        SELECT SUM(remaining_qty) FROM (
-          SELECT
-            pi.inbound_qty - COALESCE(SUM(po.outbound_qty), 0) AS remaining_qty
-          FROM product_inbound pi
-          LEFT JOIN product_outbound po
-            ON pi.product_id = po.product_id AND pi.lot_no = po.lot_no
-          WHERE pi.product_id = p.product_id
-          GROUP BY pi.inbound_id, pi.inbound_qty, pi.expire_date
-          HAVING remaining_qty > 0
-        ) AS available
-      ), 0) AS stock_qty
-    FROM client_order_detail cod
-    JOIN client_order co ON cod.cl_order_id = co.cl_order_id
-    JOIN client c ON co.client_id = c.client_id
-    JOIN product p ON cod.product_id = p.product_id
-    WHERE co.cl_order_status = 'CONFIRMED'
-      AND (cod.detail_status IS NULL OR cod.detail_status != 'SHIPPED')
-    GROUP BY co.cl_order_id, c.client_name, p.product_id, p.product_name, cod.order_qty, cod.detail_id
-  </select>
+<!-- 파라미터: sortColumn, sortOrder, offset, perPageNum, (필요시) startDate/endDate/keyword -->
+<select id="getPendingShipmentGroupedList" parameterType="map" resultMap="GroupedShipmentMap">
+  SELECT
+    co.cl_order_id,
+    co.cl_delivery_date AS cl_delivery_date,
+    c.client_name,
+    p.product_id,
+    p.product_name,
+    cod.order_qty,
+    cod.detail_id,
+    COALESCE((
+      SELECT SUM(remaining_qty) FROM (
+        SELECT
+          pi.inbound_qty - COALESCE(SUM(po.outbound_qty), 0) AS remaining_qty
+        FROM product_inbound pi
+        LEFT JOIN product_outbound po
+          ON pi.product_id = po.product_id
+         AND pi.lot_no     = po.lot_no
+        WHERE pi.product_id = p.product_id
+        GROUP BY pi.inbound_id, pi.inbound_qty, pi.expire_date
+        HAVING remaining_qty > 0
+      ) available
+    ), 0) AS stock_qty
+  FROM client_order_detail cod
+  JOIN client_order co ON cod.cl_order_id = co.cl_order_id
+  JOIN client c        ON co.client_id    = c.client_id
+  JOIN product p       ON cod.product_id  = p.product_id
+  <where>
+    co.cl_order_status = 'CONFIRMED'
+    AND (cod.detail_status IS NULL OR cod.detail_status != 'SHIPPED')
+
+    <!-- (옵션) 날짜/키워드 필터가 있으면 여기 추가 -->
+    <if test="startDate != null and startDate != ''">
+      AND co.cl_delivery_date <![CDATA[>=]]> CONCAT(#{startDate}, ' 00:00:00')
+    </if>
+    <if test="endDate != null and endDate != ''">
+      AND co.cl_delivery_date <![CDATA[<=]]> CONCAT(#{endDate}, ' 23:59:59')
+    </if>
+    <if test="keyword != null and keyword != ''">
+      AND (
+        co.cl_order_id  LIKE CONCAT('%', #{keyword}, '%')
+        OR c.client_name LIKE CONCAT('%', #{keyword}, '%')
+        OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
+      )
+    </if>
+  </where>
+  GROUP BY
+    co.cl_order_id, co.cl_delivery_date, c.client_name,
+    p.product_id, p.product_name, cod.order_qty, cod.detail_id
+
+  <!-- 🔒 동적 정렬(화이트리스트) + 2차 고정 정렬(제품/상세) -->
+  ORDER BY
+    <choose>
+      <when test="sortColumn == 'clDeliveryDate'">co.cl_delivery_date</when>
+      <when test="sortColumn == 'clOrderId'">co.cl_order_id</when>
+      <when test="sortColumn == 'clientName'">c.client_name</when>
+      <when test="sortColumn == 'productName'">p.product_name</when>
+      <otherwise>co.cl_delivery_date</otherwise>
+    </choose>
+    <choose>
+      <when test="sortOrder == 'desc'">DESC</when>
+      <otherwise>ASC</otherwise>
+    </choose>,
+    p.product_name ASC,
+    cod.detail_id ASC
+
+  <!-- 페이지네이션이 있다면 -->
+  <if test="offset != null and perPageNum != null">
+    LIMIT #{offset}, #{perPageNum}
+  </if>
+</select>
+
 
   <resultMap id="GroupedShipmentMap" type="com.itwillbs.dto.ShipmentPendingGroupDTO">
     <id property="clOrderId" column="cl_order_id"/>
