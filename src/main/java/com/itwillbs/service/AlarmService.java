@@ -7,7 +7,7 @@ import com.itwillbs.domain.AlarmLogVO;
 public interface AlarmService {
 
     // 알림 생성 (공통 알림 + 대상 등록)
-    void createAlarm(String type, String message, String url, String roleId, String adminId);
+    void createAlarm(String type, String message, String roleId, String adminId);
 
     // 알림 조회 (무한스크롤)
     List<AlarmLogVO> getPagedAlarms(String adminId, int page, int limit);

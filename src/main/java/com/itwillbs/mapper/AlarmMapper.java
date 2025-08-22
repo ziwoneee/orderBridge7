@@ -32,5 +32,8 @@ public interface AlarmMapper {
     void deleteTarget(@Param("targetId") int targetId);
     
     // 안 읽은 알람 목록 조회
-    List<AlarmLogVO> selectUnreadAlarmsByAdmin(String adminId);
+    List<AlarmLogVO> selectUnreadAlarmsByAdmin(@Param("adminId") String adminId);
+    
+    int insertTargetsByRoles(@Param("alarmId") String alarmId,
+            @Param("roles") List<String> roles);
 }
