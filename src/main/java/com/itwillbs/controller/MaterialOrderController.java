@@ -84,6 +84,11 @@ public class MaterialOrderController {
 	@GetMapping("/list")
 	public String orderList(SearchCriteria cri, Model model) throws Exception {
 		
+		if (cri.getStatus() == null || cri.getStatus().isBlank() || "ALL".equalsIgnoreCase(cri.getStatus())) {
+	        cri.setStatus(null);
+	    }
+
+		
 		if (cri.getSortColumn() == null || cri.getSortColumn().isBlank()) {
 	        cri.setSortColumn("order_date");
 	    }

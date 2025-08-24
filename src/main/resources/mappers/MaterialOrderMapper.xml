@@ -45,8 +45,8 @@
 			<if test="endDate != null and endDate != ''">
 				AND mo.order_date &lt;= #{endDate}
 			</if>
-			<if test="status != null and status != ''">
-				AND mo.order_status = #{status}
+			<if test="status != null and status != '' and status != 'ALL'">
+			  AND mo.order_status = #{status}
 			</if>
 		</where>
 		GROUP BY mo.order_id, mo.supplier_id, s.supplier_name, mo.order_date, 
@@ -113,14 +113,16 @@
 				OR s.supplier_name LIKE CONCAT('%', #{keyword}, '%'))
 			</if>
 			<if test="startDate != null and startDate != ''">
-				AND mo.order_date &gt;= #{startDate}
+			  AND mo.order_date &gt;= #{startDate}
 			</if>
 			<if test="endDate != null and endDate != ''">
-				AND mo.order_date &lt;= #{endDate}
+			  AND mo.order_date &lt;= #{endDate}
 			</if>
-			<if test="status != null and status != ''">
-				AND mo.order_status = #{status}
+			<!-- ✅ ALL 무시 -->
+			<if test="status != null and status != '' and status != 'ALL'">
+			  AND mo.order_status = #{status}
 			</if>
+
 		</where>
 	</select>
 	
