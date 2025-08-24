@@ -56,6 +56,7 @@
                 <input type="hidden" name="sortOrder" value="${cri.sortOrder}">
                 <input type="hidden" name="page" value="1">
                 <input type="hidden" name="perPageNum" value="${cri.perPageNum}">
+                <input type="hidden" name="status" value="${empty param.status ? 'ALL' : param.status}">
               </form>
             </div>
             
@@ -73,10 +74,10 @@
               <div class="d-flex justify-content-between align-items-center mb-0">
                 <ul class="nav nav-underline-custom" id="statusTab" role="tablist">
                   <li class="nav-item">
-                    <a class="nav-link ${empty param.status ? 'active' : ''}" 
-                       href="/material/order/list?keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
-                      전체 <span class="badge badge-light ms-1"></span>
-                    </a>
+                    <a class="nav-link ${empty param.status || param.status eq 'ALL' ? 'active' : ''}"
+					   href="/material/order/list?status=ALL&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}&page=1&perPageNum=${cri.perPageNum}">
+					  전체 <span class="badge badge-light ms-1"></span>
+					</a>
                   </li>
                   <li class="nav-item">
                     <a class="nav-link ${param.status eq '초안' ? 'active' : ''}" 
@@ -106,7 +107,7 @@
               </div>
 
               <!-- 테이블 -->
-              <div classtable-responsive">
+              <div class="table-responsive">
                 <table class="table table-hover">
                   <thead style="background-color: #1C355E; color: white; border-top: none;">
                     <tr>

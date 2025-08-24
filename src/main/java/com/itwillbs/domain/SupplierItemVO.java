@@ -1,5 +1,6 @@
 package com.itwillbs.domain;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 
 import lombok.Data;
@@ -25,5 +26,11 @@ public class SupplierItemVO {
     
     // 화면용 필드 (material 테이블의 입고창고 정보)
     private String warehouseCode;    
+    
+    // 발주 수정중
+    private BigDecimal minOrderQty;   // MOQ (발주단위)
+    private BigDecimal orderMultiple; // 발주 배수(발주단위)
+    private BigDecimal packQty;       // 포장단위(발주단위)
+    private BigDecimal convToBase;    // 발주→기준 환산
 
 }

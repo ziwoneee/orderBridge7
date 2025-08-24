@@ -87,7 +87,7 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
     }
 
     
- // 발주 등록
+    // 발주 등록
     @Override
     public void insertOrder(MaterialOrderDTO orderDTO) throws Exception {
 
@@ -276,6 +276,7 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
                     item.put("unitPrice", unitPrice);
                     item.put("totalPrice", unitPrice * lack);
                     item.put("warehouseCode", warehouseCode);
+                    item.put("workOrderId", request.getWorkOrderId());
                     batch.add(item);
                 }
 

@@ -67,7 +67,7 @@
 
       <div class="modal-footer">
         <button type="button" id="btnConfirmInbound" class="btn btn-primary" disabled>출고등록 진행</button>
-        <button type="button" class="btn btn-default" data-dismiss="modal">닫기</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
       </div>
     </div>
   </div>

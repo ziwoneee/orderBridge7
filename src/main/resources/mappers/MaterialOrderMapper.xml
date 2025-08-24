@@ -45,8 +45,8 @@
 			<if test="endDate != null and endDate != ''">
 				AND mo.order_date &lt;= #{endDate}
 			</if>
-			<if test="status != null and status != ''">
-				AND mo.order_status = #{status}
+			<if test="status != null and status != '' and status != 'ALL'">
+			  AND mo.order_status = #{status}
 			</if>
 		</where>
 		GROUP BY mo.order_id, mo.supplier_id, s.supplier_name, mo.order_date, 
@@ -113,14 +113,16 @@
 				OR s.supplier_name LIKE CONCAT('%', #{keyword}, '%'))
 			</if>
 			<if test="startDate != null and startDate != ''">
-				AND mo.order_date &gt;= #{startDate}
+			  AND mo.order_date &gt;= #{startDate}
 			</if>
 			<if test="endDate != null and endDate != ''">
-				AND mo.order_date &lt;= #{endDate}
+			  AND mo.order_date &lt;= #{endDate}
 			</if>
-			<if test="status != null and status != ''">
-				AND mo.order_status = #{status}
+			<!-- ✅ ALL 무시 -->
+			<if test="status != null and status != '' and status != 'ALL'">
+			  AND mo.order_status = #{status}
 			</if>
+
 		</where>
 	</select>
 	
@@ -215,24 +217,30 @@
 	
 	<!-- 자재ID 목록으로 거래처-자재 매핑 정보 조회 -->
 	<select id="selectSupplierItemMappings" parameterType="list" resultType="map">
-		SELECT
-			si.supplier_id AS supplierId,
-			si.material_id AS materialId,
-			si.unit_price AS unitPrice,
-			COALESCE(m.warehouse_code, 'WH001') AS warehouseCode,
-			s.supplier_name AS supplierName,
-			m.material_name AS materialName
-		FROM supplier_item si
-		JOIN material m ON m.material_id = si.material_id
-		JOIN supplier s ON s.supplier_id = si.supplier_id
-		WHERE si.supply_available = 'Y'
-			AND m.use_yn = 'Y'
-			AND m.purchasable_flag = 'Y'
-			AND si.material_id IN
-			<foreach collection="list" item="materialId" open="(" separator="," close=")">
-				#{materialId}
-			</foreach>
-		ORDER BY si.supplier_id, m.material_name
+	   SELECT
+	    si.supplier_id   AS supplierId,
+	    si.material_id   AS materialId,
+	    si.unit_price    AS unitPrice,
+	    COALESCE(m.warehouse_code, 'WH001') AS warehouseCode,
+	    s.supplier_name  AS supplierName,
+	    m.material_name  AS materialName,
+	    -- ▼ 구매정책/단위 보강
+	    si.min_order_qty   AS minOrderQty,
+	    si.order_multiple  AS orderMultiple,
+	    si.pack_qty        AS packQty,
+	    si.conv_to_base    AS convToBase,
+	    si.unit            AS purchaseUnit
+	  FROM supplier_item si
+	  JOIN material m ON m.material_id = si.material_id
+	  JOIN supplier s ON s.supplier_id = si.supplier_id
+	  WHERE si.supply_available = 'Y'
+	    AND m.use_yn = 'Y'
+	    AND m.purchasable_flag = 'Y'
+	    AND si.material_id IN
+	    <foreach collection="list" item="materialId" open="(" separator="," close=")">
+	      #{materialId}
+	    </foreach>
+	  ORDER BY si.supplier_id, m.material_name
 	</select>
 	
 	<!-- 발주 초안 헤더 등록 -->

@@ -102,27 +102,25 @@
 	  FROM work_order wo
 	  LEFT JOIN product p ON p.product_id = wo.product_id
 	  WHERE wo.status = 'WAITING'
-	    AND wo.shortage_status IN ('NONE','CHECKED')
-	    AND NOT EXISTS (                           <!-- 🔴 추가: 이미 출고 헤더가 있으면 제외 -->
-	    SELECT 1
-	    FROM material_outbound mo
-	    WHERE mo.work_order_id = wo.order_id
-	      AND mo.status IN ('DRAFT','ISSUED')    <!-- 등록만 되어도 제외 -->
-	  )
-	  AND EXISTS (                               
-	    SELECT 1
-	    FROM work_order_material wom
-	    LEFT JOIN material_outbound mo
-	           ON mo.work_order_id = wom.work_order_id
-	          AND mo.status = 'ISSUED'
-	    LEFT JOIN material_outbound_item oi
-	           ON oi.outbound_id = mo.outbound_id
-	          AND oi.material_id  = wom.material_id
-	    WHERE wom.work_order_id = wo.order_id
-	    GROUP BY wom.material_id
-	    HAVING COALESCE(SUM(oi.quantity),0) &lt; SUM(wom.required_qty)
-	  )
-	ORDER BY wo.due_date ASC, wo.order_id ASC
+	    AND wo.shortage_status = 'NONE'  <!-- ✅ 예전 동작 복구 포인트 -->
+	
+	    <!-- ✅ 이미 출고가 단 1건이라도 존재하면 제외 (상태 폭넓게) -->
+	    AND NOT EXISTS (
+	      SELECT 1
+	      FROM material_outbound ob
+	      WHERE ob.work_order_id = wo.order_id
+	        AND ob.status IN ('DRAFT','ISSUED','PARTIAL','COMPLETED')
+	    )
+	
+	    <!-- ✅ WO에 귀속된 '미완료 발주'가 하나라도 존재하면 제외 (수동 GENERAL은 work_order_id가 NULL이라 영향 X) -->
+	    AND NOT EXISTS (
+	      SELECT 1
+	      FROM material_order po
+	      WHERE po.work_order_id = wo.order_id
+	        AND po.order_status IN ('초안','요청','승인','부분입고','입고대기')
+	    )
+	
+	  ORDER BY wo.due_date ASC, wo.order_id ASC
 	</select>
 	
 	<!-- 등록 화면: 헤더 -->

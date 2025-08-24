@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import javax.inject.Inject;
 
@@ -266,10 +268,25 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
 
             for (Map<String,Object> it2 : items) {
                 String mid = (String) it2.get("materialId");
-                int qty = ((Number) it2.get("orderQty")).intValue();
 
                 Map<String,Object> chosenRow = chosen.get(mid);
                 int unit = ((Number) chosenRow.getOrDefault("unitPrice", 0)).intValue();
+
+                // stillNeed(기준단위, 예:g) → 정책 적용 수량(발주단위, 예:kg)으로 변환
+                int stillNeedBase = ((Number) it2.get("orderQty")).intValue();
+                BigDecimal needBase = new BigDecimal(stillNeedBase);
+
+                BigDecimal conv     = getBD(chosenRow.get("convToBase"), BigDecimal.ONE);
+                BigDecimal moq      = getBD(chosenRow.get("minOrderQty"), null);
+                BigDecimal multiple = getBD(chosenRow.get("orderMultiple"), null);
+                BigDecimal pack     = getBD(chosenRow.get("packQty"), null);
+
+                BigDecimal poQtyUom = applyPurchasePolicy(needBase, conv, moq, multiple, pack);
+
+                // 현재 VO/컬럼이 INTEGER이므로 정수 저장 (팩/배수라 대개 정수)
+                int qty = poQtyUom.setScale(0, RoundingMode.CEILING).intValue();
+                if (qty <= 0) continue; // 방어
+
                 int total = unit * qty;
                 String wh = (String) chosenRow.getOrDefault("warehouseCode", "WH001");
 
@@ -277,10 +294,10 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
                 row.put("orderItemId",   orderId + "-" + (idx++));
                 row.put("orderId",       orderId);
                 row.put("materialId",    mid);
-                row.put("orderQuantity", qty);
-                row.put("unitPrice",     unit);   // ★ Mapper가 요구
-                row.put("totalPrice",    total);  // ★ Mapper가 요구
-                row.put("warehouseCode", wh);     // ★ Mapper가 요구
+                row.put("orderQuantity", qty);      // ✅ 정책 반영 수량
+                row.put("unitPrice",     unit);
+                row.put("totalPrice",    total);
+                row.put("warehouseCode", wh);
                 row.put("workOrderId",   workOrderId);
 
                 batch.add(row);
@@ -297,6 +314,51 @@ public class MaterialReservationServiceImpl implements MaterialReservationServic
 
         return firstOrderId; // 필요하면 List<String>으로 바꿔서 전부 반환
     }
+    
+    
+ // === [추가1] 배수 올림 ===
+    private BigDecimal ceilToMultiple(BigDecimal x, BigDecimal multiple) {
+        if (x == null) return BigDecimal.ZERO;
+        if (multiple == null || multiple.compareTo(BigDecimal.ZERO) <= 0) return x;
+        BigDecimal[] dr = x.divideAndRemainder(multiple);
+        return (dr[1].compareTo(BigDecimal.ZERO) == 0) ? x : multiple.multiply(dr[0].add(BigDecimal.ONE));
+    }
+
+    // === [추가2] 안전 BigDecimal 변환 ===
+    private BigDecimal getBD(Object o, BigDecimal dflt) {
+        if (o == null) return dflt;
+        if (o instanceof BigDecimal) return (BigDecimal) o;
+        if (o instanceof Number) return new BigDecimal(((Number) o).toString());
+        try { return new BigDecimal(String.valueOf(o)); } catch (Exception e) { return dflt; }
+    }
+
+    // === [추가3] 정책 적용: 기준단위 → 발주단위 환산 + MOQ/팩/배수 반영 ===
+    private BigDecimal applyPurchasePolicy(BigDecimal needBase,
+                                           BigDecimal convToBase,
+                                           BigDecimal minOrderQty,
+                                           BigDecimal orderMultiple,
+                                           BigDecimal packQty) {
+        if (needBase == null || needBase.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
+        if (convToBase == null || convToBase.compareTo(BigDecimal.ZERO) == 0) convToBase = BigDecimal.ONE;
+
+        // 기준단위(예:g) → 발주단위(예:kg) (올림)
+        BigDecimal needUom = needBase.divide(convToBase, 6, RoundingMode.UP);
+
+        // MOQ
+        if (minOrderQty != null && minOrderQty.compareTo(BigDecimal.ZERO) > 0) {
+            needUom = needUom.max(minOrderQty);
+        }
+        // 포장단위 올림
+        if (packQty != null && packQty.compareTo(BigDecimal.ZERO) > 0) {
+            needUom = ceilToMultiple(needUom, packQty);
+        }
+        // 발주 배수 올림
+        if (orderMultiple != null && orderMultiple.compareTo(BigDecimal.ZERO) > 0) {
+            needUom = ceilToMultiple(needUom, orderMultiple);
+        }
+        return needUom;
+    }
+
 
     /**
      * [출고 확정(ISSUED)]
