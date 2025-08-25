@@ -77,62 +77,394 @@ window.validateAll = function () {
 };
 
 
-/* ---------- 부족분 발주 생성 데이터 수집 ---------- */
-// 부족 판단도 "cap < req" 기준으로 수정 (기존 sum<req 제거)
+/* ---------- 부족분 발주 생성 데이터 수집 (MOQ 적용, ES5) ---------- */
 window.collectShortages = function () {
-  const shortages = [];
-  $('#materialLotBody tr').each(function () {
-    const mid = String($(this).data('material') || '');
+  var shortagesTasks = [];
+  var rows = $('#materialLotBody tr').toArray();
+
+  rows.forEach(function (row) {
+    var $row = $(row);
+    var mid = String($row.data('material') || '');
     if (mid === 'RM-0015') return; // 물 제외
 
-    const materialId = $(this).data('material');
-    const materialName = $(this).find('.font-weight-bold').text().trim();
-    const required = +($(this).find('.req').data('req') || 0);
-
-    const capData = $(this).data('cap');
-    const cap = (capData == null) ? required : Number(capData);
+    var materialId = $row.data('material');
+    var materialName = $row.find('.font-weight-bold').text().trim();
+    var required = Number($row.find('.req').data('req') || 0);
+    var capData = $row.data('cap');
+    var cap = (capData == null) ? required : Number(capData);
 
     if (cap < required) {
-      shortages.push({
-        materialId,
-        materialName,
-        lackQty: required - cap
+      var lackQty = required - cap;
+      // MOQ 적용 비동기 계산을 task로 모음
+      var task = calculateOrderQuantity(materialId, lackQty).then(function (res) {
+        return {
+          materialId: materialId,
+          materialName: materialName,
+          lackQty: lackQty,     // 실제 부족량
+          orderQty: res.orderQty,    // MOQ 적용 발주량
+          packs: res.packs,            // 포대/박스 개수(표시용)
+          packQty: res.packQty,        // 1팩 → 기본단위 환산값
+          priceUnit: res.priceUnit,
+          unitPrice: res.unitPrice,
+          amount: res.amount,         // 금액(표시용)
+          supplyUnit: res.supplyUnit   // 예: '20kg 포대'
+        };
       });
+      shortagesTasks.push(task);
     }
   });
-  return shortages;
+
+  // 모든 행에 대한 MOQ 계산이 끝나면 배열로 반환
+  return Promise.all(shortagesTasks);
 };
+
+//=== [ADD] FE 계산 헬퍼 ===
+function applyMoqAndMultiple(lack, packQty, moq, multiple){
+  var base = Math.max(lack, moq || 0);
+  var step = multiple || packQty || 1;
+  return Math.ceil(base / step) * step;   // 최종 orderQty(기본단위 g/ml/EA)
+}
+
+//orderQty: 기본단위(g/ml/EA) 기준 주문수량
+//packQty : 1팩의 기본단위 수(g/ml/EA)
+//priceUnit: 'KG' | 'PACK' | 'BASE' | 'BUNDLE'
+function calcAmount(orderQty, packQty, unitPrice, priceUnit, bundlesPerPack){
+if (priceUnit === 'KG')      return (orderQty / 1000) * unitPrice;
+if (priceUnit === 'PACK')    return (orderQty / (packQty || 1)) * unitPrice; // 팩수 × 단가
+if (priceUnit === 'BUNDLE')  return (orderQty / (packQty || 1)) * (bundlesPerPack || 1) * unitPrice; // (팩수×단수)×단가
+return orderQty * unitPrice; // BASE
+}
+
+//=== 간단 가격 정책(단가/단위) — 빠른 임시 테이블 ===
+//=== 납입단가 (FE 테이블) ===
+function getPricePolicy(materialId){
+  const map = {
+    // 생육(kg 단가)
+    'RM-0001': { priceUnit: 'KG',     unitPrice: 3300 }, // 돼지사골
+    'RM-0002': { priceUnit: 'KG',     unitPrice: 3800 }, // 소사골
+
+    // 채소류(kg 단가)
+    'RM-0010': { priceUnit: 'KG',     unitPrice: 1300 }, // 양파 15kg 망
+    'RM-0007': { priceUnit: 'KG',     unitPrice: 5500 }, // 통마늘 10kg 망
+    'RM-0008': { priceUnit: 'KG',     unitPrice: 6000 }, // 생강 5kg 박스
+
+    // 대파는 “단” 기준(박스=10단)
+    'RM-0009': { priceUnit: 'BUNDLE', unitPrice: 2000, bundlesPerPack: 10 }, // 10단 박스
+
+    // 조미료/향신료(팩 단가)
+    'RM-0011': { priceUnit: 'PACK',   unitPrice: 1000 },  // 소금 20kg 포대 = 포대당 1,000원
+    'RM-0012': { priceUnit: 'PACK',   unitPrice: 15000 }, // 후추 1kg 봉투
+    'RM-0014': { priceUnit: 'PACK',   unitPrice: 10000 }, // 월계수 100g 포장
+    'RM-0013': { priceUnit: 'PACK',   unitPrice: 3000 },  // 맛술 1.8L 병
+
+    // 포장재(낱개 단가)
+    'RM-0016': { priceUnit: 'BASE',   unitPrice: 150 },   // 파우치 개당
+    'RM-0017': { priceUnit: 'BASE',   unitPrice: 800 },   // 박스(소) 개당
+    'RM-0018': { priceUnit: 'BASE',   unitPrice: 1200 }   // 박스(대) 개당
+  };
+  return map[materialId] || { priceUnit: 'BASE', unitPrice: 0 };
+}
+
+
+/* ---------- MOQ 계산 함수 (DB 기반, ES5) ---------- */
+function calculateOrderQuantity(materialId, lackQty) {
+	  return $.get(ctx + '/material/order/supplier-pack-qty', { materialId: materialId })
+	    .then(function (r) {
+	      var packQty   = Number(r && r.packQty) || 1;
+	      var moq       = Number(r && r.minOrderQty)   || 0;
+	      var multiple  = Number(r && r.orderMultiple) || packQty;
+
+	      // 서버가 주는 가격 정보(있으면 우선 사용)
+	      var unitPrice = (r && r.unitPrice != null) ? Number(r.unitPrice) : null;
+	      var priceUnit = (r && r.priceUnit) ? String(r.priceUnit) : null;
+
+	      var supplyUnit = (r && r.supplyUnit) || getSupplyUnit(materialId);
+
+	      // 부족량 → MOQ/배수 적용
+	      var orderQty = applyMoqAndMultiple(lackQty, packQty, moq, multiple);
+	      var packs    = Math.ceil(orderQty / packQty);
+
+	      // 없으면 FE 정책으로 보완
+	      var policy = getPricePolicy(materialId);
+	      var unitPrice = policy.unitPrice;
+	      var priceUnit = policy.priceUnit;
+	      
+	      // 금액 계산
+	      var amount    = calcAmount(orderQty, packQty, unitPrice, priceUnit, policy.bundlesPerPack);
+
+	      return {
+	        orderQty: orderQty,
+	        packQty: packQty,
+	        packs: packs,
+	        supplyUnit: supplyUnit,
+	        unitPrice: unitPrice,
+	        priceUnit: priceUnit,
+	        amount: amount
+	      };
+	    }, function () {
+	      // ===== 폴백(서버 실패 시) =====
+	      var FALLBACK_PACK_QTY = {
+	        'RM-0011':20000,'RM-0012':1000,'RM-0007':10000,'RM-0008':5000,'RM-0009':4500,
+	        'RM-0010':15000,'RM-0013':1800,'RM-0014':100,'RM-0016':1000,'RM-0017':10,'RM-0018':100
+	      };
+	      var packQty = FALLBACK_PACK_QTY[materialId] || 1;
+	      var moq = packQty, multiple = packQty;
+
+	      // 가격 정책도 함께 보완(기존 0원→총액 0 나오는 문제 방지)
+	      var policy    = getPricePolicy(materialId);
+	      var unitPrice = policy.unitPrice;
+	      var priceUnit = policy.priceUnit;
+
+	      var supplyUnit = getSupplyUnit(materialId);
+
+	      var orderQty = applyMoqAndMultiple(lackQty, packQty, moq, multiple);
+	      var packs    = Math.ceil(orderQty / packQty);
+	      var amount   = calcAmount(orderQty, packQty, unitPrice, priceUnit);
+
+	      return { orderQty, packQty, packs, amount, priceUnit, unitPrice, supplyUnit };
+	    });
+	}
+
+
+/* ---------- 발주 버튼 클릭 핸들러 (ES5, 단일) ---------- */
+$('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
+  e.preventDefault();
+
+  var workOrderId = $('#workOrderIdHidden').val()
+                  || new URLSearchParams(location.search).get('workOrderId');
+  if (!workOrderId) { alert('작업지시서를 먼저 선택하세요.'); return; }
+
+  var $btn = $(this);
+  if ($btn.prop('disabled')) return;
+
+  $btn.prop('disabled', true).text('계산 중...');
+
+  window.collectShortages().then(function (shortages) {
+    shortages = shortages || [];
+    if (!shortages.length) {
+      alert('부족분이 없습니다. (발주 생성 없이 목록으로 이동합니다)');
+      location.href = ctx + '/material/order/list';
+      return Promise.reject('NO_SHORTAGE');
+    }
+
+    var confirmed = showOrderPreviewConfirm(shortages);
+    if (!confirmed) {
+      $btn.prop('disabled', false).text('부족분 발주');
+      return Promise.reject('CANCELLED');
+    }
+
+    $btn.text('생성 중...');
+
+    // 서버가 아직 lackQty만 받는다면 lackQty에 MOQ적용 값을 넣어 전송
+    var orderData = {
+      workOrderId: workOrderId,
+      items: shortages.map(function (item) {
+        return {
+          materialId: item.materialId,
+          materialName: item.materialName,
+          // 서버 미수정: lackQty로 보냄(= MOQ 적용량)
+          lackQty: item.orderQty
+          // 서버 수정 완료 시:
+          // orderQty: item.orderQty,
+          // lackQty: item.lackQty
+        };
+      })
+    };
+
+    return createDraftOrder(orderData);
+  }).catch(function (err) {
+    if (err !== 'NO_SHORTAGE' && err !== 'CANCELLED') {
+      console.error('부족분 발주 처리 오류:', err);
+      alert('부족분 발주 처리 중 오류가 발생했습니다.\n' + (err && err.message ? err.message : err));
+    }
+    $btn.prop('disabled', false).text('부족분 발주');
+  });
+});
+
+//보기 좋은 수량 표기
+function formatEqQty(item){
+  const mid = item.materialId;
+  const policy = getPricePolicy(mid);
+
+  if (policy.priceUnit === 'KG') {
+    return (item.orderQty / 1000).toLocaleString() + 'kg';
+  }
+  if (policy.priceUnit === 'BUNDLE') {
+    const bundles = (item.packs || 0) * (policy.bundlesPerPack || 1);
+    return bundles.toLocaleString() + '단';
+  }
+  if (mid === 'RM-0013') { // 맛술: 1.8L 병
+    return (item.orderQty / 1000).toLocaleString() + 'L';
+  }
+  // 기본: 숫자만
+  return item.orderQty.toLocaleString();
+}
+
+
+/* ---------- 발주 미리보기 확인 대화상자 ---------- */
+function showOrderPreviewConfirm(shortages) {
+	  var totalLack = 0;
+	  var totalOrder = 0;
+	  var totalAmount = 0;
+	  var adjustedItems = [];
+	  var packLines = [];
+
+	  // 표기용 헬퍼
+	  function formatEqualNote(item) {
+	    // orderQty(기본단위, g/ml/EA)가 없으면 packs*packQty로 보정
+	    var packQty = Number(item.packQty) || 1;
+	    var packs   = Number(item.packs)   || Math.ceil((Number(item.orderQty)||0) / packQty) || 0;
+	    var baseQty = (Number(item.orderQty) > 0) ? Number(item.orderQty) : (packs * packQty);
+
+	    // priceUnit 기준으로 보기 좋게
+	    var pu = String(item.priceUnit || '').toUpperCase();
+	    if (pu === 'KG') {
+	      return '= ' + (baseQty / 1000).toLocaleString() + 'kg';
+	    } else if (pu === 'PACK') {
+	      return '= ' + packs.toLocaleString() + '팩';
+	    } else { // BASE(개/EA)
+	      return '= ' + baseQty.toLocaleString() + '개';
+	    }
+	  }
+
+	  shortages.forEach(function(item){
+	    totalLack  += (Number(item.lackQty)  || 0);
+	    totalOrder += (Number(item.orderQty) || 0);
+	    totalAmount+= (Number(item.amount)   || 0);
+
+	    if ((Number(item.orderQty)||0) > (Number(item.lackQty)||0)) {
+	      adjustedItems.push('• ' + item.materialName + ': ' + item.lackQty + ' → ' + item.orderQty);
+	    }
+
+	    var packs = Number(item.packs) || Math.ceil((Number(item.orderQty)||0) / (Number(item.packQty)||1)) || 0;
+	    var supply = item.supplyUnit || getSupplyUnit(item.materialId);
+
+	    packLines.push(
+	      '• ' + item.materialName + ' : ' + supply + ' × ' + packs.toLocaleString()
+	      + '  (' + formatEqualNote(item) + ')'
+	    );
+	  });
+
+	  var message = '부족분 발주를 생성하고,\n현재 가용분을 이번 작업지시로 예약합니다.\n\n'
+	              + '총 ' + shortages.length + '개 자재의 발주를 생성합니다.\n\n'
+	              + '실제 부족량: ' + totalLack.toLocaleString() + '\n'
+	              + '발주 수량: '  + totalOrder.toLocaleString() + '\n';
+
+	  if (packLines.length > 0) {
+	    message += '\n발주(팩) 표기:\n' + packLines.join('\n') + '\n';
+	  }
+	  if (adjustedItems.length > 0) {
+	    message += '\n최소 발주단위가 적용된 항목:\n' + adjustedItems.join('\n') + '\n';
+	  }
+
+	  message += '\n총 금액(추정): ' + totalAmount.toLocaleString() + '원\n\n'
+	          + '[확인] 발주+예약 진행 / [취소] 중단';
+
+	  return confirm(message);
+	}
+
+
+/* ---------- 실제 발주 생성 함수 (ES5) ---------- */
+function createDraftOrder(orderData) {
+  // 1) 발주 생성
+  return $.ajax({
+    url: ctx + '/material/order/draft',
+    method: 'POST',
+    contentType: 'application/json; charset=utf-8',
+    dataType: 'json',
+    data: JSON.stringify(orderData),
+    xhrFields: { withCredentials: true }
+  }).then(function (response) {
+    // 2) 생성된 발주 ID 수집
+    var ids = Array.isArray(response && response.orderIds) ? response.orderIds
+            : (response && response.orderId ? [response.orderId] : []);
+
+    // 3) 예약 처리
+    return $.post(ctx + '/material/reservation/reserve-only', {
+      workOrderId: orderData.workOrderId
+    }).then(function (reserveResponse) {
+
+      if (reserveResponse && reserveResponse.ok === true) {
+        alert('부족분 발주가 생성되었고,\n이번 작업지시 기준으로 재고 예약을 완료했습니다.');
+      } else {
+        alert('발주는 생성되었지만 예약에 실패했습니다.');
+      }
+
+      // 4) 목록 이동
+      if (ids && ids.length) {
+        var qs = '?status=DRAFT&highlight=' + encodeURIComponent(ids.join(','));
+        location.href = ctx + '/material/order/list' + qs;
+      } else {
+        location.href = ctx + '/material/order/list';
+      }
+
+      // 호출측 then에서 필요하면 쓰라고 응답 리턴
+      return { response: response, reserveResponse: reserveResponse };
+    });
+  });
+}
+
+function getSupplyUnit(materialId) {
+	  const units = {
+	    // 생육류
+	    'RM-0001': '20kg 박스',
+	    'RM-0002': '20kg 박스',
+	    'RM-0003': '1kg 진공포장',
+	    'RM-0004': '2kg 벌크',
+	    'RM-0005': '2kg 벌크',
+	    'RM-0006': '1kg 진공포장',
+
+	    // 채소류
+	    'RM-0007': '10kg 망',
+	    'RM-0008': '5kg 박스',
+	    'RM-0009': '10단 박스',
+	    'RM-0010': '15kg 망',
+
+	    // 조미료/액상
+	    'RM-0011': '20kg 포대',
+	    'RM-0012': '1kg 봉투',
+	    'RM-0013': '1.8L 병',
+	    'RM-0014': '100g 포장',
+
+	    // 포장재
+	    'RM-0016': '1,000장 단위',
+	    'RM-0017': '10개 박스',
+	    'RM-0018': '100개 박스'
+	  };
+	  return units[materialId] || '-';
+	}
+
 
 
 /* ---------- 공통 유틸 ---------- */
 function toYmd(dateValue) {
-  if (!dateValue) return '';
-  const date = (dateValue instanceof Date) ? dateValue : new Date(dateValue);
-  if (isNaN(date.getTime())) return '';
-  const year = date.getFullYear();
-  const month = ('0' + (date.getMonth() + 1)).slice(-2);
-  const day = ('0' + date.getDate()).slice(-2);
-  return `${year}-${month}-${day}`;
-}
-function fmtDate(value) { return toYmd(value); }
+	  if (!dateValue) return '';
+	  var date = (dateValue instanceof Date) ? dateValue : new Date(dateValue);
+	  if (isNaN(date.getTime())) return '';
+	  var y = date.getFullYear();
+	  var m = ('0' + (date.getMonth() + 1)).slice(-2);
+	  var d = ('0' + date.getDate()).slice(-2);
+	  return y + '-' + m + '-' + d;
+	}
+	function fmtDate(v){ return toYmd(v); }
 
-function asDate(v){
+	function asDate(v){
 	  if (!v) return null;
 	  if (typeof v === 'string') return new Date(v.replace(' ', 'T'));
 	  if (v && typeof v === 'object' && 'time' in v) return new Date(v.time);
 	  try { return new Date(v); } catch(e){ return null; }
 	}
-	function fmtTS(v){ // yyyy-MM-dd HH:mm:ss (로컬)
-	  const d = asDate(v); if(!d || isNaN(d)) return '-';
-	  const p=n=>String(n).padStart(2,'0');
-	  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+	function fmtTS(v){
+	  var d = asDate(v); if(!d || isNaN(d)) return '-';
+	  var p=function(n){return String(n).padStart(2,'0');};
+	  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate()) + ' '
+	       + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
 	}
-	function fmtYmd(v){ // yyyy-MM-dd (로컬)
-	  const d = asDate(v); if(!d || isNaN(d)) return '-';
-	  const p=n=>String(n).padStart(2,'0');
-	  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+	function fmtYmd(v){
+	  var d = asDate(v); if(!d || isNaN(d)) return '-';
+	  var p=function(n){return String(n).padStart(2,'0');};
+	  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
 	}
-
 
 /* === [NEW] inboundIds 읽기 & 사용상태 갱신 유틸 === */
 function getInboundIdsParam() {
@@ -613,126 +945,6 @@ $(document).off('submit.resv', '#outboundForm')
       $form.data('reserving', false);
       $('#btnSubmit').prop('disabled', false).text('등록');
     });
-});
-
-/* ---------- 부족분 발주 초안 생성 (+ 동시 예약) with Alerts ---------- */
-$('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
-  e.preventDefault();
-
-  const workOrderId = $('#workOrderIdHidden').val()
-                   || new URLSearchParams(location.search).get('workOrderId');
-  if (!workOrderId) { alert('작업지시서를 먼저 선택하세요.'); return; }
-
-  // ✅ 클릭 확인 알림 (사용자 확인 필수)
-  if (!confirm('부족분 발주를 생성하고,\n현재 가용분을 이번 작업지시로 예약하시겠습니까?\n\n[확인] 발주+예약 진행 / [취소] 중단')) {
-    return;
-  }
-
-  const $btn = $(this);
-  if ($btn.prop('disabled')) return;
-
-  const restoreBtn = () => $btn.prop('disabled', false).text('부족분 발주');
-  const goToOrderList = (ids) => {
-    const goto = () => {
-      if (ids && ids.length) {
-        const qs = '?status=DRAFT&highlight=' + encodeURIComponent(ids.join(','));
-        location.href = ctx + '/material/order/list' + qs;
-      } else {
-        alert('부족분이 없어 발주를 생성하지 않았습니다.');
-        location.href = ctx + '/material/outbound/list';
-      }
-    };
-    setTimeout(goto, 300); // alert 표시 후 짧게 지연
-  };
-
-  // 🔎 화면에서 부족 목록 수집 (이미 있는 util)
-  const items = (window.collectShortages && window.collectShortages()) || [];
-  // 서버가 빈 목록을 에러로 볼 수 있으므로 미리 가드
-  if (!items.length) {
-    alert('부족분이 없습니다. (발주 생성 없이 목록으로 이동합니다)');
-    return goToOrderList([]);
-  }
-
-  $btn.prop('disabled', true).text('생성 중...');
-
-  // 1) 부족분 발주 "초안" 생성: /material/order/draft (JSON)
-  $.ajax({
-    url: ctx + '/material/order/draft',
-    method: 'POST',
-    contentType: 'application/json; charset=utf-8',
-    dataType: 'json',
-    // 서버에서 세션으로 handled_by를 주입하므로 items + workOrderId만 보내면 됨
-    data: JSON.stringify({ workOrderId, items }),
-    // 다른 오리진이면 쿠키 동봉 필요 (동일 오리진이면 무시됨)
-    xhrFields: { withCredentials: true }
-  })
-  .done(function (res) {
-    // 응답 호환 처리: {orderIds:[..]} or {orderId:".."} 등
-    const ids = Array.isArray(res && res.orderIds) ? res.orderIds
-               : (res && res.orderId ? [res.orderId] : []);
-
-    // 2) 발주 성공 → 예약 수행 (기존 엔드포인트 유지)
-    const doReserve = () => $.post(ctx + '/material/reservation/reserve-only', { workOrderId });
-
-    doReserve()
-      .done(function(r1){
-        if (r1 && r1.ok === true) {
-          alert('부족분 발주가 생성되었고,\n이번 작업지시 기준으로 재고 예약을 완료했습니다.');
-          goToOrderList(ids);
-        } else {
-          // 재시도 1회
-          doReserve()
-            .done(function(r2){
-              if (r2 && r2.ok === true) {
-                alert('부족분 발주 생성 완료.\n예약은 재시도에서 성공했습니다.');
-                goToOrderList(ids);
-              } else {
-                if (confirm('발주는 생성됐지만 예약에 실패했습니다.\n발주 목록으로 이동할까요?')) {
-                  goToOrderList(ids);
-                } else {
-                  restoreBtn();
-                }
-              }
-            })
-            .fail(function(){
-              if (confirm('발주는 생성됐지만 예약 호출에 실패했습니다.\n발주 목록으로 이동할까요?')) {
-                goToOrderList(ids);
-              } else {
-                restoreBtn();
-              }
-            });
-        }
-      })
-      .fail(function(){
-        // 첫 호출 실패 → 재시도
-        doReserve()
-          .done(function(r2){
-            if (r2 && r2.ok === true) {
-              alert('부족분 발주 생성 완료.\n예약은 재시도에서 성공했습니다.');
-              goToOrderList(ids);
-            } else {
-              if (confirm('발주는 생성됐지만 예약에 실패했습니다.\n발주 목록으로 이동할까요?')) {
-                goToOrderList(ids);
-              } else {
-                restoreBtn();
-              }
-            }
-          })
-          .fail(function(){
-            if (confirm('발주는 생성됐지만 예약 호출에 실패했습니다.\n발주 목록으로 이동할까요?')) {
-              goToOrderList(ids);
-            } else {
-              restoreBtn();
-            }
-          });
-      });
-  })
-  .fail(function (xhr) {
-    console.error('부족분 발주 실패:', xhr);
-    const msg = (xhr.responseJSON && xhr.responseJSON.message) || xhr.responseText || '서버 오류';
-    alert('부족분 발주 생성 중 오류가 발생했습니다.\n' + msg);
-    restoreBtn();
-  });
 });
 
 

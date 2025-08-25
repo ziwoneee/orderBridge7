@@ -13,12 +13,16 @@ import org.springframework.stereotype.Repository;
 import com.itwillbs.domain.MaterialVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.SupplierVO;
+import com.itwillbs.mapper.SupplierPackRuleMapper;
 
 @Repository
 public class SupplierDAOImpl implements SupplierDAO {
 	
 	@Inject
 	private SqlSession sqlSession;
+	
+	@Inject
+    private SupplierPackRuleMapper packRuleMapper; 
 	
 	private static final String NAMESPACE = "com.itwillbs.mapper.SupplierMapper.";
 
@@ -37,6 +41,22 @@ public class SupplierDAOImpl implements SupplierDAO {
         return sqlSession.selectOne(NAMESPACE + "getSupplierCount", cri);
     }
 	
+    /** 자재별 기본 발주 포장단위(pack_qty). 없으면 1 */
+    @Override
+    public Double getPackQtyByMaterial(String materialId) throws Exception {
+        Double v = null;
+        try {
+            // ✅ 애노테이션 기반 Mapper 직접 호출
+            v = packRuleMapper.getPackQtyByMaterial(materialId);
+        } catch (Exception ignore) {
+            // (선택) 스캔 설정 문제 시, 안전망: MyBatis 프록시로도 시도
+            try {
+                v = sqlSession.getMapper(SupplierPackRuleMapper.class)
+                              .getPackQtyByMaterial(materialId);
+            } catch (Exception e2) { /* 무시하고 아래 보정 */ }
+        }
+        return (v == null || v <= 0) ? 1d : v;
+    }
 	
     
 	// 협력사 ID로 협력사 상세 조회

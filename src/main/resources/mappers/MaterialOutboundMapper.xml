@@ -536,7 +536,7 @@
 	    SELECT
 	      moi.material_id,
 	      COALESCE(moi.lot_no, '') AS lot_no,
-	      SUM(moi.quantity)        AS used_qty   -- 필요시 issued_qty로 교체
+	      SUM(moi.quantity)        AS used_qty   
 	    FROM material_outbound_item moi
 	    GROUP BY moi.material_id, COALESCE(moi.lot_no, '')
 	  ) used
