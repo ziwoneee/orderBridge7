@@ -81,7 +81,7 @@
 	    oi.warehouse_code             AS warehouseCode
 	
 	  FROM material_order mo
-	  JOIN supplier s ON mo.supplier_id = s.supplier_id
+	  LEFT JOIN supplier s ON s.supplier_id = mo.supplier_id
 	  LEFT JOIN <include refid="orderItemsAgg"/> ON oi.order_id = mo.order_id  <!-- ★ LEFT -->
 	  LEFT JOIN admin_user hu ON hu.admin_id = mo.handled_by
 	
@@ -115,15 +115,40 @@
 	</select>
 
 	
-	<!-- 2. 총 건수 조회 -->
+	<!-- 2. 총 건수 조회 : 주문 기준 + LEFT JOIN + EXISTS 검색 -->
 	<select id="getTotalCount"
-        parameterType="com.itwillbs.domain.SearchCriteria"
-        resultType="int">
-	  SELECT COUNT(*) 
+	        parameterType="com.itwillbs.domain.SearchCriteria"
+	        resultType="int">
+	  SELECT COUNT(*)
 	  FROM material_order mo
-	  JOIN supplier s ON mo.supplier_id = s.supplier_id
-	  <include refid="orderListWhere"/>
+	  LEFT JOIN supplier s ON s.supplier_id = mo.supplier_id
+	  <where>
+	    <if test="keyword != null and keyword != ''">
+	      (
+	        mo.order_id LIKE CONCAT('%', #{keyword}, '%')
+	        OR s.supplier_name LIKE CONCAT('%', #{keyword}, '%')
+	        OR EXISTS (
+	          SELECT 1
+	          FROM material_order_item moi2
+	          JOIN material m2 ON m2.material_id = moi2.material_id
+	          WHERE moi2.order_id = mo.order_id
+	            AND m2.material_name LIKE CONCAT('%', #{keyword}, '%')
+	        )
+	      )
+	    </if>
+	    <if test="startDate != null and startDate != ''">
+	      AND mo.order_date &gt;= #{startDate}
+	    </if>
+	    <if test="endDate != null and endDate != ''">
+	      AND mo.order_date &lt;= #{endDate}
+	    </if>
+	    <if test="status != null and status != '' and status != 'ALL'">
+	      AND mo.order_status = #{status}
+	    </if>
+	  </where>
 	</select>
+
+
 	
 	<!-- 발주번호 생성 -->
 	<select id="generateOrderId" resultType="String">
