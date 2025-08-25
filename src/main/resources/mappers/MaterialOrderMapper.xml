@@ -89,27 +89,41 @@
 	
 	  <!-- 정렬 규칙 -->
 	  <choose>
-	    <!-- 상태 탭(필터 있음): 상태 우선 + 최신일자 -->
-	    <when test="status != null and status != '' and status != 'ALL'">
-	      ORDER BY FIELD(mo.order_status, '초안','요청','승인','입고완료'),
-	               mo.order_date DESC, mo.order_id DESC
-	    </when>
-	    <!-- 전체 탭: 지정 정렬 또는 기본(발주일 DESC) -->
-	    <otherwise>
-	      <choose>
-	        <when test="sortColumn == 'order_id'">
-	          ORDER BY mo.order_id ${sortOrder}
-	        </when>
-	        <when test="sortColumn == 'expected_arrived_date'">
-	          ORDER BY mo.expected_arrived_date ${sortOrder}, mo.order_date DESC, mo.order_id DESC
-	        </when>
-	        <!-- 기본 -->
-	        <otherwise>
-	          ORDER BY mo.order_date ${sortOrder}, mo.order_id DESC
-	        </otherwise>
-	      </choose>
-	    </otherwise>
-	  </choose>
+	  <!-- 사용자가 정렬 지정 -->
+	  <when test="sortColumn != null and sortColumn != ''">
+	    <!-- 위 ‘교체 후’와 동일 4분기 -->
+	    <choose>
+	      <when test="sortColumn == 'order_id'">
+	        ORDER BY mo.order_id ${sortOrder}
+	      </when>
+	      <when test="sortColumn == 'order_date'">
+	        ORDER BY mo.order_date ${sortOrder}, mo.order_id DESC
+	      </when>
+	      <when test="sortColumn == 'expected_arrived_date'">
+	        ORDER BY mo.expected_arrived_date ${sortOrder}, mo.order_id DESC
+	      </when>
+	      <otherwise>
+	        ORDER BY mo.order_date DESC, mo.order_id DESC
+	      </otherwise>
+	    </choose>
+	  </when>
+	
+	  <!-- 사용자가 정렬 미지정: 기본 정렬 -->
+	  <otherwise>
+	    <choose>
+	      <!-- 전체 탭일 때만 상태 가중 -->
+	      <when test="status == null or status == '' or status == 'ALL'">
+	        ORDER BY FIELD(mo.order_status,'초안','요청','승인','입고완료'),
+	                 mo.order_date DESC, mo.order_id DESC
+	      </when>
+	      <!-- 상태 탭 기본은 날짜 내림차순 -->
+	      <otherwise>
+	        ORDER BY mo.order_date DESC, mo.order_id DESC
+	      </otherwise>
+	    </choose>
+	  </otherwise>
+	</choose>
+
 	
 	  LIMIT #{pageStart}, #{perPageNum}
 	</select>
