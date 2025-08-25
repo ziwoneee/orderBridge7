@@ -1,5 +1,6 @@
 package com.itwillbs.controller;
 
+import com.itwillbs.domain.AdminUserVO;
 import com.itwillbs.dto.PredictionResultDTO;
 import com.itwillbs.dto.WorkOrderLiteDTO;
 import com.itwillbs.service.AiPredictionService;
@@ -18,6 +19,7 @@ import java.util.Date;
 import java.util.Optional;
 
 import javax.inject.Inject;
+import javax.servlet.http.HttpSession;
 
 @Controller
 @RequestMapping("/ai")
@@ -42,19 +44,30 @@ public class AiPredictionController {
         model.addAttribute("menu", "ai");
         return "ai/predict_eta";
     }
+    
+    // 추가: 세션 사용자 ID 추출 헬퍼
+    private String resolveActor(HttpSession session) {
+        Object la = session.getAttribute("loginAdmin");
+        if (la instanceof AdminUserVO) {
+            return ((AdminUserVO) la).getAdminId(); // 예: M0001
+        }
+        return "SYSTEM"; // 비로그인/테스트 등
+    }
 
     /** JSON 응답 (AJAX) */
     @ResponseBody
     @GetMapping("/eta/json")
-    public PredictionResultDTO etaJson(@RequestParam String workOrderId) throws Exception {
-        return service.predictEtaForWorkOrder(workOrderId);
+    public PredictionResultDTO etaJson(@RequestParam String workOrderId, HttpSession session) throws Exception {
+    	String actor = resolveActor(session);
+    	return service.predictEtaForWorkOrder(workOrderId, actor);
     }
 
     /** 동기 제출 ▶ 같은 화면에서 결과 표시 */
     @PostMapping("/eta")
-    public String etaPost(@RequestParam String workOrderId, Model model) {
+    public String etaPost(@RequestParam String workOrderId, Model model, HttpSession session) {
+	  String actor = resolveActor(session);
       try {
-        PredictionResultDTO res = service.predictEtaForWorkOrder(workOrderId);
+        PredictionResultDTO res = service.predictEtaForWorkOrder(workOrderId, actor);
 
         // 작업지시서(요청 납기일)
         var woOpt = workOrderQueryService.findOne(workOrderId);

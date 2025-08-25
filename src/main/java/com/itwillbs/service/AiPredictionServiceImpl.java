@@ -46,35 +46,42 @@ public class AiPredictionServiceImpl implements AiPredictionService {
 
     private final ObjectMapper om = new ObjectMapper();
     
-
+    
+    
+    // [변경됨] 기존 메서드는 오버로드 호출
     @Transactional
     @Override
     public PredictionResultDTO predictEtaForWorkOrder(String workOrderId) throws Exception {
+        return predictEtaForWorkOrder(workOrderId, null); // ★ 추가된 오버로드 호출
+    }
+
+    
+
+    // ★ 신규 오버로드: 세션 사용자 ID를 받아 로그에 남김
+    @Transactional
+    @Override
+    public PredictionResultDTO predictEtaForWorkOrder(String workOrderId, String requestedBy) throws Exception {
         Map<String, Object> wo = apDAO.getWorkOrderSummary(workOrderId);
         if (wo == null) throw new IllegalArgumentException("작업지시서 없음: " + workOrderId);
-        
-        
-        // ★ 단계 계산 (항상 먼저)
+
         final String stage = woMapper.resolveAiStage(workOrderId);
 
-        // ★ READY/CHECKED_ONLY는 무조건 LOW + 즉시 투입 (조기 리턴)
         if ("READY".equals(stage) || "CHECKED_ONLY".equals(stage)) {
             PredictionResultDTO r = new PredictionResultDTO();
             r.setWorkOrderId(workOrderId);
-            r.setStage(stage);                             // ← stage 반드시 세팅
+            r.setStage(stage);
             r.setRiskLevel("LOW");
             r.setReason("자재 확보·출고 완료 → 즉시 투입 가능");
-            r.setActions(Arrays.asList("생산 착수"));
+            r.setActions(java.util.Arrays.asList("생산 착수"));
             r.setEtaDays(0);
-            
-            return logAndReturn("ETA_READY_BYPASS", workOrderId, stage, wo, r);
+            return logAndReturn("ETA_READY_BYPASS", workOrderId, stage, wo, r, requestedBy);
         }
-        
-        String status = Objects.toString(wo.get("status"), "");   // ✅ 상태 확인
+
+        String status = Objects.toString(wo.get("status"), "");
         if ("COMPLETED".equalsIgnoreCase(status)) {
-            throw new IllegalArgumentException("이미 완료된 작업지시서입니다. (status=COMPLETED)"); // 컨트롤러에서 메시지로 표시
+            throw new IllegalArgumentException("이미 완료된 작업지시서입니다. (status=COMPLETED)");
         }
-        
+
         List<Map<String, Object>> shortages = apDAO.getShortageByMaterial(workOrderId);
         List<String> mats = shortages.stream()
                 .map(m -> Objects.toString(m.get("materialId"), null))
@@ -89,9 +96,8 @@ public class AiPredictionServiceImpl implements AiPredictionService {
         in.setShortages(shortages);
         in.setLeadStats(leadStats);
 
-        // 단계별 처리
-        if ("PO_PLACED".equals(stage)) { // shortage_status = DRAFTED (발주/입고 대기)
-            int baseline = computeBaselineEta(in); // 리드타임 기반
+        if ("PO_PLACED".equals(stage)) {
+            int baseline = computeBaselineEta(in);
             PredictionResultDTO r = new PredictionResultDTO();
             r.setWorkOrderId(in.getWorkOrderId());
             r.setStage(stage);
@@ -99,25 +105,22 @@ public class AiPredictionServiceImpl implements AiPredictionService {
             int sc = (int) shortages.stream().filter(m -> toInt(m.get("shortageQty"), 0) > 0).count();
             r.setRiskLevel(sc >= 5 ? "HIGH" : "MEDIUM");
             r.setReason("부족 자재 " + sc + "건, 공급사 리드타임/입고 ETA 반영 예측");
-            r.setActions(java.util.Arrays.asList("공급사 납기 재확인", "부분입고 시 부분생산 검토", "대체 자재/공급사 검토"));
-            
-            return logAndReturn("ETA_PO_PLACED", in.getWorkOrderId(), stage, in, r);
+            r.setActions(Arrays.asList("공급사 납기 재확인", "부분입고 시 부분생산 검토", "대체 자재/공급사 검토"));
+            return logAndReturn("ETA_PO_PLACED", in.getWorkOrderId(), stage, in, r, requestedBy); // ★
         }
 
-        if ("PLANNED".equals(stage)) { // shortage_status = NONE (부족 검증 전, 초안 단계)
-            int baseline = Math.max(1, Math.min(3, computeBaselineEta(in))); // 보수적으로 짧게
+        if ("PLANNED".equals(stage)) {
+            int baseline = Math.max(1, Math.min(3, computeBaselineEta(in)));
             PredictionResultDTO r = new PredictionResultDTO();
             r.setWorkOrderId(in.getWorkOrderId());
             r.setStage(stage);
             r.setEtaDays(baseline);
             r.setRiskLevel("MEDIUM");
             r.setReason("초기 베이스라인(재고/라인/표준시간 가정). 부족 검증 전 단계");
-            r.setActions(java.util.Arrays.asList("부족 검증 실행", "예약/발주 진행", "라인 슬롯 임시 배정"));
-            
-            return logAndReturn("ETA_PLANNED", in.getWorkOrderId(), stage, in, r);
+            r.setActions(Arrays.asList("부족 검증 실행", "예약/발주 진행", "라인 슬롯 임시 배정"));
+            return logAndReturn("ETA_PLANNED", in.getWorkOrderId(), stage, in, r, requestedBy); // ★
         }
 
-        // 그 외(IN_PROGRESS/COMPLETED 등)는 기존 로직/휴리스틱 사용
         int baselineEta = computeBaselineEta(in);
         try {
             PredictionResultDTO out = callLLM(in, baselineEta);
@@ -125,26 +128,25 @@ public class AiPredictionServiceImpl implements AiPredictionService {
             out.setStage(stage);
             out.setWorkOrderId(in.getWorkOrderId());
 
-            // 요청 요약(필요하면 더 넣어도 됨)
             Map<String,Object> req = new LinkedHashMap<>();
             req.put("baseline_eta", baselineEta);
             req.put("shortage_count", (int) in.getShortages().stream().filter(m -> toInt(m.get("shortageQty"),0)>0).count());
             req.put("product_id", in.getProductId());
 
-            return logAndReturn("ETA_LLM", in.getWorkOrderId(), stage, req, out);
+            return logAndReturn("ETA_LLM", in.getWorkOrderId(), stage, req, out, requestedBy); // ★
         } catch (Exception e) {
             PredictionResultDTO out = fallbackHeuristic(in);
             out.setStage(stage);
             out.setWorkOrderId(in.getWorkOrderId());
 
-            // 휴리스틱 경로도 남겨두면 회고에 좋아요 (실패 사유까지)
             Map<String,Object> req = new LinkedHashMap<>();
             req.put("baseline_eta", baselineEta);
             req.put("fallback_reason", e.toString());
 
-            return logAndReturn("ETA_FALLBACK", in.getWorkOrderId(), stage, req, out);
+            return logAndReturn("ETA_FALLBACK", in.getWorkOrderId(), stage, req, out, requestedBy); // ★
         }
-     }
+    }
+
     
     
 	 // 베이스라인 ETA: 부족 품목 중 리드타임 평균의 최댓값(없으면 최소값)
@@ -365,35 +367,34 @@ public class AiPredictionServiceImpl implements AiPredictionService {
     
     // === 공통 로그 저장 + 결과 리턴 ===
     private PredictionResultDTO logAndReturn(
-    	    String requestType,           // 예: "ETA_PLANNED" / "ETA_PO_PLACED" / "ETA_LLM" / "ETA_FALLBACK" / "ETA_READY_BYPASS"
-    	    String workOrderId,
-    	    String stage,
-    	    Object inputPayload,          // 요청 요약 또는 in DTO 등
-    	    PredictionResultDTO out       // 예측 결과
-    	) {
-    	    try {
-    	        // requestedBy는 로그인 정보가 있으면 세팅, 없으면 생략(컬럼 NULL 허용이면)
-    	        String requestedBy = null; // 또는 "SYSTEM"
+            String requestType,       // "ETA_PLANNED" / "ETA_PO_PLACED" / "ETA_LLM" / "ETA_FALLBACK" / "ETA_READY_BYPASS"
+            String workOrderId,
+            String stage,
+            Object inputPayload,      // 요청 요약 또는 in DTO
+            PredictionResultDTO out,  // 예측 결과
+            String requestedBy        // ★ 추가: 세션 사용자 ID
+    ) {
+        try {
+            String actor = (requestedBy != null && !requestedBy.trim().isEmpty()) ? requestedBy : "SYSTEM";
 
-    	        var dto = new com.itwillbs.dto.AiPredictionLogDTO();
-    	        dto.setRequestedBy(requestedBy);
-    	        dto.setRequestType(requestType);
-    	        // input, output을 JSON 문자열로
-    	        java.util.Map<String,Object> wrapper = new java.util.LinkedHashMap<>();
-    	        wrapper.put("work_order", workOrderId);
-    	        wrapper.put("stage", stage);
-    	        wrapper.put("payload", inputPayload);
-    	        dto.setInputDataJson(om.writeValueAsString(wrapper));
-    	        dto.setPredictionResultJson(om.writeValueAsString(out));
+            var dto = new com.itwillbs.dto.AiPredictionLogDTO();
+            dto.setRequestedBy(actor);                 // ★ 이제 세팅됨
+            dto.setRequestType(requestType);
 
-    	        logService.log(dto); // REQUIRES_NEW 트랜잭션으로 즉시 INSERT
-    	        logger.info("[AI-LOG] saved log_id={}", dto.getLogId());
-    	    } catch (Exception e) {
-    	        logger.warn("[AI-LOG] save failed", e); // 실패해도 예측 흐름은 계속
-    	    }
-    	    return out;
-    	}
+            Map<String,Object> wrapper = new LinkedHashMap<>();
+            wrapper.put("work_order", workOrderId);
+            wrapper.put("stage", stage);
+            wrapper.put("payload", inputPayload);
+            dto.setInputDataJson(om.writeValueAsString(wrapper));
+            dto.setPredictionResultJson(om.writeValueAsString(out));
 
+            logService.log(dto); // (REQUIRES_NEW면 더 좋아요)
+            logger.info("[AI-LOG] saved log_id={}", dto.getLogId());
+        } catch (Exception e) {
+            logger.warn("[AI-LOG] save failed", e); // 실패해도 본 흐름은 유지
+        }
+        return out;
+    }
 
     
     
