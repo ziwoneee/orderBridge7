@@ -30,6 +30,19 @@ function formatDateString(v) {
   return ymdSeoul; // 예: "2025-08-20"
 }
 
+/* ===== 상태 뱃지 유틸 ===== */
+//입고 상태 전용: 미입고 / 부분입고 / 입고완료
+const INBOUND_BADGE = {
+'미입고':   'danger',
+'부분입고': 'warning',
+'입고완료': 'success'
+};
+function inboundBadge(status) {
+const s = status || '-';
+const cls = INBOUND_BADGE[s] || 'secondary';
+return `<span class="badge badge-${cls}">${s}</span>`;
+}
+
 
 /* [1] 입고 상세 모달 불러오기 */
 function loadInboundDetail(inboundId) {
@@ -51,7 +64,7 @@ function loadInboundDetail(inboundId) {
       $('#inboundDetailModal #inboundDate').text(formatDateString(data.inbound.inboundDate));
       $('#inboundDetailModal #handledBy')
       .text(data.inbound.handledByName || data.inbound.handledBy || '-');
-      $('#inboundDetailModal #modalStatus').text(data.inbound.inboundStatus || '-');
+      $('#inboundDetailModal #modalStatus').html(inboundBadge(data.inbound.inboundStatus));
 
       // 항목 정보 렌더링
       const tbody = $("#inboundInfo").empty();
