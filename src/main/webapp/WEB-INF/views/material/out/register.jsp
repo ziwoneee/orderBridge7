@@ -90,23 +90,27 @@
   </div>
 </div>
 
-<!-- 부족분 발주 미리보기 모달 -->
-<div class="modal fade" id="draftModal" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-xl" role="document">
+<div class="modal fade" id="orderPreviewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">부족분 발주 초안</h5>
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      <div class="modal-header" style="background-color: #1c355e; color: #ffffff;">
+        <h5 class="modal-title">부족분 발주 미리보기</h5>
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
       </div>
-      <div class="modal-body" id="draftBody">
-        <!-- renderDraftModal() 에서 HTML 주입 -->
+      <div class="modal-body">
+        <div id="opv-summary" class="mb-3 small text-muted"></div>
+        <div id="opv-packs" class="mb-3"></div>
+        <div id="opv-adjusted" class="mb-3"></div>
+        <div id="opv-total" class="font-weight-bold"></div>
       </div>
       <div class="modal-footer">
-        <button type="button" id="goRegister" class="btn btn-dark">발주 등록으로 이동</button>
+        <button id="opv-cancel" type="button" class="btn btn-secondary" data-dismiss="modal">취소</button>
+        <button id="opv-ok" type="button" class="btn btn-primary">확인</button>
       </div>
     </div>
   </div>
 </div>
+
 
 
 <!-- 작업지시서 선택 모달 -->

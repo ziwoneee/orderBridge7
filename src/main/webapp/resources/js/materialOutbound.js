@@ -135,95 +135,202 @@ if (priceUnit === 'BUNDLE')  return (orderQty / (packQty || 1)) * (bundlesPerPac
 return orderQty * unitPrice; // BASE
 }
 
-//=== 간단 가격 정책(단가/단위) — 빠른 임시 테이블 ===
-//=== 납입단가 (FE 테이블) ===
+//=== [BOM: 10팩 기준 레시피] ===================================
+const BOM10 = {
+  SBG: { // 순대국밥
+    'RM-0001': { name:'돼지사골', qty:16000, unit:'g' },
+    'RM-0010': { name:'양파',     qty:100,   unit:'g' },
+    'RM-0007': { name:'통마늘',   qty:50,    unit:'g' },
+    'RM-0008': { name:'생강',     qty:30,    unit:'g' },
+    'RM-0009': { name:'대파(뿌리)',qty:50,   unit:'g' },
+    'RM-0015': { name:'물',       qty:50000, unit:'ml' },
+    'RM-0011': { name:'소금',     qty:20,    unit:'g' },
+    'RM-0012': { name:'후추',     qty:5,     unit:'g' },
+    'RM-0005': { name:'삶은 머리고기', qty:700, unit:'g' },
+    'RM-0004': { name:'삶은 순대', qty:1180, unit:'g' },
+    'RM-0016': { name:'레토르트 파우치', qty:10, unit:'ea' }
+  },
+  HGT: { // 한우곰탕
+    'RM-0002': { name:'소사골',   qty:16000, unit:'g' },
+    'RM-0010': { name:'양파',     qty:150,   unit:'g' },
+    'RM-0007': { name:'통마늘',   qty:80,    unit:'g' },
+    'RM-0008': { name:'생강',     qty:50,    unit:'g' },
+    'RM-0009': { name:'대파(뿌리)',qty:50,   unit:'g' },
+    'RM-0015': { name:'물',       qty:54000, unit:'ml' },
+    'RM-0011': { name:'소금',     qty:30,    unit:'g' },
+    'RM-0012': { name:'후추',     qty:5,     unit:'g' },
+    'RM-0006': { name:'양지머리', qty:1400,  unit:'g' },
+    'RM-0014': { name:'월계수',   qty:5,     unit:'g' },
+    'RM-0013': { name:'맛술',     qty:100,   unit:'ml' },
+    'RM-0016': { name:'레토르트 파우치', qty:10, unit:'ea' }
+  },
+  DGG: { // 돼지국밥
+    'RM-0001': { name:'돼지사골', qty:16000, unit:'g' },
+    'RM-0010': { name:'양파',     qty:150,   unit:'g' },
+    'RM-0007': { name:'통마늘',   qty:80,    unit:'g' },
+    'RM-0009': { name:'대파(뿌리)',qty:50,   unit:'g' },
+    'RM-0008': { name:'생강',     qty:30,    unit:'g' },
+    'RM-0015': { name:'물',       qty:57000, unit:'ml' },
+    'RM-0011': { name:'소금',     qty:30,    unit:'g' },
+    'RM-0012': { name:'후추',     qty:5,     unit:'g' },
+    'RM-0003': { name:'삼겹/목살', qty:1400,  unit:'g' },
+    'RM-0013': { name:'맛술',     qty:100,   unit:'ml' },
+    'RM-0016': { name:'레토르트 파우치', qty:10, unit:'ea' }
+  }
+};
+
+// 제품ID/이름 -> BOM 키 매핑(임시)
+function mapProductKey(productId, productName){
+  const name = (productName||'').replace(/\s+/g,'');
+  if (/순대국밥/.test(name)) return 'SBG';
+  if (/한우곰탕/.test(name)) return 'HGT';
+  if (/돼지국밥/.test(name)) return 'DGG';
+  return null;
+}
+
+// BOM → 필요수량(기본단위) 생성
+function buildRequiredFromBOM(workList){
+  const total = {};
+  workList.forEach(({productKey, qtyEA}) => {
+    const bom = BOM10[productKey];
+    const factor = (qtyEA||0)/10;
+    if (!bom || factor<=0) return;
+    Object.entries(bom).forEach(([mid,row])=>{
+      const add = (row.qty||0)*factor;
+      if(!total[mid]) total[mid] = { qty:0, unit: row.unit };
+      total[mid].qty += add;
+    });
+  });
+  return Object.entries(total).map(([mid, v]) => ({
+    materialId: mid,
+    requiredQty: Math.round(v.qty),
+    unit: v.unit
+  }));
+}
+
+// 표기 유틸
+function baseUnitOf(mid){
+  if (['RM-0013'].includes(mid)) return 'ml';              // 맛술
+  if (['RM-0016','RM-0017','RM-0018'].includes(mid)) return 'ea'; // 포장재
+  return 'g';
+}
+function fmtQtyBase(qty, unit){
+  if (unit==='g')  return (qty>=1000) ? (qty/1000).toLocaleString()+'kg' : qty.toLocaleString()+'g';
+  if (unit==='ml') return (qty>=1000) ? (qty/1000).toLocaleString()+'L'  : qty.toLocaleString()+'ml';
+  if (unit==='ea') return qty.toLocaleString()+'개';
+  return qty.toLocaleString();
+}
+
+//=== [단가 정책] ===============================================
 function getPricePolicy(materialId){
   const map = {
     // 생육(kg 단가)
-    'RM-0001': { priceUnit: 'KG',     unitPrice: 3300 }, // 돼지사골
-    'RM-0002': { priceUnit: 'KG',     unitPrice: 3800 }, // 소사골
+    'RM-0001': { unitPrice: 3300, priceUnit: 'KG' },
+    'RM-0002': { unitPrice: 3800, priceUnit: 'KG' },
+    'RM-0003': { unitPrice: 7800, priceUnit: 'KG' },
+    'RM-0004': { unitPrice: 4500, priceUnit: 'KG' },
+    'RM-0005': { unitPrice: 6500, priceUnit: 'KG' },
+    'RM-0006': { unitPrice: 9500, priceUnit: 'KG' },
 
-    // 채소류(kg 단가)
-    'RM-0010': { priceUnit: 'KG',     unitPrice: 1300 }, // 양파 15kg 망
-    'RM-0007': { priceUnit: 'KG',     unitPrice: 5500 }, // 통마늘 10kg 망
-    'RM-0008': { priceUnit: 'KG',     unitPrice: 6000 }, // 생강 5kg 박스
+    // 채소/잡화
+    'RM-0007': { unitPrice: 5500, priceUnit: 'KG' },                 // 통마늘
+    'RM-0008': { unitPrice: 6000, priceUnit: 'KG' },                 // 생강
+    'RM-0009': { unitPrice: 2000, priceUnit: 'BUNDLE', bundlesPerPack: 10 }, // 대파: 10단/박스, 2천원/단
+    'RM-0010': { unitPrice: 1300, priceUnit: 'KG' },                 // 양파
 
-    // 대파는 “단” 기준(박스=10단)
-    'RM-0009': { priceUnit: 'BUNDLE', unitPrice: 2000, bundlesPerPack: 10 }, // 10단 박스
+    // 조미/액상
+    'RM-0011': { unitPrice: 1000,  priceUnit: 'KG' },   // 소금 1,000원/kg (20kg 포대 → 20,000원)
+    'RM-0012': { unitPrice: 15000, priceUnit: 'KG' },   // 후추 15,000원/kg
+    'RM-0013': { unitPrice: 3000,  priceUnit: 'PACK' }, // 맛술 3,000원/병(1.8L)
+    'RM-0014': { unitPrice: 10000, priceUnit: 'KG' },   // 월계수 10,000원/kg (100g 포장)
 
-    // 조미료/향신료(팩 단가)
-    'RM-0011': { priceUnit: 'PACK',   unitPrice: 1000 },  // 소금 20kg 포대 = 포대당 1,000원
-    'RM-0012': { priceUnit: 'PACK',   unitPrice: 15000 }, // 후추 1kg 봉투
-    'RM-0014': { priceUnit: 'PACK',   unitPrice: 10000 }, // 월계수 100g 포장
-    'RM-0013': { priceUnit: 'PACK',   unitPrice: 3000 },  // 맛술 1.8L 병
-
-    // 포장재(낱개 단가)
-    'RM-0016': { priceUnit: 'BASE',   unitPrice: 150 },   // 파우치 개당
-    'RM-0017': { priceUnit: 'BASE',   unitPrice: 800 },   // 박스(소) 개당
-    'RM-0018': { priceUnit: 'BASE',   unitPrice: 1200 }   // 박스(대) 개당
+    // 포장재 — 개당
+    'RM-0016': { unitPrice: 150,   priceUnit: 'BASE' },
+    'RM-0017': { unitPrice: 800,   priceUnit: 'BASE' },
+    'RM-0018': { unitPrice: 1200,  priceUnit: 'BASE' }
   };
-  return map[materialId] || { priceUnit: 'BASE', unitPrice: 0 };
+  return map[materialId] || { unitPrice: 0, priceUnit: 'BASE' };
 }
 
 
 /* ---------- MOQ 계산 함수 (DB 기반, ES5) ---------- */
-function calculateOrderQuantity(materialId, lackQty) {
-	  return $.get(ctx + '/material/order/supplier-pack-qty', { materialId: materialId })
-	    .then(function (r) {
-	      var packQty   = Number(r && r.packQty) || 1;
-	      var moq       = Number(r && r.minOrderQty)   || 0;
-	      var multiple  = Number(r && r.orderMultiple) || packQty;
+//숫자 파서
+function n(v){ return v==null || v==='' ? NaN : Number(v); }
 
-	      // 서버가 주는 가격 정보(있으면 우선 사용)
-	      var unitPrice = (r && r.unitPrice != null) ? Number(r.unitPrice) : null;
-	      var priceUnit = (r && r.priceUnit) ? String(r.priceUnit) : null;
+// 1팩 → 기본단위(g/ml/EA) 폴백 테이블
+const PACK_SIZE = {
+  'RM-0001':20000, 'RM-0002':20000, 'RM-0003':1000,
+  'RM-0004':2000,  'RM-0005':2000,  'RM-0006':1000,
+  'RM-0007':10000, 'RM-0008':5000,  'RM-0009':4500,
+  'RM-0010':15000, 'RM-0011':20000, 'RM-0012':1000,
+  'RM-0013':1800,  'RM-0014':100,   'RM-0016':1000,
+  'RM-0017':10,    'RM-0018':100
+};
 
-	      var supplyUnit = (r && r.supplyUnit) || getSupplyUnit(materialId);
+// 부족량 → MOQ/배수 반올림
+function applyMoqAndMultiple(lack, packQty, moqBase, multipleBase){
+  const base = Math.max(lack, moqBase || 0);
+  const step = multipleBase || packQty || 1;
+  return Math.ceil(base / step) * step;
+}
 
-	      // 부족량 → MOQ/배수 적용
-	      var orderQty = applyMoqAndMultiple(lackQty, packQty, moq, multiple);
-	      var packs    = Math.ceil(orderQty / packQty);
+// 금액 계산
+function calcAmount(orderQty, packQty, unitPrice, priceUnit, bundlesPerPack){
+  if (priceUnit === 'KG')      return (orderQty / 1000) * unitPrice;
+  if (priceUnit === 'PACK')    return (orderQty / (packQty || 1)) * unitPrice;
+  if (priceUnit === 'BUNDLE')  return (orderQty / (packQty || 1)) * (bundlesPerPack || 1) * unitPrice;
+  return orderQty * unitPrice; // BASE
+}
 
-	      // 없으면 FE 정책으로 보완
-	      var policy = getPricePolicy(materialId);
-	      var unitPrice = policy.unitPrice;
-	      var priceUnit = policy.priceUnit;
-	      
-	      // 금액 계산
-	      var amount    = calcAmount(orderQty, packQty, unitPrice, priceUnit, policy.bundlesPerPack);
+window.calculateOrderQuantity = function(materialId, lackQty){
+  return $.get(ctx + '/material/order/supplier-pack-qty', { materialId }).then(function(r){
 
-	      return {
-	        orderQty: orderQty,
-	        packQty: packQty,
-	        packs: packs,
-	        supplyUnit: supplyUnit,
-	        unitPrice: unitPrice,
-	        priceUnit: priceUnit,
-	        amount: amount
-	      };
-	    }, function () {
-	      // ===== 폴백(서버 실패 시) =====
-	      var FALLBACK_PACK_QTY = {
-	        'RM-0011':20000,'RM-0012':1000,'RM-0007':10000,'RM-0008':5000,'RM-0009':4500,
-	        'RM-0010':15000,'RM-0013':1800,'RM-0014':100,'RM-0016':1000,'RM-0017':10,'RM-0018':100
-	      };
-	      var packQty = FALLBACK_PACK_QTY[materialId] || 1;
-	      var moq = packQty, multiple = packQty;
+	// 1팩→기본단위(g/ml/EA)는 conv_to_base를 최우선으로!
+    let packQty = n(r && (r.convToBase || r.conv_to_base));
+    if (!isFinite(packQty) || packQty <= 0) {
+      const pk = n(r && r.packQty); // 서버가 잘못 packQty=1만 줄 수도 있음
+      packQty = (isFinite(pk) && pk > 1) ? pk : (PACK_SIZE[materialId] || 1);
+    }
+	
+    let moq      = n(r && r.minOrderQty);
+     let multiple = n(r && r.orderMultiple);
+     // 값이 없으면 1팩 기준, 값이 '1' 같은 팩 단위면 기본단위로 변환
+     if (!isFinite(moq)      || moq      <= 0) moq      = packQty;
+     else if (moq < packQty)      moq      *= packQty;
+     if (!isFinite(multiple) || multiple <= 0) multiple = packQty;
+     else if (multiple < packQty) multiple *= packQty;
 
-	      // 가격 정책도 함께 보완(기존 0원→총액 0 나오는 문제 방지)
-	      var policy    = getPricePolicy(materialId);
-	      var unitPrice = policy.unitPrice;
-	      var priceUnit = policy.priceUnit;
+    const supplyUnit = (r && r.supplyUnit) || getSupplyUnit(materialId);
 
-	      var supplyUnit = getSupplyUnit(materialId);
+    // --- MOQ/배수 적용 ---
+    const orderQty = applyMoqAndMultiple(lackQty, packQty, moq, multiple);
+    const packs    = Math.ceil(orderQty / packQty);
 
-	      var orderQty = applyMoqAndMultiple(lackQty, packQty, moq, multiple);
-	      var packs    = Math.ceil(orderQty / packQty);
-	      var amount   = calcAmount(orderQty, packQty, unitPrice, priceUnit);
+    // --- 단가(서버 우선, 없으면 정책) ---
+    const policy         = getPricePolicy(materialId);
+    const unitPrice      = (r && r.unitPrice != null) ? Number(r.unitPrice) : policy.unitPrice;
+    const priceUnit      = (r && r.priceUnit) ? String(r.priceUnit).toUpperCase() : policy.priceUnit;
+    const bundlesPerPack = policy.bundlesPerPack;
 
-	      return { orderQty, packQty, packs, amount, priceUnit, unitPrice, supplyUnit };
-	    });
-	}
+    const amount = calcAmount(orderQty, packQty, unitPrice, priceUnit, bundlesPerPack);
+
+    return { orderQty, packQty, packs, supplyUnit, unitPrice, priceUnit, amount };
+  }, function(){
+    // 서버 실패 시에도 동일 로직
+    const packQty = PACK_SIZE[materialId] || 1;
+    const moq     = packQty, multiple = packQty;
+
+    const policy  = getPricePolicy(materialId);
+    const orderQty= applyMoqAndMultiple(lackQty, packQty, moq, multiple);
+    const packs   = Math.ceil(orderQty / packQty);
+    const amount  = calcAmount(orderQty, packQty, policy.unitPrice, policy.priceUnit, policy.bundlesPerPack);
+
+    return { orderQty, packQty, packs, supplyUnit:getSupplyUnit(materialId),
+             unitPrice:policy.unitPrice, priceUnit:policy.priceUnit, amount };
+  });
+};
+
+
 
 
 /* ---------- 발주 버튼 클릭 핸들러 (ES5, 단일) ---------- */
@@ -231,7 +338,7 @@ $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
   e.preventDefault();
 
   var workOrderId = $('#workOrderIdHidden').val()
-                  || new URLSearchParams(location.search).get('workOrderId');
+                || new URLSearchParams(location.search).get('workOrderId');
   if (!workOrderId) { alert('작업지시서를 먼저 선택하세요.'); return; }
 
   var $btn = $(this);
@@ -244,34 +351,35 @@ $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
     if (!shortages.length) {
       alert('부족분이 없습니다. (발주 생성 없이 목록으로 이동합니다)');
       location.href = ctx + '/material/order/list';
-      return Promise.reject('NO_SHORTAGE');
+      throw 'NO_SHORTAGE';
     }
 
-    var confirmed = showOrderPreviewConfirm(shortages);
-    if (!confirmed) {
-      $btn.prop('disabled', false).text('부족분 발주');
-      return Promise.reject('CANCELLED');
-    }
+    // ✅ 여기부터 바뀐 부분 (비동기 확인)
+    return showOrderPreviewConfirm(shortages).then(function (confirmed) {
+      if (!confirmed) {
+        $btn.prop('disabled', false).text('부족분 발주');
+        throw 'CANCELLED';
+      }
 
-    $btn.text('생성 중...');
+      $btn.text('생성 중...');
 
-    // 서버가 아직 lackQty만 받는다면 lackQty에 MOQ적용 값을 넣어 전송
-    var orderData = {
-      workOrderId: workOrderId,
-      items: shortages.map(function (item) {
-        return {
-          materialId: item.materialId,
-          materialName: item.materialName,
-          // 서버 미수정: lackQty로 보냄(= MOQ 적용량)
-          lackQty: item.orderQty
-          // 서버 수정 완료 시:
-          // orderQty: item.orderQty,
-          // lackQty: item.lackQty
-        };
-      })
-    };
+      // 서버가 아직 lackQty만 받으면 MOQ 적용값을 lackQty로 보냄
+      var orderData = {
+        workOrderId: workOrderId,
+        items: shortages.map(function (item) {
+          return {
+            materialId: item.materialId,
+            materialName: item.materialName,
+            lackQty: item.orderQty
+            // 서버 수정 완료 시:
+            // orderQty: item.orderQty,
+            // lackQty: item.lackQty
+          };
+        })
+      };
 
-    return createDraftOrder(orderData);
+      return createDraftOrder(orderData);
+    });
   }).catch(function (err) {
     if (err !== 'NO_SHORTAGE' && err !== 'CANCELLED') {
       console.error('부족분 발주 처리 오류:', err);
@@ -280,6 +388,8 @@ $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
     $btn.prop('disabled', false).text('부족분 발주');
   });
 });
+
+
 
 //보기 좋은 수량 표기
 function formatEqQty(item){
@@ -300,68 +410,51 @@ function formatEqQty(item){
   return item.orderQty.toLocaleString();
 }
 
-
 /* ---------- 발주 미리보기 확인 대화상자 ---------- */
-function showOrderPreviewConfirm(shortages) {
-	  var totalLack = 0;
-	  var totalOrder = 0;
-	  var totalAmount = 0;
-	  var adjustedItems = [];
-	  var packLines = [];
-
-	  // 표기용 헬퍼
-	  function formatEqualNote(item) {
-	    // orderQty(기본단위, g/ml/EA)가 없으면 packs*packQty로 보정
-	    var packQty = Number(item.packQty) || 1;
-	    var packs   = Number(item.packs)   || Math.ceil((Number(item.orderQty)||0) / packQty) || 0;
-	    var baseQty = (Number(item.orderQty) > 0) ? Number(item.orderQty) : (packs * packQty);
-
-	    // priceUnit 기준으로 보기 좋게
-	    var pu = String(item.priceUnit || '').toUpperCase();
-	    if (pu === 'KG') {
-	      return '= ' + (baseQty / 1000).toLocaleString() + 'kg';
-	    } else if (pu === 'PACK') {
-	      return '= ' + packs.toLocaleString() + '팩';
-	    } else { // BASE(개/EA)
-	      return '= ' + baseQty.toLocaleString() + '개';
-	    }
-	  }
+function showOrderPreviewConfirm(shortages){
+	  var totalLack=0, totalOrder=0, totalAmount=0, adjustedItems=[], packLines=[];
 
 	  shortages.forEach(function(item){
-	    totalLack  += (Number(item.lackQty)  || 0);
-	    totalOrder += (Number(item.orderQty) || 0);
-	    totalAmount+= (Number(item.amount)   || 0);
+	    var pk = Number(item.packQty)||1;
+	    var ord= Number(item.orderQty)||0;
+	    var lack=Number(item.lackQty)||0;
+	    var packs=(ord>0&&pk>0)?Math.ceil(ord/pk):0;
 
-	    if ((Number(item.orderQty)||0) > (Number(item.lackQty)||0)) {
-	      adjustedItems.push('• ' + item.materialName + ': ' + item.lackQty + ' → ' + item.orderQty);
-	    }
+	    totalLack  += lack;
+	    totalOrder += ord;
+	    totalAmount+= Number(item.amount)||0;
 
-	    var packs = Number(item.packs) || Math.ceil((Number(item.orderQty)||0) / (Number(item.packQty)||1)) || 0;
+	    if (ord>lack) adjustedItems.push('• ' + item.materialName + ': ' + lack + ' → ' + ord);
+
 	    var supply = item.supplyUnit || getSupplyUnit(item.materialId);
-
-	    packLines.push(
-	      '• ' + item.materialName + ' : ' + supply + ' × ' + packs.toLocaleString()
-	      + '  (' + formatEqualNote(item) + ')'
-	    );
+	    var eqText = formatEqQty({ materialId:item.materialId, orderQty:ord, packs:packs });
+	    packLines.push('• ' + item.materialName + ' : ' + supply + ' × ' + packs.toLocaleString()
+	                   + '  (= ' + eqText + ')');
 	  });
 
-	  var message = '부족분 발주를 생성하고,\n현재 가용분을 이번 작업지시로 예약합니다.\n\n'
-	              + '총 ' + shortages.length + '개 자재의 발주를 생성합니다.\n\n'
-	              + '실제 부족량: ' + totalLack.toLocaleString() + '\n'
-	              + '발주 수량: '  + totalOrder.toLocaleString() + '\n';
+	  // 모달에 꽂기
+	  $('#opv-summary').text(
+	    '총 ' + shortages.length + '개 자재 / 실제 부족량: ' + totalLack.toLocaleString()
+	    + ' / 발주 수량: ' + totalOrder.toLocaleString()
+	  );
+	  $('#opv-packs').html(
+	    packLines.length ? ('<div class="mb-1 font-weight-bold">발주(팩) 표기</div><pre class="mb-0">'
+	      + packLines.join('\n') + '</pre>') : ''
+	  );
+	  $('#opv-adjusted').html(
+	    adjustedItems.length ? ('<div class="mb-1 font-weight-bold">최소 발주단위가 적용된 항목</div><pre class="mb-0">'
+	      + adjustedItems.join('\n') + '</pre>') : ''
+	  );
+	  $('#opv-total').text('총 금액(추정): ' + totalAmount.toLocaleString() + '원');
 
-	  if (packLines.length > 0) {
-	    message += '\n발주(팩) 표기:\n' + packLines.join('\n') + '\n';
-	  }
-	  if (adjustedItems.length > 0) {
-	    message += '\n최소 발주단위가 적용된 항목:\n' + adjustedItems.join('\n') + '\n';
-	  }
-
-	  message += '\n총 금액(추정): ' + totalAmount.toLocaleString() + '원\n\n'
-	          + '[확인] 발주+예약 진행 / [취소] 중단';
-
-	  return confirm(message);
+	  // Promise<boolean> 반환
+	  return new Promise(function(resolve){
+	    $('#opv-ok').off('click').on('click', function(){ $('#orderPreviewModal').modal('hide'); resolve(true); });
+	    $('#orderPreviewModal').off('hidden.bs.modal').on('hidden.bs.modal', function(){ resolve(false); });
+	    $('#orderPreviewModal').modal('show');
+	  });
 	}
+
 
 
 /* ---------- 실제 발주 생성 함수 (ES5) ---------- */
@@ -540,7 +633,14 @@ $(function(){
       $('#dueDateHidden').val(due);
       $('#productId').val(dto.productId || '');
       $('#lineId').val(dto.lineId || '');
-      renderMaterialRows(dto.materialList || []);
+      
+      var itemsFromServer = (dto.materialList || []);
+      if (!itemsFromServer.length) {
+        var key = mapProductKey(dto.productId, dto.productName);
+        if (key) itemsFromServer = buildRequiredFromBOM([{ productKey: key, qtyEA: 10 }]);
+      }
+      
+      renderMaterialRows(itemsFromServer);
     }).fail(function(xhr) {
       console.error('작업지시서 정보 로드 실패:', xhr);
       alert('작업지시서 정보를 불러올 수 없습니다.');
