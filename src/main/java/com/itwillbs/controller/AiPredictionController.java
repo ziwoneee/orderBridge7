@@ -32,6 +32,7 @@ public class AiPredictionController {
     
     @Inject
     private WorkOrderQueryService workOrderQueryService;
+    
 
     /**
      * 폼 + 결과 뷰 (GET)
