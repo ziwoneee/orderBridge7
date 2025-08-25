@@ -13,27 +13,51 @@ let materialMap = {};
  */
 function addItemRowFromMaterial(item) {
 	  const tbody = document.querySelector("#itemTable tbody");
+	  const idx = itemIndex;
+
+	  const priceUnit = (item.priceUnit || 'EA').toUpperCase();
+	  const conv = Number(item.convToBase) || Number(item.packQty) || 1;
+	  const minQ = Number(item.minOrderQty) || 1;
+	  const mul  = Number(item.orderMultiple) || 1;
 
 	  const row = document.createElement("tr");
 	  row.innerHTML = `
 	    <td>
-	      <select name="orderItems[${itemIndex}].materialId" class="form-control" disabled>
+	      <select name="orderItems[${idx}].materialId" class="form-control" disabled>
 	        <option value="${item.materialId}">${item.materialName}</option>
 	      </select>
-	      <input type="hidden" name="orderItems[${itemIndex}].materialId" value="${item.materialId}">
+	      <input type="hidden" name="orderItems[${idx}].materialId" value="${item.materialId}">
+	      <input type="hidden" name="orderItems[${idx}].priceUnit" value="${priceUnit}"><!-- [NEW] 저장용 -->
+	      <input type="hidden" name="orderItems[${idx}].convToBase" value="${conv}"><!-- [NEW] 보기용 환산 참고 -->
+	      <input type="hidden" name="orderItems[${idx}].baseUnit" value="${item.baseUnit || ''}">
 	    </td>
 	    <td>
-	      <input type="number" name="orderItems[${itemIndex}].orderQuantity" class="form-control" value="1" min="1" onchange="calculateTotal(this)" required>
+	      <input type="number" name="orderItems[${idx}].orderQuantity"
+	             class="form-control"
+	             value="${Math.max(minQ, mul)}" min="${minQ}" step="1"
+	             data-multiple="${mul}" data-price-unit="${priceUnit}"
+	             oninput="enforceMultiple(this)" onchange="rowRecalc(this)" required>
+	      <small class="text-muted d-block">
+	        ${priceUnit} 1개 ≈ ${conv.toLocaleString()} ${(item.baseUnit||'').toUpperCase()}
+	        ${minQ>1?` | 최소 ${minQ}개`:''}${mul>1?` | ${mul}개 배수`:''}
+	      </small>
 	    </td>
 	    <td>
-	      <input type="number" name="orderItems[${itemIndex}].unitPrice" class="form-control" value="${item.unitPrice}" min="0" step="0.01" onchange="calculateTotal(this)" required>
+	      <input type="number" name="orderItems[${idx}].unitPrice"
+	             class="form-control" value="${item.unitPrice||0}" min="0" step="1"
+	             onchange="rowRecalc(this)" required>
 	    </td>
 	    <td>
-	      <input type="number" name="orderItems[${itemIndex}].visibleTotal" class="form-control" readonly value="${item.unitPrice}">
-	      <input type="hidden" name="orderItems[${itemIndex}].totalPrice" value="${item.unitPrice}">
+	      <input type="number" name="orderItems[${idx}].visibleTotal"
+	             class="form-control" readonly value="${item.unitPrice||0}">
+	      <input type="hidden" name="orderItems[${idx}].totalPrice" value="${item.unitPrice||0}">
+	      <div class="small text-muted mt-1"><!-- [NEW] 보기용 환산 -->
+	        <span class="js-conv">${(Math.max(minQ,mul)*conv).toLocaleString()} ${(item.baseUnit||'').toUpperCase()}</span>
+	      </div>
 	    </td>
 	    <td>
-	      <input type="text" name="orderItems[${itemIndex}].warehouseCode" class="form-control" value="${item.warehouseCode}" readonly>
+	      <input type="text" name="orderItems[${idx}].warehouseCode" class="form-control"
+	             value="${item.warehouseCode||''}" readonly>
 	    </td>
 	    <td>
 	      <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button>

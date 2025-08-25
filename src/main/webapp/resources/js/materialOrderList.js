@@ -60,6 +60,88 @@ if (token && header) {
   });
 }
 
+//=== [단가 정책/팩사이즈 폴백] ===
+function n(v){ return (v===''||v==null) ? NaN : Number(v); }
+
+// 1팩을 기본단위(g/ml/ea)로 환산
+const PACK_SIZE = {
+  'RM-0001':20000, 'RM-0002':20000, 'RM-0003':1000,
+  'RM-0004':2000,  'RM-0005':2000,  'RM-0006':1000,
+  'RM-0007':10000, 'RM-0008':5000,  'RM-0009':4500,
+  'RM-0010':15000, 'RM-0011':20000, 'RM-0012':1000,
+  'RM-0013':1800,  'RM-0014':100,   'RM-0016':1000,
+  'RM-0017':10,    'RM-0018':100
+};
+
+// 단가 정책(서버가 안 주면 폴백)
+const PRICE_POLICY = {
+  'RM-0001': { unitPrice:3300,  priceUnit:'KG' },
+  'RM-0002': { unitPrice:3800,  priceUnit:'KG' },
+  'RM-0003': { unitPrice:7800,  priceUnit:'KG' },
+  'RM-0004': { unitPrice:4500,  priceUnit:'KG' },
+  'RM-0005': { unitPrice:6500,  priceUnit:'KG' },
+  'RM-0006': { unitPrice:9500,  priceUnit:'KG' },
+
+  'RM-0007': { unitPrice:5500,  priceUnit:'KG' },
+  'RM-0008': { unitPrice:6000,  priceUnit:'KG' },
+  'RM-0009': { unitPrice:2000,  priceUnit:'BUNDLE', bundlesPerPack:10 }, // 10단/박스
+  'RM-0010': { unitPrice:1300,  priceUnit:'KG' },
+
+  'RM-0011': { unitPrice:1000,  priceUnit:'KG' },     // 1,000원/kg (20kg 포대)
+  'RM-0012': { unitPrice:15000, priceUnit:'KG' },
+  'RM-0013': { unitPrice:3000,  priceUnit:'PACK' },   // 1.8L 병
+  'RM-0014': { unitPrice:10000, priceUnit:'KG' },
+
+  'RM-0016': { unitPrice:150,   priceUnit:'BASE' },
+  'RM-0017': { unitPrice:800,   priceUnit:'BASE' },
+  'RM-0018': { unitPrice:1200,  priceUnit:'BASE' }
+};
+
+// 기본단위 → 과금단위 수량 환산
+function computeBillingQty(qtyBase, packQty, priceUnit, bundlesPerPack){
+  qtyBase = Number(qtyBase)||0;
+  packQty = Number(packQty)||1;
+  const pu = String(priceUnit||'BASE').toUpperCase();
+  if (pu === 'KG')      return { qty: qtyBase/1000, unit:'KG' };
+  if (pu === 'PACK')    return { qty: Math.ceil(qtyBase/packQty), unit:'PACK' };
+  if (pu === 'BUNDLE')  return { qty: Math.ceil(qtyBase/packQty) * (bundlesPerPack||1), unit:'BUNDLE' };
+  return { qty: qtyBase, unit:'BASE' };
+}
+
+function fmtMoney(v){ return (Number(v)||0).toLocaleString(); }
+function baseUnitOf(mid){ return (mid==='RM-0013')?'ml' : (['RM-0016','RM-0017','RM-0018'].includes(mid)?'ea':'g'); }
+function fmtBase(qty, mid){
+  const u = baseUnitOf(mid);
+  if (u==='g')  return qty>=1000 ? (qty/1000).toLocaleString()+'kg' : qty.toLocaleString()+'g';
+  if (u==='ml') return qty>=1000 ? (qty/1000).toLocaleString()+'L'  : qty.toLocaleString()+'ml';
+  return qty.toLocaleString()+'개';
+}
+
+// 공급사 메타 조회(팩사이즈/가격단위/단가) — 서버 응답 없으면 폴백
+function loadPriceMeta(materialId){
+  return $.get(ctx + '/material/order/supplier-pack-qty', { materialId }).then(function(r){
+    const policy = PRICE_POLICY[materialId] || { unitPrice:0, priceUnit:'BASE' };
+    const packQty   = n(r && (r.packQty || r.convToBase || r.conv_to_base));
+    const priceUnit = (r && r.priceUnit) || policy.priceUnit;
+    const unitPrice = (r && r.unitPrice!=null) ? Number(r.unitPrice) : policy.unitPrice;
+    return {
+      packQty: (isFinite(packQty)&&packQty>0) ? packQty : (PACK_SIZE[materialId]||1),
+      priceUnit: String(priceUnit).toUpperCase(),
+      unitPrice: unitPrice,
+      bundlesPerPack: policy.bundlesPerPack||1
+    };
+  }, function(){
+    const policy = PRICE_POLICY[materialId] || { unitPrice:0, priceUnit:'BASE' };
+    return {
+      packQty: PACK_SIZE[materialId]||1,
+      priceUnit: policy.priceUnit,
+      unitPrice: policy.unitPrice,
+      bundlesPerPack: policy.bundlesPerPack||1
+    };
+  });
+}
+
+
 
 /** ===== 테이블 컬럼 인덱스 ===== */
 const COL_STATUS  = 5; // 상태
@@ -67,34 +149,53 @@ const COL_DETAIL  = 6; // 상세
 const COL_REQUEST = 7; // 발주요청
 
 /** ===== 상세 모달 오픈 ===== */
-$(document).on('click', '.btnOrderDetail', function(){
-  const id = $(this).data('id');
+$(document).on('click', '.btnOrderDetail', function () {
+  const id = $(this).data('id');            // ← 이 줄 추가!
+  if (!id) { alert('orderId 없음'); return; }
+
   $.get(ctx + '/material/order/detail', { orderId: id })
     .done(res => {
-      const h = res.header || {};
-      $('#modalOrderId').text(h.orderId || '-');
-      $('#modalSupplierId').text(h.supplierName || h.supplierId || '-');
-      $('#modalOrderDate').text(window.formatYMD(h.orderDate));
-      $('#modalExpectedDate').text(window.formatYMD(h.expectedArrivedDate));
-      $('#modalOrderStatus').html(statusBadge(h.orderStatus));
-      $('#modalHandler').text(h.handlerName || h.handledBy || '-');
-      $('#modalNote').text(h.note || '');
-      const $tbody = $('#orderItemsInfo').empty();
-      (res.items || []).forEach(it => {
-        $tbody.append(
-          `<tr>
-             <td>${it.materialId}</td>
-             <td>${it.materialName || ''}</td>
-             <td class="text-right">${it.orderQuantity}</td>
-             <td class="text-right">${it.unitPrice}</td>
-             <td class="text-right">${it.totalPrice}</td>
-             <td>${it.warehouseCode || '-'}</td>
-           </tr>`
-        );
-      });
-      $('#orderDetailModal').modal('show');
-    })
-    .fail(xhr => alert('상세 조회 실패: ' + ((xhr.responseJSON && xhr.responseJSON.message) || xhr.statusText)));
+	    const h = res.header || {};
+	    $('#modalOrderId').text(h.orderId || '-');
+	    $('#modalSupplierId').text(h.supplierName || h.supplierId || '-');
+	    $('#modalOrderDate').text(window.formatYMD(h.orderDate));
+	    $('#modalExpectedDate').text(window.formatYMD(h.expectedArrivedDate));
+	    $('#modalOrderStatus').html(statusBadge(h.orderStatus));
+	    $('#modalHandler').text(h.handlerName || h.handledBy || '-');
+	    $('#modalNote').text(h.note || '');
+
+	    const $tbody = $('#orderItemsInfo').empty();
+	    const items = res.items || [];
+
+	    // 각 품목의 가격 메타를 불러와서 과금수량/금액을 재계산
+	    const tasks = items.map(it => {
+	      return loadPriceMeta(it.materialId).then(meta => {
+	        const qtyBase = Number(it.orderQuantity)||0; // g/ml/ea
+	        const bill = computeBillingQty(qtyBase, meta.packQty, meta.priceUnit, meta.bundlesPerPack);
+	        const amount = (bill.qty) * (meta.unitPrice||0);
+
+	        // 수량은 과금단위로 보여주고, 괄호에 기본단위 동시 표기
+	        $tbody.append(
+	          `<tr>
+	             <td>${it.materialId}</td>
+	             <td>${it.materialName || ''}</td>
+	             <td class="text-right">
+	               ${bill.qty.toLocaleString()} ${bill.unit}
+	               <br><small class="text-muted">= ${fmtBase(qtyBase, it.materialId)}</small>
+	             </td>
+	             <td class="text-right">${fmtMoney(meta.unitPrice)} / ${bill.unit}</td>
+	             <td class="text-right">${fmtMoney(amount)}</td>
+	             <td>${it.warehouseCode || '-'}</td>
+	           </tr>`
+	        );
+	      });
+	    });
+
+	    Promise.all(tasks).then(() => {
+	      $('#orderDetailModal').modal('show');
+	    });
+	  })
+	  .fail(xhr => alert('상세 조회 실패: ' + ((xhr.responseJSON && xhr.responseJSON.message) || xhr.statusText)));
 });
 
 /** ===== 발주요청 (초안 → 요청) + 메일 전송 ===== */
