@@ -29,6 +29,21 @@ window.calcRowTotal = (row) => {
   return Math.round(qty*unit);
 };
 
+/* ==== 상태 뱃지 유틸 ==== */
+const STATUS_BADGE = {
+  '초안': 'secondary',
+  '요청': 'warning',
+  '승인': 'primary',
+  '입고완료': 'success',
+  '반려': 'danger',
+  '취소': 'dark'
+};
+function statusBadge(status){
+  const s = status || '-';
+  const cls = STATUS_BADGE[s] || 'secondary';
+  return `<span class="badge badge-${cls}">${s}</span>`;
+}
+
 /** ===== 설정(필요시 변경) ===== */
 // 컨트롤러 엔드포인트: 기본 권장 경로
 const APPROVAL_ENDPOINT = ctx + '/material/order/request-approval';
@@ -61,7 +76,7 @@ $(document).on('click', '.btnOrderDetail', function(){
       $('#modalSupplierId').text(h.supplierName || h.supplierId || '-');
       $('#modalOrderDate').text(window.formatYMD(h.orderDate));
       $('#modalExpectedDate').text(window.formatYMD(h.expectedArrivedDate));
-      $('#modalOrderStatus').text(h.orderStatus || '-');
+      $('#modalOrderStatus').html(statusBadge(h.orderStatus));
       $('#modalHandler').text(h.handlerName || h.handledBy || '-');
       $('#modalNote').text(h.note || '');
       const $tbody = $('#orderItemsInfo').empty();
@@ -111,7 +126,7 @@ $(document).on('click', '.btnSubmitOrder', function(){
 
         // UI 갱신
         const $tr = $btn.closest('tr');
-        $tr.find('td').eq(COL_STATUS).html('<span class="badge badge-warning">요청</span>');
+        $tr.find('td').eq(COL_STATUS).html(statusBadge('요청'));
         $tr.find('td').eq(COL_REQUEST).html(''); // 버튼 제거
       } else {
         alert('발주요청 실패: ' + (res && res.message ? res.message : '알 수 없는 오류'));

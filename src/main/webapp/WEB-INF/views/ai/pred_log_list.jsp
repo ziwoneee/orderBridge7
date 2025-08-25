@@ -83,14 +83,44 @@
 			          <th>상세</th>
 			        </tr>
 			      </thead>
+			      
 			      <tbody>
 			        <c:forEach var="x" items="${logs}">
 			          <tr>
 			            <td><fmt:formatDate value="${x.createdAt}" pattern="yyyy-MM-dd HH:mm:ss"/></td>
-			            <td>${x.requestedBy}</td>
 			            <td>
-			              <span class="badge badge-info">${x.requestType}</span>
-			            </td>
+						  <c:choose>
+						    <c:when test="${x.requestedBy == 'SYSTEM' || empty x.requestedBy}">
+						      SYSTEM
+						    </c:when>
+						    <c:when test="${not empty x.requestedByName}">
+						      ${x.requestedByName} (${x.requestedBy})   <!-- ★ 이름(아이디) -->
+						    </c:when>
+						    <c:otherwise>
+						      ${x.requestedBy}                           <!-- 이름 못 찾으면 아이디만 -->
+						    </c:otherwise>
+						  </c:choose>
+						</td>
+						
+			            <td>
+						  <c:set var="type" value="${x.requestType}" />
+						  <c:set var="label"
+						         value="${type == 'ETA_READY_BYPASS' ? '즉시 투입 가능(바이패스)' :
+						                 type == 'ETA_PLANNED'      ? '초기 계획 기반 ETA' :
+						                 type == 'ETA_PO_PLACED'    ? '발주/입고 대기 기반 ETA' :
+						                 type == 'ETA_LLM'          ? 'LLM 예측 기반 ETA' :
+						                 type == 'ETA_FALLBACK'     ? '휴리스틱(대체) ETA' : type}" />
+						  <c:set var="cls"
+						         value="${type == 'ETA_READY_BYPASS' ? 'success' :
+						                 type == 'ETA_PLANNED'      ? 'primary' :
+						                 type == 'ETA_PO_PLACED'    ? 'warning' :
+						                 type == 'ETA_LLM'          ? 'info' :
+						                 type == 'ETA_FALLBACK'     ? 'danger' : 'secondary'}" />
+						
+						  <span class="badge badge-${cls}" title="${label}">${label}</span>
+						</td>
+
+						
 			            <td>
 			              <details>
 			                <summary class="btn btn-sm btn-outline-info" style="cursor: pointer;">JSON 보기</summary>

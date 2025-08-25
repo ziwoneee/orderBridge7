@@ -2,6 +2,8 @@ package com.itwillbs.persistence;
 
 import java.util.List;
 
+import org.apache.ibatis.annotations.Param;
+
 import com.itwillbs.domain.MaterialInboundItemVO;
 import com.itwillbs.domain.MaterialInboundVO;
 import com.itwillbs.domain.MaterialInventoryVO;
@@ -107,6 +109,10 @@ public interface MaterialInboundDAO {
     
     // 특정 상태의 입고건 개수 조회
     public int getInboundCountByStatus(String status) throws Exception;
+    
+    // MaterialInboundDAO.java
+    int updateInboundHandledByIfBlank(String inboundId, String handledBy);
+
 
 
 }

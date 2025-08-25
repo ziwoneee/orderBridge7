@@ -6,125 +6,163 @@
   
 <mapper namespace="com.itwillbs.mapper.MaterialOrderMapper">
 
-	<!-- 1. 발주 목록 조회 -->
-	<select id="selectOrderList" parameterType="com.itwillbs.domain.SearchCriteria" resultType="com.itwillbs.domain.MaterialOrderVO">
-		SELECT 
-			mo.order_id AS orderId,
-			mo.supplier_id AS supplierId,
-			s.supplier_name AS supplierName, 
-			mo.order_date AS orderDate,
-			mo.order_status AS orderStatus,
-			mo.expected_arrived_date AS expectedArrivedDate,
-			mo.created_by AS createdBy,
-			mo.handled_by AS handledBy,
-			hu.name       AS handlerName,
-			mo.note,
-			<!-- 대표 품명: 자재가 1건이면 그대로, 2건 이상이면 "외 N건" -->
-			CASE 
-				WHEN COUNT(moi.material_id) = 1 THEN MAX(m.material_name)
-				ELSE CONCAT(MAX(m.material_name), ' 외 ', COUNT(moi.material_id) - 1, '건')
-			END AS materialName,
-			SUM(moi.order_quantity) AS totalQuantity,
-			SUM(moi.total_price) AS totalPrice,
-			MAX(moi.warehouse_code) AS warehouseCode
-		FROM material_order mo
-		JOIN material_order_item moi ON mo.order_id = moi.order_id
-		JOIN material m ON moi.material_id = m.material_id
-		JOIN supplier s ON mo.supplier_id = s.supplier_id 
-		LEFT JOIN admin_user hu ON hu.admin_id = mo.handled_by
-		<where>
-			<!-- 검색 조건 -->
-			<if test="keyword != null and keyword != ''">
-				(mo.order_id LIKE CONCAT('%', #{keyword}, '%')
-				OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
-				OR s.supplier_name LIKE CONCAT('%', #{keyword}, '%'))
-			</if>
-			<if test="startDate != null and startDate != ''">
-				AND mo.order_date &gt;= #{startDate}
-			</if>
-			<if test="endDate != null and endDate != ''">
-				AND mo.order_date &lt;= #{endDate}
-			</if>
-			<if test="status != null and status != '' and status != 'ALL'">
-			  AND mo.order_status = #{status}
-			</if>
-		</where>
-		GROUP BY mo.order_id, mo.supplier_id, s.supplier_name, mo.order_date, 
-				 mo.order_status, mo.expected_arrived_date, mo.created_by, mo.note,
-				 mo.handled_by, hu.name
-		
-		<choose>
-			<when test="sortColumn == 'order_id'">
-				ORDER BY
-					CASE mo.order_status
-						WHEN '요청' THEN 1
-						WHEN '승인' THEN 2
-						WHEN '입고완료' THEN 3
-						ELSE 4
-					END,
-					mo.order_id ${sortOrder}
-			</when>
-			<when test="sortColumn == 'order_date'">
-				ORDER BY
-					CASE mo.order_status
-						WHEN '요청' THEN 1
-						WHEN '승인' THEN 2
-						WHEN '입고완료' THEN 3
-						ELSE 4
-					END,
-					mo.order_date ${sortOrder}
-			</when>
-			<when test="sortColumn == 'expected_arrived_date'">
-				ORDER BY
-					CASE mo.order_status
-						WHEN '요청' THEN 1
-						WHEN '승인' THEN 2
-						WHEN '입고완료' THEN 3
-						ELSE 4
-					END,
-					mo.expected_arrived_date ${sortOrder}
-			</when>
-			<otherwise>
-				ORDER BY
-					CASE mo.order_status
-						WHEN '요청' THEN 1
-						WHEN '승인' THEN 2
-						WHEN '입고완료' THEN 3
-						ELSE 4
-					END,
-					mo.order_date DESC
-			</otherwise>
-		</choose>
-
-		LIMIT #{pageStart}, #{perPageNum}
-	</select>
+	<!-- 공통 WHERE: 목록/카운트가 동일 조건을 쓰도록 -->
+	<sql id="orderListWhere">
+	  <where>
+	    <if test="keyword != null and keyword != ''">
+	      (
+	        mo.order_id LIKE CONCAT('%', #{keyword}, '%')
+	        OR s.supplier_name LIKE CONCAT('%', #{keyword}, '%')
+	        /* 자재명 검색도 지원 (성능 OK) */
+	        OR EXISTS (
+	          SELECT 1
+	          FROM material_order_item moi2
+	          JOIN material m2 ON m2.material_id = moi2.material_id
+	          WHERE moi2.order_id = mo.order_id
+	            AND m2.material_name LIKE CONCAT('%', #{keyword}, '%')
+	        )
+	      )
+	    </if>
+	    <if test="startDate != null and startDate != ''">
+	      AND mo.order_date &gt;= #{startDate}
+	    </if>
+	    <if test="endDate != null and endDate != ''">
+	      AND mo.order_date &lt;= #{endDate}
+	    </if>
+	    <!-- 전체(ALL/null)일 때는 상태필터 미적용 -->
+	    <if test="status != null and status != '' and status != 'ALL'">
+	      AND mo.order_status = #{status}
+	    </if>
+	  </where>
+	</sql>
 	
-	<!-- 2. 총 건수 조회 -->
-	<select id="getTotalCount" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
-		SELECT COUNT(DISTINCT mo.order_id)
-		FROM material_order mo
-		JOIN material_order_item moi ON mo.order_id = moi.order_id
-		JOIN material m ON moi.material_id = m.material_id
-		JOIN supplier s ON mo.supplier_id = s.supplier_id
-		<where>
-			<if test="keyword != null and keyword != ''">
-				(mo.order_id LIKE CONCAT('%', #{keyword}, '%')
-				OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
-				OR s.supplier_name LIKE CONCAT('%', #{keyword}, '%'))
-			</if>
-			<if test="startDate != null and startDate != ''">
-			  AND mo.order_date &gt;= #{startDate}
-			</if>
-			<if test="endDate != null and endDate != ''">
-			  AND mo.order_date &lt;= #{endDate}
-			</if>
-			<!-- ✅ ALL 무시 -->
-			<if test="status != null and status != '' and status != 'ALL'">
-			  AND mo.order_status = #{status}
-			</if>
+	<!-- 아이템 집계 서브쿼리: JOIN 중복으로 LIMIT 꼬임 방지 + 초안 누락 방지 -->
+	<sql id="orderItemsAgg">
+	  (
+	    SELECT
+	      moi.order_id,
+	      SUM(moi.order_quantity) AS total_qty,
+	      SUM(moi.total_price)    AS total_price,
+	      MIN(m.material_name)    AS rep_name,
+	      COUNT(*)                AS item_cnt,
+	      MAX(moi.warehouse_code) AS warehouse_code
+	    FROM material_order_item moi
+	    JOIN material m ON m.material_id = moi.material_id
+	    GROUP BY moi.order_id
+	  ) oi
+	</sql>
 
-		</where>
+
+	<!-- 1. 발주 목록 조회 -->
+	<select id="selectOrderList"
+        parameterType="com.itwillbs.domain.SearchCriteria"
+        resultType="com.itwillbs.domain.MaterialOrderVO">
+	  SELECT 
+	    mo.order_id              AS orderId,
+	    mo.supplier_id           AS supplierId,
+	    s.supplier_name          AS supplierName, 
+	    mo.order_date            AS orderDate,
+	    mo.order_status          AS orderStatus,
+	    mo.expected_arrived_date AS expectedArrivedDate,
+	    mo.created_by            AS createdBy,
+	    mo.handled_by            AS handledBy,
+	    hu.name                  AS handlerName,
+	    mo.note,
+	
+	    /* 대표 품명 */
+	    CASE 
+	      WHEN oi.item_cnt = 1 THEN oi.rep_name
+	      WHEN oi.item_cnt >= 2 THEN CONCAT(oi.rep_name, ' 외 ', oi.item_cnt - 1, '건')
+	      ELSE '-' 
+	    END                      AS materialName,
+	
+	    COALESCE(oi.total_qty, 0)     AS totalQuantity,
+	    COALESCE(oi.total_price, 0)   AS totalPrice,
+	    oi.warehouse_code             AS warehouseCode
+	
+	  FROM material_order mo
+	  LEFT JOIN supplier s ON s.supplier_id = mo.supplier_id
+	  LEFT JOIN <include refid="orderItemsAgg"/> ON oi.order_id = mo.order_id  <!-- ★ LEFT -->
+	  LEFT JOIN admin_user hu ON hu.admin_id = mo.handled_by
+	
+	  <include refid="orderListWhere"/>
+	
+	  <!-- 정렬 규칙 -->
+	  <choose>
+	  <!-- 사용자가 정렬 지정 -->
+	  <when test="sortColumn != null and sortColumn != ''">
+	    <!-- 위 ‘교체 후’와 동일 4분기 -->
+	    <choose>
+	      <when test="sortColumn == 'order_id'">
+	        ORDER BY mo.order_id ${sortOrder}
+	      </when>
+	      <when test="sortColumn == 'order_date'">
+	        ORDER BY mo.order_date ${sortOrder}, mo.order_id DESC
+	      </when>
+	      <when test="sortColumn == 'expected_arrived_date'">
+	        ORDER BY mo.expected_arrived_date ${sortOrder}, mo.order_id DESC
+	      </when>
+	      <otherwise>
+	        ORDER BY mo.order_date DESC, mo.order_id DESC
+	      </otherwise>
+	    </choose>
+	  </when>
+	
+	  <!-- 사용자가 정렬 미지정: 기본 정렬 -->
+	  <otherwise>
+	    <choose>
+	      <!-- 전체 탭일 때만 상태 가중 -->
+	      <when test="status == null or status == '' or status == 'ALL'">
+	        ORDER BY FIELD(mo.order_status,'초안','요청','승인','입고완료'),
+	                 mo.order_date DESC, mo.order_id DESC
+	      </when>
+	      <!-- 상태 탭 기본은 날짜 내림차순 -->
+	      <otherwise>
+	        ORDER BY mo.order_date DESC, mo.order_id DESC
+	      </otherwise>
+	    </choose>
+	  </otherwise>
+	</choose>
+
+	
+	  LIMIT #{pageStart}, #{perPageNum}
 	</select>
+
+	
+	<!-- 2. 총 건수 조회 : 주문 기준 + LEFT JOIN + EXISTS 검색 -->
+	<select id="getTotalCount"
+	        parameterType="com.itwillbs.domain.SearchCriteria"
+	        resultType="int">
+	  SELECT COUNT(*)
+	  FROM material_order mo
+	  LEFT JOIN supplier s ON s.supplier_id = mo.supplier_id
+	  <where>
+	    <if test="keyword != null and keyword != ''">
+	      (
+	        mo.order_id LIKE CONCAT('%', #{keyword}, '%')
+	        OR s.supplier_name LIKE CONCAT('%', #{keyword}, '%')
+	        OR EXISTS (
+	          SELECT 1
+	          FROM material_order_item moi2
+	          JOIN material m2 ON m2.material_id = moi2.material_id
+	          WHERE moi2.order_id = mo.order_id
+	            AND m2.material_name LIKE CONCAT('%', #{keyword}, '%')
+	        )
+	      )
+	    </if>
+	    <if test="startDate != null and startDate != ''">
+	      AND mo.order_date &gt;= #{startDate}
+	    </if>
+	    <if test="endDate != null and endDate != ''">
+	      AND mo.order_date &lt;= #{endDate}
+	    </if>
+	    <if test="status != null and status != '' and status != 'ALL'">
+	      AND mo.order_status = #{status}
+	    </if>
+	  </where>
+	</select>
+
+
 	
 	<!-- 발주번호 생성 -->
 	<select id="generateOrderId" resultType="String">

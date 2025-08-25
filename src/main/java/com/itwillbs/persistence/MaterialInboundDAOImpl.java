@@ -258,5 +258,12 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
         return sqlSession.selectOne(NAMESPACE + "getInboundCountByStatus", status);
     }
 
-	
+    @Override
+    public int updateInboundHandledByIfBlank(String inboundId, String handledBy) {
+        Map<String, Object> p = new HashMap<>();
+        p.put("inboundId", inboundId);
+        p.put("handledBy", handledBy);
+        return sqlSession.update(NAMESPACE + "updateInboundHandledByIfBlank", p);
+    }
+    
 }

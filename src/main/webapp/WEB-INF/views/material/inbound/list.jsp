@@ -296,42 +296,46 @@
          
           </div>
           
-          <!-- 페이징 처리 시작 -->
-          <div class="d-flex justify-content-center mt-4">
-            <nav>
-              <ul class="pagination justify-content-center mt-4">
-                
-                <c:if test="${pageMaker.cri.page > 1}">
-                  <li class="page-item">
-                    <a class="page-link" 
-                       href="/material/inbound/list?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
-                      &laquo;
-                    </a>
-                  </li>
-                </c:if>
-                
-                <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
-                  <li class="page-item ${p == cri.page ? 'active' : ''}">
-                    <a class="page-link" 
-                       href="/material/inbound/list?page=${p}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
-                      ${p}
-                    </a>
-                  </li>
-                </c:forEach>
-                
-                <c:if test="${pageMaker.cri.page < pageMaker.endPage}">
-                  <li class="page-item">
-                    <a class="page-link" 
-                       href="/material/inbound/list?page=${pageMaker.cri.page + 1}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
-                      &raquo;
-                    </a>
-                  </li>
-                </c:if>
-                
-              </ul>
-            </nav>
-          </div>
-          <!-- 페이징 처리 끝 -->
+			<!-- 페이징 처리 시작 -->
+			<div class="d-flex justify-content-center mt-4">
+			  <nav>
+			    <ul class="pagination justify-content-center mt-4">
+			
+			      <!-- 이전 블록(«) -->
+			      <c:if test="${pageMaker.prev}">
+			        <li class="page-item">
+			          <a class="page-link"
+			             href="/material/inbound/list?page=${pageMaker.startPage - 1}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
+			            &laquo;
+			          </a>
+			        </li>
+			      </c:if>
+			
+			      <!-- 현재 블록 페이지들 -->
+			      <c:forEach var="p" begin="${pageMaker.startPage}" end="${pageMaker.endPage}">
+			        <li class="page-item ${p == cri.page ? 'active' : ''}">
+			          <a class="page-link"
+			             href="/material/inbound/list?page=${p}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
+			            ${p}
+			          </a>
+			        </li>
+			      </c:forEach>
+			
+			      <!-- 다음 블록(») -->
+			      <c:if test="${pageMaker.next}">
+			        <li class="page-item">
+			          <a class="page-link"
+			             href="/material/inbound/list?page=${pageMaker.endPage + 1}&perPageNum=${cri.perPageNum}&keyword=${param.keyword}&status=${param.status}&startDate=${param.startDate}&endDate=${param.endDate}&sortColumn=${cri.sortColumn}&sortOrder=${cri.sortOrder}">
+			            &raquo;
+			          </a>
+			        </li>
+			      </c:if>
+			
+			    </ul>
+			  </nav>
+			</div>
+			<!-- 페이징 처리 끝 -->
+
           
          <%@ include file="/WEB-INF/views/material/inbound/inboundModal.jsp" %>
         </div>

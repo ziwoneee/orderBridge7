@@ -6,115 +6,175 @@
   
 <mapper namespace="com.itwillbs.mapper.MaterialInboundMapper">
 
-	<!-- 입고 목록 조회 -->
+	<!-- 입고 목록 조회 : 상태 우선(미입고→부분입고→입고완료) + 사용자 정렬 -->
 	<select id="getInboundList"
 	        parameterType="com.itwillbs.domain.SearchCriteria"
 	        resultType="com.itwillbs.dto.MaterialInboundSummaryDTO">
-	  SELECT 
-	    i.inbound_id                            AS inboundId,
-	    i.order_id                              AS orderId,
 	
-	    /* 날짜/담당자/입고일은 동일 inbound_id 내에서 단일값 → MAX()로 안전 집계 */
-	    MAX(o.expected_arrived_date)            AS expectedArrivedDate,
+	  SELECT
+	    t.inboundId,
+	    t.orderId,
+	    t.expectedArrivedDate,
+	    t.representativeName,
+	    t.totalOrderQty,
+	    t.totalInboundQty,
+	    t.status,
+	    t.handledBy,
+	    t.handledByName,
+	    t.inboundDate
+	  FROM (
+	    SELECT 
+	      i.inbound_id  AS inboundId,
+	      i.order_id    AS orderId,
 	
-	    /* 대표 품명 */
-	    CASE 
-	      WHEN COUNT(ii.material_id) = 1 THEN MAX(m.material_name)
-	      ELSE CONCAT(MAX(m.material_name), ' 외 ', COUNT(ii.material_id) - 1, '건')
-	    END                                     AS representativeName,
+	      MAX(o.expected_arrived_date) AS expectedArrivedDate,
 	
-	    /* 합계 */
-	    SUM(moi.order_quantity)                 AS totalOrderQty,
-	    SUM(ii.quantity)                        AS totalInboundQty,
+	      CASE 
+	        WHEN COUNT(ii.material_id) = 1 THEN MAX(m.material_name)
+	        ELSE CONCAT(MAX(m.material_name), ' 외 ', COUNT(ii.material_id) - 1, '건')
+	      END AS representativeName,
 	
-	    /* 상태 */
-	    CASE 
-	      WHEN SUM(ii.quantity) = 0                          THEN '미입고'
-	      WHEN SUM(ii.quantity) >= SUM(moi.order_quantity)   THEN '입고완료'
-	      ELSE '부분입고'
-	    END                                     AS status,
+	      /* NULL 안전 합계 */
+	      COALESCE(SUM(moi.order_quantity),0) AS totalOrderQty,
+	      COALESCE(SUM(ii.quantity),0)        AS totalInboundQty,
 	
-	    i.handled_by   AS handledBy,
-	    au.name        AS handledByName,   
-	    i.inbound_date AS inboundDate
+	      /* 상태 계산 (NULL 안전) */
+	      CASE 
+	        WHEN COALESCE(SUM(ii.quantity),0) = 0
+	          THEN '미입고'
+	        WHEN COALESCE(SUM(ii.quantity),0) >= COALESCE(SUM(moi.order_quantity),0)
+	          THEN '입고완료'
+	        ELSE '부분입고'
+	      END AS status,
 	
-	  FROM material_inbound i
-	  LEFT JOIN material_inbound_item ii ON i.inbound_id = ii.inbound_id
-	  LEFT JOIN material m               ON ii.material_id = m.material_id
-	  LEFT JOIN material_order_item moi  ON i.order_id = moi.order_id AND moi.material_id = ii.material_id
-	  LEFT JOIN material_order o         ON i.order_id = o.order_id
-	  LEFT JOIN admin_user au            ON au.admin_id = i.handled_by     <!-- ★ 이름 조인 -->
+	      i.handled_by AS handledBy,
+	      au.name      AS handledByName,
+	      MAX(i.inbound_date) AS inboundDate
 	
-	  <where>
-	    <if test="keyword != null and keyword != ''">
-	      (
-	        i.inbound_id       LIKE CONCAT('%', #{keyword}, '%')
-	        OR i.order_id      LIKE CONCAT('%', #{keyword}, '%')
-	        OR m.material_name LIKE CONCAT('%', #{keyword}, '%')
-	        OR i.handled_by    LIKE CONCAT('%', #{keyword}, '%')
-	        OR au.name         LIKE CONCAT('%', #{keyword}, '%')  <!-- ★ 이름으로도 검색 -->
-	      )
-	    </if>
-	    <if test="startDate != null and startDate != ''">
-	      AND DATE(i.inbound_date) &gt;= #{startDate}
-	    </if>
-	    <if test="endDate != null and endDate != ''">
-	      AND DATE(i.inbound_date) &lt;= #{endDate}
-	    </if>
-	  </where>
+	    FROM material_inbound i
+	    LEFT JOIN material_inbound_item ii ON i.inbound_id = ii.inbound_id
+	    LEFT JOIN material m               ON ii.material_id = m.material_id
+	    LEFT JOIN material_order_item moi  ON i.order_id = moi.order_id AND moi.material_id = ii.material_id
+	    LEFT JOIN material_order o         ON i.order_id = o.order_id
+	    LEFT JOIN admin_user au            ON au.admin_id = i.handled_by
 	
-	  GROUP BY i.inbound_id
+	    <where>
+	      <if test="keyword != null and keyword != ''">
+	        (
+	          i.inbound_id       LIKE CONCAT('%', #{keyword}, '%')
+	          OR i.order_id      LIKE CONCAT('%', #{keyword}, '%')
+	          OR i.handled_by    LIKE CONCAT('%', #{keyword}, '%')
+	          OR au.name         LIKE CONCAT('%', #{keyword}, '%')
+	          OR EXISTS (
+	            SELECT 1
+	            FROM material_inbound_item ii2 
+	            JOIN material m2 ON m2.material_id = ii2.material_id
+	            WHERE ii2.inbound_id = i.inbound_id
+	              AND m2.material_name LIKE CONCAT('%', #{keyword}, '%')
+	          )
+	        )
+	      </if>
+	      <if test="startDate != null and startDate != ''">
+	        AND DATE(i.inbound_date) &gt;= #{startDate}
+	      </if>
+	      <if test="endDate != null and endDate != ''">
+	        AND DATE(i.inbound_date) &lt;= #{endDate}
+	      </if>
+	    </where>
+	
+	    GROUP BY i.inbound_id
+	  ) t
 	
 	  <if test="status != null and status != ''">
-	    HAVING status = #{status}
+	    WHERE t.status = #{status}
 	  </if>
 	
+	  <!-- ✅ 항상 상태 우선(미입고→부분입고→입고완료), 그 다음 사용자 정렬 -->
 	  <choose>
-	    <when test="sortColumn != null and sortOrder != null">
-	      ORDER BY
-	        FIELD(status, '미입고','부분입고','입고완료'),
-	        <choose>
-	          <when test="sortColumn == 'inbound_id'">i.inbound_id</when>
-	          <when test="sortColumn == 'inbound_date'">MAX(i.inbound_date)</when>
-	          <when test="sortColumn == 'expected_arrived_date'">MAX(o.expected_arrived_date)</when>
-	          <otherwise>i.inbound_id</otherwise>
-	        </choose>
-	        ${sortOrder}
+	    <when test="sortColumn == 'inbound_id'">
+	      ORDER BY FIELD(t.status,'미입고','부분입고','입고완료'),
+	               t.inboundId ${sortOrder}
 	    </when>
+	    <when test="sortColumn == 'inbound_date'">
+	      ORDER BY FIELD(t.status,'미입고','부분입고','입고완료'),
+	               t.inboundDate ${sortOrder},
+	               t.inboundId DESC
+	    </when>
+	    <when test="sortColumn == 'expected_arrived_date'">
+	      ORDER BY FIELD(t.status,'미입고','부분입고','입고완료'),
+	               t.expectedArrivedDate ${sortOrder},
+	               t.inboundId DESC
+	    </when>
+	    <!-- 기본값 -->
 	    <otherwise>
-	      ORDER BY
-	        FIELD(status, '미입고','부분입고','입고완료'),
-	        MAX(o.expected_arrived_date) ASC,
-	        i.inbound_id ASC
+	      ORDER BY FIELD(t.status,'미입고','부분입고','입고완료'),
+	               t.expectedArrivedDate ASC,
+	               t.inboundId ASC
 	    </otherwise>
 	  </choose>
 	
 	  LIMIT #{pageStart}, #{perPageNum}
 	</select>
 
+
 	
 	
-	<!-- 전체 건수 조회 (페이징용) -->
-	<select id="getInboundListCount" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
-	  SELECT COUNT(*) 
+	<!-- 전체 건수 조회 (페이징용) : 공백 방어 없이 -->
+	<select id="getInboundListCount"
+	        parameterType="com.itwillbs.domain.SearchCriteria"
+	        resultType="int">
+	  SELECT COUNT(*)
 	  FROM (
-	    SELECT i.inbound_id,
-	           CASE 
-	             WHEN SUM(ii.quantity) = 0 THEN '미입고'
-	             WHEN SUM(ii.quantity) >= SUM(moi.order_quantity) THEN '입고완료'
-	             ELSE '부분입고'
-	           END AS status
+	    SELECT 
+	      i.inbound_id AS inboundId,
+	      CASE 
+	        WHEN SUM(ii.quantity) = 0 THEN '미입고'
+	        WHEN SUM(ii.quantity) >= SUM(moi.order_quantity) THEN '입고완료'
+	        ELSE '부분입고'
+	      END AS status
 	    FROM material_inbound i
-	    LEFT JOIN material_inbound_item ii ON i.inbound_id = ii.inbound_id
-	    LEFT JOIN material m ON ii.material_id = m.material_id
-	    LEFT JOIN material_order_item moi ON i.order_id = moi.order_id AND moi.material_id = ii.material_id
+	    LEFT JOIN material_inbound_item ii 
+	      ON i.inbound_id = ii.inbound_id
+	    LEFT JOIN material_order_item moi
+	      ON i.order_id = moi.order_id 
+	     AND moi.material_id = ii.material_id
+	    LEFT JOIN material m
+	      ON m.material_id = ii.material_id
+	    LEFT JOIN admin_user au
+	      ON au.admin_id = i.handled_by
+	    LEFT JOIN material_order o
+	      ON o.order_id = i.order_id
+	    <where>
+	      <if test="keyword != null and keyword != ''">
+	        (
+	          i.inbound_id LIKE CONCAT('%', #{keyword}, '%')
+	          OR i.order_id LIKE CONCAT('%', #{keyword}, '%')
+	          OR i.handled_by LIKE CONCAT('%', #{keyword}, '%')
+	          OR au.name LIKE CONCAT('%', #{keyword}, '%')
+	          OR EXISTS (
+	            SELECT 1
+	            FROM material_inbound_item ii2 
+	            JOIN material m2 ON m2.material_id = ii2.material_id
+	            WHERE ii2.inbound_id = i.inbound_id
+	              AND m2.material_name LIKE CONCAT('%', #{keyword}, '%')
+	          )
+	        )
+	      </if>
+		  <if test="startDate != null and startDate != ''">
+		    AND DATE(i.inbound_date) &gt;= #{startDate}
+		  </if>
+		  <if test="endDate != null and endDate != ''">
+		    AND DATE(i.inbound_date) &lt;= #{endDate}
+		  </if>
+	    </where>
 	    GROUP BY i.inbound_id
-	     HAVING 1=1
-        <if test="status != null and status != ''">
-         AND status = #{status}
-       </if>
-	  ) AS inbound_status
+	  ) t
+	  <if test="status != null and status != ''">
+	    WHERE t.status = #{status}
+	  </if>
 	</select>
+
+
 
 
 	<!-- 특정 상태의 입고건 개수 조회 -->
@@ -234,6 +294,16 @@
 	        NOW()
 	    )
 	</insert>
+	
+	<!-- MaterialInboundMapper.xml -->
+	<update id="updateInboundHandledByIfBlank">
+	  UPDATE material_inbound
+	     SET handled_by = #{handledBy}
+	   WHERE inbound_id = #{inboundId}
+	     AND (handled_by IS NULL OR handled_by = '' OR handled_by = 'system')
+	</update>
+
+	
 	
     <!-- inbound_item_id 자동 생성: 날짜 기반 + 일련번호 방식 -->
     <select id="getLatestInboundItemId" parameterType="String" resultType="String">

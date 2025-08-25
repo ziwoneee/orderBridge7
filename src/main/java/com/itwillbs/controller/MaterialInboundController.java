@@ -110,22 +110,12 @@ public class MaterialInboundController {
     @PostMapping("/insert-unreceived")
     @ResponseBody
     public ResponseEntity<String> insertUnreceivedOrders(
-            @RequestParam(required = false) String[] orderIds,
-            HttpSession session) {
-        try {
-            String adminId = (String) session.getAttribute("admin_id");   // ✅
-            if (orderIds == null || orderIds.length == 0) {
-                miService.insertUnreceivedOrders(adminId);                 // ✅ 넘김
-                return ResponseEntity.ok("전체 미입고건 DB 저장 성공");
-            } else {
-                miService.insertSelectedUnreceivedOrders(orderIds, adminId); // ✅ 넘김
-                return ResponseEntity.ok("선택된 발주건 DB 저장 성공");
-            }
-        } catch (Exception e) {
-            logger.error("미입고건 DB 저장 실패", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                 .body("DB 저장 실패: " + e.getMessage());
-        }
+    		@RequestParam("orderIds") List<String> orderIds,
+            HttpSession session) throws Exception {
+    	
+    	 String adminId = (String) session.getAttribute("adminId");
+    	 miService.insertSelectedUnreceivedOrders(orderIds.toArray(new String[0]), adminId);
+    	 return ResponseEntity.ok().build();
     }
 
     /** [POST] 입고 처리 (마스터) */
@@ -146,15 +136,12 @@ public class MaterialInboundController {
     /** [POST] 개별 자재 항목 입고 처리 */
     @PostMapping("/item/process")
     @ResponseBody
-    public ResponseEntity<String> processInboundItem(@RequestBody MaterialInboundItemDTO dto) {
-        try {
-            miService.processInboundItem(dto);
-            return ResponseEntity.ok("입고처리 완료");
-        } catch (Exception e) {
-            logger.error("개별 입고처리 중 오류 발생", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                 .body("입고처리 실패: " + e.getMessage());
-        }
+    public ResponseEntity<String> processInboundItem(@RequestBody MaterialInboundItemDTO dto,
+            HttpSession session) throws Exception {
+    	
+    	String adminId = (String) session.getAttribute("adminId"); // 세션 키명 확인
+	    miService.processInboundItem(dto, adminId); // ★ 새 오버로드 사용
+	    return ResponseEntity.ok("OK");
     }
 
     /** LOT 번호 생성 */

@@ -48,6 +48,15 @@ public class AiPredictionLogController {
 
         // ✅ 페이징 목록 조회
         List<AiPredictionLogDTO> logs = logService.searchWithPaging(q, from, to, cri);
+        
+        // ▼ [추가] request_type → 한글 라벨 맵
+        java.util.Map<String, String> reqTypeLabel = new java.util.LinkedHashMap<>();
+        reqTypeLabel.put("ETA_READY_BYPASS", "즉시 투입 가능(바이패스)");
+        reqTypeLabel.put("ETA_PLANNED",      "초기 계획 기반 ETA");
+        reqTypeLabel.put("ETA_PO_PLACED",    "발주/입고 대기 기반 ETA");
+        reqTypeLabel.put("ETA_LLM",          "LLM 예측 기반 ETA");
+        reqTypeLabel.put("ETA_FALLBACK",     "휴리스틱(대체) ETA");
+        model.addAttribute("reqTypeLabel", reqTypeLabel);
 
         // Model에 담기
         model.addAttribute("logs", logs);
@@ -56,7 +65,6 @@ public class AiPredictionLogController {
         model.addAttribute("q", q);
         model.addAttribute("from", from);
         model.addAttribute("to", to);
-        
         model.addAttribute("menu", "ai");
 
         return "ai/pred_log_list";

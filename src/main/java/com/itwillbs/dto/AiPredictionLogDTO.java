@@ -13,5 +13,6 @@ public class AiPredictionLogDTO {
     private String inputDataJson;        // 요청 페이로드(JSON 문자열)
 	private String predictionResultJson; // 결과(JSON 문자열)
 	private Date   createdAt;            // DB default now
+	private String requestedByName;
 
 }
