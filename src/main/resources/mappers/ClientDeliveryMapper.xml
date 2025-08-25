@@ -257,7 +257,6 @@
 
 
 <!-- 출하 대기 목록 조회 (검색)-->
-<!-- 출하 대기 목록 조회 (수주번호 단위 페이징) -->
 <select id="searchPendingGroupedList"
         parameterType="com.itwillbs.domain.SearchCriteria"
         resultMap="GroupedShipmentMap">
@@ -282,17 +281,15 @@
       ) AS available
     ), 0) AS stock_qty
   FROM (
-    /* 1) 수주번호만 뽑아 페이징 */
     SELECT co.cl_order_id
     FROM client_order co
     JOIN client c ON co.client_id = c.client_id
-    /* detail 상태 필터를 위해 존재성만 보장 */
     JOIN client_order_detail cod ON cod.cl_order_id = co.cl_order_id
     <where>
       AND co.cl_order_status = 'CONFIRMED'
       AND (cod.detail_status IS NULL OR cod.detail_status != 'SHIPPED')
 
-      <!-- 날짜 필터: 납기요청일 기준 (필요 시 변경 가능) -->
+      <!-- 날짜 필터 -->
       <if test="startDate != null and startDate != ''">
         AND co.cl_delivery_date <![CDATA[>=]]> CONCAT(#{startDate}, ' 00:00:00')
       </if>
@@ -300,7 +297,7 @@
         AND co.cl_delivery_date <![CDATA[<=]]> CONCAT(#{endDate}, ' 23:59:59')
       </if>
 
-      <!-- 키워드: 수주번호/거래처명/제품명 -->
+      <!-- 키워드 -->
       <if test="keyword != null and keyword != ''">
         AND (
              co.cl_order_id LIKE CONCAT('%', #{keyword}, '%')
@@ -317,32 +314,32 @@
     </where>
     GROUP BY co.cl_order_id
     ORDER BY
+      co.cl_delivery_date ASC,   <!-- ✅ 날짜 정렬을 무조건 우선 적용 -->
       <choose>
-        <when test="sortColumn == 'clDeliveryDate'">co.cl_delivery_date</when>
         <when test="sortColumn == 'clientName'">c.client_name</when>
         <when test="sortColumn == 'clOrderId'">co.cl_order_id</when>
-        <otherwise>co.cl_delivery_date</otherwise>
+        <otherwise>co.cl_order_id</otherwise>
       </choose>
       ${sortOrder}
     LIMIT #{pageStart}, #{perPageNum}
   ) g
-  /* 2) 페이징된 수주번호에 상세를 조인해서 제품 리스트 구성 */
   JOIN client_order co ON co.cl_order_id = g.cl_order_id
   JOIN client c ON co.client_id = c.client_id
   JOIN client_order_detail cod ON cod.cl_order_id = co.cl_order_id
   JOIN product p ON cod.product_id = p.product_id
   WHERE (cod.detail_status IS NULL OR cod.detail_status != 'SHIPPED')
   ORDER BY
-    /* 그룹 정렬 우선, 그룹 내부는 detail 기준 보조정렬 */
+    co.cl_delivery_date ASC,   <!-- ✅ 항상 날짜 정렬 먼저 -->
     <choose>
-      <when test="sortColumn == 'clDeliveryDate'">co.cl_delivery_date</when>
       <when test="sortColumn == 'clientName'">c.client_name</when>
       <when test="sortColumn == 'clOrderId'">co.cl_order_id</when>
-      <otherwise>co.cl_delivery_date</otherwise>
+      <when test="sortColumn == 'productName'">p.product_name</when>
+      <otherwise>co.cl_order_id</otherwise>
     </choose>
     ${sortOrder},
     cod.detail_id ASC
 </select>
+
 
 
 

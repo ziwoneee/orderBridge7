@@ -159,13 +159,20 @@
                             <td class="text-end"><fmt:formatNumber value="${item.orderQty}" pattern="#,###"/></td>
                             <td class="text-end"><fmt:formatNumber value="${item.stockQty}" pattern="#,###"/></td>
                             <td>
-                              <fmt:formatDate value="${item.clDeliveryDate}" pattern="yyyy-MM-dd"/>
-                              <c:if test="${not empty item.clDeliveryDate}">
-                                <c:if test="${(item.clDeliveryDate.time - now.time)/(1000*60*60*24) le 5 && (item.clDeliveryDate.time - now.time)/(1000*60*60*24) ge 0}">
-                                  <span class="badge badge-danger ml-2">임박</span>
-                                </c:if>
-                              </c:if>
-                            </td>
+						  <fmt:formatDate value="${item.clDeliveryDate}" pattern="yyyy-MM-dd"/>
+						  <c:if test="${not empty item.clDeliveryDate}">
+						    <!-- 임박: 오늘 포함 ~ 5일 이내 -->
+						    <c:if test="${(item.clDeliveryDate.time - now.time)/(1000*60*60*24) le 5 && (item.clDeliveryDate.time - now.time)/(1000*60*60*24) ge 0}">
+						      <span class="badge badge-danger ml-2">임박</span>
+						    </c:if>
+						
+						    <!-- 지연: 납기일이 오늘보다 이전 -->
+						    <c:if test="${item.clDeliveryDate.time lt now.time}">
+						      <span class="badge badge-warning ml-2">지연</span>
+						    </c:if>
+						  </c:if>
+						</td>
+
                             <td>
                               <c:set var="isReserved" value="${reservedMap[group.clOrderId] == true}"/>
                               <c:if test="${not empty reserveFailedId and reserveFailedId eq group.clOrderId}">
@@ -657,6 +664,9 @@
 
 /* 임박 배지 애니메이션 */
 .badge-danger {
+    animation: pulse 2s infinite;
+}
+.badge-warning {
     animation: pulse 2s infinite;
 }
 
