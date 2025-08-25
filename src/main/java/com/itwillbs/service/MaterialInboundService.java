@@ -42,7 +42,7 @@ public interface MaterialInboundService {
 	 * 개별 자재 입고 항목 처리
 	 * - LOT/유통기한/입고수량/창고정보 기반 입고처리
 	 */
-	void processInboundItem(MaterialInboundItemDTO dto) throws Exception;
+	void processInboundItem(MaterialInboundItemDTO dto, String handledBy) throws Exception;
 	
 	
 	// 입고 상세 조회 (입고ID 기준)

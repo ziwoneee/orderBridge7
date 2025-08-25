@@ -295,6 +295,16 @@
 	    )
 	</insert>
 	
+	<!-- MaterialInboundMapper.xml -->
+	<update id="updateInboundHandledByIfBlank">
+	  UPDATE material_inbound
+	     SET handled_by = #{handledBy}
+	   WHERE inbound_id = #{inboundId}
+	     AND (handled_by IS NULL OR handled_by = '' OR handled_by = 'system')
+	</update>
+
+	
+	
     <!-- inbound_item_id 자동 생성: 날짜 기반 + 일련번호 방식 -->
     <select id="getLatestInboundItemId" parameterType="String" resultType="String">
       SELECT inbound_item_id

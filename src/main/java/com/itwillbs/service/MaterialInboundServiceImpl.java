@@ -217,8 +217,13 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
      * - 마스터 상태 갱신
      */
     @Override
-    public void processInboundItem(MaterialInboundItemDTO dto) throws Exception {
+    public void processInboundItem(MaterialInboundItemDTO dto, String handledBy) throws Exception {
     	
+    	// 0-0) 최초 처리자 보정: 마스터가 비었거나 system이면 세션 사용자로 덮어쓰기
+        if (handledBy != null && !handledBy.trim().isEmpty()) {
+            miDAO.updateInboundHandledByIfBlank(dto.getInboundId(), handledBy.trim());
+        }
+        
     	// [ADD] 검증 전에 창고코드 자동 보정
         if (dto.getWarehouseCode() == null || dto.getWarehouseCode().isEmpty()) {
             String wh = resolveWarehouseCode(dto.getMaterialId(), dto.getOrderItemId());
