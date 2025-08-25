@@ -3,6 +3,7 @@ package com.itwillbs.controller;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -326,7 +327,6 @@ public class MaterialOrderController {
 	
 	
 	private void logLoginTrace(HttpSession session) {
-		// TODO Auto-generated method stub
 		
 	}
 
@@ -401,6 +401,34 @@ public class MaterialOrderController {
 	        return "fail";
 	    }
 	}
+	
+	
+	/**
+	 * 자재별 포장 단위(pack_qty) 조회 - MOQ 계산용
+	 */
+	@GetMapping(value = "/supplier-pack-qty", produces = "application/json;charset=UTF-8")
+	@ResponseBody
+	public Map<String, Object> getSupplierPackQty(@RequestParam String materialId) {
+	    try {
+	        Double v = supplierService.getPackQtyByMaterial(materialId); // null 가능
+	        int packQty = (v == null) ? 1 : Math.max(1, v.intValue());   // 음수/0 방어
+
+	        return Map.of(
+	            "success", true,
+	            "materialId", materialId,
+	            "packQty", packQty
+	        );
+	    } catch (Exception e) {
+	        logger.error("pack_qty 조회 실패: " + materialId, e);
+	        return Map.of(
+	            "success", false,
+	            "materialId", materialId,
+	            "packQty", 1,
+	            "message", e.getMessage()
+	        );
+	    }
+	}
+
 
 
 	

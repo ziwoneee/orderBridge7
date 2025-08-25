@@ -17,6 +17,9 @@ public interface SupplierDAO {
     // 전체 건수 조회
     int getSupplierCount(SearchCriteria cri) throws Exception;
     
+    /** 자재별 기본 발주 포장단위(pack_qty). 없으면 1 */
+    Double getPackQtyByMaterial(String materialId) throws Exception;
+    
 	
 	// 협력사 ID로 협력사 상세 조회
     SupplierVO getSupplierById(String supplierId) throws Exception;

@@ -40,6 +40,9 @@ public interface SupplierService {
     
     // 협력사 비활성화 처리 (소프트 삭제)
     void deactivateSupplier(String supplierId) throws Exception;
+    
+    // 자재별 포장 단위 조회
+    Double getPackQtyByMaterial(String materialId) throws Exception;
 
 
 }

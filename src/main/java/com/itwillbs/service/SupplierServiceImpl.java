@@ -137,6 +137,16 @@ public class SupplierServiceImpl implements SupplierService{
 	public void deactivateSupplier(String supplierId) throws Exception {
 	    sDAO.updateSupplierStatus(supplierId, "비활성");
 	}
+	
+	/**
+	 * 자재별 포장 단위 조회
+	 */
+	@Override
+	public Double getPackQtyByMaterial(String materialId) throws Exception {
+	    // supplier_item 테이블에서 해당 자재의 pack_qty 조회
+	    // 여러 공급업체가 있으면 첫 번째나 기본 업체 사용
+	    return sDAO.getPackQtyByMaterial(materialId);
+	}
 
 	
 	

@@ -8,8 +8,6 @@ public class MaterialOutboundItemVO {
     private String outboundItemId;    // 출고 상세 ID (출고 항목 고유 식별자)
     private String outboundId;        // 출고 ID (연결된 출고 ID)
     private String materialId;        // 자재 ID (출고된 자재 ID)
-    private int plannedQty;
-    private int issuedQty;
     private int quantity;             // 출고 수량
     private String lotNo;             // LOT 번호 (출고 자재의 LOT 번호 - 선택사항)
     private String inventoryId;
