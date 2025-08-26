@@ -280,16 +280,41 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
                     Integer lack = shortageMap.get(materialId);
                     if (lack == null || lack <= 0) continue;
 
-                    int unitPrice = ((Number) m.get("unitPrice")).intValue();
-                    String warehouseCode = (String) m.get("warehouseCode");
+                    int unitPrice = ((Number) m.getOrDefault("unitPrice", 0)).intValue();
+                    String warehouseCode = (String) m.getOrDefault("warehouseCode", "WH001");
+
+                    // === supplier_item 메타 ===
+                    double convToBase = 1d; // 1 PACK -> price_unit(KG/ML/EA) 수량
+                    if (m.get("convToBase") instanceof Number) {
+                        convToBase = ((Number) m.get("convToBase")).doubleValue();
+                    }
+                    if (convToBase <= 0d) convToBase = 1d; // 안전망
+
+                    int minOrderQty  = (m.get("minOrderQty")   instanceof Number) ? ((Number) m.get("minOrderQty")).intValue()   : 1;
+                    int orderMultiple = (m.get("orderMultiple") instanceof Number) ? ((Number) m.get("orderMultiple")).intValue() : 1;
+
+                    // === 부족분 → 팩 수량 확정 ===
+                    // 현재 lack 은 "미리보기 팩 수량"으로 들어온다고 가정하고 팩으로 저장
+                    int packs = lack;
+                    // (옵션) 만약 lack 이 기본단위(kg/ml) 총량이라면 아래 한 줄로 팩 환산:
+                    // packs = (int) Math.ceil(lack / convToBase);
+
+                    // 최소주문/배수 규칙 적용
+                    if (packs < minOrderQty) packs = minOrderQty;
+                    if (orderMultiple > 1) {
+                        packs = ((packs + orderMultiple - 1) / orderMultiple) * orderMultiple;
+                    }
+
+                    // === 총금액 계산: 팩 × (1팩의 과금단위수량) × 단가 ===
+                    long totalPrice = Math.round(packs * convToBase * unitPrice);
 
                     Map<String, Object> item = new HashMap<>();
                     item.put("orderItemId", orderId + "-" + String.format("%03d", idx++));
                     item.put("orderId", orderId);
                     item.put("materialId", materialId);
-                    item.put("orderQuantity", lack);
+                    item.put("orderQuantity", packs);     // ✅ DB에 "팩 수량" 저장
                     item.put("unitPrice", unitPrice);
-                    item.put("totalPrice", unitPrice * lack);
+                    item.put("totalPrice", totalPrice);   // ✅ conv_to_base 반영된 총금액
                     item.put("warehouseCode", warehouseCode);
                     item.put("workOrderId", request.getWorkOrderId());
                     batch.add(item);

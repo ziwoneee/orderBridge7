@@ -20,6 +20,7 @@ function addItemRowFromMaterial(item) {
     var minQ = Number(item.minOrderQty || 1);
     var mul  = Number(item.orderMultiple || 1);
     var defaultQty = Math.max(minQ, mul);
+    var _coef = (priceUnitCalc === purchaseUnit ? 1 : convDisplay);
     var unitPrice = Number(item.unitPrice || 0);
 
     var row = document.createElement("tr");
@@ -30,7 +31,7 @@ function addItemRowFromMaterial(item) {
       + '  </select>'
       // 서버 저장용(표시 기준을 유지하고 싶으면 그대로 사용)
       + '  <input type="hidden" name="orderItems['+idx+'].unit" value="'+purchaseUnit+'">'
-      + '  <input type="hidden" name="orderItems['+idx+'].priceUnit" value="'+displayUnit+'">'
+      + '  <input type="hidden" name="orderItems['+idx+'].priceUnit" value="'+priceUnitCalc+'">'
       + '  <input type="hidden" name="orderItems['+idx+'].convToBase" value="'+convDisplay+'">'
       + '</td>'
       + '<td>'
@@ -58,8 +59,11 @@ function addItemRowFromMaterial(item) {
       + '         onchange="rowRecalc(this)" required>'
       + '</td>'
       + '<td>'
-      + '  <input type="number" name="orderItems['+idx+'].visibleTotal" class="form-control" readonly value="'+(defaultQty*unitPrice)+'">'
-      + '  <input type="hidden" name="orderItems['+idx+'].totalPrice" value="'+(defaultQty*unitPrice)+'">'
+      + '  <input type="number" name="orderItems['+idx+'].visibleTotal"'
+      + '         class="form-control" readonly'
+      + '         value="'+ Math.round(defaultQty * _coef * unitPrice) +'">'
+      + '  <input type="hidden" name="orderItems['+idx+'].totalPrice"'
+      + '         value="'+ Math.round(defaultQty * _coef * unitPrice) +'">'
       + '  <div class="small text-muted mt-1"><span class="js-conv">'+(defaultQty*convDisplay).toLocaleString()+' '+displayUnit+'</span></div>'
       + '</td>'
       + '<td>'
@@ -334,23 +338,25 @@ function rowRecalc(input){
 
     // 계산용
     var purchaseUnit = ds(qtyInput, 'purchaseUnit', 'EA').toUpperCase();
-    var priceUnit    = ds(qtyInput, 'priceUnit', 'KG').toUpperCase();  // 기본값을 KG로
+    var priceUnit    = ds(qtyInput, 'priceUnit', 'KG').toUpperCase();
     var conv         = Number(ds(qtyInput, 'conv', 1)) || 1;
 
     // 표시용
     var dispUnit     = ds(qtyInput, 'displayUnit', priceUnit).toUpperCase();
     var convDisp     = Number(ds(qtyInput, 'convDisplay', conv)) || 1;
 
-    // 총액 계산 로직 개선
+    // ✅ 수정된 총액 계산 로직
     var total = 0;
-    if (purchaseUnit === priceUnit) {
-        // 주문단위와 가격단위가 같은 경우 (EA-EA, KG-KG 등)
+    
+    if (purchaseUnit === 'EA' && priceUnit === 'KG') {
+        // EA로 주문, KG으로 가격 책정되는 경우
+        // conv는 1EA당 KG 수량 (예: 1EA = 20KG)
+        total = q * conv * p;  // 수량(EA) × 환산비율(KG/EA) × 단가(원/KG)
+    } else if (purchaseUnit === priceUnit) {
+        // 주문단위와 가격단위가 같은 경우
         total = q * p;
     } else {
-        // 주문단위와 가격단위가 다른 경우 (EA 주문, KG 가격)
-        // EA 1개 = conv개의 KG이므로
-        // EA q개 = (q * conv)개의 KG
-        // 총액 = (q * conv) * p
+        // 기타 경우는 환산비율 적용
         total = q * conv * p;
     }
 
@@ -360,8 +366,13 @@ function rowRecalc(input){
     if (visTot)    visTot.value    = total;
 
     if (convSpan) {
-        // 표시용 (예: EA 1개 ≈ 20 KG → q*20 KG)
-        convSpan.textContent = (q * convDisp).toLocaleString() + ' ' + dispUnit;
+        // 표시용: 총 중량/용량 표시
+        var displayQty = q * convDisp;
+        if (dispUnit === 'KG' && displayQty >= 1000) {
+            convSpan.textContent = (displayQty/1000).toLocaleString() + '톤';
+        } else {
+            convSpan.textContent = displayQty.toLocaleString() + ' ' + dispUnit;
+        }
     }
 
     console.log('계산결과:', {
@@ -370,8 +381,7 @@ function rowRecalc(input){
         purchaseUnit: purchaseUnit,
         priceUnit: priceUnit,
         conv: conv,
-        convDisp: convDisp,
-        calculation: purchaseUnit === priceUnit ? q + ' × ' + p : q + ' × ' + conv + ' × ' + p,
+        calculation: purchaseUnit + ' ' + q + '개 × ' + conv + ' × ' + p + '원',
         total: total
     });
 }
