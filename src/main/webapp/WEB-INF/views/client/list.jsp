@@ -111,8 +111,8 @@
     <tbody>
       <c:forEach var="client" items="${clientList}">
         <tr>
-          <td class="text-left pl-3">${client.clientId}</td>
-          <td class="text-left pl-3">${client.clientName}</td>
+          <td>${client.clientId}</td>
+          <td>${client.clientName}</td>
           <td>${client.businessNumber}</td>
           <td>${client.ceoName}</td>
           <td>${client.clientTel}</td>

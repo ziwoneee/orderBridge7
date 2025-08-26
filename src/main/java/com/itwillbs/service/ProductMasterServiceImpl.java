@@ -30,18 +30,26 @@ public class ProductMasterServiceImpl implements ProductMasterService {
     }
     
     //제품코드 자동생성
+ // 제품코드 자동생성 (기존 DAO 그대로: selectLastProductId()가 'FG-123' 반환)
     @Override
     public String createNextProductId() {
         String lastId = productMasterDAO.selectLastProductId(); 
         int nextNo = 1;
+
         if (lastId != null && lastId.startsWith("FG-")) {
             try {
-                nextNo = Integer.parseInt(lastId.substring(3)) + 1;
-            } catch(Exception e) {}
+                // 안전하게 하이픈 다음부터 자르기
+                int pos = lastId.indexOf('-');
+                String numPart = (pos >= 0 && pos + 1 < lastId.length())
+                        ? lastId.substring(pos + 1) : "";
+                nextNo = Integer.parseInt(numPart) + 1;
+            } catch (Exception ignore) {
+                // 파싱 실패 시 nextNo=1 유지
+            }
         }
-        return String.format("FG-%03d", nextNo); 
-    
+        return String.format("FG-%03d", nextNo);
     }
+
     
 
     //제품 소프트 삭제

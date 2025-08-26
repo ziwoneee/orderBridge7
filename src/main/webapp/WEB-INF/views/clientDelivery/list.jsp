@@ -85,15 +85,27 @@
                 </li>
 
                 <!-- 출하 완료 -->
-                <li class="nav-item">
-                  <a class="nav-link ${param.tab == 'completed' ? 'active' : ''}"
-                     href="/shipment/list?tab=completed&keyword=${param.keyword}&startDate=${param.startDate}&endDate=${param.endDate}&page=1&perPageNum=${cri.perPageNum}">
-                    출하 완료
-                    <span class="badge badge-light ms-1">${completedCount}</span>
-                  </a>
-                </li>
-              </ul>
-            </div>
+                 <li class="nav-item">
+      <a class="nav-link ${param.tab == 'completed' ? 'active' : ''}"
+         href="/shipment/list?tab=completed">
+        출하완료 <span class="badge badge-light ms-1">${completedCount}</span>
+      </a>
+    </li>
+  </ul>
+
+  <!-- 오른쪽: 안내 문구 -->
+  <c:if test="${param.tab == 'completed'}">
+    <span class="ms-auto text-danger fw-bold"
+          style="background-color:#fff3cd;
+                 padding:4px 8px;
+                 border:1px solid #ffeeba;
+                 border-radius:6px;
+                 font-size:1.2rem;">
+      <i class="fas fa-exclamation-triangle me-1"></i>
+      <strong>출하취소는 당일 오후 2시 이전까지만 가능</strong>
+    </span>
+  </c:if>
+</div>
 
             <!-- 출하 대기 탭 내용 -->
             <c:if test="${empty param.tab || param.tab == 'pending'}">
@@ -329,116 +341,140 @@
 
             <!-- 출하 완료 탭 내용 -->
             <c:if test="${param.tab == 'completed'}">
-              <!-- 출하취소 안내 -->
-              <div class="text-right mb-3">
-                <h5 class="fw-bold text-danger" style="display: inline-block; background-color: #fff3cd; padding: 6px 12px; border: 1px solid #ffeeba; border-radius: 8px;">
-                  <i class="fas fa-exclamation-triangle me-1"></i>
-                  출하취소는 당일 오후 2시 이전까지만 가능
-                </h5>
-              </div>
+<!--               출하취소 안내 -->
+<!--               <div class="text-right mb-3"> -->
+<!--                 <h5 class="fw-bold text-danger" style="display: inline-block; background-color: #fff3cd; padding: 6px 12px; border: 1px solid #ffeeba; border-radius: 8px;"> -->
+<!--                   <i class="fas fa-exclamation-triangle me-1"></i> -->
+<!--                   출하취소는 당일 오후 2시 이전까지만 가능 -->
+<!--                 </h5> -->
+<!--               </div> -->
 
-              <div class="table-responsive mt-4">
-                <table class="table table-hover">
-                  <thead>
-                    <tr>
-                       <th>
-      
-      <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=clOrderId&sortOrder=${cri.sortColumn eq 'clOrderId' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
-         class="text-white text-decoration-none">
-        수주번호
-        <c:choose>
-          <c:when test="${cri.sortColumn eq 'clOrderId'}">
-            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
-          </c:when>
-          <c:otherwise>
-            <span class="neutral-arrow">⇅</span>
-          </c:otherwise>
-        </c:choose>
-      </a>
-    </th>
-    <th>
-     
-      <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=clientName&sortOrder=${cri.sortColumn eq 'clientName' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
-         class="text-white text-decoration-none">
-        거래처명
-        <c:choose>
-          <c:when test="${cri.sortColumn eq 'clientName'}">
-            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
-          </c:when>
-          <c:otherwise>
-            <span class="neutral-arrow">⇅</span>
-          </c:otherwise>
-        </c:choose>
-      </a>
-    </th>
-    <th>
-     
-      <a href="/shipment/list?tab=completed&page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=deliveryDate&sortOrder=${cri.sortColumn eq 'deliveryDate' and cri.sortOrder eq 'asc' ? 'desc' : 'asc'}" 
-         class="text-white text-decoration-none">
-        출하일자
-        <c:choose>
-          <c:when test="${cri.sortColumn eq 'deliveryDate'}">
-            <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
-          </c:when>
-          <c:otherwise>
-            <span class="neutral-arrow">⇅</span>
-          </c:otherwise>
-        </c:choose>
-      </a>
-    </th>
-                      <th>상세내역</th>
-                      <th>관리</th>
-                    </tr>
-                  </thead>
-                  <tbody>                 
-                    <c:forEach var="group" items="${groupedCompletedList}" varStatus="status">
-                      <tr>
-                        <td>${group.clOrderId}</td>
-                        <td>${group.clientName}</td>
-                        <td>
-                          <fmt:formatDate value="${group.deliveryDate}" pattern="yyyy-MM-dd" /><br />
-                          <small class="text-muted">
-                            <i class="bi bi-clock me-1"></i>
-                            <fmt:formatDate value="${group.deliveryDate}" pattern="HH:mm:ss" />
-                          </small>
-                        </td>
-                        <td>
-                          <button type="button" class="btn btn-sm btn-outline-info"
-                                  data-bs-toggle="modal"
-                                  data-bs-target="#modal-${status.index}">
-                            상세
-                          </button>
-                        </td>
-                        <td>
-                          <fmt:formatDate value="${group.productList[0].createdAt}" pattern="yyyy-MM-dd" var="createdDate" />
-                          <c:choose>
-                            <c:when test="${createdDate == today and currentHour lt 18}">
-                              <form method="post" action="/shipment/cancel" style="display: inline;" onsubmit="return confirm('정말로 출하를 취소하시겠습니까?');">
-                                <input type="hidden" name="deliveryId" value="${group.productList[0].deliveryId}" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger">출하 취소</button>
-                              </form>
-                            </c:when>
-                            <c:otherwise>
-                              <span class="btn btn-sm btn-success">출하 완료</span>
-                            </c:otherwise>
-                          </c:choose>
-                        </td>
-                      </tr>
-                    </c:forEach>
+        <div class="table-responsive mt-4">
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th>
+          <c:url var="sortClOrderUrl" value="/shipment/list">
+            <c:param name="tab" value="completed"/>
+            <c:param name="page" value="${cri.page}"/>
+            <c:param name="perPageNum" value="${cri.perPageNum}"/>
+            <c:param name="keyword" value="${cri.keyword}"/>
+            <c:param name="startDate" value="${cri.startDate}"/>
+            <c:param name="endDate" value="${cri.endDate}"/>
+            <c:param name="sortColumn" value="clorderid"/>
+            <c:param name="sortOrder" value="${(cri.sortColumn eq 'clorderid' and cri.sortOrder eq 'asc') ? 'desc' : 'asc'}"/>
+          </c:url>
+          <a href="${sortClOrderUrl}" class="text-white text-decoration-none">
+            수주번호
+            <c:choose>
+              <c:when test="${cri.sortColumn eq 'clorderid'}">
+                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+              </c:when>
+              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
+            </c:choose>
+          </a>
+        </th>
 
-                    <c:if test="${empty groupedCompletedList}">
-                      <tr>
-                        <td colspan="5" class="text-center py-4">
-                          <div class="text-muted">
-                            <i class="ti-info-alt" style="font-size: 24px;"></i>
-                            <p class="mt-2">출하 완료된 항목이 없습니다.</p>
-                          </div>
-                        </td>
-                      </tr>
-                    </c:if>
-                  </tbody>
-                </table>
-              </div>
+        <th>
+          <c:url var="sortClientUrl" value="/shipment/list">
+            <c:param name="tab" value="completed"/>
+            <c:param name="page" value="${cri.page}"/>
+            <c:param name="perPageNum" value="${cri.perPageNum}"/>
+            <c:param name="keyword" value="${cri.keyword}"/>
+            <c:param name="startDate" value="${cri.startDate}"/>
+            <c:param name="endDate" value="${cri.endDate}"/>
+            <c:param name="sortColumn" value="clientname"/>
+            <c:param name="sortOrder" value="${(cri.sortColumn eq 'clientname' and cri.sortOrder eq 'asc') ? 'desc' : 'asc'}"/>
+          </c:url>
+          <a href="${sortClientUrl}" class="text-white text-decoration-none">
+            거래처명
+            <c:choose>
+              <c:when test="${cri.sortColumn eq 'clientname'}">
+                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+              </c:when>
+              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
+            </c:choose>
+          </a>
+        </th>
+
+        <th>
+          <c:url var="sortDateUrl" value="/shipment/list">
+            <c:param name="tab" value="completed"/>
+            <c:param name="page" value="${cri.page}"/>
+            <c:param name="perPageNum" value="${cri.perPageNum}"/>
+            <c:param name="keyword" value="${cri.keyword}"/>
+            <c:param name="startDate" value="${cri.startDate}"/>
+            <c:param name="endDate" value="${cri.endDate}"/>
+            <c:param name="sortColumn" value="deliverydate"/>
+            <c:param name="sortOrder" value="${(cri.sortColumn eq 'deliverydate' and cri.sortOrder eq 'asc') ? 'desc' : 'asc'}"/>
+          </c:url>
+          <a href="${sortDateUrl}" class="text-white text-decoration-none">
+            출하일자
+            <c:choose>
+              <c:when test="${cri.sortColumn eq 'deliverydate'}">
+                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+              </c:when>
+              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
+            </c:choose>
+          </a>
+        </th>
+
+        <th>상세내역</th>
+        <th>관리</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <c:forEach var="group" items="${groupedCompletedList}" varStatus="status">
+        <tr>
+          <td>${group.clOrderId}</td>
+          <td>${group.clientName}</td>
+          <td>
+            <fmt:formatDate value="${group.deliveryDate}" pattern="yyyy-MM-dd" /><br />
+            <small class="text-muted">
+              <i class="bi bi-clock me-1"></i>
+              <fmt:formatDate value="${group.deliveryDate}" pattern="HH:mm:ss" />
+            </small>
+          </td>
+          <td>
+            <button type="button" class="btn btn-sm btn-outline-info"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modal-${status.index}">
+              상세
+            </button>
+          </td>
+          <td>
+            <fmt:formatDate value="${group.productList[0].createdAt}" pattern="yyyy-MM-dd" var="createdDate" />
+            <c:choose>
+              <c:when test="${createdDate == today and currentHour lt 18}">
+                <form method="post" action="/shipment/cancel" style="display: inline;"
+                      onsubmit="return confirm('정말로 출하를 취소하시겠습니까?');">
+                  <input type="hidden" name="deliveryId" value="${group.productList[0].deliveryId}" />
+                  <button type="submit" class="btn btn-sm btn-outline-danger">출하 취소</button>
+                </form>
+              </c:when>
+              <c:otherwise>
+                <span class="btn btn-sm btn-success">출하 완료</span>
+              </c:otherwise>
+            </c:choose>
+          </td>
+        </tr>
+      </c:forEach>
+
+      <c:if test="${empty groupedCompletedList}">
+        <tr>
+          <td colspan="5" class="text-center py-4">
+            <div class="text-muted">
+              <i class="ti-info-alt" style="font-size: 24px;"></i>
+              <p class="mt-2">출하 완료된 항목이 없습니다.</p>
+            </div>
+          </td>
+        </tr>
+      </c:if>
+    </tbody>
+  </table>
+</div>
+        
 
               <!-- 출하완료 페이징 -->
               <div class="d-flex justify-content-center mt-4">
