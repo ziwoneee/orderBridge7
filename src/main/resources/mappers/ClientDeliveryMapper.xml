@@ -129,11 +129,11 @@
     INSERT INTO client_delivery (
       delivery_id, cl_order_id, product_id, lot_no, delivery_qty, delivery_date,
       delivery_status, client_id, tracking_number,
-      created_at, updated_at, is_pdf_generated
+      created_at, updated_at
     ) VALUES (
      #{deliveryId}, #{clOrderId}, #{productId}, #{lotNo}, #{deliveryQty}, #{deliveryDate},
       #{deliveryStatus}, #{clientId}, #{trackingNumber},
-      #{createdAt}, #{updatedAt}, #{isPdfGenerated}
+      #{createdAt}, #{updatedAt}
     )
   </insert>
 
