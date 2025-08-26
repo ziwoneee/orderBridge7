@@ -43,28 +43,21 @@ public class SupplierItemController {
 	/**
 	 * 공급 품목 페이지 컨트롤러 - 거래처 ID를 기준으로 협력사 정보 + 공급 품목 페이지 이동
 	 */
-	@GetMapping(value = "list", produces = "application/json; charset=UTF-8")
+	// SupplierItemController.java
+	@GetMapping("list")
 	@ResponseBody
-	public List<Map<String, Object>> getSupplierItemList(
-	        @RequestParam("supplierId") String supplierId) throws Exception {
-
+	public List<SupplierItemVO> getSupplierItemList(@RequestParam("supplierId") String supplierId) throws Exception {
 	    System.out.println("✅ Ajax 요청 도착 - supplierId: " + supplierId);
 
-	    // Service도 List<Map<String,Object>> 반환이어야 함!
-	    List<Map<String, Object>> itemList = siService.getItemsBySupplier(supplierId);
+	    // Service는 반드시 List<SupplierItemVO> 반환
+	    List<SupplierItemVO> itemList = siService.getItemsBySupplier(supplierId);
 
-	    int size = (itemList == null) ? 0 : itemList.size();
-	    System.out.println("✅ 조회된 품목 수: " + size);
-
-	    if (itemList != null) {
-	        for (Map<String, Object> row : itemList) {
-	            Object name = row.getOrDefault("materialName", row.get("material_name"));
-	            Object type = row.getOrDefault("materialType", row.get("material_type"));
-	            System.out.println("▶ 자재명: " + name + ", 유형: " + type);
-	        }
+	    System.out.println("✅ 조회된 품목 수: " + itemList.size());
+	    for (SupplierItemVO item : itemList) {
+	        System.out.println("▶ 자재명: " + item.getMaterialName() + ", 유형: " + item.getMaterialType());
 	    }
 
-	    // Model에 넣는 건 @ResponseBody 반환엔 필요없어서 제거
+	    // 그냥 그대로 JSON으로 내려보냄 (Map 변환/캐스팅 절대 금지)
 	    return itemList;
 	}
 

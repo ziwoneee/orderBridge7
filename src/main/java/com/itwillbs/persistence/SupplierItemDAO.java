@@ -15,7 +15,7 @@ public interface SupplierItemDAO {
 	
     
     // 특정 거래처의 공급 품목 JSON 목록 반환
-    public List<Map<String, Object>> getItemsBySupplier(@Param("supplierId") String supplierId) throws Exception;
+	public List<SupplierItemVO> getItemsBySupplier(@Param("supplierId") String supplierId) throws Exception;
     
     // 페이징
     int getItemCountBySupplier(String supplierId) throws Exception;

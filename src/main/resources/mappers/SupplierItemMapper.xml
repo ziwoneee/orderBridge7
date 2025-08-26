@@ -4,53 +4,53 @@
   "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
   
 <mapper namespace="com.itwillbs.mapper.SupplierItemMapper">
-  <resultMap id="supplierItemMap" type="com.itwillbs.domain.SupplierItemVO">
-	  <id property="id" column="id"/>
-	  <result property="supplierId" column="supplier_id"/>
-	  <result property="materialId" column="material_id"/>
-	  <result property="materialName" column="material_name"/>
-	  <result property="materialType" column="material_type"/>
-	  <result property="unitPrice" column="unit_price"/>
-	  <result property="unit" column="unit"/>
-	  <result property="supplyAvailable" column="supply_available"/>
-	  <result property="note" column="note"/>
-	  <result property="createdAt" column="created_at"/>
-	  <result property="updatedAt" column="updated_at"/>
-	  <result property="warehouseCode" column="warehouse_code"/>
-	  <result property="priceUnit"    column="price_unit"/>
-	  <result property="convToBase"   column="conv_to_base"/>
-	  <result property="packQty"      column="pack_qty"/>
-	  <result property="minOrderQty"  column="min_order_qty"/>
-	  <result property="orderMultiple" column="order_multiple"/>
-	  <result property="baseUnit"     column="base_unit"/>
-  </resultMap>
-  	
-  <!-- 특정 거래처의 공급 품목 JSON 목록 반환 -->
-  <select id="getItemsBySupplier" parameterType="string" resultType="map">
-	  SELECT
-	    si.id                   AS id,
-	    si.supplier_id          AS supplierId,
-	    si.material_id          AS materialId,
-	    si.unit_price           AS unitPrice,
-	    si.unit                 AS unit,
-	    si.supply_available     AS supplyAvailable,
-	    si.note                 AS note,
-	    DATE_FORMAT(si.created_at, '%Y-%m-%d %H:%i:%s') AS createdAt,
- 		DATE_FORMAT(si.updated_at, '%Y-%m-%d %H:%i:%s') AS updatedAt,
-	    si.price_unit           AS priceUnit,
-	    si.conv_to_base         AS convToBase,
-	    si.pack_qty             AS packQty,
-	    si.min_order_qty        AS minOrderQty,
-	    si.order_multiple       AS orderMultiple,
-	    m.material_name         AS materialName,
-	    m.material_type         AS materialType,
-	    m.unit                  AS materialUnit,   /* base_unit 컬럼 없음! */
-	    m.warehouse_code        AS warehouseCode
-	  FROM supplier_item si
-	  JOIN material m ON si.material_id = m.material_id
-	  WHERE si.supplier_id = #{supplierId}
-	</select>
 
+	<resultMap id="SupplierItemMap" type="com.itwillbs.domain.SupplierItemVO">
+	  <result property="id"            column="id"/>
+	  <result property="supplierId"    column="supplier_id"/>
+	  <result property="materialId"    column="material_id"/>
+	  <result property="materialName"  column="material_name"/>
+	  <result property="materialType"  column="material_type"/>
+	
+	  <!-- JS가 기대하는 필드명들 -->
+	  <result property="orderUnit"     column="order_unit"/>
+	  <result property="priceUnit"     column="price_unit"/>
+	  <result property="unitPrice"     column="unit_price"/>
+	  <result property="convToStock"   column="conv_to_stock"/>
+	  <result property="stockUnit"     column="stock_unit"/>
+	
+	  <result property="minOrderQty"   column="min_order_qty"/>
+	  <result property="orderMultiple" column="order_multiple"/>
+	
+	  <result property="warehouseCode" column="warehouse_code"/>
+	  <result property="note"          column="note"/>
+	  <result property="supplyAvailable" column="supply_available"/>
+	</resultMap>
+
+	
+	
+	<select id="getItemsBySupplier" resultMap="SupplierItemMap">
+	  SELECT
+	      si.id,
+	      si.supplier_id,
+	      si.material_id,
+	      si.unit_price,
+	      si.order_unit         AS order_unit,      -- 'EA' 고정값 제거
+	      si.price_unit         AS price_unit,
+	      si.conv_to_stock      AS conv_to_stock,   -- conv_to_base → conv_to_stock
+	      COALESCE(si.stock_unit, m.unit) AS stock_unit, -- 공급처 단위 우선
+	      m.material_name,
+	      m.material_type,
+	      m.warehouse_code,
+	      si.min_order_qty,
+	      si.order_multiple,
+	      si.supply_available,
+	      si.note
+	  FROM supplier_item si
+	  JOIN material m ON m.material_id = si.material_id
+	  WHERE si.supplier_id = #{supplierId}
+	  ORDER BY m.material_name
+	</select>
 
 
 

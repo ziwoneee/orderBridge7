@@ -25,7 +25,7 @@ public class SupplierItemDAOImpl implements SupplierItemDAO {
 
     // 특정 거래처의 공급 품목 JSON 목록 반환
     @Override
-    public List<Map<String, Object>> getItemsBySupplier(String supplierId) throws Exception {
+    public List<SupplierItemVO> getItemsBySupplier(String supplierId) throws Exception {
         return sqlSession.selectList(NAMESPACE + "getItemsBySupplier", supplierId);
     }
     

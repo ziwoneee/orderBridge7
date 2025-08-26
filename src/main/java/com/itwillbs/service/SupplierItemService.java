@@ -12,7 +12,7 @@ import com.itwillbs.domain.SupplierItemVO;
 public interface SupplierItemService {
 	
     // 특정 거래처의 공급 품목 JSON 목록 반환
-	List<Map<String, Object>> getItemsBySupplier(String supplierId) throws Exception;
+	List<SupplierItemVO> getItemsBySupplier(String supplierId) throws Exception;
     
     // 페이징
     int getItemCountBySupplier(String supplierId) throws Exception;
