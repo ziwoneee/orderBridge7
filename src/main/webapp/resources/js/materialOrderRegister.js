@@ -178,67 +178,57 @@ function upgradeExistingRows() {
 /* ---------------------------------------
  * [4] 거래처 변경 → 품목 로딩
  * ------------------------------------- */
-var supplierSel = document.getElementById('supplierSelect') 
-	|| document.querySelector("select[name='order.supplierId']");
-if (supplierSel) {
-    supplierSel.addEventListener("change", function () {
-        var supplierId = this.value;
-        materialMap = {};
-        supplierItemMap = {};
+//[4] 거래처 변경 → 품목 로딩  (DOMContentLoaded 안에서 보장)
+document.addEventListener('DOMContentLoaded', function () {
+  var supplierSel = document.getElementById('supplierSelect')
+                 || document.querySelector("select[name='order.supplierId']");
+  if (!supplierSel) return;
 
-        // 모든 자재 select 초기화
-        var allSel = document.querySelectorAll("select[name$='.materialId']");
-        for (var i=0; i<allSel.length; i++) {
-            allSel[i].innerHTML = '<option value="">선택</option>';
+  supplierSel.addEventListener("change", function () {
+    var supplierId = this.value;
+    materialMap = {};
+    supplierItemMap = {};
+
+    // 모든 자재 select 초기화
+    var allSel = document.querySelectorAll("select[name$='.materialId']");
+    for (var i=0; i<allSel.length; i++) allSel[i].innerHTML = '<option value="">선택</option>';
+    if (!supplierId) return;
+
+    fetch('/supplierItem/list?supplierId=' + encodeURIComponent(supplierId))
+      .then(function(res){ if(!res.ok) throw new Error('Network error'); return res.json(); })
+      .then(function(data){
+        for (var i=0; i<data.length; i++) {
+          var it = data[i];
+          var normalized = {
+            materialId   : it.materialId,
+            materialName : it.materialName,
+            warehouseCode: it.warehouseCode || '',
+            unit         : (it.orderUnit || it.unit || 'EA').toUpperCase(),
+            priceUnitCalc: (it.priceUnit || 'KG').toUpperCase(),
+            displayUnit  : (it.stockUnit || it.priceUnit || 'KG').toUpperCase(),
+            convDisplay  : Number(it.convToStock || it.conv_to_stock || it.convToBase || 1),
+            unitPrice    : Number(it.unitPrice || 0),
+            minOrderQty  : Number(it.minOrderQty || 1),
+            orderMultiple: Number(it.orderMultiple || 1)
+          };
+          materialMap[normalized.materialId]     = normalized;
+          supplierItemMap[normalized.materialId] = normalized;
         }
-        if (!supplierId) return;
+        upgradeExistingRows();
+        var optionHTML = getMaterialOptions();
+        var sels = document.querySelectorAll("select[name$='.materialId']");
+        for (var j=0; j<sels.length; j++) {
+          sels[j].innerHTML = '<option value="">선택</option>' + optionHTML;
+          sels[j].setAttribute("onchange", "onMaterialSelect(this)");
+        }
+      })
+      .catch(function(err){
+        console.error(err);
+        alert('거래처 자재 목록을 불러오지 못했습니다.');
+      });
+  });
+});
 
-        fetch('/supplierItem/list?supplierId=' + encodeURIComponent(supplierId))
-          .then(function(res){ if(!res.ok) throw new Error('Network error'); return res.json(); })
-          .then(function(data){
-              // 서버 값 정규화(필드명/단위/환산 통일)
-              for (var i=0; i<data.length; i++) {
-                  var it = data[i];
-                  var normalized = {
-                      materialId   : it.materialId,
-                      materialName : it.materialName,
-                      warehouseCode: it.warehouseCode || '',
-                      // 구매(주문) 단위
-                      unit         : (it.orderUnit || it.unit || 'EA').toUpperCase(),
-
-                      // [계산용 단위] 단가가 적용되는 기준 (priceUnit 우선)
-                      priceUnitCalc: (it.priceUnit || 'KG').toUpperCase(),
-
-                      // [표시용 단위] 힌트/보조표시(재고단위 우선)
-                      displayUnit  : (it.stockUnit || it.priceUnit || 'KG').toUpperCase(),
-
-                      // EA 1개 ≈ convDisplay displayUnit
-                      convDisplay  : Number(it.convToStock || it.conv_to_stock || it.convToBase || 1),
-
-                      unitPrice    : Number(it.unitPrice || 0),
-                      minOrderQty  : Number(it.minOrderQty || 1),
-                      orderMultiple: Number(it.orderMultiple || 1)
-                  };
-                  materialMap[normalized.materialId]     = normalized;
-                  supplierItemMap[normalized.materialId] = normalized;
-              }
-
-              // 기존 행 업그레이드 + 옵션 채우기
-              upgradeExistingRows();
-              var optionHTML = getMaterialOptions();
-              var sels = document.querySelectorAll("select[name$='.materialId']");
-              for (var j=0; j<sels.length; j++) {
-                  sels[j].innerHTML = '<option value="">선택</option>' + optionHTML;
-                  // onchange 이벤트도 추가
-                  sels[j].setAttribute("onchange", "onMaterialSelect(this)");
-              }
-          })
-          .catch(function(err){
-              console.error(err);
-              alert('거래처 자재 목록을 불러오지 못했습니다.');
-          });
-    });
-}
 
 /* ---------------------------------------
  * [5] 자재 선택 → 단가/단위 바인딩
@@ -530,8 +520,7 @@ function selectSupplierFromSearch(element) {
         supplierSelect.value = supplierId;
         
         // 거래처 변경 이벤트 트리거 (자재 목록 로딩)
-        var changeEvent = new Event('change', { bubbles: true });
-        supplierSelect.dispatchEvent(changeEvent);
+        _dispatchChange(supplierSelect);
         
         // 자재 목록 로딩 후 선택하기 위해 잠시 대기
         setTimeout(function() {
@@ -558,8 +547,7 @@ function selectMaterialInFirstRow(materialId, materialName) {
             firstSelect.value = materialId;
             
             // 자재 선택 이벤트 트리거
-            var changeEvent = new Event('change', { bubbles: true });
-            firstSelect.dispatchEvent(changeEvent);
+            _dispatchChange(firstSelect);
         } else {
             console.warn('자재 옵션을 찾을 수 없습니다:', materialId);
         }
@@ -646,10 +634,7 @@ function _escHtml(s) {
           .replace(/"/g,'&quot;')
           .replace(/'/g,'&#39;');
 }
-function _escJs(s) {
-  s = s == null ? '' : String(s);
-  return s.replace(/\\/g,'\\\\').replace(/'/g,'\\\'');
-}
+function _escJs(s){ s = s==null?'':String(s); return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 
 // (E) 모달 열기
 function _openSupplierSearchModal() {
@@ -776,3 +761,112 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 
+//폼 제출 직전, 모든 행을 [0..n-1]로 재인덱싱
+function reindexOrderItemRows() {
+  var rows = document.querySelectorAll('#itemTable tbody tr');
+  var idx = 0;
+  for (var r = 0; r < rows.length; r++) {
+    var row = rows[r];
+
+    // 자재 미선택 행/수량 0은 스킵(제출 제외)
+    var sel = row.querySelector('select[name$=".materialId"]');
+    var qty = row.querySelector('input[name$=".orderQuantity"]');
+    if (!sel || !sel.value || !qty || Number(qty.value) <= 0) {
+    	 // ❗빈 행은 제출되지 않도록 name 제거
+    	var junk = row.querySelectorAll('input,select,textarea');
+    	  for (var j=0; j<junk.length; j++) {
+    	    if (junk[j].name) {
+    	      junk[j].setAttribute('data-skip-name', junk[j].name);
+    	      junk[j].removeAttribute('name');
+    	    }
+    	    if (junk[j].required) junk[j].setAttribute('data-was-required','1');
+    	    junk[j].required = false;
+    	    junk[j].disabled = true; // 제출 검증/페이로드에서 완전 제외
+    	  }
+      continue;
+    }
+
+    // 이 행에 있는 name="orderItems[숫자].xxx" 전부를 [idx]로 교체
+    var named = row.querySelectorAll('[name]');
+    for (var i = 0; i < named.length; i++) {
+      var el = named[i];
+      el.name = el.name.replace(/orderItems\[\d+\]/, 'orderItems[' + idx + ']');
+    }
+    idx++;
+  }
+}
+
+// 기존 submit 리스너에 가장 먼저 호출
+document.addEventListener('DOMContentLoaded', function () {
+  var form = document.querySelector('form');
+  if (!form) return;
+
+  form.addEventListener('submit', function (e) {
+    // 0) 제출 전 강제 재인덱싱
+    reindexOrderItemRows();
+
+    // 1) 디버깅: 몇 개가 나가는지 즉시 확인 (개발 중에만)
+    // console.log(new FormData(form)); // 필요 시 확인용
+
+    // 2) 기존 유효성 검사/로직 그대로…
+    // (너가 이미 갖고 있는 validate 로직 이어서 실행)
+  }, true);
+});
+
+//제출 버튼 클릭을 가장 먼저 가로채서 재인덱싱
+document.addEventListener('click', function(e){
+  var t = e.target;
+  if (!t || !(t.matches('button[type="submit"]') || t.matches('input[type="submit"]'))) return;
+  try { reindexOrderItemRows(); } catch(_) {}
+}, true); // capture 단계
+
+//form.submit()이 직접 호출돼도 재인덱싱이 먼저 실행되도록 래핑
+(function(){
+  var orig = HTMLFormElement.prototype.submit;
+  HTMLFormElement.prototype.submit = function(){
+    try { reindexOrderItemRows(); } catch(_) {}
+    return orig.call(this);
+  };
+})();
+
+//jQuery가 serialize/serializeArray로 페이로드 만들 때도 제출 직전 재인덱싱
+(function(){
+  if (!window.jQuery || !jQuery.fn) return;
+  var _ser  = jQuery.fn.serialize;
+  var _sera = jQuery.fn.serializeArray;
+  jQuery.fn.serialize = function(){
+    try { reindexOrderItemRows(); } catch(_) {}
+    return _ser.call(this);
+  };
+  jQuery.fn.serializeArray = function(){
+    try { reindexOrderItemRows(); } catch(_) {}
+    return _sera.call(this);
+  };
+})();
+
+document.addEventListener('DOMContentLoaded', function () {
+	  var form = document.getElementById('orderForm') || document.querySelector('form');
+	  var btn  = document.getElementById('btnRegister') 
+	          || document.querySelector('button[data-submit], button#register, button.btn-primary[type="button"]');
+
+	  if (form && btn) {
+	    btn.addEventListener('click', function (e) {
+	      // 버튼이 type="submit" 이든 "button"이든 무조건 내가 주도
+	      e.preventDefault ? e.preventDefault() : (e.returnValue = false);
+	      try { reindexOrderItemRows(); } catch(_) {}
+	      form.submit(); // 우리가 래핑해둔 submit이 한번 더 재인덱싱을 보장
+	    }, true); // 캡처 단계에서 가장 먼저 실행
+	  }
+	});
+
+//⚡ FormData(form) 호출될 때도 먼저 재인덱싱이 실행되도록 래핑
+(function () {
+  var OrigFD = window.FormData;
+  window.FormData = function (arg) {
+    try {
+      if (arg && arg.tagName === 'FORM') { reindexOrderItemRows(); }
+    } catch (e) {}
+    return new OrigFD(arg);
+  };
+  window.FormData.prototype = OrigFD.prototype; // 프로토 유지
+})();
