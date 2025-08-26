@@ -64,37 +64,21 @@ if (token && header) {
 function n(v){ return (v===''||v==null) ? NaN : Number(v); }
 
 // 1팩을 기본단위(g/ml/ea)로 환산
-const PACK_SIZE = {
-  'RM-0001':20000, 'RM-0002':20000, 'RM-0003':1000,
-  'RM-0004':2000,  'RM-0005':2000,  'RM-0006':1000,
-  'RM-0007':10000, 'RM-0008':5000,  'RM-0009':4500,
-  'RM-0010':15000, 'RM-0011':20000, 'RM-0012':1000,
-  'RM-0013':1800,  'RM-0014':100,   'RM-0016':1000,
-  'RM-0017':10,    'RM-0018':100
-};
-
-// 단가 정책(서버가 안 주면 폴백)
-const PRICE_POLICY = {
-  'RM-0001': { unitPrice:3300,  priceUnit:'KG' },
-  'RM-0002': { unitPrice:3800,  priceUnit:'KG' },
-  'RM-0003': { unitPrice:7800,  priceUnit:'KG' },
-  'RM-0004': { unitPrice:4500,  priceUnit:'KG' },
-  'RM-0005': { unitPrice:6500,  priceUnit:'KG' },
-  'RM-0006': { unitPrice:9500,  priceUnit:'KG' },
-
-  'RM-0007': { unitPrice:5500,  priceUnit:'KG' },
-  'RM-0008': { unitPrice:6000,  priceUnit:'KG' },
-  'RM-0009': { unitPrice:2000,  priceUnit:'BUNDLE', bundlesPerPack:10 }, // 10단/박스
-  'RM-0010': { unitPrice:1300,  priceUnit:'KG' },
-
-  'RM-0011': { unitPrice:1000,  priceUnit:'KG' },     // 1,000원/kg (20kg 포대)
-  'RM-0012': { unitPrice:15000, priceUnit:'KG' },
-  'RM-0013': { unitPrice:3000,  priceUnit:'PACK' },   // 1.8L 병
-  'RM-0014': { unitPrice:10000, priceUnit:'KG' },
-
-  'RM-0016': { unitPrice:150,   priceUnit:'BASE' },
-  'RM-0017': { unitPrice:800,   priceUnit:'BASE' },
-  'RM-0018': { unitPrice:1200,  priceUnit:'BASE' }
+const MATERIAL_META = {
+  'RM-0001': { packQty: 20, packUnit: 'KG', priceUnit: 'KG', unitPrice: 3300 },
+  'RM-0002': { packQty: 20, packUnit: 'KG', priceUnit: 'KG', unitPrice: 3800 },
+  'RM-0003': { packQty: 1, packUnit: 'KG', priceUnit: 'KG', unitPrice: 7800 },
+  'RM-0004': { packQty: 2, packUnit: 'KG', priceUnit: 'KG', unitPrice: 4500 },
+  'RM-0005': { packQty: 2, packUnit: 'KG', priceUnit: 'KG', unitPrice: 6500 },
+  'RM-0006': { packQty: 1, packUnit: 'KG', priceUnit: 'KG', unitPrice: 9500 },
+  'RM-0007': { packQty: 10, packUnit: 'KG', priceUnit: 'KG', unitPrice: 5500 },
+  'RM-0008': { packQty: 5, packUnit: 'KG', priceUnit: 'KG', unitPrice: 6000 },
+  'RM-0009': { packQty: 10, packUnit: 'BUNDLE', priceUnit: 'BUNDLE', unitPrice: 2000, bundlesPerPack: 10 },
+  'RM-0010': { packQty: 15, packUnit: 'KG', priceUnit: 'KG', unitPrice: 1300 },
+  'RM-0011': { packQty: 20, packUnit: 'KG', priceUnit: 'KG', unitPrice: 1000 },
+  'RM-0012': { packQty: 1, packUnit: 'KG', priceUnit: 'KG', unitPrice: 15000 },
+  'RM-0013': { packQty: 1.8, packUnit: 'L', priceUnit: 'L', unitPrice: 3000 },
+  'RM-0014': { packQty: 0.1, packUnit: 'KG', priceUnit: 'KG', unitPrice: 10000 }
 };
 
 // 기본단위 → 과금단위 수량 환산
@@ -119,27 +103,10 @@ function fmtBase(qty, mid){
 
 // 공급사 메타 조회(팩사이즈/가격단위/단가) — 서버 응답 없으면 폴백
 function loadPriceMeta(materialId, supplierId){
-    // 하드코딩된 정보로 즉시 반환 (DB 조회 없이)
-    const materialInfo = {
-        'RM-0001': { packQty: 20, priceUnit: 'KG', unitPrice: 3300 },      // 돼지사골 20kg
-        'RM-0002': { packQty: 20, priceUnit: 'KG', unitPrice: 3800 },      // 소사골 20kg
-        'RM-0003': { packQty: 1, priceUnit: 'KG', unitPrice: 7800 },       // 삼겹/목살 1kg
-        'RM-0004': { packQty: 2, priceUnit: 'KG', unitPrice: 4500 },       // 삶은 순대 2kg
-        'RM-0005': { packQty: 2, priceUnit: 'KG', unitPrice: 6500 },       // 삶은 머리고기 2kg
-        'RM-0006': { packQty: 1, priceUnit: 'KG', unitPrice: 9500 },       // 양지머리 1kg
-        'RM-0007': { packQty: 10, priceUnit: 'KG', unitPrice: 5500 },      // 통마늘 10kg
-        'RM-0008': { packQty: 5, priceUnit: 'KG', unitPrice: 6000 },       // 생강 5kg
-        'RM-0009': { packQty: 10, priceUnit: 'BUNDLE', unitPrice: 2000, bundlesPerPack: 10 }, // 대파 10단
-        'RM-0010': { packQty: 15, priceUnit: 'KG', unitPrice: 1300 },      // 양파 15kg
-        'RM-0011': { packQty: 20, priceUnit: 'KG', unitPrice: 1000 },      // 소금 20kg
-        'RM-0012': { packQty: 1, priceUnit: 'KG', unitPrice: 15000 },      // 후추 1kg
-        'RM-0013': { packQty: 1.8, priceUnit: 'L', unitPrice: 3000 },      // 맛술 1.8L
-        'RM-0014': { packQty: 0.1, priceUnit: 'KG', unitPrice: 10000 }     // 월계수 0.1kg
-    };
+	
+	const info = MATERIAL_META[materialId] || { packQty: 1, priceUnit: 'KG', unitPrice: 0 };
     
-    const info = materialInfo[materialId] || { packQty: 1, priceUnit: 'KG', unitPrice: 0 };
-    
-    return Promise.resolve({
+	return Promise.resolve({
         packQty: info.packQty,
         priceUnit: info.priceUnit,
         unitPrice: info.unitPrice,

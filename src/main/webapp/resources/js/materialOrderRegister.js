@@ -323,9 +323,12 @@ function rowRecalc(input){
 
     var qtyInput   = row.querySelector("input[name$='.orderQuantity']");
     var priceInput = row.querySelector("input[name$='.unitPrice']");
+    var materialSelect = row.querySelector("select[name$='.materialId']");
     var hiddenTot  = row.querySelector("input[type='hidden'][name$='.totalPrice']");
     var visTot     = row.querySelector("input[name$='.visibleTotal']");
     var convSpan   = row.querySelector(".js-conv");
+
+    if (!materialSelect || !materialSelect.value) return;
 
     var q = parseInt((qtyInput && qtyInput.value) ? qtyInput.value : '0', 10);
     var min = parseInt((qtyInput && qtyInput.min) ? qtyInput.min : '1', 10) || 1;
@@ -335,53 +338,38 @@ function rowRecalc(input){
     }
 
     var p = Number((priceInput && priceInput.value) ? priceInput.value : 0);
+    var materialId = materialSelect.value;
 
-    // 계산용
-    var purchaseUnit = ds(qtyInput, 'purchaseUnit', 'EA').toUpperCase();
-    var priceUnit    = ds(qtyInput, 'priceUnit', 'KG').toUpperCase();
-    var conv         = Number(ds(qtyInput, 'conv', 1)) || 1;
-
-    // 표시용
-    var dispUnit     = ds(qtyInput, 'displayUnit', priceUnit).toUpperCase();
-    var convDisp     = Number(ds(qtyInput, 'convDisplay', conv)) || 1;
-
-    // ✅ 수정된 총액 계산 로직
-    var total = 0;
-    
-    if (purchaseUnit === 'EA' && priceUnit === 'KG') {
-        // EA로 주문, KG으로 가격 책정되는 경우
-        // conv는 1EA당 KG 수량 (예: 1EA = 20KG)
-        total = q * conv * p;  // 수량(EA) × 환산비율(KG/EA) × 단가(원/KG)
-    } else if (purchaseUnit === priceUnit) {
-        // 주문단위와 가격단위가 같은 경우
-        total = q * p;
-    } else {
-        // 기타 경우는 환산비율 적용
-        total = q * conv * p;
+    // ✅ 새로운 계산 로직
+    var meta = MATERIAL_META[materialId];
+    if (!meta) {
+        console.warn('자재 메타데이터가 없습니다:', materialId);
+        meta = { packQty: 1, priceUnit: 'KG', unitPrice: 0 };
     }
 
-    total = Math.round(total);
+    // PACK 수량 × PACK당 과금단위 × 단가
+    var total = Math.round(q * meta.packQty * p);
 
     if (hiddenTot) hiddenTot.value = total;
     if (visTot)    visTot.value    = total;
 
     if (convSpan) {
-        // 표시용: 총 중량/용량 표시
-        var displayQty = q * convDisp;
-        if (dispUnit === 'KG' && displayQty >= 1000) {
+        var displayQty = q * meta.packQty;
+        var displayUnit = meta.priceUnit;
+        
+        if (displayUnit === 'KG' && displayQty >= 1000) {
             convSpan.textContent = (displayQty/1000).toLocaleString() + '톤';
         } else {
-            convSpan.textContent = displayQty.toLocaleString() + ' ' + dispUnit;
+            convSpan.textContent = displayQty.toLocaleString() + ' ' + displayUnit;
         }
     }
 
     console.log('계산결과:', {
-        quantity: q,
+        materialId: materialId,
+        packs: q,
+        packQty: meta.packQty,
         unitPrice: p,
-        purchaseUnit: purchaseUnit,
-        priceUnit: priceUnit,
-        conv: conv,
-        calculation: purchaseUnit + ' ' + q + '개 × ' + conv + ' × ' + p + '원',
+        calculation: q + ' PACK × ' + meta.packQty + ' × ' + p + '원',
         total: total
     });
 }
