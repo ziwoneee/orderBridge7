@@ -19,14 +19,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpSession;
-
 
 @Controller
 @RequestMapping("/shipment")
@@ -34,22 +30,20 @@ public class ClientDeliveryController {
 
     @Autowired
     private ClientDeliveryService deliveryService;
-    
+
     @Autowired
     private StockReservationService reservationService;
-
 
     // ✅ 수주번호 단위 출하 처리
     @PostMapping("/process")
     public String processShipment(@RequestParam("clOrderIds") List<String> clOrderIds,
-                                   RedirectAttributes rttr) {
+                                  RedirectAttributes rttr) {
 
         // 예약되지 않은 수주번호 목록 필터링
         List<String> notReserved = clOrderIds.stream()
-                .filter(id -> !reservationService.isReserved(id)) // 예약 여부 확인
+                .filter(id -> !reservationService.isReserved(id))
                 .collect(Collectors.toList());
 
-        // 예약 안된 건이 있으면 출하 중단
         if (!notReserved.isEmpty()) {
             rttr.addFlashAttribute("message",
                     "다음 수주번호는 예약되지 않아 출하할 수 없습니다: " + notReserved);
@@ -67,9 +61,7 @@ public class ClientDeliveryController {
         return "redirect:/shipment/list";
     }
 
-    
-    
-//출하관리 전체 목록보기
+    // 출하관리 전체 목록보기
     @GetMapping("/list")
     public String showShipmentTabs(@ModelAttribute SearchCriteria cri,
                                    @RequestParam(value = "tab", required = false, defaultValue = "pending") String tab,
@@ -79,10 +71,14 @@ public class ClientDeliveryController {
         if (cri.getStartDate() != null && cri.getStartDate().trim().isEmpty()) cri.setStartDate(null);
         if (cri.getEndDate()   != null && cri.getEndDate().trim().isEmpty())   cri.setEndDate(null);
 
+        // ✅ 정렬 파라미터 소문자/트림 정규화
+        if (cri.getSortColumn() != null) cri.setSortColumn(cri.getSortColumn().trim().toLowerCase());
+        if (cri.getSortOrder()  != null) cri.setSortOrder(cri.getSortOrder().trim().toLowerCase());
+
         model.addAttribute("tab", tab);
         model.addAttribute("menu", "sales");
 
-        // 배지 카운트(탭과 무관하게 먼저 계산)
+        // 배지 카운트(탭과 무관)
         int pendingCount     = deliveryService.countPendingGroupedList(cri);
         int completedCount   = deliveryService.countCompletedShipmentList(cri);
         int reservationCount = reservationService.countFilteredReservationList(cri);
@@ -95,49 +91,47 @@ public class ClientDeliveryController {
         Map<String, Boolean> reservedMap = reservedOrderIds.stream()
                 .filter(Objects::nonNull)
                 .map(String::trim)
-                .collect(Collectors.toMap(id -> id, id -> Boolean.TRUE, (a,b)->a));
+                .collect(Collectors.toMap(id -> id, id -> Boolean.TRUE, (a, b) -> a));
         model.addAttribute("reservedMap", reservedMap);
 
         // 🔒 탭별 정렬 화이트리스트 & 기본값
         if ("pending".equals(tab)) {
-            List<String> allowed = Arrays.asList("clDeliveryDate", "clOrderId", "clientName", "productName");
+            // Mapper에서 사용하는 키: clorderid / clientname / productname / cldeliverydate (예시)
+            List<String> allowed = Arrays.asList("cldeliverydate", "clorderid", "clientname", "productname");
             if (cri.getSortColumn() == null || !allowed.contains(cri.getSortColumn())) {
-                cri.setSortColumn("clDeliveryDate"); // 기본: 납기 오름차순
+                cri.setSortColumn("cldeliverydate"); // 기본: 납기 오름차순
             }
-            if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) {
+            if (!"asc".equals(cri.getSortOrder()) && !"desc".equals(cri.getSortOrder())) {
                 cri.setSortOrder("asc");
             }
 
-            // 출하대기만 조회
             List<ShipmentPendingGroupDTO> groupedList = deliveryService.searchPendingGroupedList(cri);
             PageMaker pendingPage = new PageMaker(cri, pendingCount);
 
             model.addAttribute("groupedList", groupedList);
             model.addAttribute("pendingPage", pendingPage);
-
-            // ⚠️ 정렬 기본값 세팅이 끝난 뒤에 cri를 모델에 넣어야 JSP 링크가 올바름
             model.addAttribute("cri", cri);
             return "clientDelivery/list";
         }
 
         if ("reservation".equals(tab)) {
-            // 예약 탭은 정렬 의미 없음(필요하면 동일 패턴으로 추가)
+            // 예약 탭은 정렬 의미 없으면 패스 (필요 시 동일 패턴 적용)
             List<StockReservationVO> reservationList = reservationService.getFilteredReservationList(cri);
             PageMaker reservationPage = new PageMaker(cri, reservationService.countFilteredReservationList(cri));
             model.addAttribute("reservationList", reservationList);
             model.addAttribute("reservationPage", reservationPage);
-
             model.addAttribute("cri", cri);
             return "clientDelivery/list";
         }
 
         // tab == completed
         {
-            List<String> allowed = Arrays.asList("deliveryId", "clOrderId", "deliveryDate", "productName", "clientName", "lotNo", "trackingNumber");
+            // Mapper에서 사용하는 키: clorderid / clientname / deliverydate (그룹 기준)
+            List<String> allowed = Arrays.asList("clorderid", "clientname", "deliverydate");
             if (cri.getSortColumn() == null || !allowed.contains(cri.getSortColumn())) {
-                cri.setSortColumn("deliveryDate"); // 기본: 출하일 내림차순
+                cri.setSortColumn("deliverydate"); // 기본: 출하일 내림차순
             }
-            if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) {
+            if (!"asc".equals(cri.getSortOrder()) && !"desc".equals(cri.getSortOrder())) {
                 cri.setSortOrder("desc");
             }
 
@@ -148,33 +142,24 @@ public class ClientDeliveryController {
             model.addAttribute("completedList", completedList);
             model.addAttribute("groupedCompletedList", groupedCompletedList);
             model.addAttribute("pageMaker", completedPage);
-
             model.addAttribute("cri", cri);
             return "clientDelivery/list";
         }
     }
-
-
 
     @PostMapping("/reserve")
     public String reserveStock(@RequestParam("clOrderId") String clOrderId,
                                HttpSession session,
                                RedirectAttributes rttr) {
 
-        // ✅ 세션에서 로그인된 관리자 객체 꺼냄
         AdminUserVO loginAdmin = (AdminUserVO) session.getAttribute("loginAdmin");
-
-     // ✅ 로그인 안 되어 있으면 접근 차단
         if (loginAdmin == null) {
             rttr.addFlashAttribute("message", "로그인이 필요합니다.");
             rttr.addFlashAttribute("messageType", "warning");
-            return "redirect:/login";  // 로그인 페이지 경로에 맞게 수정
+            return "redirect:/login";
         }
 
-        // ✅ 관리자 이름 사용
         String managerName = loginAdmin.getName();
-
-        // ✅ 예약 처리 (이름 함께 전달)
         boolean success = reservationService.reserveStockByOrderId(clOrderId, managerName);
 
         if (success) {
@@ -189,42 +174,37 @@ public class ClientDeliveryController {
         return "redirect:/shipment/list?tab=pending";
     }
 
-
-
-    // ✅ 예약 해지 
+    // ✅ 예약 해지
     @PostMapping("/unreserve")
     public String releaseStock(@RequestParam("clOrderId") String clOrderId, RedirectAttributes rttr) {
         reservationService.deleteReservation(clOrderId);
-        rttr.addFlashAttribute("message",  "수주번호 [" + clOrderId + "] 예약이 해제되었습니다.");
-        rttr.addFlashAttribute("messageType", "info"); // ✅ 정보
+        rttr.addFlashAttribute("message", "수주번호 [" + clOrderId + "] 예약이 해제되었습니다.");
+        rttr.addFlashAttribute("messageType", "info");
         return "redirect:/shipment/list?tab=pending";
     }
-    
-    //출하 취소
 
+    // 출하 취소
     @PostMapping("/cancel")
     public String cancelDelivery(@RequestParam("deliveryId") String deliveryId,
                                  RedirectAttributes rttr) {
         try {
-            System.out.println(">> 전달받은 deliveryId: " + deliveryId); // ✅ 추가
+            System.out.println(">> 전달받은 deliveryId: " + deliveryId);
             deliveryService.cancelDelivery(deliveryId);
             rttr.addFlashAttribute("message", "출하가 성공적으로 취소되었습니다.");
-            rttr.addFlashAttribute("messageType", "success"); // ✅ 성공
+            rttr.addFlashAttribute("messageType", "success");
         } catch (Exception e) {
-            e.printStackTrace(); // ✅ 예외 로그 출력
+            e.printStackTrace();
             rttr.addFlashAttribute("message", "출하 취소 중 오류가 발생했습니다.");
-            rttr.addFlashAttribute("messageType", "danger"); // ✅ 실패
+            rttr.addFlashAttribute("messageType", "danger");
         }
         return "redirect:/shipment/list?tab=completed";
     }
 
-   //예약 상세 모달  
+    // 예약 상세 모달
     @GetMapping(value = "/reservation/detail", produces = "application/json; charset=UTF-8")
     @ResponseBody
-    public ResponseEntity<?> getReservationDetail(
-            @RequestParam String lotNo,
-            @RequestParam String clOrderId) {
-
+    public ResponseEntity<?> getReservationDetail(@RequestParam String lotNo,
+                                                  @RequestParam String clOrderId) {
         try {
             ReservationDetailDTO dto = reservationService.getReservationDetail(lotNo, clOrderId);
             if (dto == null) {
@@ -237,6 +217,5 @@ public class ClientDeliveryController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("{\"message\":\"server error\"}");
         }
-
     }
 }
