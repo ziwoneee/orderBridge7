@@ -148,58 +148,81 @@ const COL_STATUS  = 5; // 상태
 const COL_DETAIL  = 6; // 상세
 const COL_REQUEST = 7; // 발주요청
 
-/** ===== 상세 모달 오픈 ===== */
+/** ===== 상세 모달 오픈 (FIX) ===== */
 $(document).on('click', '.btnOrderDetail', function () {
-  const id = $(this).data('id');            // ← 이 줄 추가!
+  const id = $(this).data('id') || $(this).attr('data-order-id');
   if (!id) { alert('orderId 없음'); return; }
 
   $.get(ctx + '/material/order/detail', { orderId: id })
     .done(res => {
-	    const h = res.header || {};
-	    const supplierId = h.supplierId;
-	    
-	    $('#modalOrderId').text(h.orderId || '-');
-	    $('#modalSupplierId').text(h.supplierName || h.supplierId || '-');
-	    $('#modalOrderDate').text(window.formatYMD(h.orderDate));
-	    $('#modalExpectedDate').text(window.formatYMD(h.expectedArrivedDate));
-	    $('#modalOrderStatus').html(statusBadge(h.orderStatus));
-	    $('#modalHandler').text(h.handlerName || h.handledBy || '-');
-	    $('#modalNote').text(h.note || '');
+      const h = res.header || {};
+      const supplierId = h.supplierId;
 
-	    const $tbody = $('#orderItemsInfo').empty();
-	    const items = res.items || [];
+      $('#modalOrderId').text(h.orderId || '-');
+      $('#modalSupplierId').text(h.supplierName || h.supplierId || '-');
+      $('#modalOrderDate').text(window.formatYMD(h.orderDate));
+      $('#modalExpectedDate').text(window.formatYMD(h.expectedArrivedDate));
+      $('#modalOrderStatus').html(statusBadge(h.orderStatus));
+      $('#modalHandler').text(h.handlerName || h.handledBy || '-');
+      $('#modalNote').text(h.note || '');
 
-	    // 각 품목의 가격 메타를 불러와서 과금수량/금액을 재계산
-	    const tasks = items.map(it => {
-	      return loadPriceMeta(it.materialId).then(meta => {
-    	    const qBilling = Number(it.orderQuantity)||0;
-    	    const unit     = (meta.priceUnit||'EA').toUpperCase();
-            const amount   = qBilling * (meta.unitPrice||0);
-            const conv     = Number(meta.packQty || meta.convToBase || 1);
-            const baseU    = (meta.baseUnit||'').toUpperCase();
+      const $tbody = $('#orderItemsInfo').empty();
+      const items = res.items || [];
 
-            $tbody.append(
-                `<tr>
-                   <td>${it.materialId}</td>
-                   <td>${it.materialName || ''}</td>
-                   <td class="text-right">
-                     ${qBilling.toLocaleString()} ${unit}
-                     <br><small class="text-muted">= ${(qBilling*conv).toLocaleString()} ${baseU}</small>
-                   </td>
-                   <td class="text-right">${(meta.unitPrice||0).toLocaleString()} / ${unit}</td>
-                   <td class="text-right">${amount.toLocaleString()}</td>
-                   <td>${it.warehouseCode || '-'}</td>
-                 </tr>`
-              );
-            });
-          });
+      // ✅ items를 돌면서 Promise 배열 생성
+      const tasks = items.map(it => {
+        const packs = Number(it.orderQuantity) || 0;
 
-	    Promise.all(tasks).then(() => {
-	      $('#orderDetailModal').modal('show');
-	    });
-	  })
-	  .fail(xhr => alert('상세 조회 실패: ' + ((xhr.responseJSON && xhr.responseJSON.message) || xhr.statusText)));
+        return loadPriceMeta(it.materialId, supplierId).then(meta => {
+          const packQty   = Number(meta.packQty || 1);
+          const priceUnit = String(meta.priceUnit || 'BASE').toUpperCase();
+          const unitPrice = Number(meta.unitPrice || 0);
+
+          let billedQty = 0;
+          let billedUnit = priceUnit;
+
+          if (priceUnit === 'KG') {
+            billedQty = packs * (packQty / 1000);              // 박스→kg
+          } else if (priceUnit === 'PACK') {
+            billedQty = packs;                                  // 박스로 과금
+          } else if (priceUnit === 'BUNDLE') {
+            const bpp = Number(meta.bundlesPerPack || 1);
+            billedQty = packs * bpp;
+          } else {
+            billedQty  = packs * packQty;                       // BASE(g/ml/ea)
+            billedUnit = (baseUnitOf(it.materialId) || 'EA').toUpperCase();
+          }
+
+          const amount   = Math.round(billedQty * unitPrice);
+          const baseQty  = packs * packQty;                     // g/ml/ea 총량
+          const baseText = fmtBase(baseQty, it.materialId);     // "40kg" 등
+
+          $tbody.append(
+            `<tr>
+               <td>${it.materialId}</td>
+               <td>${it.materialName || ''}</td>
+               <td class="text-right">
+                 ${packs.toLocaleString()} PACK
+                 <br><small class="text-muted">≈ ${baseText}</small>
+               </td>
+               <td class="text-right">${unitPrice.toLocaleString()} / ${billedUnit}</td>
+               <td class="text-right">${amount.toLocaleString()}</td>
+               <td>${it.warehouseCode || '-'}</td>
+             </tr>`
+          );
+        });
+      });
+
+      // ✅ 모든 행 렌더 후 모달 오픈
+      Promise.all(tasks).then(() => {
+        $('#orderDetailModal').modal('show');
+      });
+    })
+    .fail(xhr => {
+      alert('상세 조회 실패: ' + ((xhr.responseJSON && xhr.responseJSON.message) || xhr.statusText));
+    });
 });
+
 
 /** ===== 발주요청 (초안 → 요청) + 메일 전송 ===== */
 $(document).on('click', '.btnSubmitOrder', function(){

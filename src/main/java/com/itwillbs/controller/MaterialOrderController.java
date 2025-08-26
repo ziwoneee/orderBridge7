@@ -271,9 +271,12 @@ public class MaterialOrderController {
 
 	    // 총금액 계산
 	    for (MaterialOrderItemVO item : itemList) {
-	        int p = Math.max(0, item.getUnitPrice());
-	        int q = Math.max(0, item.getOrderQuantity());
-	        item.setTotalPrice(p * q);
+	        Integer tp = item.getTotalPrice(); // int면 null이 안되니 Integer로 선언되어 있는지 확인
+	        if (tp == null || tp <= 0) {
+	            int p = Math.max(0, item.getUnitPrice());
+	            int q = Math.max(0, item.getOrderQuantity());
+	            item.setTotalPrice(p * q); // 서버에 환산정보 없으면 폴백 계산
+	        }
 	    }
 
 	    // 2) ★★★ 먼저 저장 ★★★
