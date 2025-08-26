@@ -1,6 +1,7 @@
 package com.itwillbs.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -42,26 +43,24 @@ public class SupplierItemController {
 	/**
 	 * 공급 품목 페이지 컨트롤러 - 거래처 ID를 기준으로 협력사 정보 + 공급 품목 페이지 이동
 	 */
+	// SupplierItemController.java
 	@GetMapping("list")
 	@ResponseBody
-	public List<SupplierItemVO> getSupplierItemList(@RequestParam("supplierId") String supplierId, Model model)
-			throws Exception {
+	public List<SupplierItemVO> getSupplierItemList(@RequestParam("supplierId") String supplierId) throws Exception {
+	    System.out.println("✅ Ajax 요청 도착 - supplierId: " + supplierId);
 
-		System.out.println("✅ Ajax 요청 도착 - supplierId: " + supplierId);
-		List<SupplierItemVO> itemList = siService.getItemsBySupplier(supplierId);
+	    // Service는 반드시 List<SupplierItemVO> 반환
+	    List<SupplierItemVO> itemList = siService.getItemsBySupplier(supplierId);
 
-		// 2. model에 담기
-		model.addAttribute("supplierId", supplierId); // JS에서도 쓰기 위해 따로 넘김
+	    System.out.println("✅ 조회된 품목 수: " + itemList.size());
+	    for (SupplierItemVO item : itemList) {
+	        System.out.println("▶ 자재명: " + item.getMaterialName() + ", 유형: " + item.getMaterialType());
+	    }
 
-		System.out.println("✅ 조회된 품목 수: " + itemList.size());
-		for (SupplierItemVO item : itemList) {
-			System.out.println("▶ 자재명: " + item.getMaterialName() + ", 유형: " + item.getMaterialType());
-		}
-
-		model.addAttribute("menu", "basic");
-
-		return itemList;
+	    // 그냥 그대로 JSON으로 내려보냄 (Map 변환/캐스팅 절대 금지)
+	    return itemList;
 	}
+
 
 	@GetMapping("items")
 	public String showSupplierItemsPaged(@RequestParam("supplierId") String supplierId, SearchCriteria cri, Model model)

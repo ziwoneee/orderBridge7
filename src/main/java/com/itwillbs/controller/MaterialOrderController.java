@@ -225,105 +225,97 @@ public class MaterialOrderController {
 	// 자재 발주 등록 처리 (POST)
 	@PostMapping("/register")
 	public String registerOrder(@ModelAttribute MaterialOrderDTO orderDTO,
-								Model model,
-								HttpSession session,RedirectAttributes rttr) throws Exception {
-		
-		logger.info("registerOrder 컨트롤러 진입");
-		logger.debug("등록된 발주 데이터: " + orderDTO);
+	                            Model model,
+	                            HttpSession session,
+	                            RedirectAttributes rttr) throws Exception {
+
+	    logger.info("registerOrder 컨트롤러 진입");
+	    logger.debug("등록된 발주 데이터: {}", orderDTO);
 
 	    MaterialOrderVO order = orderDTO.getOrder();
 	    List<MaterialOrderItemVO> itemList = orderDTO.getOrderItems();
 	    String workOrderId = order.getWorkOrderId();
-	    
-	    // ★ 로그인 ID 확보(다 실패하면 로그 찍고 에러)
+
+	    // 1) 로그인/기본값/검증
 	    String loginId = resolveLoginAdminId(session);
 	    if (loginId == null || loginId.isBlank()) {
-	        logLoginTrace(session); // 어디가 비었는지 기록
+	        logLoginTrace(session);
 	        throw new IllegalStateException("로그인 세션이 만료되었습니다. 다시 로그인 해 주세요.");
 	    }
-
-	    // ★ 담당자는 무조건 로그인 사용자로
 	    order.setHandledBy(loginId);
 
-	    
-	    // 필수값 검증 및 기본값 설정
 	    if (order.getOrderStatus() == null || order.getOrderStatus().isEmpty()) {
 	        order.setOrderStatus("초안");
 	    }
-	    
-	    // 발주일이 없으면 현재 날짜로 설정
 	    if (order.getOrderDate() == null) {
 	        order.setOrderDate(new Date());
 	    }
-	    
-	    // 빈 항목 제거 및 검증
+
 	    if (itemList != null) {
-	        itemList.removeIf(item -> 
-	            item.getMaterialId() == null || 
-	            item.getMaterialId().trim().isEmpty() || 
+	        itemList.removeIf(item ->
+	            item.getMaterialId() == null ||
+	            item.getMaterialId().trim().isEmpty() ||
 	            item.getOrderQuantity() <= 0
 	        );
 	    }
-	    
 	    if (itemList == null || itemList.isEmpty()) {
 	        throw new IllegalArgumentException("발주 항목이 없습니다.");
 	    }
-	    
-		/* 🔹 여기서 work_order_id 세팅 */
+
+	    // 헤더의 work_order_id를 아이템에도 주입
 	    if (workOrderId != null && !workOrderId.isEmpty()) {
 	        for (MaterialOrderItemVO item : itemList) {
 	            item.setWorkOrderId(workOrderId);
 	        }
 	    }
-	    
-	    // 총금액 계산 (int 기반)
-	    for (MaterialOrderItemVO item : itemList) {
-	        try {
-	            int unitPrice = item.getUnitPrice();
-	            int orderQuantity = item.getOrderQuantity();
 
-	            if (unitPrice > 0 && orderQuantity > 0) {
-	                int total = unitPrice * orderQuantity;
-	                item.setTotalPrice(total);
-	            } else {
-	                item.setTotalPrice(0);
-	            }
-	        } catch (Exception e) {
-	            logger.error("총금액 계산 오류: " + e.getMessage(), e);
-	            item.setTotalPrice(0);
+	    // 총금액 계산
+	    for (MaterialOrderItemVO item : itemList) {
+	        Integer tp = item.getTotalPrice(); // int면 null이 안되니 Integer로 선언되어 있는지 확인
+	        if (tp == null || tp <= 0) {
+	            int p = Math.max(0, item.getUnitPrice());
+	            int q = Math.max(0, item.getOrderQuantity());
+	            item.setTotalPrice(p * q); // 서버에 환산정보 없으면 폴백 계산
 	        }
 	    }
-	    
+
+	    // 2) ★★★ 먼저 저장 ★★★
 	    try {
-	    	// 1) 신규 발주 등록
-	        mOrderService.insertOrder(orderDTO); // (납기일 검증 포함)
-
-	        // ★★ 2) 등록 직후 '발주 승인요청' 자동 발송 ★★
-	        //    - insert 시 생성된 order_id가 VO에 설정되어 있어야 합니다
-	        //    - MyBatis: useGeneratedKeys="true" keyProperty="orderId" 확인
-	        String createdOrderId = orderDTO.getOrder().getOrderId();
-	        if (createdOrderId != null && !createdOrderId.isEmpty()) {
-	            mOrderService.sendApprovalRequest(createdOrderId);
-	            logger.info("발주 승인요청 메일 발송 완료. orderId=" + createdOrderId);
-
-	            // ✅ FlashAttribute에 성공 메시지 저장
-	            rttr.addFlashAttribute("mailMsg", "해당 협력사에 승인요청 메일이 전송되었습니다.");
-	        } else {
-	            logger.warn("orderId 없음 → 승인요청 메일은 발송되지 않음");
-	        }
-	        
+	        mOrderService.insertOrder(orderDTO);   // 헤더/아이템 동시 저장 (@Transactional 권장)
 	    } catch (IllegalArgumentException e) {
 	        model.addAttribute("error", e.getMessage());
 	        setRegisterPageData(model);
 	        model.addAttribute("orderDTO", orderDTO);
 	        return "material/order/register";
-	    }catch (Exception e) {
-	        // 승인요청 메일 발송 실패 등은 등록 자체는 성공했으므로 로그만 남기고 리스트로 이동
-	        logger.error("발주 승인요청 처리 중 오류: " + e.getMessage(), e);
+	    }
+
+	    // 3) 저장 후에야 orderId가 확정됨
+	    String createdOrderId = orderDTO.getOrder().getOrderId();
+	    boolean mailSent = false;
+
+	    if (createdOrderId != null && !createdOrderId.isEmpty()) {
+	        try {
+	            mOrderService.sendApprovalRequest(createdOrderId);
+	            mailSent = true;
+	            logger.info("발주 승인요청 메일 발송 완료. orderId={}", createdOrderId);
+	        } catch (Exception e) {
+	            logger.error("승인요청 메일 발송 실패(등록은 성공): {}", e.getMessage(), e);
+	        }
+	    } else {
+	        logger.warn("insert 이후에도 orderId가 비어 있음 → Mapper의 key 생성/세팅 로직 점검 필요");
+	    }
+
+	    // 4) 사용자 메시지
+	    rttr.addFlashAttribute("msg", "발주 등록이 완료되었습니다.");
+	    if (mailSent) {
+	        rttr.addFlashAttribute("mailMsg", "협력사에 승인요청 메일을 전송했습니다.");
+	    } else {
+	        rttr.addFlashAttribute("mailWarn", "등록은 완료됐지만 승인요청 메일 전송은 실패했습니다.");
 	    }
 
 	    return "redirect:/material/order/list";
 	}
+
 	
 	
 	private void logLoginTrace(HttpSession session) {

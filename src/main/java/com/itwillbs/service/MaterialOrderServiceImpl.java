@@ -1,14 +1,12 @@
 package com.itwillbs.service;
 
 import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import com.itwillbs.domain.ApprovalTokenVO;
 import com.itwillbs.domain.MaterialOrderItemVO;
@@ -30,7 +29,6 @@ import com.itwillbs.domain.MaterialOrderVO;
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.dto.MaterialOrderDTO;
 import com.itwillbs.dto.PurchaseDraftRequest;
-import com.itwillbs.dto.PurchaseDraftRequest.ShortageItem;
 import com.itwillbs.dto.PurchaseDraftResult;
 import com.itwillbs.dto.SupplierItemDTO;
 import com.itwillbs.mapper.AdminUserMapper;
@@ -87,49 +85,66 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
     }
 
     
-    // 발주 등록
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void insertOrder(MaterialOrderDTO orderDTO) throws Exception {
 
-        // 0) workOrderId 확보 (폼에서 order.workOrderId로 넘어오는 값)
-        String workOrderId = orderDTO.getOrder().getWorkOrderId(); // 없으면 null 허용
+        // 0) workOrderId
+        String workOrderId = orderDTO.getOrder().getWorkOrderId();
 
-        // 1) 납기일 유효성 검사 (시간오차 방지용으로 날짜만 비교 권장)
+        // 1) 납기일 검증
         Date today = new Date();
         Date expectedDate = orderDTO.getOrder().getExpectedArrivedDate();
         if (expectedDate != null && expectedDate.before(today)) {
             throw new IllegalArgumentException("납기일은 오늘 이후여야 합니다.");
         }
 
-        // 2) 발주번호 생성
+        // 2) 발주번호 발급
         String newOrderId = mOrderDAO.generateOrderId();
         orderDTO.getOrder().setOrderId(newOrderId);
-
-        // 🔹 헤더에 work_order_id 주입
-        if (workOrderId != null && !workOrderId.isEmpty()) {
+        if (StringUtils.hasText(workOrderId)) {
             orderDTO.getOrder().setWorkOrderId(workOrderId);
         }
 
-        // 3) order 테이블 insert (Mapper에 work_order_id 컬럼 이미 추가되어 있어야 함)
+        // 2.5) 아이템 바인딩 검증 로그
+        List<MaterialOrderItemVO> items = orderDTO.getOrderItems();
+        if (items == null || items.isEmpty()) {
+            throw new IllegalArgumentException("발주 항목이 없습니다. (바인딩 실패 가능)");
+        }
+        logger.info("[insertOrder] items size={}", items.size());
+        for (int i = 0; i < items.size(); i++) {
+            MaterialOrderItemVO it = items.get(i);
+            logger.info(" - [{}] mat={}, qty={}, price={}, total={}",
+            	    new Object[]{ i, it.getMaterialId(), it.getOrderQuantity(), it.getUnitPrice(), it.getTotalPrice() });
+        }
+
+        // 3) 헤더 insert
         mOrderDAO.insertOrder(orderDTO.getOrder());
 
-        // 4) order_item 테이블 insert
+        // 4) 아이템 insert
         int index = 1;
-        for (MaterialOrderItemVO item : orderDTO.getOrderItems()) {
-            item.setOrderId(newOrderId); // FK
-
-            // 🔹 아이템에도 동일 work_order_id 주입
-            if (item.getWorkOrderId() == null || item.getWorkOrderId().isEmpty()) {
-                item.setWorkOrderId(workOrderId); // 헤더와 통일
+        for (MaterialOrderItemVO item : items) {
+            if (!StringUtils.hasText(item.getMaterialId()) || item.getOrderQuantity() <= 0) {
+                continue; // 안전 필터링
             }
 
-            // order_item_id 생성
+            item.setOrderId(newOrderId);
+            if (!StringUtils.hasText(item.getWorkOrderId())) {
+                item.setWorkOrderId(workOrderId);
+            }
             item.setOrderItemId(newOrderId + "-" + index);
             index++;
 
-            mOrderDAO.insertOrderItem(item); // Mapper에 work_order_id 포함되어 있어야 함
+            // 총액 보정
+            if (item.getTotalPrice() <= 0) {
+                long total = (long)item.getOrderQuantity() * (long)item.getUnitPrice();
+                item.setTotalPrice(total > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) total);
+            }
+
+            mOrderDAO.insertOrderItem(item); // ← 매퍼/DAO 연결 id 확인 필수
         }
     }
+
 
 	
     
@@ -265,16 +280,41 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
                     Integer lack = shortageMap.get(materialId);
                     if (lack == null || lack <= 0) continue;
 
-                    int unitPrice = ((Number) m.get("unitPrice")).intValue();
-                    String warehouseCode = (String) m.get("warehouseCode");
+                    int unitPrice = ((Number) m.getOrDefault("unitPrice", 0)).intValue();
+                    String warehouseCode = (String) m.getOrDefault("warehouseCode", "WH001");
+
+                    // === supplier_item 메타 ===
+                    double convToBase = 1d; // 1 PACK -> price_unit(KG/ML/EA) 수량
+                    if (m.get("convToBase") instanceof Number) {
+                        convToBase = ((Number) m.get("convToBase")).doubleValue();
+                    }
+                    if (convToBase <= 0d) convToBase = 1d; // 안전망
+
+                    int minOrderQty  = (m.get("minOrderQty")   instanceof Number) ? ((Number) m.get("minOrderQty")).intValue()   : 1;
+                    int orderMultiple = (m.get("orderMultiple") instanceof Number) ? ((Number) m.get("orderMultiple")).intValue() : 1;
+
+                    // === 부족분 → 팩 수량 확정 ===
+                    // 현재 lack 은 "미리보기 팩 수량"으로 들어온다고 가정하고 팩으로 저장
+                    int packs = lack;
+                    // (옵션) 만약 lack 이 기본단위(kg/ml) 총량이라면 아래 한 줄로 팩 환산:
+                    // packs = (int) Math.ceil(lack / convToBase);
+
+                    // 최소주문/배수 규칙 적용
+                    if (packs < minOrderQty) packs = minOrderQty;
+                    if (orderMultiple > 1) {
+                        packs = ((packs + orderMultiple - 1) / orderMultiple) * orderMultiple;
+                    }
+
+                    // === 총금액 계산: 팩 × (1팩의 과금단위수량) × 단가 ===
+                    long totalPrice = Math.round(packs * convToBase * unitPrice);
 
                     Map<String, Object> item = new HashMap<>();
                     item.put("orderItemId", orderId + "-" + String.format("%03d", idx++));
                     item.put("orderId", orderId);
                     item.put("materialId", materialId);
-                    item.put("orderQuantity", lack);
+                    item.put("orderQuantity", packs);     // ✅ DB에 "팩 수량" 저장
                     item.put("unitPrice", unitPrice);
-                    item.put("totalPrice", unitPrice * lack);
+                    item.put("totalPrice", totalPrice);   // ✅ conv_to_base 반영된 총금액
                     item.put("warehouseCode", warehouseCode);
                     item.put("workOrderId", request.getWorkOrderId());
                     batch.add(item);
