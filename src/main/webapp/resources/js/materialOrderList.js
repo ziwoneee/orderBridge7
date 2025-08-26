@@ -118,8 +118,8 @@ function fmtBase(qty, mid){
 }
 
 // 공급사 메타 조회(팩사이즈/가격단위/단가) — 서버 응답 없으면 폴백
-function loadPriceMeta(materialId){
-  return $.get(ctx + '/material/order/supplier-pack-qty', { materialId }).then(function(r){
+function loadPriceMeta(materialId, supplierId){
+  return $.get(ctx + '/material/order/supplier-pack-qty', { materialId, supplierId }).then(function(r){
     const policy = PRICE_POLICY[materialId] || { unitPrice:0, priceUnit:'BASE' };
     const packQty   = n(r && (r.packQty || r.convToBase || r.conv_to_base));
     const priceUnit = (r && r.priceUnit) || policy.priceUnit;
@@ -156,6 +156,8 @@ $(document).on('click', '.btnOrderDetail', function () {
   $.get(ctx + '/material/order/detail', { orderId: id })
     .done(res => {
 	    const h = res.header || {};
+	    const supplierId = h.supplierId;
+	    
 	    $('#modalOrderId').text(h.orderId || '-');
 	    $('#modalSupplierId').text(h.supplierName || h.supplierId || '-');
 	    $('#modalOrderDate').text(window.formatYMD(h.orderDate));
@@ -170,26 +172,27 @@ $(document).on('click', '.btnOrderDetail', function () {
 	    // 각 품목의 가격 메타를 불러와서 과금수량/금액을 재계산
 	    const tasks = items.map(it => {
 	      return loadPriceMeta(it.materialId).then(meta => {
-	        const qtyBase = Number(it.orderQuantity)||0; // g/ml/ea
-	        const bill = computeBillingQty(qtyBase, meta.packQty, meta.priceUnit, meta.bundlesPerPack);
-	        const amount = (bill.qty) * (meta.unitPrice||0);
+    	    const qBilling = Number(it.orderQuantity)||0;
+    	    const unit     = (meta.priceUnit||'EA').toUpperCase();
+            const amount   = qBilling * (meta.unitPrice||0);
+            const conv     = Number(meta.packQty || meta.convToBase || 1);
+            const baseU    = (meta.baseUnit||'').toUpperCase();
 
-	        // 수량은 과금단위로 보여주고, 괄호에 기본단위 동시 표기
-	        $tbody.append(
-	          `<tr>
-	             <td>${it.materialId}</td>
-	             <td>${it.materialName || ''}</td>
-	             <td class="text-right">
-	               ${bill.qty.toLocaleString()} ${bill.unit}
-	               <br><small class="text-muted">= ${fmtBase(qtyBase, it.materialId)}</small>
-	             </td>
-	             <td class="text-right">${fmtMoney(meta.unitPrice)} / ${bill.unit}</td>
-	             <td class="text-right">${fmtMoney(amount)}</td>
-	             <td>${it.warehouseCode || '-'}</td>
-	           </tr>`
-	        );
-	      });
-	    });
+            $tbody.append(
+                `<tr>
+                   <td>${it.materialId}</td>
+                   <td>${it.materialName || ''}</td>
+                   <td class="text-right">
+                     ${qBilling.toLocaleString()} ${unit}
+                     <br><small class="text-muted">= ${(qBilling*conv).toLocaleString()} ${baseU}</small>
+                   </td>
+                   <td class="text-right">${(meta.unitPrice||0).toLocaleString()} / ${unit}</td>
+                   <td class="text-right">${amount.toLocaleString()}</td>
+                   <td>${it.warehouseCode || '-'}</td>
+                 </tr>`
+              );
+            });
+          });
 
 	    Promise.all(tasks).then(() => {
 	      $('#orderDetailModal').modal('show');

@@ -202,7 +202,7 @@
 	<insert id="insertOrderItem" parameterType="com.itwillbs.domain.MaterialOrderItemVO">
 		INSERT INTO material_order_item (
 			order_item_id, order_id, material_id, work_order_id, order_quantity,
-			unit_price, total_price, warehouse_code
+			unit_price, total_price, warehouse_code, price_unit
 		) VALUES (
 			#{orderItemId},
 			#{orderId}, 
@@ -211,7 +211,8 @@
 			#{orderQuantity, jdbcType=INTEGER},
 			#{unitPrice, jdbcType=INTEGER},
 			#{totalPrice, jdbcType=INTEGER}, 
-			#{warehouseCode}
+			#{warehouseCode},
+			#{priceUnit}
 		)
 	</insert>
 	

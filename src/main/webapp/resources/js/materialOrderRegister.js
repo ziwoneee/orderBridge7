@@ -1,391 +1,336 @@
 /* ---------------------------------------
- * [1] 항목 행 추가 관련 변수 및 함수
+ * [1] 공통 상태
  * ------------------------------------- */
-
-// 행 인덱스 (동적 네이밍용)
-let itemIndex = 1;
-
-// 거래처 선택 시 불러온 자재정보 저장용 (materialId → 자재 정보 객체)
-let materialMap = {};
-
-/**
- * 발주 항목 행 추가 함수
- */
-function addItemRowFromMaterial(item) {
-	  const tbody = document.querySelector("#itemTable tbody");
-	  const idx = itemIndex;
-
-	  const priceUnit = (item.priceUnit || 'EA').toUpperCase();
-	  const conv = Number(item.convToBase) || Number(item.packQty) || 1;
-	  const minQ = Number(item.minOrderQty) || 1;
-	  const mul  = Number(item.orderMultiple) || 1;
-
-	  const row = document.createElement("tr");
-	  row.innerHTML = `
-	    <td>
-	      <select name="orderItems[${idx}].materialId" class="form-control" disabled>
-	        <option value="${item.materialId}">${item.materialName}</option>
-	      </select>
-	      <input type="hidden" name="orderItems[${idx}].materialId" value="${item.materialId}">
-	      <input type="hidden" name="orderItems[${idx}].priceUnit" value="${priceUnit}"><!-- [NEW] 저장용 -->
-	      <input type="hidden" name="orderItems[${idx}].convToBase" value="${conv}"><!-- [NEW] 보기용 환산 참고 -->
-	      <input type="hidden" name="orderItems[${idx}].baseUnit" value="${item.baseUnit || ''}">
-	    </td>
-	    <td>
-	      <input type="number" name="orderItems[${idx}].orderQuantity"
-	             class="form-control"
-	             value="${Math.max(minQ, mul)}" min="${minQ}" step="1"
-	             data-multiple="${mul}" data-price-unit="${priceUnit}"
-	             oninput="enforceMultiple(this)" onchange="rowRecalc(this)" required>
-	      <small class="text-muted d-block">
-	        ${priceUnit} 1개 ≈ ${conv.toLocaleString()} ${(item.baseUnit||'').toUpperCase()}
-	        ${minQ>1?` | 최소 ${minQ}개`:''}${mul>1?` | ${mul}개 배수`:''}
-	      </small>
-	    </td>
-	    <td>
-	      <input type="number" name="orderItems[${idx}].unitPrice"
-	             class="form-control" value="${item.unitPrice||0}" min="0" step="1"
-	             onchange="rowRecalc(this)" required>
-	    </td>
-	    <td>
-	      <input type="number" name="orderItems[${idx}].visibleTotal"
-	             class="form-control" readonly value="${item.unitPrice||0}">
-	      <input type="hidden" name="orderItems[${idx}].totalPrice" value="${item.unitPrice||0}">
-	      <div class="small text-muted mt-1"><!-- [NEW] 보기용 환산 -->
-	        <span class="js-conv">${(Math.max(minQ,mul)*conv).toLocaleString()} ${(item.baseUnit||'').toUpperCase()}</span>
-	      </div>
-	    </td>
-	    <td>
-	      <input type="text" name="orderItems[${idx}].warehouseCode" class="form-control"
-	             value="${item.warehouseCode||''}" readonly>
-	    </td>
-	    <td>
-	      <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button>
-	    </td>
-	  `;
-	  tbody.appendChild(row);
-	  itemIndex++;
-	}
-
-
-/**
- * 항목 행 삭제
- */
-function removeRow(btn) {
-  btn.closest("tr").remove();
-}
-
-/**
- * 자재 option HTML 생성 함수
- */
-function getMaterialOptions() {
-  return Object.values(materialMap)
-    .map(mat => `<option value="${mat.materialId}">${mat.materialName}</option>`)
-    .join("");
-}
-
+let itemIndex = 1;                     // 동적 네이밍
+let materialMap = {};                  // materialId -> item
+let supplierItemMap = {};              // materialId -> item
 
 /* ---------------------------------------
- * [2] 거래처 → 자재 목록 동적 로딩
+ * [2] 행 생성
  * ------------------------------------- */
+function addItemRowFromMaterial(item) {
+  const tbody = document.querySelector("#itemTable tbody");
+  const idx = itemIndex++;
 
-/**
- * 거래처 선택 시, 해당 거래처의 자재 목록(materialMap)에 저장
- * → 모든 자재 select 옵션 업데이트
- */
-document.querySelector("select[name='order.supplierId']").addEventListener("change", function () {
+  const purchaseUnit = (item.unit || 'EA').toUpperCase();            // 구매단위
+  const priceUnit    = (item.priceUnit || purchaseUnit).toUpperCase(); // 단가단위
+  const conv         = Number(item.convToPriceUnit) || 1;              // 환산
+  const minQ         = Number(item.minOrderQty) || 1;
+  const mul          = Number(item.orderMultiple) || 1;
+
+  const row = document.createElement("tr");
+  row.innerHTML = `
+    <td>
+      <select name="orderItems[${idx}].materialId" class="form-control">
+        <option value="${item.materialId}">${item.materialName}</option>
+      </select>
+      <input type="hidden" name="orderItems[${idx}].unit" value="${purchaseUnit}">
+      <input type="hidden" name="orderItems[${idx}].priceUnit" value="${priceUnit}">
+      <input type="hidden" name="orderItems[${idx}].convToPriceUnit" value="${conv}">
+    </td>
+    <td>
+      <input type="number" name="orderItems[${idx}].orderQuantity"
+             class="form-control"
+             value="${Math.max(minQ, mul)}" min="${minQ}" step="1"
+             data-multiple="${mul}"
+             data-purchase-unit="${purchaseUnit}"
+             data-price-unit="${priceUnit}"
+             data-conv="${conv}"
+             oninput="enforceMultiple(this)" onchange="rowRecalc(this)" required>
+      <small class="text-muted d-block">
+        ${purchaseUnit} 1개 ≈ ${conv.toLocaleString()} ${priceUnit}
+        ${minQ>1?` | 최소 ${minQ}개`:''}${mul>1?` | ${mul}개 배수`:''}
+      </small>
+    </td>
+    <td>
+      <input type="number" name="orderItems[${idx}].unitPrice"
+             class="form-control" value="${item.unitPrice||0}" min="0" step="1"
+             onchange="rowRecalc(this)" required>
+    </td>
+    <td>
+      <input type="number" name="orderItems[${idx}].visibleTotal" class="form-control" readonly value="0">
+      <input type="hidden" name="orderItems[${idx}].totalPrice" value="0">
+      <div class="small text-muted mt-1"><span class="js-conv">0</span></div>
+    </td>
+    <td>
+      <input type="text" name="orderItems[${idx}].warehouseCode" class="form-control"
+             value="${item.warehouseCode||''}" readonly>
+    </td>
+    <td>
+      <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button>
+    </td>
+  `;
+  tbody.appendChild(row);
+
+  // 바로 한 번 계산
+  rowRecalc(row.querySelector("input[name$='.unitPrice']"));
+}
+
+function addItemRow() {
+  // 빈 행(사용자가 직접 선택하는 행) 추가
+  const tbody = document.querySelector("#itemTable tbody");
+  const idx = itemIndex++;
+
+  const row = document.createElement("tr");
+  row.innerHTML = `
+    <td>
+      <select name="orderItems[${idx}].materialId" class="form-control">
+        <option value="">선택</option>
+        ${getMaterialOptions()}
+      </select>
+      <input type="hidden" name="orderItems[${idx}].unit" value="">
+      <input type="hidden" name="orderItems[${idx}].priceUnit" value="">
+      <input type="hidden" name="orderItems[${idx}].convToPriceUnit" value="1">
+    </td>
+    <td>
+      <input type="number" name="orderItems[${idx}].orderQuantity"
+             class="form-control" min="1" step="1"
+             data-multiple="1"
+             data-purchase-unit="EA"
+             data-price-unit="EA"
+             data-conv="1"
+             oninput="enforceMultiple(this)" onchange="rowRecalc(this)" required>
+      <small class="text-muted d-block">-</small>
+    </td>
+    <td>
+      <input type="number" name="orderItems[${idx}].unitPrice"
+             class="form-control" min="0" step="1" onchange="rowRecalc(this)" required>
+    </td>
+    <td>
+      <input type="number" name="orderItems[${idx}].visibleTotal" class="form-control" readonly value="0">
+      <input type="hidden" name="orderItems[${idx}].totalPrice" value="0">
+      <div class="small text-muted mt-1"><span class="js-conv">0</span></div>
+    </td>
+    <td>
+      <input type="text" name="orderItems[${idx}].warehouseCode" class="form-control" readonly>
+    </td>
+    <td>
+      <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button>
+    </td>
+  `;
+  tbody.appendChild(row);
+}
+
+/* ---------------------------------------
+ * [3] 기본 행 업그레이드(첫 행도 새 구조로)
+ * ------------------------------------- */
+function upgradeExistingRows() {
+  document.querySelectorAll("#itemTable tbody tr").forEach(tr => {
+    // 이미 업그레이드 된 행은 패스
+    if (tr.querySelector("input[name$='.convToPriceUnit']")) return;
+
+    // 숨김필드 주입
+    const idx = (itemIndex++); // 이름 충돌 피하려고 새 인덱스 배정
+    const materialSel = tr.querySelector("select[name$='.materialId']");
+    const matCell = tr.children[0];
+
+    // material 셀을 새 구조로 교체
+    matCell.innerHTML = `
+      <select name="orderItems[${idx}].materialId" class="form-control">
+        <option value="">선택</option>
+        ${getMaterialOptions()}
+      </select>
+      <input type="hidden" name="orderItems[${idx}].unit" value="">
+      <input type="hidden" name="orderItems[${idx}].priceUnit" value="">
+      <input type="hidden" name="orderItems[${idx}].convToPriceUnit" value="1">
+    `;
+
+    // 수량 셀 보수
+    const qtyCell = tr.children[1];
+    qtyCell.innerHTML = `
+      <input type="number" name="orderItems[${idx}].orderQuantity"
+             class="form-control" min="1" step="1"
+             data-multiple="1"
+             data-purchase-unit="EA"
+             data-price-unit="EA"
+             data-conv="1"
+             oninput="enforceMultiple(this)" onchange="rowRecalc(this)" required>
+      <small class="text-muted d-block">-</small>
+    `;
+
+    // 단가/총액/창고 셀 name 보정
+    tr.children[2].querySelector("input").setAttribute("name", `orderItems[${idx}].unitPrice`);
+    tr.children[3].innerHTML = `
+      <input type="number" name="orderItems[${idx}].visibleTotal" class="form-control" readonly value="0">
+      <input type="hidden" name="orderItems[${idx}].totalPrice" value="0">
+      <div class="small text-muted mt-1"><span class="js-conv">0</span></div>
+    `;
+    tr.children[4].querySelector("input").setAttribute("name", `orderItems[${idx}].warehouseCode`);
+  });
+}
+
+/* ---------------------------------------
+ * [4] 거래처 변경 → 아이템 로딩
+ * ------------------------------------- */
+document.querySelector("#supplierSelect").addEventListener("change", function () {
   const supplierId = this.value;
   materialMap = {};
   supplierItemMap = {};
 
-  // 모든 자재 select 초기화
-  document.querySelectorAll("select[name$='.materialId']").forEach(select => {
-    select.innerHTML = '<option value="">선택</option>';
+  // 옵션 초기화
+  document.querySelectorAll("select[name$='.materialId']").forEach(sel => {
+    sel.innerHTML = '<option value="">선택</option>';
   });
-
   if (!supplierId) return;
 
   fetch(`/supplierItem/list?supplierId=${supplierId}`)
-    .then(res => {
-      if (!res.ok) throw new Error('Network response was not ok');
-      return res.json();
-    })
+    .then(res => { if (!res.ok) throw new Error('Network not ok'); return res.json(); })
     .then(data => {
       data.forEach(item => {
-        materialMap[item.materialId] = item;
-        supplierItemMap[item.materialId] = item; 
+        // 서버에서 필드명 통일(없을 경우 방어)
+        const normalized = {
+          materialId: item.materialId,
+          materialName: item.materialName,
+          warehouseCode: item.warehouseCode || '',
+          unit: (item.unit || 'EA').toUpperCase(),
+          priceUnit: (item.priceUnit || item.unit || 'EA').toUpperCase(),
+          convToPriceUnit: Number(item.convToPriceUnit || item.convToBase || item.packQty || 1),
+          unitPrice: Number(item.unitPrice || 0),
+          minOrderQty: Number(item.minOrderQty || 1),
+          orderMultiple: Number(item.orderMultiple || 1),
+        };
+        materialMap[normalized.materialId] = normalized;
+        supplierItemMap[normalized.materialId] = normalized;
       });
 
+      // 기존 행 업그레이드 + 옵션 채우기
+      upgradeExistingRows();
       const optionHTML = getMaterialOptions();
-
-      // 현재 등록된 모든 행에 option 갱신
-      document.querySelectorAll("select[name$='.materialId']").forEach(select => {
-        select.innerHTML += optionHTML;
+      document.querySelectorAll("select[name$='.materialId']").forEach(sel => {
+        sel.innerHTML = '<option value="">선택</option>' + optionHTML;
       });
     })
-    .catch(error => {
-      console.error('거래처 자재 목록 조회 실패:', error);
-      alert('거래처 자재 목록을 불러오는데 실패했습니다.');
+    .catch(err => {
+      console.error(err);
+      alert('거래처 자재 목록을 불러오지 못했습니다.');
     });
 });
 
-
 /* ---------------------------------------
- * [3] 자재 선택 → 단가/입고창고 자동 입력
+ * [5] 자재 선택 → 단가/환산 바인딩
  * ------------------------------------- */
 document.addEventListener("change", function (e) {
-  if (e.target.matches("select[name$='.materialId']")) {
-    const selectedId = e.target.value;
-    const item = materialMap[selectedId];
-    if (!item) return;
+  if (!e.target.matches("select[name$='.materialId']")) return;
 
-    const row = e.target.closest("tr");
-    const unitPriceInput = row.querySelector("input[name$='.unitPrice']");
-    const locationInput = row.querySelector("input[name$='.warehouseCode']");
-
-    if (unitPriceInput) unitPriceInput.value = item.unitPrice || '';
-    if (locationInput) locationInput.value = item.warehouseCode || '';
-
-    calculateTotal(unitPriceInput); // 단가 변경에 따른 총금액 갱신
+  // 중복 방지
+  const selectedId = e.target.value;
+  const chosen = Array.from(document.querySelectorAll("select[name$='.materialId']"))
+    .filter(s => s !== e.target)
+    .map(s => s.value);
+  if (chosen.includes(selectedId)) {
+    alert("이미 선택된 자재입니다.");
+    e.target.value = "";
+    return;
   }
-});
 
+  const item = supplierItemMap[selectedId] || materialMap[selectedId];
+  if (!item) return;
 
-/* ---------------------------------------
- * [4] 수량 or 단가 변경 시 총금액 자동 계산
- * ------------------------------------- */
-function calculateTotal(input) {
-	  const row = input.closest("tr");
+  const row = e.target.closest("tr");
+  const unitPriceInput = row.querySelector("input[name$='.unitPrice']");
+  const locationInput  = row.querySelector("input[name$='.warehouseCode']");
+  const unitHidden     = row.querySelector("input[name$='.unit']");
+  const priceUnitHidden= row.querySelector("input[name$='.priceUnit']");
+  const convHidden     = row.querySelector("input[name$='.convToPriceUnit']");
+  const qtyInput       = row.querySelector("input[name$='.orderQuantity']");
+  const hintSmall      = row.querySelector("td:nth-child(2) small.text-muted");
 
-	  // 수량 입력 필드 찾기 (이름 다를 수 있음)
-	  const qtyInput = row.querySelector("input[name$='.orderQuantity']") || 
-	                   row.querySelector("input[name$='.quantity']");
-	  const priceInput = row.querySelector("input[name$='.unitPrice']");
+  // 값 주입
+  unitPriceInput.value = (item.unitPrice !== undefined && item.unitPrice !== null)
+  ? item.unitPrice
+  : '';
+  locationInput.value    = item.warehouseCode || '';
+  unitHidden.value       = item.unit;
+  priceUnitHidden.value  = item.priceUnit;
+  convHidden.value       = item.convToPriceUnit;
 
-	  if (!qtyInput || !priceInput) return;
+  // 수량 메타
+  qtyInput.min = String(item.minOrderQty || 1);
+  qtyInput.dataset.multiple      = String(item.orderMultiple || 1);
+  qtyInput.dataset.purchaseUnit  = item.unit;
+  qtyInput.dataset.priceUnit     = item.priceUnit;
+  qtyInput.dataset.conv          = String(item.convToPriceUnit);
 
-	  const qty = parseFloat(qtyInput.value) || 0;
-	  const price = parseFloat(priceInput.value) || 0;
-	  const total = Math.round(qty * price);
+  if (!qtyInput.value) qtyInput.value = Math.max(item.minOrderQty||1, item.orderMultiple||1);
 
-	  // 총금액 출력 필드들: hidden + readonly
-	  const hiddenTotalInput = row.querySelector("input[type='hidden'][name$='.totalPrice']");
-	  const totalPriceInputs = row.querySelectorAll("input[name$='.totalPrice']");
-
-	  totalPriceInputs.forEach(input => {
-	    input.value = total;
-	  });
-
-	  // 혹시 읽기전용 필드에만 보여줄 게 있다면
-	  const readonlyVisible = row.querySelector("input[readonly][type='number']");
-	  if (readonlyVisible && !readonlyVisible.name.endsWith('.totalPrice')) {
-	    readonlyVisible.value = total;
-	  }
-	}
-
-
-
-/* ---------------------------------------
- * [5] 폼 제출 전 유효성 검사 + 디버깅
- * ------------------------------------- */
-document.addEventListener('DOMContentLoaded', function () {
-  const form = document.querySelector('form');
-  if (form) {
-    form.addEventListener('submit', function (e) {
-      console.log('=== 폼 제출 데이터 검증 ===');
-
-      // 기본 정보 확인
-      const supplierId = document.querySelector('select[name="order.supplierId"]').value;
-      const expectedDate = document.querySelector('input[name="order.expectedArrivedDate"]').value;
-
-      if (!supplierId || !expectedDate) {
-        alert('기본 정보를 모두 입력해주세요.');
-        e.preventDefault();
-        return false;
-      }
-
-      // 발주 항목 유효성 검사
-      const materialSelects = document.querySelectorAll("select[name$='.materialId']");
-      let validItemCount = 0;
-
-      materialSelects.forEach((select, index) => {
-        if (select.value) {
-          const row = select.closest('tr');
-          const qty = row.querySelector("input[name$='.orderQuantity']").value;
-          const price = row.querySelector("input[name$='.unitPrice']").value;
-
-          if (qty && price && parseFloat(qty) > 0 && parseFloat(price) >= 0) {
-            validItemCount++;
-          }
-        }
-      });
-
-      if (validItemCount === 0) {
-        alert('최소 1개 이상의 유효한 발주 항목을 입력해주세요.');
-        e.preventDefault();
-        return false;
-      }
-
-      console.log('=== 폼 제출 진행 ===');
-    });
+  if (hintSmall) {
+    const convStr = (item.convToPriceUnit || 1).toLocaleString();
+    let hint = `${item.unit} 1개 ≈ ${convStr} ${item.priceUnit}`;
+    if ((item.minOrderQty||1) > 1) hint += ` | 최소 ${item.minOrderQty}개`;
+    if ((item.orderMultiple||1) > 1) hint += ` | ${item.orderMultiple}개 배수`;
+    hintSmall.textContent = hint;
   }
-});
 
+  rowRecalc(unitPriceInput);
+});
 
 /* ---------------------------------------
- * [6] 자재 → 거래처 검색 모달 (Ajax 검색 & 선택 반영)
+ * [6] 계산/보정
  * ------------------------------------- */
+function enforceMultiple(el) {
+  const mul = parseInt(el.dataset.multiple || '1', 10) || 1;
+  const min = parseInt(el.min || '1', 10) || 1;
+  let v = parseInt(el.value || '0', 10) || 0;
 
-// 모달 열기
-$('#btnSearchSupplier').on('click', function () {
-  $('#supplierSearchModal').modal('show');
-  $('#materialSearchInput').val('');
-  $('#supplierSearchResult').empty();
-});
+  if (v < min) v = min;
+  if (mul > 1) {
+    const rem = (v - min) % mul;
+    if (rem !== 0) v = v - rem + mul; // 올림
+  }
+  el.value = v;
+}
 
-// 자재명 입력 → 거래처 목록 Ajax 조회
-$('#materialSearchInput').on('input', function () {
-  const keyword = $(this).val().trim();
-  if (keyword.length < 2) return;
+function rowRecalc(input) {
+  const row = input.closest('tr'); if (!row) return;
 
-  $.ajax({
-    url: '/material/order/search-suppliers',
-    method: 'GET',
-    data: { keyword },
-    success: function (data) {
-      const tbody = $('#supplierSearchResult').empty();
-      if (data.length === 0) {
-        tbody.append(`<tr><td colspan="5">검색 결과가 없습니다.</td></tr>`);
-        return;
-      }
+  const qtyInput   = row.querySelector("input[name$='.orderQuantity']");
+  const priceInput = row.querySelector("input[name$='.unitPrice']");
+  const hiddenTot  = row.querySelector("input[type='hidden'][name$='.totalPrice']");
+  const visTot     = row.querySelector("input[name$='.visibleTotal']");
+  const convSpan   = row.querySelector(".js-conv");
 
-      data.forEach(row => {
-        const tr = `
-          <tr>
-            <td>${row.materialName}</td>
-            <td>${row.supplierName}</td>
-            <td>${row.unitPrice}</td>
-            <td>${row.warehouseCode || '-'}</td>
-            <td>
-              <button type="button" class="btn btn-sm btn-primary"
-                      onclick="selectSupplier('${row.supplierId}', '${row.supplierName}')">선택</button>
-            </td>
-          </tr>
-        `;
-        tbody.append(tr);
-      });
-    }
-  });
-});
+  let q = parseInt(qtyInput.value || '0', 10);
+  const min = parseInt(qtyInput.min || '1', 10) || 1;
+  if (!Number.isInteger(q) || q < min) { q = min; qtyInput.value = q; }
 
-//선택 시 거래처 select에 반영 + 항목 자동 세팅
-let supplierItemMap = {};  // 거래처 자재 목록 저장 (키: materialId)
+  const p = Number(priceInput.value) || 0;
 
-function selectSupplier(supplierId, supplierName) {
-	  const $select = $('#supplierSelect');
+  const purchaseUnit = (qtyInput.dataset.purchaseUnit || 'EA').toUpperCase();
+  const priceUnit    = (qtyInput.dataset.priceUnit || purchaseUnit).toUpperCase();
+  const conv         = Number(qtyInput.dataset.conv || '1') || 1;
 
-	  if ($select.find(`option[value="${supplierId}"]`).length === 0) {
-	    $select.append(`<option value="${supplierId}">${supplierName}</option>`);
-	  }
-	  $select.val(supplierId).change();
+  // 가격단위 기준 수량
+  const qtyForPricing = (priceUnit !== purchaseUnit) ? (q * conv) : q;
 
-	  // 1. 전체 자재 목록 가져오기 → 전역 저장용
-	  $.ajax({
-	    url: '/material/order/supplier-items',
-	    method: 'GET',
-	    data: {
-	      supplierId: supplierId
-	    },
-	    success: function (allItems) {
-	      // ✅ 전체 자재를 전역에 저장
-	      supplierItemMap = {};
-	      allItems.forEach(item => {
-	        supplierItemMap[item.materialId] = item;
-	        materialMap[item.materialId] = item;
-	      });
+  const total = Math.round(qtyForPricing * p);
+  if (hiddenTot) hiddenTot.value = total;
+  if (visTot)    visTot.value    = total;
 
-	      // 2. 검색어 기반 자동 추가 (필터링은 이 시점에만 사용)
-	      const keyword = $('#materialSearchInput').val();
-	      const filtered = keyword
-	        ? allItems.filter(i => i.materialName.includes(keyword))
-	        : [];
+  if (convSpan) {
+    const converted = qtyForPricing;
+    convSpan.textContent = `${converted.toLocaleString()} ${priceUnit}`;
+  }
+}
 
-	      const tbody = $('#itemTable tbody').empty();
+/* ---------------------------------------
+ * [7] 공용 유틸
+ * ------------------------------------- */
+function removeRow(btn) { btn.closest("tr").remove(); }
 
-	      if (filtered.length > 0) {
-	        filtered.forEach((item, index) => {
-	        	addItemRowFromMaterial(item); 
-	        });
-	      }
-	    }
-	  });
-
-	  $('#supplierSearchModal').modal('hide');
-	}
-
-
-// 항목 추가 시 드롭다운 렌더링 함수
 function getMaterialOptions() {
-	  return Object.values(supplierItemMap).map(item =>
-	    `<option value="${item.materialId}">${item.materialName}</option>`
-	  ).join('');
-	}
+  return Object.values(supplierItemMap).map(it =>
+    `<option value="${it.materialId}">${it.materialName}</option>`
+  ).join('');
+}
 
-function addItemRow() {
-	  const tbody = document.querySelector("#itemTable tbody");
-
-	  const row = document.createElement("tr");
-	  row.innerHTML = `
-	    <td>
-	      <select name="orderItems[${itemIndex}].materialId" class="form-control">
-	        <option value="">선택</option>
-	        ${getMaterialOptions()}
-	      </select>
-	    </td>
-	    <td>
-	      <input type="number" name="orderItems[${itemIndex}].orderQuantity" class="form-control" min="1" onchange="calculateTotal(this)" required>
-	    </td>
-	    <td>
-	      <input type="number" name="orderItems[${itemIndex}].unitPrice" class="form-control" min="0" step="0.01" onchange="calculateTotal(this)" required>
-	    </td>
-	    <td>
-	      <input type="number" name="orderItems[${itemIndex}].visibleTotal" class="form-control" readonly value="0">
-	      <input type="hidden" name="orderItems[${itemIndex}].totalPrice" value="0">
-	    </td>
-	    <td>
-	      <input type="text" name="orderItems[${itemIndex}].warehouseCode" class="form-control" readonly>
-	    </td>
-	    <td>
-	      <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">삭제</button>
-	    </td>
-	  `;
-	  tbody.appendChild(row);
-	  itemIndex++;
-	}
-
-
-
-//자재 select 변경 시 중복 검사
-document.addEventListener("change", function (e) {
-  if (e.target.matches("select[name$='.materialId']")) {
-    const selectedId = e.target.value;
-
-    // 현재 테이블에서 선택된 자재 ID 목록
-    const selectedIds = Array.from(document.querySelectorAll("select[name$='.materialId']"))
-      .filter(sel => sel !== e.target) // 현재 선택 중인 셀은 제외
-      .map(sel => sel.value);
-
-    if (selectedIds.includes(selectedId)) {
-      alert("이미 선택된 자재입니다.");
-      e.target.value = ""; // 선택 취소
-    }
-  }
-});
-
-
-// 발주일
+/* ---------------------------------------
+ * [8] 초기화
+ * ------------------------------------- */
 document.addEventListener("DOMContentLoaded", function () {
-    const today = new Date().toISOString().split("T")[0];
-    document.getElementById("orderDate").value = today;
-  });
+  // 발주일 자동세팅(필요 시)
+  const od = document.getElementById("orderDate");
+  if (od) od.value = new Date().toISOString().split("T")[0];
 
+  // 페이지에 기본 tr가 있다면 새 구조로 업그레이드
+  upgradeExistingRows();
+});

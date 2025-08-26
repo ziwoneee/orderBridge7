@@ -1,6 +1,7 @@
 package com.itwillbs.service;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -24,7 +25,7 @@ public class SupplierItemServiceImpl implements SupplierItemService {
 
 	// 특정 거래처의 공급 품목 JSON 목록 반환
 	@Override
-	public List<SupplierItemVO> getItemsBySupplier(String supplierId) throws Exception {
+	public List<Map<String, Object>> getItemsBySupplier(String supplierId) throws Exception {
 		
 	    return siDAO.getItemsBySupplier(supplierId);
 	}

@@ -1,6 +1,9 @@
 package com.itwillbs.persistence;
 
 import java.util.List;
+import java.util.Map;
+
+import org.apache.ibatis.annotations.Param;
 
 import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.SupplierItemVO;
@@ -12,7 +15,7 @@ public interface SupplierItemDAO {
 	
     
     // 특정 거래처의 공급 품목 JSON 목록 반환
-    public List<SupplierItemVO> getItemsBySupplier(String supplierId) throws Exception;
+    public List<Map<String, Object>> getItemsBySupplier(@Param("supplierId") String supplierId) throws Exception;
     
     // 페이징
     int getItemCountBySupplier(String supplierId) throws Exception;

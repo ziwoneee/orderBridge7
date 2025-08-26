@@ -17,27 +17,43 @@
 	  <result property="createdAt" column="created_at"/>
 	  <result property="updatedAt" column="updated_at"/>
 	  <result property="warehouseCode" column="warehouse_code"/>
+	  <result property="priceUnit"    column="price_unit"/>
+	  <result property="convToBase"   column="conv_to_base"/>
+	  <result property="packQty"      column="pack_qty"/>
+	  <result property="minOrderQty"  column="min_order_qty"/>
+	  <result property="orderMultiple" column="order_multiple"/>
+	  <result property="baseUnit"     column="base_unit"/>
   </resultMap>
   	
   <!-- 특정 거래처의 공급 품목 JSON 목록 반환 -->
-  <select id="getItemsBySupplier" parameterType="String" resultMap="supplierItemMap">
-	 SELECT 
-	    si.id,
-	    si.supplier_id,
-	    si.material_id,
-	    si.unit_price,
-	    si.unit,
-	    si.supply_available,
-	    si.note,
-	    si.created_at,
-	    si.updated_at,
-	    m.material_name AS material_name,
-	    m.material_type AS material_type,
-	    m.warehouse_code AS warehouse_code
+  <select id="getItemsBySupplier" parameterType="string" resultType="map">
+	  SELECT
+	    si.id                   AS id,
+	    si.supplier_id          AS supplierId,
+	    si.material_id          AS materialId,
+	    si.unit_price           AS unitPrice,
+	    si.unit                 AS unit,
+	    si.supply_available     AS supplyAvailable,
+	    si.note                 AS note,
+	    DATE_FORMAT(si.created_at, '%Y-%m-%d %H:%i:%s') AS createdAt,
+ 		DATE_FORMAT(si.updated_at, '%Y-%m-%d %H:%i:%s') AS updatedAt,
+	    si.price_unit           AS priceUnit,
+	    si.conv_to_base         AS convToBase,
+	    si.pack_qty             AS packQty,
+	    si.min_order_qty        AS minOrderQty,
+	    si.order_multiple       AS orderMultiple,
+	    m.material_name         AS materialName,
+	    m.material_type         AS materialType,
+	    m.unit                  AS materialUnit,   /* base_unit 컬럼 없음! */
+	    m.warehouse_code        AS warehouseCode
 	  FROM supplier_item si
 	  JOIN material m ON si.material_id = m.material_id
 	  WHERE si.supplier_id = #{supplierId}
-  </select>
+	</select>
+
+
+
+
   
     <!-- 전체 공급 품목 수 -->
 	<select id="getItemCountBySupplier" parameterType="String" resultType="int">
