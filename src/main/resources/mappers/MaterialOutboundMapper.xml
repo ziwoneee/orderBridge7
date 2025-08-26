@@ -527,25 +527,45 @@
 	    (COALESCE(ii.quantity, 0) - COALESCE(used.used_qty, 0)) AS availableQty,
 	    ii.expiration_date        AS expirationDate,
 	    /* 필요수량: 작업지시별 자재 필요 분량 */
-	    COALESCE(wom.required_qty, 0) AS requiredQty
+	    COALESCE(wom.required_qty, 0) AS requiredQty,
+	
+	    /* ▼ 추가: 표시용 단위/환산 */
+	    COALESCE(si.order_unit,'EA')  AS orderUnit,
+	    COALESCE(si.stock_unit,'KG')  AS stockUnit,
+	    COALESCE(si.conv_to_stock,1)  AS convToStock,
+	
+	    /* 필요수량 단위: BOM 단위 사용 */
+	    bd.unit AS requiredUnit
+	
 	  FROM material_inbound_item ii
 	  JOIN material_inbound i   ON i.inbound_id = ii.inbound_id
 	  JOIN material m           ON m.material_id = ii.material_id
-	  /* 출고로 사용된 수량: material_id + lot_no 단위 합산 (LOT는 입고에서 생성되므로 inbound_id 없이도 식별됨) */
+	
+	  /* 출고로 사용된 수량 */
 	  LEFT JOIN (
 	    SELECT
 	      moi.material_id,
 	      COALESCE(moi.lot_no, '') AS lot_no,
-	      SUM(moi.quantity)        AS used_qty   
+	      SUM(moi.quantity)        AS used_qty
 	    FROM material_outbound_item moi
 	    GROUP BY moi.material_id, COALESCE(moi.lot_no, '')
 	  ) used
 	    ON used.material_id = ii.material_id
 	   AND used.lot_no      = COALESCE(ii.lot_no, '')
+	
 	  /* 작업지시 필요수량 */
 	  LEFT JOIN work_order_material wom
 	    ON wom.work_order_id = #{workOrderId}
 	   AND wom.material_id   = ii.material_id
+	
+	  /* BOM에서 단위 가져오기 */
+	  LEFT JOIN bom_detail bd
+	    ON bd.material_id = ii.material_id
+	    /* 필요하면 특정 BOM으로 제한: AND bd.bom_id = (해당 WO의 BOM) */
+	
+	  /* 단위/환산 정보 */
+	  LEFT JOIN supplier_item si
+	    ON si.material_id = ii.material_id
 	
 	  WHERE i.inbound_id = #{inboundId}
 	    AND i.inbound_status = '입고완료'
@@ -553,6 +573,8 @@
 	
 	  ORDER BY ii.expiration_date ASC
 	</select>
+
+
 
 
 	
