@@ -1,6 +1,7 @@
 package com.itwillbs.persistence;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.ibatis.annotations.Param;
 
@@ -29,6 +30,9 @@ public interface MaterialInboundDAO {
 	List<UnreceivedOrderDTO> getUnreceivedOrdersPaging(SearchCriteria cri) throws Exception;
 	// 미입고 발주 전체 개수
 	int getUnreceivedOrdersCount() throws Exception;
+	
+	Map<String, Object> getPackMetaByOrderItemId(@Param("orderItemId") String orderItemId);
+
 
 
 	// 미입고 발주건 DB 등록

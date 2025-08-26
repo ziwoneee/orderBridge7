@@ -251,6 +251,27 @@
 	    WHERE mo.order_status = '승인'
 	    AND mii.order_item_id IS NULL
 	</select>
+	
+	
+	<!-- 발주항목ID로 supplier_item의 단위/환산 메타 조회 -->
+	<!-- 발주아이템ID로 과금단위/환산 메타 조회 -->
+	<select id="getPackMetaByOrderItemId" parameterType="string" resultType="map">
+	  SELECT
+	    si.price_unit                      AS priceUnit,     -- 'KG','L','PACK','BUNDLE','EA' 등
+	    /* 환경에 맞게 사용: conv_to_base(kg/L), pack_qty(베이스), conv_to_stock(표시단위) */
+	    COALESCE(si.conv_to_base, 1)       AS convToBase,    -- 1 PACK 당 kg/L 숫자(예: 5kg → 5)
+	    COALESCE(si.pack_qty, NULL)        AS packQty,       -- 1 PACK = ? (g/ml/ea 기준)
+	    COALESCE(si.conv_to_stock, 1)      AS convToStock    -- BUNDLE/EA일 때 팩 안의 개수 보정값
+	  FROM material_order_item moi
+	  JOIN material_order mo
+	    ON mo.order_id = moi.order_id
+	  LEFT JOIN supplier_item si
+	    ON si.supplier_id = mo.supplier_id
+	   AND si.material_id = moi.material_id
+	  WHERE moi.order_item_id = #{orderItemId}
+	  LIMIT 1
+	</select>
+	
 
 
 	<!-- 아직 입고되지 않은 발주 항목 조회 (발주 상태 조건 추가) -->

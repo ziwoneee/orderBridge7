@@ -209,27 +209,20 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
         miDAO.updateInboundMasterStatus(inboundId);
     }
 
-    /**
-     * 개별 자재 항목 입고 처리 (입고 수량, LOT 정보, 유통기한 등)
-     * - 유효성 검사
-     * - 입고 항목 테이블 업데이트
-     * - 재고 테이블 반영 (신규면 ID 생성)
-     * - 마스터 상태 갱신
-     */
     @Override
     public void processInboundItem(MaterialInboundItemDTO dto, String handledBy) throws Exception {
-    	
-    	// 0-0) 최초 처리자 보정: 마스터가 비었거나 system이면 세션 사용자로 덮어쓰기
+
+        // 0-0) 최초 처리자 보정
         if (handledBy != null && !handledBy.trim().isEmpty()) {
             miDAO.updateInboundHandledByIfBlank(dto.getInboundId(), handledBy.trim());
         }
-        
-    	// [ADD] 검증 전에 창고코드 자동 보정
+
+        // [ADD] 창고 코드 자동 보정
         if (dto.getWarehouseCode() == null || dto.getWarehouseCode().isEmpty()) {
             String wh = resolveWarehouseCode(dto.getMaterialId(), dto.getOrderItemId());
             dto.setWarehouseCode(wh);
         }
-    	
+
         // 0) 기본 검증
         if (dto.getQuantity() <= 0) throw new Exception("입고 수량이 0 이하인 자재가 있습니다.");
         if (dto.getLotNo() == null || dto.getLotNo().isEmpty()) throw new Exception("LOT 번호가 누락되었습니다.");
@@ -243,52 +236,84 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
         MaterialOrderItemVO orderItem = miDAO.getOrderItemById(dto.getOrderItemId());
         if (orderItem == null) throw new RuntimeException("orderItem 조회 결과가 null입니다: " + dto.getOrderItemId());
 
-        // ★ 여기서 null 안전 처리(autounboxing 금지)
-        Integer orderQtyObj      = orderItem.getOrderQuantity();   // Integer일 수 있음
-        Integer orderUnitPriceObj= orderItem.getUnitPrice();       // Integer일 수 있음
-        
+        // null 안전
+        Integer orderQtyObj       = orderItem.getOrderQuantity();
+        Integer orderUnitPriceObj = orderItem.getUnitPrice();
         if (orderQtyObj == null || orderQtyObj <= 0) {
             throw new Exception("발주 수량 정보가 올바르지 않습니다. 발주항목: " + dto.getOrderItemId() + ", 수량: " + orderQtyObj);
         }
-        
-        int orderQty   = (orderQtyObj == null) ? 0 : orderQtyObj;
-        int unitPrice  = (orderUnitPriceObj == null) ? 0 : orderUnitPriceObj;
+        final int orderQty  = (orderQtyObj == null) ? 0 : orderQtyObj;
+        final int unitPrice = (orderUnitPriceObj == null) ? 0 : orderUnitPriceObj;
 
-        dto.setUnitPrice(unitPrice);
-        dto.setTotalPrice(unitPrice * dto.getQuantity());
+        // === (A) 단위/환산 메타 조회: PACK → 베이스(g/ml/ea) 환산을 위해 ===
+        Map<String,Object> meta = miDAO.getPackMetaByOrderItemId(dto.getOrderItemId());
+        String priceUnit = String.valueOf(meta.getOrDefault("priceUnit", "BASE")).toUpperCase();
+        double convToBase  = toDouble(meta.get("convToBase"),  1d);   // 과금단위 값(kg/L/EA 등)
+        double convToStock = toDouble(meta.get("convToStock"), 1d);   // 표시/묶음 환산(예: 대파=10단)
+        double packQty     = toDouble(meta.get("packQty"),    -1d);   // 1PACK이 베이스로 몇인가
 
-        // 2) 이번에 입고할 수량 (누적 아님)
-        int inputQty = dto.getQuantity();
+        // 1 PACK = ? (베이스단위) — packQty 우선, 없으면 priceUnit 기반으로 계산
+        double packQtyBase;
+        if (packQty > 0d) {
+            packQtyBase = packQty; // 예: 20000(=20kg)
+        } else if ("KG".equals(priceUnit) || "L".equals(priceUnit)) {
+            packQtyBase = convToBase * 1000d;  // 2kg → 2000g
+        } else {
+            packQtyBase = convToBase > 0d ? convToBase : 1d; // EA/BUNDLE 등 기본값
+        }
+        // BUNDLE/EA인데 convToBase가 1 이하이면 convToStock(예: 10단)로 보정
+        if (("BUNDLE".equals(priceUnit) || "EA".equals(priceUnit)) && packQtyBase <= 1d) {
+            packQtyBase = Math.max(packQtyBase, convToStock);
+        }
 
-        // 3) 현재까지 누적 입고 수량 (null → 0)
+        // 2) 이번에 입고할 수량 (화면 입력 = PACK)
+        int packsThisTime = dto.getQuantity();
+
+        // 3) 현재까지 누적 입고(=PACK) (null → 0)
         Integer totalReceivedObj = miDAO.getTotalReceivedQtyByOrderItemId(dto.getOrderItemId());
         int totalReceivedQty = (totalReceivedObj == null) ? 0 : totalReceivedObj;
 
-        // 4) 누적 계산 및 초과 체크
-        int newTotalQty = totalReceivedQty + inputQty;
-        if (newTotalQty > orderQty) {
+        // 4) 누적 계산 및 초과 체크 (PACK 단위끼리 비교)
+        int newTotalPacks = totalReceivedQty + packsThisTime;
+        if (newTotalPacks > orderQty) {
             throw new Exception(String.format(
-                "입고 수량이 발주 수량을 초과합니다. (발주: %d, 기입고: %d, 입고요청: %d, 초과: %d)",
-                orderQty, totalReceivedQty, inputQty, newTotalQty - orderQty
+                    "입고 수량이 발주 수량을 초과합니다. (발주: %d, 기입고: %d, 입고요청: %d, 초과: %d)",
+                    orderQty, totalReceivedQty, packsThisTime, newTotalPacks - orderQty
             ));
         }
 
         // 5) 상태
-        String newStatus = (newTotalQty >= orderQty) ? "입고완료" : "부분입고";
+        String newStatus = (newTotalPacks >= orderQty) ? "입고완료" : "부분입고";
 
-        // 6) 입고 항목 업데이트(누적 값으로 저장)
-        dto.setQuantity(newTotalQty);
+        // === (B) 금액 계산: 단가 단위에 맞춰 과금수량 산출 ===
+        double billedPerPack; // PACK 1개가 과금단위로 몇인가
+        if ("KG".equals(priceUnit) || "L".equals(priceUnit)) {
+            billedPerPack = convToBase;                 // 1PACK = 2kg/20kg 등
+        } else if ("PACK".equals(priceUnit)) {
+            billedPerPack = 1d;                         // 팩 자체 과금
+        } else {
+            billedPerPack = packQtyBase;                // EA/BUNDLE 등
+        }
+        double billedQtyThisTime = packsThisTime * billedPerPack;
+        long totalPriceThisTime = Math.round(billedQtyThisTime * unitPrice);
+
+        dto.setUnitPrice(unitPrice);
+        dto.setTotalPrice((int) totalPriceThisTime);
+
+        // 6) 입고 항목 업데이트 (DB에는 누적 PACK 수량으로 저장)
+        dto.setQuantity(newTotalPacks);          // ★ PACK
         dto.setInboundStatus(newStatus);
         miDAO.updateInboundItem(dto);
 
-        // 7) 재고 반영(이번에 입고한 수량만)
+        // 7) 재고 반영 — ★ 여기만 베이스단위로 반영 ★
+        long baseQtyThisTime = Math.round(packsThisTime * packQtyBase);   // 예: 1PACK * 20000g = 20000g
         if (miDAO.checkInventoryExists(dto.getMaterialId(), dto.getWarehouseCode())) {
-            miDAO.updateInventoryQuantity(dto.getMaterialId(), dto.getWarehouseCode(), inputQty);
+            miDAO.updateInventoryQuantity(dto.getMaterialId(), dto.getWarehouseCode(), (int) baseQtyThisTime);
         } else {
             MaterialInventoryVO vo = new MaterialInventoryVO();
             vo.setInventoryId(generateInventoryId());
             vo.setMaterialId(dto.getMaterialId());
-            vo.setQuantity(inputQty);
+            vo.setQuantity((int) baseQtyThisTime);      // ★ 베이스(g/ml/ea)
             vo.setLotNo(dto.getLotNo());
             vo.setExpirationDate(dto.getExpirationDate());
             vo.setReceivedDate(new Date());
@@ -298,11 +323,17 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
             miDAO.insertInventory(vo);
         }
 
-        // 8) 마스터 상태 갱신
+        // 8) 마스터/발주 상태 갱신
         miDAO.updateInboundMasterStatus(dto.getInboundId());
-        
         String orderId = miDAO.selectOrderIdByInboundId(dto.getInboundId());
         miDAO.updateOrderStatusToCompletedIfAllInboundDone(orderId);
+    }
+
+    /** null/타입 혼합 방지용 유틸 */
+    private static double toDouble(Object v, double def) {
+        if (v == null) return def;
+        if (v instanceof Number) return ((Number) v).doubleValue();
+        try { return Double.parseDouble(v.toString()); } catch (Exception ignore) { return def; }
     }
 
 
