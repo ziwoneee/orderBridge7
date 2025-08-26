@@ -165,7 +165,7 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
             throw new IllegalArgumentException("부족 자재 목록이 없습니다.");
         }
 
-        // [1] 부족 자재 Map
+        // [1] 부족 자재 Map (베이스 단위: g/ml/ea)
         Map<String, Integer> shortageMap = request.getItems().stream()
             .collect(Collectors.toMap(
                 PurchaseDraftRequest.ShortageItem::getMaterialId,
@@ -174,7 +174,7 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
 
         List<String> materialIds = new ArrayList<>(shortageMap.keySet());
 
-        // ✅ [1-1] 내부사용(N) 먼저 분리
+        // [1-1] 내부사용(N) 먼저 분리
         List<Map<String, Object>> nonPurchList = mOrderDAO.selectNonPurchasableFromList(materialIds);
         Set<String> internalIds = nonPurchList.stream()
             .map(m -> (String) m.get("materialId"))
@@ -186,28 +186,25 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
             .collect(Collectors.toList());
 
         PurchaseDraftResult result = new PurchaseDraftResult();
-        // (선택) 결과에 내부사용 사유로 별도 전달
-        if (!internalIds.isEmpty() && result.getSkippedInternal() != null) {
+        // (선택) 내부사용 제외 목록 결과에 전달
+        if (!internalIds.isEmpty()) {
             result.setSkippedInternal(new ArrayList<>(internalIds));
         }
 
-        // ✅ 구매대상 아이디가 하나도 없으면 여기서 조용히 종료(예: 전부 내부사용일 때)
+        // 구매대상이 하나도 없으면 종료
         if (purchOnlyIds.isEmpty()) {
             result.setUnmappedMaterials(Collections.emptyList());
-            result.setOrderId(null); // 필요시 null 허용, 호출부에서 "생성할 항목 없음" 처리
+            result.setOrderId(null);
             logger.info("구매대상(Y) 자재가 없어 발주 생성을 건너뜀. 내부사용 제외: {}", internalIds);
             return result;
         }
 
-        // [2] 매핑 조회 (⚠️ 기존 materialIds -> purchOnlyIds 로 변경)
+        // [2] 매핑 조회
         List<Map<String, Object>> rawMappings = mOrderDAO.selectSupplierItemMappings(purchOnlyIds);
         logger.info("매핑 조회 결과: {}", rawMappings.size());
 
-        // ⚠️ 전부 내부사용이 아니고, 구매대상인데 매핑이 0이면 그때만 오류/스킵 처리
         if (rawMappings.isEmpty()) {
-            // unmapped = 구매대상인데 거래처 없는 자재 전체
             result.setUnmappedMaterials(new ArrayList<>(purchOnlyIds));
-            // 필요 시 예외 대신 결과만 반환하고 프론트에서 안내
             return result;
         }
 
@@ -231,7 +228,7 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
                 }
             ));
 
-        // ✅ [4] unmapped 계산도 구매대상 집합만 기준
+        // [4] 매핑 안된 자재 정리(구매대상 기준)
         List<String> unmapped = purchOnlyIds.stream()
             .filter(mid -> !chosenByMaterial.containsKey(mid) || chosenByMaterial.get(mid) == null)
             .collect(Collectors.toList());
@@ -241,31 +238,28 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
             .filter(Objects::nonNull)
             .collect(Collectors.groupingBy(m -> (String) m.get("supplierId")));
 
-        // [6] 거래처별 헤더+아이템 생성 (기존 그대로)
+        // [6] 거래처별 헤더+아이템 생성
         for (Map.Entry<String, List<Map<String, Object>>> entry : bySupplier.entrySet()) {
             String supplierId = entry.getKey();
             List<Map<String, Object>> supplierMappings = entry.getValue();
 
             try {
-            	Map<String, Object> orderParams = new HashMap<>();
-            	orderParams.put("supplierId", supplierId);
-            	orderParams.put("orderStatus", "초안");
-            	java.time.LocalDate eta = java.time.LocalDate.now().plusDays(7);
-            	orderParams.put("expectedArrivedDate", java.sql.Date.valueOf(eta));
+                Map<String, Object> orderParams = new HashMap<>();
+                orderParams.put("supplierId", supplierId);
+                orderParams.put("orderStatus", "초안");
+                java.time.LocalDate eta = java.time.LocalDate.now().plusDays(7);
+                orderParams.put("expectedArrivedDate", java.sql.Date.valueOf(eta));
 
-            	// ★ 담당자 ID 결정 (request DTO에 필드가 없으면 임시로 'admin' 등 ID 문자열 사용)
-            	// ✅ 수정 코드: 세션 없으면 401 성격의 에러, 있으면 그 ID를 반드시 사용
-            	String handlerId = java.util.Optional.ofNullable(request.getRequestedBy())
-            	        .map(String::trim)
-            	        .filter(s -> !s.isEmpty())
-            	        .orElseThrow(() -> new IllegalStateException("로그인 세션이 만료됐거나 권한이 없습니다. 다시 로그인 후 시도하세요."));
+                // 담당자 ID (세션/요청 필수)
+                String handlerId = java.util.Optional.ofNullable(request.getRequestedBy())
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .orElseThrow(() -> new IllegalStateException("로그인 세션이 만료됐거나 권한이 없습니다. 다시 로그인 후 시도하세요."));
+                orderParams.put("handledBy", handlerId);
+                logger.info("발주 초안 handledBy = {}", handlerId);
 
-            	orderParams.put("handledBy", handlerId);
-            	
-            	logger.info("발주 초안 handledBy = {}", handlerId);
-    	        
-            	orderParams.put("note", "작업지시 " + request.getWorkOrderId() + " 부족분 자동 생성");
-            	orderParams.put("workOrderId", request.getWorkOrderId()); // (선택) 헤더에도 연계
+                orderParams.put("note", "작업지시 " + request.getWorkOrderId() + " 부족분 자동 생성");
+                orderParams.put("workOrderId", request.getWorkOrderId());
 
                 mOrderDAO.insertOrderHeaderDraft(orderParams);
                 String orderId = (String) orderParams.get("orderId");
@@ -277,44 +271,51 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
 
                 for (Map<String, Object> m : supplierMappings) {
                     String materialId = (String) m.get("materialId");
-                    Integer lack = shortageMap.get(materialId);
-                    if (lack == null || lack <= 0) continue;
+                    Integer lackBaseObj = shortageMap.get(materialId); // 베이스 부족량(g/ml/ea)
+                    if (lackBaseObj == null || lackBaseObj <= 0) continue;
+                    int lackBase = lackBaseObj.intValue();
 
+                 // 단가/창고
                     int unitPrice = ((Number) m.getOrDefault("unitPrice", 0)).intValue();
                     String warehouseCode = (String) m.getOrDefault("warehouseCode", "WH001");
 
-                    // === supplier_item 메타 ===
-                    double convToBase = 1d; // 1 PACK -> price_unit(KG/ML/EA) 수량
-                    if (m.get("convToBase") instanceof Number) {
-                        convToBase = ((Number) m.get("convToBase")).doubleValue();
-                    }
-                    if (convToBase <= 0d) convToBase = 1d; // 안전망
+                    // 가격 단위는 한 번만 선언
+                    final String priceUnit = String.valueOf(m.getOrDefault("priceUnit", "BASE")).toUpperCase();
 
-                    int minOrderQty  = (m.get("minOrderQty")   instanceof Number) ? ((Number) m.get("minOrderQty")).intValue()   : 1;
-                    int orderMultiple = (m.get("orderMultiple") instanceof Number) ? ((Number) m.get("orderMultiple")).intValue() : 1;
+                    // --- 매퍼에서 내려준 계산 메타 사용 ---
+                    double packQtyBase = 1d;
+                    Object pqb = m.get("packQtyBase");
+                    if (pqb instanceof Number) packQtyBase = ((Number) pqb).doubleValue();
+                    else if (pqb != null) try { packQtyBase = Double.parseDouble(pqb.toString()); } catch (Exception ignore) {}
+                    if (packQtyBase <= 0d) packQtyBase = 1d;
 
-                    // === 부족분 → 팩 수량 확정 ===
-                    // 현재 lack 은 "미리보기 팩 수량"으로 들어온다고 가정하고 팩으로 저장
-                    int packs = lack;
-                    // (옵션) 만약 lack 이 기본단위(kg/ml) 총량이라면 아래 한 줄로 팩 환산:
-                    // packs = (int) Math.ceil(lack / convToBase);
+                    double convPerPackBilling = 1d;
+                    Object cpb = m.get("convPerPackBilling");
+                    if (cpb instanceof Number) convPerPackBilling = ((Number) cpb).doubleValue();
+                    else if (cpb != null) try { convPerPackBilling = Double.parseDouble(cpb.toString()); } catch (Exception ignore) {}
+                    if (convPerPackBilling <= 0d) convPerPackBilling = 1d;
 
-                    // 최소주문/배수 규칙 적용
-                    if (packs < minOrderQty) packs = minOrderQty;
-                    if (orderMultiple > 1) {
-                        packs = ((packs + orderMultiple - 1) / orderMultiple) * orderMultiple;
-                    }
+                    // 부족(베이스 g/ml/ea) -> PACK(상향반올림)
+                    int packs = (int) Math.ceil(lackBase / packQtyBase);
 
-                    // === 총금액 계산: 팩 × (1팩의 과금단위수량) × 단가 ===
-                    long totalPrice = Math.round(packs * convToBase * unitPrice);
+                    // MOQ/배수 적용
+                    int moq = (m.get("minOrderQty") instanceof Number) ? ((Number) m.get("minOrderQty")).intValue() : 1;
+                    int multiple = (m.get("orderMultiple") instanceof Number) ? ((Number) m.get("orderMultiple")).intValue() : 1;
+                    if (packs < moq) packs = moq;
+                    if (multiple > 1) packs = ((packs + multiple - 1) / multiple) * multiple;
 
+                    // 과금수량 & 총액
+                    double billedQty = "PACK".equals(priceUnit) ? packs : packs * convPerPackBilling;
+                    long totalPrice = Math.round(billedQty * unitPrice);
+
+                    // 저장 아이템
                     Map<String, Object> item = new HashMap<>();
                     item.put("orderItemId", orderId + "-" + String.format("%03d", idx++));
                     item.put("orderId", orderId);
                     item.put("materialId", materialId);
-                    item.put("orderQuantity", packs);     // ✅ DB에 "팩 수량" 저장
+                    item.put("orderQuantity", packs);     // PACK 수량 저장
                     item.put("unitPrice", unitPrice);
-                    item.put("totalPrice", totalPrice);   // ✅ conv_to_base 반영된 총금액
+                    item.put("totalPrice", totalPrice);   // (팩→과금단위)×단가
                     item.put("warehouseCode", warehouseCode);
                     item.put("workOrderId", request.getWorkOrderId());
                     batch.add(item);
@@ -338,10 +339,11 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
         if (result.getOrderId() == null && unmapped.isEmpty() && internalIds.isEmpty()) {
             throw new RuntimeException("발주 초안 생성에 실패했습니다.");
         }
-        
+
         outboundMapper.updateWorkOrderShortageStatus(request.getWorkOrderId(), "CHECKED");
         return result;
     }
+
 
     
     

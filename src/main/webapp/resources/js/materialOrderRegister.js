@@ -15,8 +15,9 @@ function addItemRowFromMaterial(item) {
     var purchaseUnit = (item.unit || 'EA').toUpperCase();                 // 주문 입력 단위
     var priceUnitCalc= (item.priceUnitCalc || purchaseUnit).toUpperCase();// 계산용 단위
     var displayUnit  = (item.displayUnit   || priceUnitCalc).toUpperCase();// 표시용 단위
-    var convDisplay  = Number(item.convDisplay || 1);                      // EA 1개 ≈ convDisplay displayUnit
-
+    var convBase     = Number(item.convBase || item.convToBase || 1); // 1 PACK→과금단위
+    var convDisplay  = Number(item.convDisplay || 1);                 // 1 PACK→표시단위
+    
     var minQ = Number(item.minOrderQty || 1);
     var mul  = Number(item.orderMultiple || 1);
     var defaultQty = Math.max(minQ, mul);
@@ -31,8 +32,8 @@ function addItemRowFromMaterial(item) {
       + '  </select>'
       // 서버 저장용(표시 기준을 유지하고 싶으면 그대로 사용)
       + '  <input type="hidden" name="orderItems['+idx+'].unit" value="'+purchaseUnit+'">'
-      + '  <input type="hidden" name="orderItems['+idx+'].priceUnit" value="'+priceUnitCalc+'">'
-      + '  <input type="hidden" name="orderItems['+idx+'].convToBase" value="'+convDisplay+'">'
+      + '  <input type="hidden" name="orderItems['+idx+'].priceUnit" value="'+priceUnitCalc+'">' // 과금단위
+      + '  <input type="hidden" name="orderItems['+idx+'].convToBase" value="'+convBase+'">'     // 1PACK→과금단위
       + '</td>'
       + '<td>'
       + '  <input type="number" name="orderItems['+idx+'].orderQuantity"'
@@ -42,7 +43,7 @@ function addItemRowFromMaterial(item) {
       // 계산용 데이터셋
       + '         data-purchase-unit="'+purchaseUnit+'"'
       + '         data-price-unit="'+priceUnitCalc+'"'
-      + '         data-conv="'+(priceUnitCalc===purchaseUnit ? 1 : convDisplay)+'"'
+      + '         data-conv="'+(priceUnitCalc===purchaseUnit ? 1 : convBase)+'"'  // ★ 계산용은 convBase
       // 표시용 데이터셋
       + '         data-display-unit="'+displayUnit+'"'
       + '         data-conv-display="'+convDisplay+'"'
@@ -203,15 +204,18 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(function(data){
         for (var i=0; i<data.length; i++) {
           var it = data[i];
-          var normalized = {
+          const convBase   = Number(it.convToBase  || it.conv_to_base  || 1);
+            const convStock  = Number(it.convToStock || it.conv_to_stock || convBase);
+            var normalized = {
             materialId   : it.materialId,
             materialName : it.materialName,
             warehouseCode: it.warehouseCode || '',
             unit         : (it.orderUnit || it.unit || 'EA').toUpperCase(),
             priceUnitCalc: (it.priceUnit || 'KG').toUpperCase(),
             displayUnit  : (it.stockUnit || it.priceUnit || 'KG').toUpperCase(),
-            convDisplay  : Number(it.convToStock || it.conv_to_stock || it.convToBase || 1),
             unitPrice    : Number(it.unitPrice || 0),
+            convBase     : convBase, 			// ★ 계산용
+            convDisplay  : convStock,  			// ★ 표시용
             minOrderQty  : Number(it.minOrderQty || 1),
             orderMultiple: Number(it.orderMultiple || 1)
           };
@@ -257,20 +261,21 @@ function onMaterialSelect(selectElement) {
     var purchaseUnit = (item.unit || 'EA').toUpperCase();
     var priceUnitCalc= (item.priceUnitCalc || purchaseUnit).toUpperCase();
     var displayUnit  = (item.displayUnit   || priceUnitCalc).toUpperCase();
+    var convBase     = Number(item.convBase || item.convToBase || 1);
     var convDisplay  = Number(item.convDisplay || 1);
 
     // 값 주입(서버 저장용 hidden)
     if (unitInput)      unitInput.value      = purchaseUnit;
-    if (priceUnitInput) priceUnitInput.value = displayUnit;
-    if (convInput)      convInput.value      = convDisplay;
+    if (priceUnitInput) priceUnitInput.value = priceUnitCalc; // ★ 과금단위 저장
+    if (convInput)      convInput.value      = convBase;      // ★ 1PACK→과금단위
     if (locationInput)  locationInput.value  = item.warehouseCode || '';
     if (unitPriceInput) unitPriceInput.value = item.unitPrice || 0;
 
     // dataset 갱신 + 최소/배수
     if (qtyInput) {
         qtyInput.dataset.purchaseUnit = purchaseUnit;
-        qtyInput.dataset.priceUnit    = priceUnitCalc;                              // 계산용 (KG)
-        qtyInput.dataset.conv         = String(convDisplay);                        // 항상 환산비율 사용
+        qtyInput.dataset.priceUnit    = priceUnitCalc;          // 계산용(KG/L/…)
+        qtyInput.dataset.conv         = String(convBase);       // 1PACK→과금단위
 
         qtyInput.dataset.displayUnit  = displayUnit;                                 // 표시용
         qtyInput.dataset.convDisplay  = String(convDisplay);
@@ -318,61 +323,46 @@ function enforceMultiple(el) {
 }
 
 function rowRecalc(input){
-    var row = input.closest ? input.closest('tr') : (function(n){while(n && n.tagName!=='TR'){n=n.parentNode;} return n;})(input);
-    if (!row) return;
+	  // 행 찾기
+	  const row = input.closest ? input.closest('tr') : (function(n){while(n && n.tagName!=='TR'){n=n.parentNode;}return n;})(input);
+	  if (!row) return;
 
-    var qtyInput   = row.querySelector("input[name$='.orderQuantity']");
-    var priceInput = row.querySelector("input[name$='.unitPrice']");
-    var materialSelect = row.querySelector("select[name$='.materialId']");
-    var hiddenTot  = row.querySelector("input[type='hidden'][name$='.totalPrice']");
-    var visTot     = row.querySelector("input[name$='.visibleTotal']");
-    var convSpan   = row.querySelector(".js-conv");
+	  // 엘리먼트
+	  const qtyInput   = row.querySelector("input[name$='.orderQuantity']");
+	  const unitPriceI = row.querySelector("input[name$='.unitPrice']");
+	  const hiddenTot  = row.querySelector("input[type='hidden'][name$='.totalPrice']");
+	  const visibleTot = row.querySelector("input[name$='.visibleTotal']");
+	  const convSpan   = row.querySelector(".js-conv");
 
-    if (!materialSelect || !materialSelect.value) return;
+	  // 수량 보정(최소/배수는 기존 로직 유지)
+	  let qty = parseInt(qtyInput && qtyInput.value ? qtyInput.value : '0', 10);
+	  const min = parseInt(qtyInput && qtyInput.min ? qtyInput.min : '1', 10) || 1;
+	  if (!Number.isFinite(qty) || qty < min) { qty = min; if (qtyInput) qtyInput.value = qty; }
 
-    var q = parseInt((qtyInput && qtyInput.value) ? qtyInput.value : '0', 10);
-    var min = parseInt((qtyInput && qtyInput.min) ? qtyInput.min : '1', 10) || 1;
-    if (!isFinite(q) || q < min) { 
-        q = min; 
-        if (qtyInput) qtyInput.value = q; 
-    }
+	  const unitPrice = Number(unitPriceI && unitPriceI.value ? unitPriceI.value : 0);
 
-    var p = Number((priceInput && priceInput.value) ? priceInput.value : 0);
-    var materialId = materialSelect.value;
+	  // ★ 계산은 전부 dataset 기반
+	  const priceUnit = String(qtyInput.dataset.priceUnit || 'PACK').toUpperCase(); // 과금단위
+	  const conv      = Number(qtyInput.dataset.conv || 1);           // 1 PACK → 과금단위 수량
+	  const dispUnit  = String(qtyInput.dataset.displayUnit || priceUnit);
+	  const dispConv  = Number(qtyInput.dataset.convDisplay || conv); // 1 PACK → 표시단위 수량
 
-    // ✅ 새로운 계산 로직
-    var meta = MATERIAL_META[materialId];
-    if (!meta) {
-        console.warn('자재 메타데이터가 없습니다:', materialId);
-        meta = { packQty: 1, priceUnit: 'KG', unitPrice: 0 };
-    }
+	  // 과금수량(billedQty) 계산
+	  let billedQty;
+	  if (priceUnit === 'KG' || priceUnit === 'L')      billedQty = qty * conv;   // 팩 × kg/L
+	  else if (priceUnit === 'PACK')                    billedQty = qty;          // 팩 과금
+	  else                                              billedQty = qty * conv;   // 기타 단위
 
-    // PACK 수량 × PACK당 과금단위 × 단가
-    var total = Math.round(q * meta.packQty * p);
+	  const total = Math.round(billedQty * unitPrice);
 
-    if (hiddenTot) hiddenTot.value = total;
-    if (visTot)    visTot.value    = total;
+	  if (hiddenTot)  hiddenTot.value  = total;
+	  if (visibleTot) visibleTot.value = total;
+	  if (convSpan)   convSpan.textContent = (qty * dispConv).toLocaleString() + ' ' + dispUnit;
 
-    if (convSpan) {
-        var displayQty = q * meta.packQty;
-        var displayUnit = meta.priceUnit;
-        
-        if (displayUnit === 'KG' && displayQty >= 1000) {
-            convSpan.textContent = (displayQty/1000).toLocaleString() + '톤';
-        } else {
-            convSpan.textContent = displayQty.toLocaleString() + ' ' + displayUnit;
-        }
-    }
+	  // (있다면) 합계 재계산 호출
+	  if (typeof recalcSummary === 'function') recalcSummary();
+	}
 
-    console.log('계산결과:', {
-        materialId: materialId,
-        packs: q,
-        packQty: meta.packQty,
-        unitPrice: p,
-        calculation: q + ' PACK × ' + meta.packQty + ' × ' + p + '원',
-        total: total
-    });
-}
 
 // dataset 헬퍼 함수
 function ds(element, key, defaultValue) {
