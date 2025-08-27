@@ -67,135 +67,143 @@
           </div>
           
           <!-- 테이블 -->
-          <div class="table-responsive">
-            <table class="table">
-              <thead class="table-header-dark">
-                <tr>
-                  <th>
-                    <a href="?page=${cri.page}&keyword=${cri.keyword}&condition=${cri.condition}&status=${cri.status}&sortColumn=admin_id&sortOrder=${cri.sortColumn == 'admin_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-                       class="text-white text-decoration-none">
-                      사번
-                      <c:choose>
-                        <c:when test="${cri.sortColumn == 'admin_id'}">
-                          <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
-                        </c:when>
-                        <c:otherwise>
-                          <span class="neutral-arrow">⇅</span>
-                        </c:otherwise>
-                      </c:choose>
-                    </a>
-                  </th>
-                  <th>
-                    <a href="?page=${cri.page}&keyword=${cri.keyword}&condition=${cri.condition}&status=${cri.status}&sortColumn=name&sortOrder=${cri.sortColumn == 'name' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-                       class="text-white text-decoration-none">
-                      이름
-                      <c:choose>
-                        <c:when test="${cri.sortColumn == 'name'}">
-                          <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
-                        </c:when>
-                        <c:otherwise>
-                          <span class="neutral-arrow">⇅</span>
-                        </c:otherwise>
-                      </c:choose>
-                    </a>
-                  </th>
-                  <th>소속/역할</th>
-                  <th>연락처</th>
-                  <th>상태</th>
-                  <th>
-                    <a href="?page=${cri.page}&keyword=${cri.keyword}&condition=${cri.condition}&status=${cri.status}&sortColumn=created_at&sortOrder=${cri.sortColumn == 'created_at' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
-                       class="text-white text-decoration-none">
-                      등록일
-                      <c:choose>
-                        <c:when test="${cri.sortColumn == 'created_at'}">
-                          <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
-                        </c:when>
-                        <c:otherwise>
-                          <span class="neutral-arrow">⇅</span>
-                        </c:otherwise>
-                      </c:choose>
-                    </a>
-                  </th>
-                  <th>상세</th>
-                  <th>관리</th>
-                </tr>
-              </thead>
-              <tbody>
+<div class="table-responsive">
+  <table class="table">
+    <thead class="table-header-dark">
+      <tr>
+        <th>
+          <a href="?page=${cri.page}&keyword=${cri.keyword}&condition=${cri.condition}&status=${cri.status}&sortColumn=admin_id&sortOrder=${cri.sortColumn == 'admin_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+             class="text-white text-decoration-none">
+            사번
+            <c:choose>
+              <c:when test="${cri.sortColumn == 'admin_id'}">
+                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+              </c:when>
+              <c:otherwise>
+                <span class="neutral-arrow">⇅</span>
+              </c:otherwise>
+            </c:choose>
+          </a>
+        </th>
+        <th>
+          <a href="?page=${cri.page}&keyword=${cri.keyword}&condition=${cri.condition}&status=${cri.status}&sortColumn=name&sortOrder=${cri.sortColumn == 'name' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+             class="text-white text-decoration-none">
+            이름
+            <c:choose>
+              <c:when test="${cri.sortColumn == 'name'}">
+                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+              </c:when>
+              <c:otherwise>
+                <span class="neutral-arrow">⇅</span>
+              </c:otherwise>
+            </c:choose>
+          </a>
+        </th>
+        <th>소속/역할</th>
+        <th>연락처</th>
+        <th>상태</th>
+        <th>잠금</th>
+        <th>
+          <a href="?page=${cri.page}&keyword=${cri.keyword}&condition=${cri.condition}&status=${cri.status}&sortColumn=created_at&sortOrder=${cri.sortColumn == 'created_at' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+             class="text-white text-decoration-none">
+            등록일
+            <c:choose>
+              <c:when test="${cri.sortColumn == 'created_at'}">
+                <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+              </c:when>
+              <c:otherwise>
+                <span class="neutral-arrow">⇅</span>
+              </c:otherwise>
+            </c:choose>
+          </a>
+        </th>
+        <th>상세</th>
+        <th>관리</th>
+      </tr>
+    </thead>
+    <tbody>
+      <c:choose>
+        <c:when test="${not empty adminList}">
+          <c:forEach var="admin" items="${adminList}">
+            <tr>
+              <td>${admin.adminId}</td>
+              <td>${admin.name}</td>
+              <td>
                 <c:choose>
-                  <c:when test="${not empty adminList}">
-                    <c:forEach var="admin" items="${adminList}">
-                      <tr>
-                        <td>${admin.adminId}</td>
-                        <td>${admin.name}</td>
-                        <td>
-                          <c:choose>
-                            <c:when test="${admin.roleId == 'SUPER'}">
-                              <span class="badge badge-danger">최고관리자</span>
-                            </c:when>
-                            <c:when test="${admin.roleId == 'PROD'}">
-                              <span class="badge badge-success">생산관리</span>
-                            </c:when>
-                            <c:when test="${admin.roleId == 'SALES'}">
-                              <span class="badge badge-info">영업관리</span>
-                            </c:when>
-                            <c:when test="${admin.roleId == 'MATERIAL'}">
-                              <span class="badge badge-warning">자재관리</span>
-                            </c:when>
-                            <c:otherwise>
-                              <span class="badge badge-secondary">${admin.roleId}</span>
-                            </c:otherwise>
-                          </c:choose>
-                        </td>
-                        <td>
-                          <c:choose>
-                            <c:when test="${admin.phone != null && admin.phone != ''}">
-                              ${admin.phone}
-                            </c:when>
-                            <c:otherwise>-</c:otherwise>
-                          </c:choose>
-                        </td>
-                        <td>
-                          <c:choose>
-                            <c:when test="${admin.isLocked}">
-                              <span class="badge badge-danger">잠김</span>
-                            </c:when>
-                            <c:when test="${admin.status == 'ACTIVE'}">
-                              <span class="badge badge-success">재직</span>
-                            </c:when>
-                            <c:when test="${admin.status == 'INACTIVE'}">
-                              <span class="badge badge-secondary">휴직</span>
-                            </c:when>
-                            <c:otherwise>
-                              <span class="badge badge-light">${admin.status}</span>
-                            </c:otherwise>
-                          </c:choose>
-                        </td>
-                        <td>
-                          <c:choose>
-                            <c:when test="${admin.createdAt != null}">
-                              <fmt:formatDate value="${admin.createdAt}" pattern="yyyy-MM-dd"/>
-                            </c:when>
-                            <c:otherwise>-</c:otherwise>
-                          </c:choose>
-                        </td>
-                        <td>
-                          <button class="btn btn-sm btn-outline-info" onclick="viewAdminDetail('${admin.adminId}')">상세</button>
-                        </td>
-                        <td>
-                          <button class="btn btn-sm btn-outline-warning" onclick="editAdmin('${admin.adminId}')">수정</button>
-                        </td>
-                      </tr>
-                    </c:forEach>
+                  <c:when test="${admin.roleId == 'SUPER'}">
+                    <span class="badge badge-danger">최고관리자</span>
+                  </c:when>
+                  <c:when test="${admin.roleId == 'PROD'}">
+                    <span class="badge badge-success">생산관리</span>
+                  </c:when>
+                  <c:when test="${admin.roleId == 'SALES'}">
+                    <span class="badge badge-info">영업관리</span>
+                  </c:when>
+                  <c:when test="${admin.roleId == 'MATERIAL'}">
+                    <span class="badge badge-warning">자재관리</span>
                   </c:when>
                   <c:otherwise>
-                    <tr>
-                      <td colspan="8" class="text-center py-4">등록된 관리자가 없습니다.</td>
-                    </tr>
+                    <span class="badge badge-secondary">${admin.roleId}</span>
                   </c:otherwise>
                 </c:choose>
-              </tbody>
-            </table>
-          </div>
+              </td>
+              <td>
+                <c:choose>
+                  <c:when test="${admin.phone != null && admin.phone != ''}">
+                    ${admin.phone}
+                  </c:when>
+                  <c:otherwise>-</c:otherwise>
+                </c:choose>
+              </td>
+
+              <!-- 상태 -->
+              <td>
+                <c:choose>
+                  <c:when test="${admin.status == 'ACTIVE'}"><span class="badge badge-success">재직</span></c:when>
+                  <c:when test="${admin.status == 'INACTIVE'}"><span class="badge badge-secondary">휴직</span></c:when>
+                  <c:otherwise><span class="badge badge-light">${admin.status}</span></c:otherwise>
+                </c:choose>
+              </td>
+
+              <!-- 잠금 (정상: 일반 텍스트, 잠금: 빨간 배지에 '잠금'만 표시) -->
+              <td>
+                <c:choose>
+                  <c:when test="${admin.isLocked or admin.lockedAt != null}">
+                    <span class="badge badge-danger">잠금</span>
+                  </c:when>
+                  <c:otherwise>
+                    정상
+                  </c:otherwise>
+                </c:choose>
+              </td>
+
+              <td>
+                <c:choose>
+                  <c:when test="${admin.createdAt != null}">
+                    <fmt:formatDate value="${admin.createdAt}" pattern="yyyy-MM-dd"/>
+                  </c:when>
+                  <c:otherwise>-</c:otherwise>
+                </c:choose>
+              </td>
+              <td>
+                <button class="btn btn-sm btn-outline-info" onclick="viewAdminDetail('${admin.adminId}')">상세</button>
+              </td>
+              <td>
+                <button class="btn btn-sm btn-outline-warning" onclick="editAdmin('${admin.adminId}')">수정</button>
+              </td>
+            </tr>
+          </c:forEach>
+        </c:when>
+        <c:otherwise>
+          <tr>
+            <td colspan="9" class="text-center py-4">등록된 관리자가 없습니다.</td>
+          </tr>
+        </c:otherwise>
+      </c:choose>
+    </tbody>
+  </table>
+</div>
+          
           
           <!-- 페이징 -->
           <c:if test="${not empty adminList}">
