@@ -1,6 +1,7 @@
 package com.itwillbs.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -121,45 +122,82 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	        }
 
 	        // ── 3) 검증: ΣLOT == target(= min(required, cap))
-	        // cap = min(required, a4wo);  a4wo는 기존 int 로직 유지
-	        final BigDecimal EPS = new BigDecimal("0.01"); // 1/100 허용
+	        // ── 3) 검증: ΣLOT == target(= min(required, cap))  [소수 3자리, BigDecimal]
 	        for (String mid : reqMap.keySet()) {
-	            if ("RM-0015".equals(mid)) {
-	                // 물은 LOT 불필요/직접출고 → 검증 패스
-	                continue;
-	            }
+	            if ("RM-0015".equals(mid)) continue; // 물은 패스
 
-	            BigDecimal requiredBD = reqMap.get(mid) != null ? reqMap.get(mid) : BigDecimal.ZERO;
+	            // required
+	            Object val = reqMap.get(mid);
+	            
+	            BigDecimal required = (val == null)
+            	    ? BigDecimal.ZERO
+            	    : new BigDecimal(val.toString());
 
-	            // LOT 선택합계(BigDecimal)
-	            BigDecimal sum = BigDecimal.ZERO;
-	            java.util.List<java.util.Map<String,Object>> list = picks.get(mid);
+            	required = required.setScale(3, RoundingMode.HALF_UP);
+
+
+
+	            // LOT 선택합계
+	            java.math.BigDecimal sum = java.math.BigDecimal.ZERO;
+	            List<Map<String,Object>> list = picks.get(mid);
 	            if (list != null) {
-	                for (java.util.Map<String,Object> p : list) {
+	                for (Map<String,Object> p : list) {
 	                    Object v = p.get("qty");
-	                    if (v instanceof BigDecimal) sum = sum.add((BigDecimal) v);
-	                    else if (v instanceof Number) sum = sum.add(new BigDecimal(((Number) v).toString()));
+	                    if (v instanceof java.math.BigDecimal) {
+	                        sum = sum.add(((java.math.BigDecimal) v).setScale(3, java.math.RoundingMode.HALF_UP));
+	                    } else if (v instanceof Number) {
+	                        sum = sum.add(java.math.BigDecimal.valueOf(((Number) v).doubleValue())
+	                                .setScale(3, java.math.RoundingMode.HALF_UP));
+	                    }
 	                }
 	            }
 
-	            // a4wo 계산 (int 기반)
-	            int onhand        = reservationDAO.selectOnhand(mid);
-	            int reservedAll   = reservationDAO.sumReservedByMaterial(mid);
-	            int reservedThis  = reservationDAO.selectWoReserved(vo.getWorkOrderId(), mid);
-	            int reservedOthers= Math.max(reservedAll - reservedThis, 0);
-	            int a4wo          = Math.max(0, onhand - reservedOthers) + reservedThis;
+	            // 가용 계산: onhand/reserved 모두 BigDecimal 사용
+	            java.math.BigDecimal onhand =
+	                toBD(reservationDAO.selectOnhandDecimal(mid));         // ← DAO가 BigDecimal 반환하도록
+	            java.math.BigDecimal reservedAll =
+	                toBD(reservationDAO.sumReservedByMaterialDecimal(mid)); // ← BigDecimal
+	            java.math.BigDecimal reservedThis =
+	                toBD(reservationDAO.selectWoReservedDecimal(vo.getWorkOrderId(), mid));
 
-	            // cap/target 을 BigDecimal로
-	            BigDecimal capBD    = requiredBD.min(new BigDecimal(a4wo));
-	            BigDecimal targetBD = capBD;
+	            java.math.BigDecimal reservedOthers = reservedAll.subtract(reservedThis);
+	            if (reservedOthers.signum() < 0) reservedOthers = java.math.BigDecimal.ZERO;
 
-	            // 허용 오차 내 비교
-	            if (sum.subtract(targetBD).abs().compareTo(EPS) > 0) {
-	                throw new IllegalArgumentException(
-	                    "필요수량 불일치: " + mid + " (필요:" + requiredBD + ", target:" + targetBD + ", 선택:" + sum + ")"
-	                );
+	            // onhand가 0(혹은 null)로 오면 LOT 합계로 보정 (프론트 effOnhand와 동일 아이디어)
+	            if (onhand.signum() == 0) {
+	                java.math.BigDecimal lotOnhand = java.math.BigDecimal.ZERO;
+	                List<Map<String,Object>> lots = moDAO.getLotsByMaterial(mid);
+	                if (lots != null) {
+	                    for (Map<String,Object> lot : lots) {
+	                        Object q = lot.get("quantity");
+	                        if (q instanceof java.math.BigDecimal) {
+	                            lotOnhand = lotOnhand.add(((java.math.BigDecimal) q)
+	                                .setScale(3, java.math.RoundingMode.HALF_UP));
+	                        } else if (q instanceof Number) {
+	                            lotOnhand = lotOnhand.add(java.math.BigDecimal
+	                                .valueOf(((Number) q).doubleValue()).setScale(3, java.math.RoundingMode.HALF_UP));
+	                        }
+	                    }
+	                }
+	                if (lotOnhand.signum() > 0) onhand = lotOnhand;
+	            }
+
+	            java.math.BigDecimal a4wo = onhand.subtract(reservedOthers);
+	            if (a4wo.signum() < 0) a4wo = java.math.BigDecimal.ZERO;
+	            a4wo = a4wo.add(reservedThis);
+
+	            // cap/target
+	            java.math.BigDecimal cap    = minBD(required, a4wo);
+	            java.math.BigDecimal target = cap; // = min(required, a4wo)
+
+	            // 허용 오차(±0.0005)로 비교
+	            java.math.BigDecimal diff = sum.subtract(target).abs();
+	            if (diff.compareTo(new java.math.BigDecimal("0.0005")) > 0) {
+	                throw new IllegalArgumentException("필요수량 불일치: " + mid
+	                    + " (필요:" + required + ", target:" + target + ", 선택:" + sum + ")");
 	            }
 	        }
+
 
 	        // ── 4) ID 발급 + 헤더 저장 (기존 동일)
 	        String outboundId = moDAO.nextOutboundId();
@@ -356,6 +394,18 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	        }
 	    }
 	    
+	    
+       // helpers
+        private static java.math.BigDecimal toBD(Object v) {
+            if (v == null) return java.math.BigDecimal.ZERO.setScale(3, java.math.RoundingMode.HALF_UP);
+            if (v instanceof java.math.BigDecimal) return ((java.math.BigDecimal) v).setScale(3, java.math.RoundingMode.HALF_UP);
+            if (v instanceof Number) return java.math.BigDecimal.valueOf(((Number) v).doubleValue())
+                    .setScale(3, java.math.RoundingMode.HALF_UP);
+            return new java.math.BigDecimal(v.toString()).setScale(3, java.math.RoundingMode.HALF_UP);
+        }
+        private static java.math.BigDecimal minBD(java.math.BigDecimal a, java.math.BigDecimal b) {
+            return (a.compareTo(b) <= 0 ? a : b);
+        }
 	    
 	    
 	    
