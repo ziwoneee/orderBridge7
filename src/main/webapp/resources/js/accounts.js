@@ -482,81 +482,85 @@ function deleteAdminFromModal() {
 
 // 일반 관리자 - 내 정보 수정
 function updateMyInfo() {
-  try {
-    var elements = {
-      name: document.getElementById('myName'),
-      password: document.getElementById('myPassword'),
-      passwordConfirm: document.getElementById('myPasswordConfirm'),
-      phone: document.getElementById('myPhone')
-    };
+	  try {
+	    var elements = {
+	      name: document.getElementById('myName'),
+	      password: document.getElementById('myPassword'),
+	      passwordConfirm: document.getElementById('myPasswordConfirm'),
+	      phone: document.getElementById('myPhone')
+	    };
 
-    for (var k in elements) {
-      if (Object.prototype.hasOwnProperty.call(elements, k)) {
-        if (!elements[k]) { alert(k + ' 요소를 찾을 수 없습니다.'); return; }
-      }
-    }
+	    for (var k in elements) {
+	      if (Object.prototype.hasOwnProperty.call(elements, k)) {
+	        if (!elements[k]) { alert(k + ' 요소를 찾을 수 없습니다.'); return; }
+	      }
+	    }
 
-    var name = elements.name.value.trim();
-    var password = elements.password.value;
-    var passwordConfirm = elements.passwordConfirm.value;
-    var phone = elements.phone.value.trim();
+	    var name = elements.name.value.trim();
+	    var password = elements.password.value;
+	    var passwordConfirm = elements.passwordConfirm.value;
+	    var phone = elements.phone.value.trim();
+	    var orig  = (window.myOriginalPhone || '').trim(); // ← JSP에서 주입한 원본값 사용
 
-    if (!name) { alert('이름을 입력해주세요.'); elements.name.focus(); return; }
-    if (password && password !== passwordConfirm) { alert('비밀번호가 일치하지 않습니다.'); elements.passwordConfirm.focus(); return; }
-    if (phone && !validatePhoneNumber(phone)) { alert('전화번호는 010-0000-0000 형식으로 입력해주세요.'); elements.phone.focus(); return; }
+	    if (!name) { alert('이름을 입력해주세요.'); elements.name.focus(); return; }
+	    if (password && password !== passwordConfirm) { alert('비밀번호가 일치하지 않습니다.'); elements.passwordConfirm.focus(); return; }
+	    if (phone && !validatePhoneNumber(phone)) { alert('전화번호는 010-0000-0000 형식으로 입력해주세요.'); elements.phone.focus(); return; }
 
-    var go = function () {
-      var myData = {
-        adminId: currentAdminId,
-        name: name,
-        phone: phone || null
-      };
-      if (password && password.trim() !== '') { myData.password = password; }
+	    // 서버 호출 함수: finalPhone=null이면 phone 컬럼 업데이트 스킵(Mapper의 <if test="phone ...">로 제어)
+	    var go = function (finalPhone) {
+	      var myData = {
+	        adminId: currentAdminId,
+	        name: name,
+	        phone: finalPhone || null
+	      };
+	      if (password && password.trim() !== '') { myData.password = password; }
 
-      $.ajax({
-        url: contextPath + '/admin/settings/accounts/my-info',
-        type: 'PUT',
-        contentType: 'application/json',
-        data: JSON.stringify(myData),
-        success: function (response) {
-          if (response && response.success) {
-            alert('정보가 성공적으로 수정되었습니다.');
-            elements.password.value = '';
-            elements.passwordConfirm.value = '';
-            location.reload();
-          } else {
-            alert('수정 실패: ' + (response && response.message ? response.message : '알 수 없는 오류'));
-          }
-        },
-        error: function (xhr, status, error) {
-          console.error('내 정보 수정 오류:', error);
-          alert('수정 중 오류가 발생했습니다.');
-        }
-      });
-    };
+	      $.ajax({
+	        url: contextPath + '/admin/settings/accounts/my-info',
+	        type: 'PUT',
+	        contentType: 'application/json',
+	        data: JSON.stringify(myData),
+	        success: function (response) {
+	          if (response && response.success) {
+	            alert('정보가 성공적으로 수정되었습니다.');
+	            elements.password.value = '';
+	            elements.passwordConfirm.value = '';
+	            location.reload();
+	          } else {
+	            alert('수정 실패: ' + (response && response.message ? response.message : '알 수 없는 오류'));
+	          }
+	        },
+	        error: function (xhr, status, error) {
+	          console.error('내 정보 수정 오류:', error);
+	          alert('수정 중 오류가 발생했습니다.');
+	        }
+	      });
+	    };
 
-    // 전화번호가 있으면 중복 확인 (본인 제외)
-    if (phone) {
-      checkPhoneDuplicate(phone, currentAdminId).then(function (isDup) {
-        if (isDup) { 
-          alert('이미 사용 중인 전화번호입니다.'); 
-          elements.phone.focus(); 
-          return; 
-        }
-        go();
-      }).catch(function (err) {
-        console.error('전화번호 중복 확인 오류:', err);
-        go(); // 오류 시에는 그냥 진행
-      });
-    } else {
-      go();
-    }
+	    // 1) 전화번호 변경 없음 → 중복체크/업데이트 모두 스킵
+	    if (!phone || phone === orig) {
+	      go(null); // phone 업데이트 생략
+	      return;
+	    }
 
-  } catch (error) {
-    console.error('updateMyInfo 오류:', error);
-    alert('수정 중 오류가 발생했습니다.');
-  }
-}
+	    // 2) 변경된 경우에만 중복 확인(본인 제외)
+	    checkPhoneDuplicate(phone, currentAdminId).then(function (isDup) {
+	      if (isDup) {
+	        alert('이미 사용 중인 전화번호입니다.');
+	        elements.phone.focus();
+	        return;
+	      }
+	      go(phone); // 변경 + 중복 아님 → 저장
+	    }).catch(function (err) {
+	      console.error('전화번호 중복 확인 오류:', err);
+	      go(phone); // 오류 시에도 진행
+	    });
+
+	  } catch (error) {
+	    console.error('updateMyInfo 오류:', error);
+	    alert('수정 중 오류가 발생했습니다.');
+	  }
+	}
 
 // 헬퍼 함수들
 function getRoleNameDetail(roleId) {

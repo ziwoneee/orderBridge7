@@ -491,8 +491,10 @@
     document.head.appendChild(meta);
   }
   
-  window.isSuperAdmin = ${sessionScope.loginAdmin.roleId == 'SUPER'};
+  window.isSuperAdmin   = ${sessionScope.loginAdmin.roleId == 'SUPER'};
   window.currentAdminId = '${sessionScope.loginAdmin.adminId}';
+  /* (원본 전화번호 전달) */
+  window.myOriginalPhone = '<c:out value="${sessionScope.loginAdmin.phone}" default=""/>';
   
   function formatPhoneNumber(input) {
     let value = input.value.replace(/[^0-9]/g, '');
@@ -503,7 +505,6 @@
     }
     input.value = value;
   }
-
 </script>
 
 <script src="${pageContext.request.contextPath}/resources/js/accounts.js"></script>

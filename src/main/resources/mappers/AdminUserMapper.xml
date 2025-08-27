@@ -101,28 +101,31 @@
   </update>
     
   <!-- 내 정보 수정 (일반 관리자용) -->
-  <update id="updateMyInfo" parameterType="com.itwillbs.domain.AdminUserVO">
-    UPDATE admin_user 
-    SET 
-        name = #{name},
-        phone = #{phone},
-        updated_at = NOW()
-        <if test="password != null and password != ''">
-            , password = #{password}
-        </if>
-    WHERE admin_id = #{adminId}
-  </update>
+	<update id="updateMyInfo" parameterType="com.itwillbs.domain.AdminUserVO">
+	  UPDATE admin_user 
+	  SET 
+	      name = #{name},
+	      updated_at = NOW()
+	      <!-- phone이 들어왔을 때만 컬럼 업데이트 -->
+	      <if test="phone != null and phone != ''">
+	        , phone = #{phone}
+	      </if>
+	      <if test="password != null and password != ''">
+	        , password = #{password}
+	      </if>
+	  WHERE admin_id = #{adminId}
+	</update>
   
-  <!-- 전화번호 중복 확인 -->
-  <select id="checkPhoneDuplicate" resultType="int">
-    SELECT COUNT(*)
-    FROM admin_user 
-    WHERE phone = #{phone}
-    <if test="currentAdminId != null and currentAdminId != ''">
-        AND admin_id != #{currentAdminId}
-    </if>
-    AND status != 'DELETED'
-  </select>
+  <!-- 전화번호 중복 확인 (숫자만 비교) -->
+	<select id="checkPhoneDuplicate" resultType="int">
+	  SELECT COUNT(*)
+	  FROM admin_user 
+	  WHERE status != 'DELETED'
+	    AND REGEXP_REPLACE(phone, '[^0-9]+', '') = REGEXP_REPLACE(#{phone}, '[^0-9]+', '')
+	  <if test="currentAdminId != null and currentAdminId != ''">
+	    AND admin_id != #{currentAdminId}
+	  </if>
+	</select>
 
   <!-- ==================== 페이징 처리 관련 쿼리들 ==================== -->
 

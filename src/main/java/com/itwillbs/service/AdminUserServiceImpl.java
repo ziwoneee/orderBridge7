@@ -172,7 +172,8 @@ public class AdminUserServiceImpl implements AdminUserService {
      */
     @Override
     public boolean isPhoneDuplicate(String phone, String currentAdminId) {
-        return adminUserMapper.checkPhoneDuplicate(phone, currentAdminId) > 0;
+        String norm = phone == null ? null : phone.replaceAll("[^0-9]", "");
+        return adminUserMapper.checkPhoneDuplicate(norm, currentAdminId) > 0;
     }
     
     // ========== 페이징 처리 관련 메서드 ==========
