@@ -1,5 +1,6 @@
 package com.itwillbs.service;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -100,19 +101,23 @@ public class WorkOrderServiceImpl implements WorkOrderService {
                 log.warn("병합 수주 정보 없음 - 저장 생략");
             }
 
-            // 5) 자재 소요량 저장(중복 합산)
+            // 5) 자재 소요량 저장(중복 합산) - 반올림/정수화 제거
             List<WorkOrderMaterialDTO> materialList = workOrderDTO.getMaterialList();
             if (materialList != null && !materialList.isEmpty()) {
-                Map<String, Integer> materialMap = new HashMap<>();
+                Map<String, BigDecimal> materialMap = new HashMap<>();
+
                 for (WorkOrderMaterialDTO item : materialList) {
-                    int roundedQty = (int) Math.round(item.getRequiredQty());
-                    materialMap.merge(item.getMaterialId(), roundedQty, Integer::sum);
+                    if (item == null || item.getMaterialId() == null || item.getRequiredQty() == null) continue;
+
+                    BigDecimal qty = item.getRequiredQty(); // 그대로 사용
+                    materialMap.merge(item.getMaterialId(), qty, BigDecimal::add);
                 }
-                for (Map.Entry<String, Integer> e : materialMap.entrySet()) {
+
+                for (Map.Entry<String, BigDecimal> e : materialMap.entrySet()) {
                     WorkOrderMaterialDTO material = new WorkOrderMaterialDTO();
                     material.setWorkOrderId(orderId);
                     material.setMaterialId(e.getKey());
-                    material.setRequiredQty(e.getValue());
+                    material.setRequiredQty(e.getValue()); // 소수 그대로 저장
                     workOrderMapper.insertWorkOrderMaterial(material);
                 }
             }

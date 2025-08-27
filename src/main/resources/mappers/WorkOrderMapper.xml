@@ -430,11 +430,11 @@ ORDER BY
     ) VALUES ( #{workOrderId}, #{clOrderId}, #{productId}, #{orderQty}, NOW() )
   </insert>
 
-  <insert id="insertWorkOrderMaterial" parameterType="com.itwillbs.dto.WorkOrderMaterialDTO">
-    INSERT INTO work_order_material (
-      work_order_id, material_id, required_qty, created_at
-    ) VALUES ( #{workOrderId}, #{materialId}, #{requiredQty}, NOW() )
-  </insert>
+  <insert id="insertWorkOrderMaterial"
+        parameterType="com.itwillbs.dto.WorkOrderMaterialDTO">
+  INSERT INTO work_order_material (work_order_id, material_id, required_qty, created_at)
+  VALUES (#{workOrderId}, #{materialId}, #{requiredQty, jdbcType=DECIMAL}, NOW())
+</insert>
 
   <select id="selectMergedOrdersByWorkOrderId"
           resultType="com.itwillbs.dto.WorkOrderMergedDTO">
