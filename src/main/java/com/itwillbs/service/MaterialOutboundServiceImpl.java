@@ -1,5 +1,6 @@
 package com.itwillbs.service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -81,92 +82,90 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	    @Override
 	    public void registerOutbound(MaterialOutboundVO vo) throws Exception {
 
-	        // ── 0) NPE 방지: 리스트 null이면 빈 리스트로
+	        // ── 0) NPE 방지
 	        List<String> mIds    = (vo.getMaterialIdList()    != null) ? vo.getMaterialIdList()    : java.util.Collections.<String>emptyList();
-	        List<Integer> reqs   = (vo.getReqQtyList()        != null) ? vo.getReqQtyList()        : java.util.Collections.<Integer>emptyList();
+	        List<BigDecimal> reqs= (vo.getReqQtyList()        != null) ? vo.getReqQtyList()        : java.util.Collections.<BigDecimal>emptyList();
 	        List<String> lotMIds = (vo.getLotMaterialIdList() != null) ? vo.getLotMaterialIdList() : java.util.Collections.<String>emptyList();
 	        List<String> lotNos  = (vo.getLotNoList()         != null) ? vo.getLotNoList()         : java.util.Collections.<String>emptyList();
-	        List<Integer> qtys   = (vo.getQtyList()           != null) ? vo.getQtyList()           : java.util.Collections.<Integer>emptyList();
+	        List<BigDecimal> qtys= (vo.getQtyList()           != null) ? vo.getQtyList()           : java.util.Collections.<BigDecimal>emptyList();
 
-	        // ── 1) 자재별 필요수량 맵
-	        Map<String,Integer> reqMap = new HashMap<String,Integer>();
+	        // ── 1) 자재별 필요수량 맵 (정수 cap 계산에 쓰일 값은 소수 반올림)
+	        java.util.Map<String, BigDecimal> reqMap = new java.util.HashMap<>();
 	        for (int i = 0; i < mIds.size(); i++) {
 	            String mid = mIds.get(i);
-	            Integer rq = (i < reqs.size() && reqs.get(i) != null) ? reqs.get(i) : 0;
+	            BigDecimal rq = (i < reqs.size() && reqs.get(i) != null) ? reqs.get(i) : BigDecimal.ZERO;
 	            reqMap.put(mid, rq);
 	        }
 
-	        // ── 2) LOT 선택을 자재별로 묶기
-	        Map<String, List<Map<String,Object>>> picks = new HashMap<String, List<Map<String,Object>>>();
+	        // ── 2) LOT 선택을 자재별로 묶기 (qty는 BigDecimal 보존)
+	        java.util.Map<String, java.util.List<java.util.Map<String,Object>>> picks = new java.util.HashMap<>();
 	        for (int i = 0; i < lotMIds.size(); i++) {
-	            Integer qObj = (i < qtys.size()) ? qtys.get(i) : 0;
-	            int q = (qObj != null) ? qObj.intValue() : 0;
-	            if (q <= 0) continue;
+	            BigDecimal q = (i < qtys.size() && qtys.get(i) != null) ? qtys.get(i) : BigDecimal.ZERO;
+	            if (q.compareTo(BigDecimal.ZERO) <= 0) continue;
 
 	            String mid = lotMIds.get(i);
 	            String lot = (i < lotNos.size()) ? lotNos.get(i) : null;
+	            lot = (lot != null && lot.trim().isEmpty()) ? null : lot; // "" → null
 
-	            Map<String,Object> one = new HashMap<String,Object>();
+	            java.util.Map<String,Object> one = new java.util.HashMap<>();
 	            one.put("material_id", mid);
 	            one.put("lot_no", lot);
 	            one.put("qty", q);
 
-	            // computeIfAbsent 대신 기존 방식
-	            List<Map<String,Object>> list = picks.get(mid);
+	            java.util.List<java.util.Map<String,Object>> list = picks.get(mid);
 	            if (list == null) {
-	                list = new ArrayList<Map<String,Object>>();
+	                list = new java.util.ArrayList<>();
 	                picks.put(mid, list);
 	            }
 	            list.add(one);
 	        }
 
-		     // ── 3) 검증: ΣLOT == target(= min(required, cap))
-		     // cap = min(required, a4wo)
-		     // a4wo = max(0, onhand - reservedOthers) + reservedThis
-		     for (String mid : reqMap.keySet()) {
-		         if ("RM-0015".equals(mid)) {
-		             // 물은 LOT 불필요/직접출고 → 검증 패스
-		             continue;
-		         }
-	
-		         int required = reqMap.get(mid) != null ? reqMap.get(mid) : 0;
-	
-		         // LOT 선택합계
-		         int sum = 0;
-		         List<Map<String,Object>> list = picks.get(mid);
-		         if (list != null) {
-		             for (Map<String,Object> p : list) {
-		                 Object v = p.get("qty");
-		                 if (v instanceof Number) sum += ((Number) v).intValue();
-		             }
-		         }
-	
-		         // a4wo 계산
-		         int onhand       = reservationDAO.selectOnhand(mid);
-		         int reservedAll  = reservationDAO.sumReservedByMaterial(mid);
-		         int reservedThis = reservationDAO.selectWoReserved(vo.getWorkOrderId(), mid);
-		         int reservedOthers = Math.max(reservedAll - reservedThis, 0);
-		         int a4wo = Math.max(0, onhand - reservedOthers) + reservedThis;
-	
-		         int cap    = Math.min(required, a4wo);
-		         int target = Math.min(required, cap); // (= cap)
-	
-		         if (sum != target) {
-		             throw new IllegalArgumentException(
-		                 "필요수량 불일치: " + mid + " (필요:" + required + ", target:" + target + ", 선택:" + sum + ")"
-		             );
-		         }
-		     }
+	        // ── 3) 검증: ΣLOT == target(= min(required, cap))
+	        // cap = min(required, a4wo);  a4wo는 기존 int 로직 유지
+	        final BigDecimal EPS = new BigDecimal("0.01"); // 1/100 허용
+	        for (String mid : reqMap.keySet()) {
+	            if ("RM-0015".equals(mid)) {
+	                // 물은 LOT 불필요/직접출고 → 검증 패스
+	                continue;
+	            }
 
+	            BigDecimal requiredBD = reqMap.get(mid) != null ? reqMap.get(mid) : BigDecimal.ZERO;
 
-	        // ── 4) ID 발급 + 헤더 저장
+	            // LOT 선택합계(BigDecimal)
+	            BigDecimal sum = BigDecimal.ZERO;
+	            java.util.List<java.util.Map<String,Object>> list = picks.get(mid);
+	            if (list != null) {
+	                for (java.util.Map<String,Object> p : list) {
+	                    Object v = p.get("qty");
+	                    if (v instanceof BigDecimal) sum = sum.add((BigDecimal) v);
+	                    else if (v instanceof Number) sum = sum.add(new BigDecimal(((Number) v).toString()));
+	                }
+	            }
+
+	            // a4wo 계산 (int 기반)
+	            int onhand        = reservationDAO.selectOnhand(mid);
+	            int reservedAll   = reservationDAO.sumReservedByMaterial(mid);
+	            int reservedThis  = reservationDAO.selectWoReserved(vo.getWorkOrderId(), mid);
+	            int reservedOthers= Math.max(reservedAll - reservedThis, 0);
+	            int a4wo          = Math.max(0, onhand - reservedOthers) + reservedThis;
+
+	            // cap/target 을 BigDecimal로
+	            BigDecimal capBD    = requiredBD.min(new BigDecimal(a4wo));
+	            BigDecimal targetBD = capBD;
+
+	            // 허용 오차 내 비교
+	            if (sum.subtract(targetBD).abs().compareTo(EPS) > 0) {
+	                throw new IllegalArgumentException(
+	                    "필요수량 불일치: " + mid + " (필요:" + requiredBD + ", target:" + targetBD + ", 선택:" + sum + ")"
+	                );
+	            }
+	        }
+
+	        // ── 4) ID 발급 + 헤더 저장 (기존 동일)
 	        String outboundId = moDAO.nextOutboundId();
 	        logger.info("nextOutboundId={}", outboundId);
-	        
-	        // 2-1) 폼에서 넘어온 dueDate 우선 사용
-	        Date dueDate = vo.getDueDate();
-	        
-	        // 2-2) 폼에 없으면 DB에서 조회
+
+	        java.util.Date dueDate = vo.getDueDate();
 	        if (dueDate == null) {
 	            if (vo.getWorkOrderId() == null || vo.getWorkOrderId().isEmpty()) {
 	                throw new IllegalStateException("workOrderId가 없습니다.(폼 바인딩 확인)");
@@ -176,55 +175,46 @@ public class MaterialOutboundServiceImpl implements MaterialOutboundService {
 	        if (dueDate == null) {
 	            throw new IllegalStateException("작업지시 due_date 없음: " + vo.getWorkOrderId());
 	        }
-	        
-	        if (outboundId == null || outboundId.isEmpty()) {
-	            throw new IllegalStateException("nextOutboundId()가 null입니다.");
-	        }
-	        
-	        Map<String,Object> header = new HashMap<>();
-	        header.put("outbound_id", outboundId);
-	        header.put("work_order_id", vo.getWorkOrderId());
+
+	        java.util.Map<String,Object> header = new java.util.HashMap<>();
+	        header.put("outbound_id",  outboundId);
+	        header.put("work_order_id",vo.getWorkOrderId());
 	        header.put("handled_by",   vo.getHandledBy());
-	        header.put("status",        vo.getStatus());
-	        header.put("due_date",      dueDate);
-	        
+	        header.put("status",       vo.getStatus());
+	        header.put("due_date",     dueDate);
 	        moDAO.insertOutboundHeader(header);
 
-	        // ── 5) 항목 저장(LOT별)
-	        List<Map<String,Object>> rows = new ArrayList<>();
-	        int idx = 1; // ★ 아이템 일련번호
-
+	        // ── 5) 항목 저장 (qty/required_qty 는 BigDecimal로 그대로 저장)
+	        java.util.List<java.util.Map<String,Object>> rows = new java.util.ArrayList<>();
+	        int idx = 1;
 	        for (String mid : picks.keySet()) {
-	            List<Map<String,Object>> list = picks.get(mid);
+	            java.util.List<java.util.Map<String,Object>> list = picks.get(mid);
 	            if (list == null) continue;
 
-	            for (Map<String,Object> p : list) {
-	                Map<String,Object> row = new HashMap<>();
-	                row.put("outbound_item_id", String.format("%s-%03d", outboundId, idx++)); // ★ 필수
-	                row.put("outbound_id", outboundId);
-	                row.put("material_id", mid);
-	                row.put("quantity",   p.get("qty"));
-	                row.put("lot_no",     p.get("lot_no"));
-
-	                // required_qty NOT NULL이면 하나 넣어줘야 함
-	                // - LOT 라인 기준으로 필요수량을 qty와 동일하게 두는 게 자연스러움(DRAFT에선 = 실제 선택 수량)
-	                //   아니면 자재별 총 필요수량 reqMap.get(mid)를 넣어도 무방(스키마 의도에 따라).
-	                row.put("required_qty", p.get("qty")); // ★ 필수
+	            for (java.util.Map<String,Object> p : list) {
+	                java.util.Map<String,Object> row = new java.util.HashMap<>();
+	                row.put("outbound_item_id", String.format("%s-%03d", outboundId, idx++));
+	                row.put("outbound_id",  outboundId);
+	                row.put("material_id",  mid);
+	                row.put("quantity",     p.get("qty"));    // BigDecimal
+	                row.put("lot_no",       p.get("lot_no"));
+	                row.put("required_qty", p.get("qty"));    // DRAFT에선 선택수량과 동일하게
 	                rows.add(row);
 	            }
 	        }
 	        if (!rows.isEmpty()) {
 	            moDAO.insertOutboundItems(rows);
 	        }
-	        
-	        // 여기서 남은 필요수량 체크 → 상태 갱신
-	        int remain = moDAO.countRemainByWorkOrder(vo.getWorkOrderId()); // 0이면 모두 충족
+
+	        // ── 6) 상태 갱신(기존 동일)
+	        int remain = moDAO.countRemainByWorkOrder(vo.getWorkOrderId());
 	        if (remain == 0) {
-	            moDAO.updateWorkOrderShortageResolved(vo.getWorkOrderId()); // shortage_status = RESOLVED
+	            moDAO.updateWorkOrderShortageResolved(vo.getWorkOrderId());
 	        } else {
-	            moDAO.updateWorkOrderShortageStatus(vo.getWorkOrderId(), "CHECKED"); // 아직 모자람
+	            moDAO.updateWorkOrderShortageStatus(vo.getWorkOrderId(), "CHECKED");
 	        }
 	    }
+
 
 
 

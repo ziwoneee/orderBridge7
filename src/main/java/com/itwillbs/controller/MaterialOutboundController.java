@@ -1,21 +1,28 @@
 package com.itwillbs.controller;
 
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpSession;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.propertyeditors.CustomNumberEditor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -45,6 +52,16 @@ import com.itwillbs.service.MaterialOutboundService;
 @Controller
 @RequestMapping("/material/outbound")
 public class MaterialOutboundController {
+	
+	// 클래스 안에 추가
+	@org.springframework.web.bind.annotation.InitBinder
+	public void initBinder(WebDataBinder binder) {
+	    // 소수점 . 기준으로 파싱, 빈 문자열 허용
+	    NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
+	    nf.setGroupingUsed(false);
+	    binder.registerCustomEditor(BigDecimal.class, new CustomNumberEditor(BigDecimal.class, nf, true));
+	}
+
 	
 	@Inject
 	private MaterialOutboundService moService;
@@ -167,54 +184,78 @@ public class MaterialOutboundController {
         return "material/out/register";
     }
     
-    // 등록 저장(VO 한 방에 받기: List로 바인딩)
+    // 등록 저장(리스트 파라미터 명시 수신)
     @RequestMapping(value="/register", method=RequestMethod.POST)
-    public String register(MaterialOutboundVO vo,
-				    		@RequestParam(value = "inboundIds", required = false) String inboundIdsCsv, // ★추가(복수)
-				            @RequestParam(value = "inboundId",  required = false) String inboundId,  
-				            HttpSession session,
-    						RedirectAttributes rttr) throws Exception {
-    	
-    	logger.info("register workOrderNo={}", vo.getWorkOrderId()); // null이면 바인딩 문제
-    	
-    	// 세션에서 로그인한 사용자 정보 가져오기
-    	AdminUserVO loginUser = (AdminUserVO) session.getAttribute("loginAdmin");
-        String handledBy = "admin"; // 기본값
-	        
-	     // ✅ 디버깅 코드 추가 (POST에서도)
-        logger.info("=== POST 메서드 세션 정보 확인 ===");
-        logger.info("LoginUser 객체: {}", loginUser);
-        
-        if (loginUser != null && loginUser.getName() != null) {
-            handledBy = loginUser.getName(); // 로그인한 사용자의 이름 사용
+    public String register(
+            @RequestParam("workOrderId") String workOrderId,
+            @RequestParam(value = "inboundIds", required = false) String inboundIdsCsv,
+            @RequestParam(value = "inboundId",  required = false) String inboundId,
+
+            @RequestParam("materialIdList") List<String> materialIdList,
+            @RequestParam("reqQtyList")     List<BigDecimal> reqQtyList,
+
+            @RequestParam("lotMaterialIdList") List<String> lotMaterialIdList,
+            @RequestParam("lotNoList")         List<String> lotNoList,          // "" 허용
+            @RequestParam("qtyList")           List<BigDecimal> qtyList,        // 소수 허용
+            @RequestParam("lotWarehouseList")  List<String> lotWarehouseList,   // "" 허용(현재 서비스에선 미사용)
+
+            HttpSession session,
+            RedirectAttributes rttr
+    ) throws Exception {
+
+        // 1) 길이 검증
+        if (materialIdList.size() != reqQtyList.size()) {
+            throw new IllegalArgumentException("materialIdList/reqQtyList size mismatch");
         }
-        
-        // VO에 담당자 설정
-        vo.setHandledBy(handledBy);
-    	
-    	// 1) 출고 헤더/아이템 저장 → DRAFT 생성
-    	vo.setStatus("DRAFT");	// 미출고
-        moService.registerOutbound(vo);
-        
-        // 2) usage_status 재계산 (등록 시점부터 '사용'으로 간주)
-        //    - 모달에서 넘어온 inboundIdsCsv가 있으면 그걸, 없으면 inboundId 단일을 사용
+        int n = lotMaterialIdList.size();
+        if (n != lotNoList.size() || n != qtyList.size() || n != lotWarehouseList.size()) {
+            throw new IllegalArgumentException("LOT lists size mismatch");
+        }
+
+        // 2) 담당자
+        AdminUserVO loginUser = (AdminUserVO) session.getAttribute("loginAdmin");
+        String handledBy = (loginUser != null && loginUser.getName() != null) ? loginUser.getName() : "admin";
+
+        // 3) 헤더 VO 구성
+        MaterialOutboundVO header = new MaterialOutboundVO();
+        header.setWorkOrderId(workOrderId);
+        header.setStatus("DRAFT");
+        header.setHandledBy(handledBy);
+
+        // ★ 여기부터가 핵심: 리스트를 VO에 세팅해서 기존 서비스 메서드 호출
+        header.setMaterialIdList(materialIdList);
+        header.setReqQtyList(reqQtyList);
+
+        header.setLotMaterialIdList(lotMaterialIdList);
+        // 빈 LOT 문자열은 null로 변환해 저장
+        List<String> lotNoListClean = lotNoList.stream()
+                .map(MaterialOutboundController::blankToNull)
+                .collect(Collectors.toList());
+        header.setLotNoList(lotNoListClean);
+
+        header.setQtyList(qtyList);
+
+        // 4) 기존 서비스 메서드 호출 (새 register 오버로드 필요 없음)
+        moService.registerOutbound(header);
+
+        // 5) 입고건 사용상태 재계산 (컨트롤러에서 처리)
         if (inboundIdsCsv != null && !inboundIdsCsv.trim().isEmpty()) {
             for (String inb : inboundIdsCsv.split(",")) {
                 inb = inb.trim();
-                if (!inb.isEmpty()) {
-                    inboundDAO.recalcUsageStatusByInboundId(inb);  // ★ 핵심 한 줄
-                }
+                if (!inb.isEmpty()) inboundDAO.recalcUsageStatusByInboundId(inb);
             }
         } else if (inboundId != null && !inboundId.trim().isEmpty()) {
-            inboundDAO.recalcUsageStatusByInboundId(inboundId.trim()); // ★ 단수 fallback
+            inboundDAO.recalcUsageStatusByInboundId(inboundId.trim());
         }
-        // (선택) 만약 여기서 방금 생성한 outboundId를 알 수 있으면
-        // inboundDAO.recalcUsageStatusByOutboundId(outboundId); 로 한 방에 처리해도 됨
 
-        // 3) 후처리
         rttr.addFlashAttribute("successMessage", "등록이 완료되었습니다.");
         return "redirect:/material/outbound/list";
     }
+
+    private static String blankToNull(String s) {
+        return (s == null || s.trim().isEmpty()) ? null : s.trim();
+    }
+
 
 
     // [AJAX] 출고 상세
