@@ -720,6 +720,7 @@ function renderMaterialRows(items) {
     const workOrderId = $('#workOrderIdHidden').val()
                      || new URLSearchParams(location.search).get('workOrderId');
     const required = Number(item.requiredQty) || 0;
+    var rowUnit = item.unit || baseUnitOf(item.materialId);   // ★ 추가
 
     return $.get(ctx + '/material/inventory/lot-details', { materialId: item.materialId })
 	.then(function(resp) {
@@ -835,13 +836,10 @@ function renderMaterialRows(items) {
               .append('<br>')
               .append($('<small>').text('직접 출고'));
             
-            var unit = (item.unit || baseUnitOf(item.materialId));
-            var step = stepByUnit(unit);
-            var $qtyCol = $('<div>').addClass('col-md-4').append(
-              $('<input>', { type:'number', min:0, step:step, value:init, max:init })
-                .addClass('form-control form-control-sm lot-qty')
-                .data({ material: item.materialId, lot: '', warehouse: defaultWh })
-            );
+            var unit = rowUnit;
+            var idp  = inputDpByUnit(unit);
+            var step = idp ? (1/Math.pow(10,idp)) : 1;
+            $('<input>', { type:'number', min:0, step:step, value: fmtInput(init, idp), max:init })
 
             
             var $whCol = $('<div>').addClass('col-md-3')
@@ -873,13 +871,11 @@ function renderMaterialRows(items) {
               .append('<br>')
               .append($('<small>').text('유통기한: ' + fmtDate(lot.expirationDate) + ' / 재고: ' + availableQty));
             
-            var unit = (item.unit || baseUnitOf(item.materialId));
-            var step = stepByUnit(unit);
-            var $qtyCol2 = $('<div>').addClass('col-md-4').append(
-              $('<input>', { type:'number', min:0, max:availableQty, step:step, value:0 })
-                .addClass('form-control form-control-sm lot-qty')
-                .data({ material: item.materialId, lot: lot.lotNo, warehouse: warehouseCode })
-            );
+            var unit = rowUnit;
+            var idp  = inputDpByUnit(unit);
+            var step = idp ? (1/Math.pow(10,idp)) : 1;
+            $('<input>', { type:'number', min:0, max:availableQty, step:step, value: fmtInput(0, idp) })
+
 
             
             var $whCol2 = $('<div>').addClass('col-md-3')
@@ -894,6 +890,10 @@ function renderMaterialRows(items) {
         // "예약수량" = 이번 작업지시 예약만 (필요수량 초과는 표시 제한)
         const reservedThisDisplay = Math.min(required, reservedThis);
         const reservedText = (mid === 'RM-0015') ? '직접출고' : reservedThisDisplay;
+       
+        // ← 계산용 데이터 저장 (updateRowSumAndValidate에서 읽음)
+        $row.data('reservedThis', reservedThisDisplay);
+        
         $row.append($('<td>').addClass('text-right align-middle reserved-this').text(reservedText));
         
         // ✅ 예상예약(프리뷰) 셀: 처음엔 0으로 시작
@@ -967,52 +967,53 @@ function renderMaterialRows(items) {
 /* ---------- 행별 합계 계산 및 상태 업데이트 ---------- */
 function updateRowSumAndValidate($row) {
 	  const required = Number($row.find('.req').data('req')) || 0;
-	  const capData  = $row.data('cap');
-	  const cap      = (capData == null) ? required : Number(capData);
+	  const capData = $row.data('cap');
+	  const cap = Number(capData == null ? required : capData);  // null/undefined면 required
 	  const target   = Math.min(required, cap);
 
 	  const mid  = String($row.data('material') || '');
 	  const unit = $row.data('unit') || baseUnitOf(mid);
 	  const dp   = dpByUnit(unit);
+	  
+	  
+	  // === [NEW] 입력칸 표시용 반올림 유틸 ===
+	  function inputDpByUnit(u){ u=String(u||'').toLowerCase(); return (u==='kg'||u==='l') ? 3 : 0; } // 필요시 4로
+	  function roundTo(n, dp){ var m=Math.pow(10,dp||0); return Math.round((Number(n)||0 + Number.EPSILON)*m)/m; }
+	  function fmtInput(n, dp){ var s = roundTo(n,dp).toFixed(dp); return s.replace(/\.?0+$/,''); }
 
-	  // 합계
+
+	  // 선택 합계
 	  let sum = 0;
 	  $row.find('.lot-qty').each(function(){ sum += Number(this.value) || 0; });
 	  const sumR = round(sum, dp);
-	  $row.find('.sum').text( fmtNum(sumR, dp) );
+	  $row.find('.sum').text(fmtNum(sumR, dp));
 
-	  // 예상예약 / 부족 수치
-	  const preview  = (mid === 'RM-0015') ? '-' : fmtNum(round(Math.min(sum, required), dp), dp);
-	  $row.find('.preview-reserve').text(preview);
-	  const shortage = (mid === 'RM-0015') ? 0 : Math.max(0, required - sum);
-	  $row.find('.shortage').text( fmtNum(round(shortage, dp), dp) );
+	  // 기존 예약 반영해 "최종" 예상 예약 계산
+	  const prevReserved = (mid === 'RM-0015') ? 0 : (Number($row.data('reservedThis')) || 0);
+	  const finalAfter   = (mid === 'RM-0015') ? required : Math.min(prevReserved + sumR, required);
+	  $row.find('.preview-reserve').text(mid === 'RM-0015' ? '-' : fmtNum(finalAfter, dp));
 
-	  // ✅ 부족 여부(재고/가용이 필요수량 미만) 우선 표시
-	  const isShortage = (mid !== 'RM-0015') && (cap + EPS < required);
+	  // 부족은 '최종 기준'
+	  const shortage = (mid === 'RM-0015') ? 0 : Math.max(0, required - finalAfter);
+	  $row.find('.shortage').text(fmtNum(round(shortage, dp), dp));
 
+	  // 행 색상(부족 0이면 성공)
 	  $row.removeClass('table-success table-warning table-danger table-secondary');
-
-	  if (required <= 0) {
-	    $row.addClass('table-secondary');
-	  } else if (isShortage) {
-	    // 항상 노란색으로 경고(합계를 cap까지 채워도 노란색 유지)
-	    $row.addClass('table-warning');
-	  } else if (Math.abs(sum - target) <= EPS) {
-	    $row.addClass('table-success');
-	  } else if (sum > 0) {
-	    $row.addClass('table-warning');
-	  } else {
-	    $row.addClass('table-danger');
-	  }
+	  const isShortageByStock = (mid !== 'RM-0015') && (cap + EPS < required);
+	  if (required <= 0)          $row.addClass('table-secondary');
+	  else if (isShortageByStock) $row.addClass('table-warning');           // 재고/가용이 부족
+	  else if (shortage <= EPS)   $row.addClass('table-success');           // 최종 부족 0
+	  else if (sumR > 0)          $row.addClass('table-warning');           // 일부 입력
+	  else                        $row.addClass('table-danger');            // 미입력
 	}
 
 
 /* ---------- 입력 제한 및 실시간 검증 ---------- */
 $(document).on('wheel', '.lot-qty', function(e) { e.preventDefault(); });
 
-$(document).on('input change blur', '.lot-qty', function() {
+$(document).on('input change blur', '.lot-qty', function(e) {
   const $input = $(this);
-  const $row = $input.closest('tr');
+  const $row   = $input.closest('tr');
 
   const hasMax   = $input.is('[max]');
   const maxLotQty = hasMax ? Number($input.attr('max')) : Infinity;

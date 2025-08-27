@@ -75,33 +75,48 @@
 </div>
 
 <script>
-// 숫자 포맷: 소수점 3자리까지, 불필요한 0 제거
-function strip0(n){ 
-  var s=(Math.round(n*1000)/1000).toString(); 
-  return s.replace(/\.?0+$/,''); 
+//추가: 단위 상수/포맷
+function unitUpper(u){ return String(u||'').trim().toUpperCase(); }
+function dpByUnit(u){ u = unitUpper(u); return (u==='KG'||u==='L') ? 2 : 0; }
+function fmtQty(qty, unit){
+  var dp = dpByUnit(unit);
+  var n = Number(qty)||0;
+  return n.toLocaleString(undefined,{minimumFractionDigits:dp, maximumFractionDigits:dp});
+}
+// conv 보정: KG/L인데 conv가 500↑면 g/ml일 확률 → kg/L로 변환
+function safeConvToStock(conv, stockUnit){
+  var c = Number(conv);
+  var su = unitUpper(stockUnit);
+  if (!isFinite(c) || c <= 0) return 1;
+  if ((su==='KG'||su==='L') && c > 500) return c/1000;  
+  return c;
 }
 
-// 가용수량 셀 렌더링
+
+//(교체) 가용수량 셀
 function renderAvailCell(x){
-  var q = Number(x.availableQty)||0;
-  var ou = (x.orderUnit||'').toUpperCase();   // 주문단위 (EA 등)
-  var su = (x.stockUnit||'').toUpperCase();   // 재고단위 (KG 등)
-  var conv = Number(x.convToStock)||1;        // 환산값
-  var eq = q * conv;                          // 재고단위 환산 수량
-  var html = '<div><strong>'+strip0(q)+'</strong> <span class="text-muted">'+ou+'</span></div>';
-  if(su){
-    html += '<div><small class="text-muted">(= '+strip0(eq)+' '+su+')</small></div>';
+  var q  = Number(x.availableQty)||0;      // 주문단위 수량
+  var ou = unitUpper(x.orderUnit||'EA');   // 주문단위
+  var su = unitUpper(x.stockUnit||ou);     // 재고단위
+  var convRaw = (x.convToStock!=null? x.convToStock : 1);
+  var conv = safeConvToStock(convRaw, su);
+  var eq = q * conv; // 재고단위 환산
+
+  var html = '<div><strong>'+fmtQty(q, ou)+'</strong> <span class="text-muted">'+ou+'</span></div>';
+  if (su && su !== ou) {
+    html += '<div><small class="text-muted">(= '+fmtQty(eq, su)+' '+su+')</small></div>';
   }
   return html;
 }
 
-// 필요수량 셀 렌더링
+// (교체) 필요수량 셀
 function renderReqCell(x){
+  // 서버가 requiredQty를 재고단위로 내려준다고 가정 (필요시 requiredUnit 사용)
   var rq = Number(x.requiredQty)||0;
-  var ru = (x.requiredUnit||x.stockUnit||'').toUpperCase();
-  var html = '<div><strong>'+strip0(rq)+'</strong> <span class="text-muted">'+ru+'</span></div>';
-  return html;
+  var ru = unitUpper(x.requiredUnit || x.stockUnit || 'EA');
+  return '<div><strong>'+fmtQty(rq, ru)+'</strong> <span class="text-muted">'+ru+'</span></div>';
 }
+
 
 // 컨텍스트 루트
 window.ctx = window.ctx || '${pageContext.request.contextPath}';
@@ -248,35 +263,45 @@ $(document).on('change', '#inb-check-all', function(){
 $(document).on('change', '.inb-pick', syncPickedFromUI);
 
 function syncPickedFromUI(){
-  pickedInboundIds.clear();
+	  pickedInboundIds.clear();
+	  let checkedCount = 0;
 
-  // 기준 WO 세팅/검증
-  $('#inboundPickerBody .inb-pick').each(function(){
-    const $tr = $(this).closest('tr');
-    const wo  = $tr.data('work-order-id') || null;
+	  $('#inboundPickerBody .inb-pick').each(function(){
+	    const $tr = $(this).closest('tr');
+	    const wo  = $tr.data('work-order-id') || null;
 
-    if (this.checked && !currentWorkOrderId) currentWorkOrderId = wo || null;
+	    if (this.checked) {
+	      checkedCount++;
+	      if (!currentWorkOrderId) currentWorkOrderId = wo || null;
+	    }
 
-    if (currentWorkOrderId && wo && wo !== currentWorkOrderId) {
-      this.checked = false;
-      this.disabled = true;
-      $tr.addClass('table-warning');
-      return;
-    } else {
-      this.disabled = false;
-      $tr.removeClass('table-warning');
-    }
+	    if (currentWorkOrderId && wo && wo !== currentWorkOrderId) {
+	      this.checked = false;
+	      this.disabled = true;
+	      $tr.addClass('table-warning');
+	      return;
+	    } else {
+	      this.disabled = false;
+	      $tr.removeClass('table-warning');
+	    }
 
-    if (this.checked) pickedInboundIds.add(this.value);
-  });
+	    if (this.checked) pickedInboundIds.add(this.value);
+	  });
 
-  // 전체선택 체크 상태 보정
-  const all  = $('#inboundPickerBody .inb-pick:not(:disabled)').length;
-  const on   = $('#inboundPickerBody .inb-pick:not(:disabled):checked').length;
-  $('#inb-check-all').prop('checked', all>0 && all===on);
+	  // ✅ 모두 해제되면 기준 WO 리셋
+	  if (checkedCount === 0) {
+	    currentWorkOrderId = null;
+	    // 비활성 풀기
+	    $('#inboundPickerBody .inb-pick').prop('disabled', false).closest('tr').removeClass('table-warning');
+	  }
 
-  renderPickedInfoAndMaterials();
-}
+	  const all  = $('#inboundPickerBody .inb-pick:not(:disabled)').length;
+	  const on   = $('#inboundPickerBody .inb-pick:not(:disabled):checked').length;
+	  $('#inb-check-all').prop('checked', all>0 && all===on);
+
+	  renderPickedInfoAndMaterials();
+	}
+
 
 function renderPickedInfoAndMaterials(){
   const ids = Array.from(pickedInboundIds);
