@@ -1107,13 +1107,13 @@ function showMaterialSummary() {
     var message = '=== 중복 자재 요약 ===\n\n';
     duplicates.forEach(function(materialId) {
         var item = summary[materialId];
-        message += `📦 ${item.name}\n`;
+        message += `${item.name}\n`;
         message += `   • 총 수량: ${item.totalPacks.toLocaleString()} PACK\n`;
         message += `   • 총 금액: ${item.totalAmount.toLocaleString()}원\n`;
         message += `   • 행 위치: ${item.rows.join(', ')}번째\n\n`;
     });
     
-    message += '\n💡 동일 자재는 하나의 행으로 통합하는 것을 권장합니다.';
+    message += '\n동일 자재는 하나의 행으로 통합하는 것을 권장합니다.';
     
     alert(message);
 }
@@ -1125,7 +1125,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var summaryBtn = document.createElement('button');
         summaryBtn.type = 'button';
         summaryBtn.className = 'btn btn-sm btn-info float-right mb-2';
-        summaryBtn.innerHTML = '📋 자재 요약';
+        summaryBtn.innerHTML = '자재 요약';
         summaryBtn.onclick = showMaterialSummary;
         
         tableWrapper.parentNode.insertBefore(summaryBtn, tableWrapper);

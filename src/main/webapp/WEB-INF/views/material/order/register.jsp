@@ -42,8 +42,8 @@
 				      </c:forEach>
 				    </select>
 				    <div class="input-group-append">
-				      <button type="button" id="btnSearchSupplier" class="btn btn-outline-secondary" title="자재로 거래처 찾기">
-				        🔍
+				      <button type="button" id="btnSearchSupplier" class="btn btn-outline-primary" title="자재로 거래처 찾기">
+				        자재명으로 조회
 				      </button>
 				    </div>
 				  </div>

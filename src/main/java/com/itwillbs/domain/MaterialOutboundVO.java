@@ -1,5 +1,6 @@
 package com.itwillbs.domain;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
@@ -29,11 +30,11 @@ public class MaterialOutboundVO {
     // ====== 출고 등록용: 폼에서 반복 name으로 들어오는 값들 받는 그릇 ======
     // 자재 행 (자재별 필요수량)
     private List<String> materialIdList; // name="materialId"
-    private List<Integer> reqQtyList;    // name="reqQty"
+    private List<BigDecimal> reqQtyList;   // 소수 허용
 
     // LOT 피킹 (평평한 배열)
     private List<String> lotMaterialIdList; // name="lotMaterialId"
     private List<String> lotNoList;         // name="lotNo"
-    private List<Integer> qtyList;          // name="qty"
+    private List<BigDecimal> qtyList;      // 소수 허용
 
 }

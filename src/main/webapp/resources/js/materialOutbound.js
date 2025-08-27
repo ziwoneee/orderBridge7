@@ -230,9 +230,27 @@ function stepByUnit(u){
 
 //===== 숫자 라운드/표기 유틸 =====
 const EPS = 1e-6;
-function round(n, dp){                     // 안전 반올림
-  const m = Math.pow(10, dp||0);
-  return Math.round((Number(n)||0 + Number.EPSILON) * m) / m;
+function round(n, dp) {
+  const factor = Math.pow(10, dp || 0);
+  return Math.round((Number(n) + Number.EPSILON) * factor) / factor;
+}
+//소수점 2자리까지 안전하게 표시
+function formatDecimal(value, decimalPlaces = 2) {
+  const num = Number(value) || 0;
+  return round(num, decimalPlaces).toFixed(decimalPlaces);
+}
+
+// 불필요한 끝자리 0 제거하면서 소수점 제한
+function formatClean(value, maxDecimalPlaces = 2) {
+  const num = Number(value) || 0;
+  const rounded = round(num, maxDecimalPlaces);
+  
+  // 소수점이 있으면 끝자리 0 제거, 없으면 그대로
+  if (rounded % 1 === 0) {
+    return rounded.toString(); // 정수면 소수점 없이
+  } else {
+    return rounded.toFixed(maxDecimalPlaces).replace(/\.?0+$/, '');
+  }
 }
 function fmtNum(n, dp){                    // 화면 표기용
   return round(n, dp).toLocaleString(undefined, {
@@ -403,10 +421,10 @@ $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
           return {
             materialId: item.materialId,
             materialName: item.materialName,
-            lackQty: item.packs            // ★ 서버는 "팩 개수"로 받음
-            // 서버가 나중에 orderQty(기본단위)도 받도록 바뀌면 함께 전송
-            // orderQty: item.orderQty,
-            // packQty:  item.packQty
+            // ✅ “기본단위(kg/L/EA)의 수량”을 보낸다
+            //   - FE가 MOQ/배수까지 반영했다면 orderQty 사용
+            //   - “진짜 부족량”만 보내고 서버가 반올림/배수처리 하게 하려면 lackQty 사용
+            lackQty: item.orderQty   // 또는 lackQty: item.lackQty
           };
         })
       };
@@ -455,7 +473,8 @@ function showOrderPreviewConfirm(shortages){
 	    totalOrder += packs;         // ✅ 팩 개수 합계로
 	    totalAmount+= Number(item.amount)||0;
 
-	    if (ord>lack) adjustedItems.push('• ' + item.materialName + ': ' + lack + ' → ' + ord);
+	    const clean = v => (Math.round(Number(v || 0)*100)/100).toString().replace(/\.?0+$/,'');
+	    if (ord>lack) adjustedItems.push('• ' + item.materialName + ': ' + clean(lack) + ' → ' + clean(ord));
 
 	    var supply = item.supplyUnit || getSupplyUnit(item.materialId);
 	    // ord는 항상 packs*pk라 그대로 써도 OK (아래 eqText는 기본단위 총량 표기)
@@ -592,14 +611,14 @@ function toYmd(dateValue) {
 	  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
 	}
 
-/* === [NEW] inboundIds 읽기 & 사용상태 갱신 유틸 === */
+/* === [NEW or KEEP] inboundIds 읽기 유틸 === */
 function getInboundIdsParam() {
-  const p = new URLSearchParams(location.search);
-  const raw = p.get('inboundIds') || p.get('inboundId') || '';
-  return raw.split(',').map(s => s.trim()).filter(Boolean);
+  var p = new URLSearchParams(location.search);
+  var raw = p.get('inboundIds') || p.get('inboundId') || '';
+  return raw.split(',').map(function (s){ return s.trim(); }).filter(Boolean);
 }
 
-//페이지 이동 직전에도 안전하게 영기 위해 sendBeacon 우선 사용
+/* === [GLOBAL] 입고상태 갱신 (배치→단건 폴백) === */
 function updateInboundStatuses(ids) {
   if (!ids || !ids.length) return;
 
@@ -612,21 +631,18 @@ function updateInboundStatuses(ids) {
   //   return;
   // }
 
-  // 단건 엔드포인트로 fallback
-  ids.forEach(id => {
-    const url = ctx + '/material/outbound/update-inbound-status';
-    const form = new FormData();
+  //단건 폴백
+  ids.forEach(function(id){
+    var url = ctx + '/material/outbound/update-inbound-status';
+    var form = new FormData();
     form.append('inboundId', id);
 
     if (navigator.sendBeacon) {
       navigator.sendBeacon(url, form);
     } else {
-      // 비콘이 없으면 비동기로라도 발사 (페이지 전환 중 드랍될 수 있음)
-      $.post(url, { inboundId: id }).catch(()=>{});
+      $.post(url, { inboundId: id }).catch(function(){});
     }
   });
-  
-  
 }
 
 /* ---------- register.jsp: 초기 로드 ---------- */
@@ -963,46 +979,53 @@ function renderMaterialRows(items) {
   });
 }
 
-/* ---------- 행별 합계 계산 및 상태 업데이트 ---------- */
+/* ---------- 행별 합계 계산 시 오차 수정 ---------- */
 function updateRowSumAndValidate($row) {
-	  const required = Number($row.find('.req').data('req')) || 0;
-	  const capData  = $row.data('cap');
-	  const cap      = (capData == null) ? required : Number(capData);
-	  const target   = Math.min(required, cap);
+  const required = Number($row.find('.req').data('req')) || 0;
+  const capData = $row.data('cap');
+  const cap = (capData == null) ? required : Number(capData);
+  const target = Math.min(required, cap);
 
-	  // 단위별 자리수 결정
-	  const mid  = String($row.data('material') || '');
-	  const unit = $row.data('unit') || baseUnitOf(mid);
-	  const dp = dpByUnit(unit);
+  const mid = String($row.data('material') || '');
+  const unit = $row.data('unit') || baseUnitOf(mid);
+  const dp = dpByUnit(unit);
 
-	  // 합계 계산
-	  let sum = 0;
-	  $row.find('.lot-qty').each(function(){ sum += Number(this.value) || 0; });
-	  const sumR = round(sum, dp);
+  // ✅ 합계 계산 시 부동소수점 오차 수정
+  let sum = 0;
+  $row.find('.lot-qty').each(function() { 
+    sum += Number(this.value) || 0; 
+  });
+  
+  // 안전한 반올림 적용
+  const sumRounded = round(sum, dp);
+  
+  // 표시용 포맷팅 (불필요한 0 제거)
+  $row.find('.sum').text(formatClean(sumRounded, dp));
 
-	  // 표기
-	  $row.find('.sum').text( fmtNum(sumR, dp) );
+  // 예상예약 / 부족 수치도 동일하게 처리
+  const preview = (mid === 'RM-0015') ? '-' : formatClean(Math.min(sumRounded, required), dp);
+  $row.find('.preview-reserve').text(preview);
+  
+  const shortage = (mid === 'RM-0015') ? 0 : Math.max(0, required - sumRounded);
+  $row.find('.shortage').text(formatClean(shortage, dp));
 
-	  // 예상예약/부족 (물은 특례)
-	  const preview = (mid === 'RM-0015') ? '-' : fmtNum(round(Math.min(sum, required), dp), dp);
-	  $row.find('.preview-reserve').text(preview);
+  // 부족 여부 판단도 오차 허용으로
+  const isShortage = (mid !== 'RM-0015') && (cap + EPS < required);
 
-	  const shortage = (mid === 'RM-0015') ? 0 : Math.max(0, required - sum);
-	  $row.find('.shortage').text( fmtNum(round(shortage, dp), dp) );
+  $row.removeClass('table-success table-warning table-danger table-secondary');
 
-	  // 색상 규칙 (비교는 오차 허용)
-	  $row.removeClass('table-success table-warning table-danger table-secondary');
-	  if (required <= 0) {
-	    $row.addClass('table-secondary');
-	  }else if (Math.abs(sum - target) <= EPS) {
-	    $row.addClass('table-success');
-	  } else if (sum > 0) {
-	    $row.addClass('table-warning');
-	  } else {
-	    $row.addClass('table-danger');
-	  }
-	}
-
+  if (required <= 0) {
+    $row.addClass('table-secondary');
+  } else if (isShortage) {
+    $row.addClass('table-warning');
+  } else if (Math.abs(sumRounded - target) <= EPS) {
+    $row.addClass('table-success');
+  } else if (sumRounded > 0) {
+    $row.addClass('table-warning');
+  } else {
+    $row.addClass('table-danger');
+  }
+}
 
 
 /* ---------- 입력 제한 및 실시간 검증 ---------- */
@@ -1012,7 +1035,7 @@ $(document).on('input change blur', '.lot-qty', function() {
   const $input = $(this);
   const $row = $input.closest('tr');
 
-  const hasMax   = $input.is('[max]');
+  const hasMax = $input.is('[max]');
   const maxLotQty = hasMax ? Number($input.attr('max')) : Infinity;
 
   let inputValue = Number($input.val()) || 0;
@@ -1028,75 +1051,118 @@ $(document).on('input change blur', '.lot-qty', function() {
   const remaining = Math.max(Math.min(required, cap) - othersSum, 0);
   if (inputValue > remaining) inputValue = remaining;
 
-  $input.val(inputValue);
+  // ✅ 부동소수점 오차 수정하여 값 설정
+  const cleanValue = round(inputValue, 2);
+  $input.val(cleanValue);
+  
   updateRowSumAndValidate($row);
   window.validateAll();
 });
 
 /* ---------- 폼 제출 시 hidden 필드 생성 + 예약 선처리 ---------- */
-$(document).off('submit.resv', '#outboundForm')
-.on('submit.resv', '#outboundForm', function(e) {
+/* ---------- 폼 제출 시 hidden 필드 생성 + 예약 선처리 ---------- */
+/* ---------- 수정된 폼 제출 코드 (VO 바인딩 호환) ---------- */
+$(document).off('submit.resv', '#outboundForm').on('submit.resv', '#outboundForm', function(e) {
   e.preventDefault();
-  const formEl = this;
-  const $form  = $(formEl);
+  var formEl = this;
+  var $form = $(formEl);
 
-  const workOrderId = $('#workOrderIdHidden').val()
-                   || new URLSearchParams(location.search).get('workOrderId');
-  if (!workOrderId) { alert('작업지시서를 먼저 선택하세요.'); return; }
+  var workOrderId = $('#workOrderIdHidden').val() || new URLSearchParams(location.search).get('workOrderId');
+  if (!workOrderId) { 
+    alert('작업지시서를 먼저 선택하세요.'); 
+    return; 
+  }
 
   if ($form.data('reserving') === true) return;
   $form.data('reserving', true);
   $('#btnSubmit').prop('disabled', true).text('등록 중...');
 
-  // 기존 hidden 초기화
-  $form.find('input[name=materialIdList],input[name=reqQtyList],input[name=lotMaterialIdList],input[name=lotNoList],input[name=qtyList],input[name=lotWarehouseList]').remove();
+  // 1) 기존 hidden 필드 정리(선택 유지 필드만 남김)
+  $form.find('input[type="hidden"]').not('[name="inboundIds"], [name="inboundId"]').remove();
 
-  // 자재별 정보 hidden 생성
-  $('#materialLotBody tr').each(function() {
-    const materialId = $(this).data('material');
-    const required   = +($(this).find('.req').data('req') || 0);
+  // 2) workOrderId 설정
+  $form.append($('<input>', { type:'hidden', name:'workOrderId', value:String(workOrderId) }));
+
+  // 3) 자재/LOT 데이터 수집
+  var materialIds = [], reqQtys = [], lotMaterialIds = [], lotNos = [], qtys = [], warehouses = [];
+
+  $('#materialLotBody tr').each(function(){
+    var materialId = $(this).data('material');
+    var required   = Number($(this).find('.req').data('req') || 0);
     if (materialId) {
-      $form.append($('<input>', { type:'hidden', name:'materialIdList', value: materialId }));
-      $form.append($('<input>', { type:'hidden', name:'reqQtyList',    value: required   }));
+      materialIds.push(String(materialId));
+      reqQtys.push(String(required));
     }
   });
 
-  // LOT별 hidden 생성
-  $('.lot-qty').each(function() {
-    const quantity = +(this.value || 0);
+  $('.lot-qty').each(function(){
+    var quantity = Number($(this).val() || 0);
     if (quantity > 0) {
-      const $el = $(this);
-      $form.append($('<input>', { type:'hidden', name:'lotMaterialIdList', value: $el.data('material') }));
-      $form.append($('<input>', { type:'hidden', name:'lotNoList',         value: $el.data('lot') || '' }));
-      $form.append($('<input>', { type:'hidden', name:'qtyList',           value: quantity }));
-      $form.append($('<input>', { type:'hidden', name:'lotWarehouseList',  value: ($el.data('warehouse') || '') }));
+      var materialId = $(this).data('material');
+      var lotNo      = $(this).data('lot') || '';
+      var warehouse  = $(this).data('warehouse') || '';
+      if (materialId) {
+        lotMaterialIds.push(String(materialId));
+        lotNos.push(String(lotNo));
+        qtys.push(String(quantity));
+        warehouses.push(String(warehouse));
+      }
     }
   });
 
-  // 예약만 선처리
+  // 4) 검증
+  if (!materialIds.length) { alert('자재 정보가 없습니다.'); return reset(); }
+  if (!lotMaterialIds.length) { alert('출고할 LOT가 없습니다. 수량을 입력해주세요.'); return reset(); }
+  if (materialIds.length !== reqQtys.length) { alert('자재 정보 불일치 오류 (materialIds vs reqQtys)'); return reset(); }
+  if (lotMaterialIds.length !== lotNos.length || lotMaterialIds.length !== qtys.length || lotMaterialIds.length !== warehouses.length) {
+    alert('LOT 정보 불일치 오류');
+    return reset();
+  }
+
+  // 5) Spring List 바인딩 hidden 생성
+  materialIds.forEach(function(v){ $form.append($('<input>', { type:'hidden', name:'materialIdList', value:v })); });
+  reqQtys.forEach(function(v){    $form.append($('<input>', { type:'hidden', name:'reqQtyList',     value:v })); });
+  lotMaterialIds.forEach(function(v){ $form.append($('<input>', { type:'hidden', name:'lotMaterialIdList', value:v })); });
+  lotNos.forEach(function(v){        $form.append($('<input>', { type:'hidden', name:'lotNoList',         value:v })); });
+  qtys.forEach(function(v){          $form.append($('<input>', { type:'hidden', name:'qtyList',            value:v })); });
+  warehouses.forEach(function(v){    $form.append($('<input>', { type:'hidden', name:'lotWarehouseList',   value:v })); });
+
+  // 6) 디버깅 로그
+  console.log('제출 데이터 요약:');
+  console.log('- workOrderId:', workOrderId);
+  console.log('- 자재 수:', materialIds.length);
+  console.log('- LOT 수:', lotMaterialIds.length);
+  console.log('- materialIds:', materialIds);
+  console.log('- lotMaterialIds:', lotMaterialIds);
+  console.log('- qtys:', qtys);
+
+  // 7) 예약 선처리 → 성공 시 전역 updateInboundStatuses 호출 → 실제 submit
   $.post(ctx + '/material/reservation/reserve-only', { workOrderId: workOrderId })
     .done(function(res){
       if (!res || res.ok !== true) {
-        alert(res && res.message ? res.message : '예약 실패');
-        $form.data('reserving', false);
-        $('#btnSubmit').prop('disabled', false).text('등록');
-        return;
+        alert((res && res.message) ? res.message : '예약 실패');
+        return reset();
       }
-      
-      // === [NEW] 선택된 모든 입고건 사용상태 갱신 ===
-      const ids = getInboundIdsParam();
-      if (ids.length) updateInboundStatuses(ids);
-      
-      formEl.submit(); // 네이티브 submit
+
+      // ★★ 여기! 로컬 함수 없이 전역을 명시적으로 호출 ★★
+      var ids = getInboundIdsParam();     // 쿼리스트링에서 inboundIds/inboundId 읽음
+      if (ids.length) window.updateInboundStatuses(ids);
+
+      // 최종 제출
+      console.log('폼 제출 실행');
+      formEl.submit();
     })
     .fail(function(xhr){
-      console.error('예약 처리 실패:', xhr);
-      alert('예약 처리 중 서버 오류가 발생했습니다.');
-      $form.data('reserving', false);
-      $('#btnSubmit').prop('disabled', false).text('등록');
+      console.error('예약 실패:', xhr);
+      alert('예약 처리 중 오류가 발생했습니다.');
+      reset();
     });
-});
 
+  function reset(){
+    $form.data('reserving', false);
+    $('#btnSubmit').prop('disabled', false).text('등록');
+  }
+});
 
 
 /* ---------- 출고 처리 ---------- */
@@ -1201,39 +1267,47 @@ window.loadOutboundDetail = function(outboundId){
 /* ---------- 자동 배정 기능 ---------- */
 // 행 단위 자동 배정 (FEFO 순으로 배정)
 function autoAllocateForRow($row, onlyIfEnough) {
-  const required = Number($row.find('.req').data('req')) || 0;
-  const capData = $row.data('cap');
-  const cap = (capData == null) ? required : Number(capData);
-  const target = Math.min(required, cap);
-  const $lotInputs = $row.find('.lot-qty');
-  if (!$lotInputs.length || target <= 0) {
-    $row.find('.lot-qty').val(0);
-    updateRowSumAndValidate($row);
-    return false;
-  }
+	  const required = Number($row.find('.req').data('req')) || 0;
+	  const capData = $row.data('cap');
+	  const cap = (capData == null) ? required : Number(capData);
+	  const target = Math.min(required, cap);
+	  const $lotInputs = $row.find('.lot-qty');
+	  
+	  if (!$lotInputs.length || target <= 0) {
+	    $row.find('.lot-qty').val(0);
+	    updateRowSumAndValidate($row);
+	    return false;
+	  }
 
-  const totalAvailable = $lotInputs.toArray().reduce((sum, el) => {
-    const hasMax = $(el).is('[max]');
-    const maxQty = hasMax ? Number($(el).attr('max')) : target;
-    return sum + Math.max(0, maxQty);
-  }, 0);
+	  const totalAvailable = $lotInputs.toArray().reduce((sum, el) => {
+	    const hasMax = $(el).is('[max]');
+	    const maxQty = hasMax ? Number($(el).attr('max')) : target;
+	    return sum + Math.max(0, maxQty);
+	  }, 0);
 
-  if (onlyIfEnough && totalAvailable < target) return false;
+	  if (onlyIfEnough && totalAvailable < target) return false;
 
-  let allocatedSum = 0;
-  $lotInputs.each(function () {
-    const hasMax = $(this).is('[max]');
-    const maxQty = hasMax ? Number($(this).attr('max')) : target;
-    if (allocatedSum >= target) { $(this).val(0); return; }
-    const needed = target - allocatedSum;
-    const allocateQty = Math.min(Math.max(0, maxQty), needed);
-    $(this).val(allocateQty);
-    allocatedSum += allocateQty;
-  });
+	  let allocatedSum = 0;
+	  $lotInputs.each(function() {
+	    const hasMax = $(this).is('[max]');
+	    const maxQty = hasMax ? Number($(this).attr('max')) : target;
+	    if (allocatedSum >= target) { 
+	      $(this).val(0); 
+	      return; 
+	    }
+	    
+	    const needed = target - allocatedSum;
+	    const allocateQty = Math.min(Math.max(0, maxQty), needed);
+	    
+	    // ✅ 자동 배정 시에도 부동소수점 오차 수정
+	    const cleanQty = round(allocateQty, 2);
+	    $(this).val(cleanQty);
+	    allocatedSum += cleanQty;
+	  });
 
-  updateRowSumAndValidate($row);
-  return allocatedSum >= target;
-}
+	  updateRowSumAndValidate($row);
+	  return allocatedSum >= target;
+	}
 
 // 전체 자재 자동 배정
 function autoAllocateAll(onlyIfEnough) {
