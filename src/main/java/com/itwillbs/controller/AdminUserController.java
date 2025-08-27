@@ -110,8 +110,14 @@ public class AdminUserController {
             
             return "redirect:/admin/dashboard";
         } else {
-        	// 비밀번호 불일치(ID는 맞음) 
-            rttr.addFlashAttribute("errorMsg", "아이디 또는 비밀번호가 일치하지 않습니다.");
+            // 실패 시 최신 상태 다시 조회
+            AdminUserVO updatedVO = adminUserService.findByAdminId(vo.getAdminId()); // 추가
+            
+            if (updatedVO != null && "LOCKED".equals(updatedVO.getStatus())) {
+                rttr.addFlashAttribute("errorMsg", "계정이 잠겨 있습니다. 관리자에게 문의하세요.");
+            } else {
+                rttr.addFlashAttribute("errorMsg", "아이디 또는 비밀번호가 일치하지 않습니다.");
+            }
             return "redirect:/admin/login";
         }
     }

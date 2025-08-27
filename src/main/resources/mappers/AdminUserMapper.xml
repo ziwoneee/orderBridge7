@@ -7,21 +7,24 @@
   <!-- ==================== 기본 CRUD 쿼리들 ==================== -->
 
   <!-- [로그인용 단건 조회] 아이디만으로 조회, 비밀번호 비교는 Service에서 bcrypt로 -->
-  <select id="findByAdminId" parameterType="string"
-          resultType="com.itwillbs.domain.AdminUserVO">
-    SELECT
-      admin_id   AS adminId,
-      password,
-      name,
-      phone,
-      role_id    AS roleId,
-      fail_count AS failCount,
-      status,
-      created_at AS createdAt,
-      updated_at AS updatedAt
-    FROM admin_user
-    WHERE admin_id = #{adminId}
-  </select>
+ 	<select id="findByAdminId" parameterType="string"
+        resultType="com.itwillbs.domain.AdminUserVO">
+	  SELECT
+	    admin_id        AS adminId,
+	    password,
+	    name,
+	    phone,
+	    role_id         AS roleId,
+	    fail_count      AS failCount,
+	    status,
+	    created_at      AS createdAt,
+	    updated_at      AS updatedAt,
+	    last_login_at   AS lastLoginAt,
+	    last_failed_at  AS lastFailedAt,
+	    locked_at       AS lockedAt
+	  FROM admin_user
+	  WHERE admin_id = #{adminId}
+	</select>
 
   <!-- [등록] 운영자가 수동 생성 -->
   <insert id="insertAdmin" parameterType="com.itwillbs.domain.AdminUserVO">
@@ -32,31 +35,42 @@
        COALESCE(#{failCount}, 0), COALESCE(#{status}, 'ACTIVE'), NOW())
   </insert>
 
-  <!-- [로그인 실패] 실패횟수 +1, 5회 도달 시 즉시 LOCK -->
-  <update id="increaseFailCount" parameterType="string">
-    UPDATE admin_user
-    SET fail_count = fail_count + 1,
-        status = CASE WHEN fail_count + 1 >= 5 THEN 'LOCKED' ELSE status END,
-        updated_at = NOW()
-    WHERE admin_id = #{adminId}
-  </update>
+<!-- [로그인 실패] 실패횟수 +1, 5회 도달 시 즉시 LOCK -->
+	<update id="increaseFailCount" parameterType="string">
+	  UPDATE admin_user
+	     SET fail_count = fail_count + 1,
+	         status =
+	           CASE
+	             WHEN fail_count + 1 >= 6 THEN 'LOCKED'
+	             ELSE status
+	           END,
+	         last_failed_at = NOW(),
+	         locked_at =
+	           CASE
+	             WHEN (fail_count + 1) >= 5 THEN NOW()
+	             ELSE locked_at
+	           END
+	   WHERE admin_id = #{adminId}
+	     AND status = 'ACTIVE'
+	</update>
 
   <!-- [로그인 성공] 실패횟수 0 -->
   <update id="resetFailCount" parameterType="string">
-    UPDATE admin_user
-    SET fail_count = 0,
-        updated_at = NOW()
-    WHERE admin_id = #{adminId}
-  </update>
+	  UPDATE admin_user
+	     SET fail_count = 0,
+	         last_login_at = NOW()
+	   WHERE admin_id = #{adminId}
+	</update>
 
   <!-- [잠금 해제] 설정 화면/버튼에서 사용 -->
-  <update id="unlockAccount" parameterType="string">
-    UPDATE admin_user
-    SET status = 'ACTIVE',
-        fail_count = 0,
-        updated_at = NOW()
-    WHERE admin_id = #{adminId}
-  </update>
+	<update id="unlockAccount" parameterType="string">
+      UPDATE admin_user
+      SET status = 'ACTIVE',
+         fail_count = 0,
+         locked_at = NULL,
+         updated_at = NOW()
+   WHERE admin_id = #{adminId}
+	</update>
 
   <!-- 관리자 정보 수정 (최고관리자용) -->
   <update id="updateAdmin" parameterType="com.itwillbs.domain.AdminUserVO">

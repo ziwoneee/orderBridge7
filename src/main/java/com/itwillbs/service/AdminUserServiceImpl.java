@@ -2,6 +2,8 @@ package com.itwillbs.service;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,31 +18,56 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Autowired
     private AdminUserMapper adminUserMapper;
     
+    private static final Logger log = LoggerFactory.getLogger(AdminUserServiceImpl.class);
+
+    /** DB(increaseFailCount XML)의 5와 반드시 동일해야 함 */
+    private static final int MAX_FAIL = 5;
+    
     /**
      * 로그인 처리
      */
     @Override
     public AdminUserVO login(AdminUserVO inputVO) {
-        // 1) 아이디로 DB 조회
+        // 1) 사용자 조회
         AdminUserVO dbVO = adminUserMapper.findByAdminId(inputVO.getAdminId());
-        if (dbVO == null) {
-            return null; // 아이디 없음
-        }
-        // 2) 이미 잠금 상태면 바로 로그인 불가
-        if ("LOCKED".equals(dbVO.getStatus())) {
+        if (dbVO == null) return null;
+
+        // 2) ACTIVE만 로그인 허용
+        String st = dbVO.getStatus();
+        if (!"ACTIVE".equals(st)) {
+            log.warn("Login blocked (status={}): adminId={}", st, inputVO.getAdminId());
             return null;
         }
-        // 3) 비밀번호 비교 (BCrypt)
-        boolean matched = PasswordEncoderUtil.matches(inputVO.getPassword(), dbVO.getPassword());
+
+        // 3) 비밀번호 비교 (DB 비번 null이면 실패)
+        String rawPw = inputVO.getPassword();
+        String encPw = dbVO.getPassword();
+        boolean matched = (encPw != null) && PasswordEncoderUtil.matches(rawPw, encPw);
+
         if (matched) {
-            // 로그인 성공 → 실패 카운트 초기화
+            // 성공: 실패횟수 0, last_login_at = NOW()
             adminUserMapper.resetFailCount(dbVO.getAdminId());
-            return dbVO;
-        } else {
-            // 로그인 실패 → 실패 카운트 +1
-            adminUserMapper.increaseFailCount(dbVO.getAdminId());
+            AdminUserVO fresh = adminUserMapper.findByAdminId(dbVO.getAdminId());
+            log.info("Login success: adminId={}", dbVO.getAdminId());
+            return fresh;
+        }
+
+        // 4) 실패: 실패횟수 +1 (ACTIVE일 때만 증가되도록 XML에서 필터)
+        adminUserMapper.increaseFailCount(dbVO.getAdminId());
+
+        // 증가 후 상태 확정
+        AdminUserVO after = adminUserMapper.findByAdminId(dbVO.getAdminId());
+        int fc = (after != null ? after.getFailCount() : 0);
+        int remaining = Math.max(0, MAX_FAIL - fc);
+
+        if (after != null && "LOCKED".equals(after.getStatus())) {
+            log.warn("Account locked (failCount={}): adminId={}", fc, dbVO.getAdminId());
             return null;
         }
+
+        log.info("Login failed: adminId={}", dbVO.getAdminId());
+        log.info("failCount={}, remaining={}", fc, remaining); 
+        return null;
     }
     
     /**

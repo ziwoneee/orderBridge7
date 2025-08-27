@@ -34,8 +34,8 @@
                 <div class="col-md-2">
                   <select class="form-control" name="status">
                     <option value="">상태</option>
-                    <option value="ACTIVE" ${cri.status == 'ACTIVE' ? 'selected' : ''}>활성</option>
-                    <option value="INACTIVE" ${cri.status == 'INACTIVE' ? 'selected' : ''}>비활성</option>
+                    <option value="ACTIVE" ${cri.status == 'ACTIVE' ? 'selected' : ''}>재직</option>
+                    <option value="INACTIVE" ${cri.status == 'INACTIVE' ? 'selected' : ''}>휴직</option>
                     <option value="LOCKED" ${cri.status == 'LOCKED' ? 'selected' : ''}>잠김</option>
                   </select>
                 </div>
@@ -62,7 +62,7 @@
               </div>
               
               <input type="hidden" name="sortColumn" id="sortColumn" value="${cri.sortColumn != null ? cri.sortColumn : 'admin_id'}">
-              <input type="hidden" name="sortOrder" id="sortOrder" value="${cri.sortOrder != null ? cri.sortOrder : 'ASC'}">
+              <input type="hidden" name="sortOrder" id="sortOrder" value="${cri.sortOrder != null ? cri.sortOrder : 'asc'}">
               <input type="hidden" name="page" value="1">
             </form>
           </div>
@@ -73,17 +73,21 @@
               <thead class="table-header-dark">
                 <tr>
                   <th onclick="sortTable('admin_id')" style="cursor: pointer;">
-                    사번 ${cri.sortColumn == 'admin_id' ? (cri.sortOrder == 'ASC' ? '↑' : '↓') : ''}
+                    사번 ${cri.sortColumn == 'admin_id' ? (cri.sortOrder == 'asc' ? '▲' : '▼') : ''}
                   </th>
                   <th onclick="sortTable('name')" style="cursor: pointer;">
-                    이름 ${cri.sortColumn == 'name' ? (cri.sortOrder == 'ASC' ? '↑' : '↓') : ''}
+                    이름 ${cri.sortColumn == 'name' ? (cri.sortOrder == 'asc' ? '▲' : '▼') : ''}
                   </th>
                   <th>소속/역할</th>
                   <th>연락처</th>
-                  <th>상태</th>
-                  <th>실패횟수</th>
+                  <th onclick="sortTable('status')" style="cursor: pointer;">
+                    상태 ${cri.sortColumn == 'status' ? (cri.sortOrder == 'asc' ? '▲' : '▼') : ''}
+                  </th>
+                  <th onclick="sortTable('fail_count')" style="cursor: pointer;">
+                    실패횟수 ${cri.sortColumn == 'fail_count' ? (cri.sortOrder == 'asc' ? '▲' : '▼') : ''}
+                  </th>
                   <th onclick="sortTable('created_at')" style="cursor: pointer;">
-                    등록일 ${cri.sortColumn == 'created_at' ? (cri.sortOrder == 'ASC' ? '↑' : '↓') : ''}
+                    등록일 ${cri.sortColumn == 'created_at' ? (cri.sortOrder == 'asc' ? '▲' : '▼') : ''}
                   </th>
                   <th>상세</th>
                   <th>관리</th>
@@ -118,36 +122,31 @@
                         <td>${admin.phone != null ? admin.phone : '-'}</td>
                         <td>
                           <c:choose>
-                            <c:when test="${admin.status == 'ACTIVE'}">
-                              <span class="badge badge-success">활성</span>
-                            </c:when>
                             <c:when test="${admin.status == 'LOCKED'}">
                               <span class="badge badge-danger">잠김</span>
                             </c:when>
-                            <c:when test="${admin.status == 'DELETED'}">
-                              <span class="badge badge-dark">삭제됨</span>
+                            <c:when test="${admin.status == 'ACTIVE'}">
+                              <span class="badge badge-success">재직</span>
                             </c:when>
                             <c:otherwise>
-                              <span class="badge badge-secondary">비활성</span>
+                              <span class="badge badge-secondary">휴직</span>
                             </c:otherwise>
                           </c:choose>
                         </td>
+                       
                         <td>
+                          <c:set var="fc" value="${admin.failCount}" />
+                          
                           <c:choose>
-                            <c:when test="${admin.failCount >= 4}">
-                              <span class="badge badge-danger">${admin.failCount}/5</span>
-                            </c:when>
-                            <c:when test="${admin.failCount >= 2}">
-                              <span class="badge badge-warning">${admin.failCount}/5</span>
-                            </c:when>
-                            <c:when test="${admin.failCount > 0}">
-                              <span class="badge badge-info">${admin.failCount}/5</span>
+                            <c:when test="${admin.status == 'LOCKED' || fc >= 5}">
+                              <span style="color: #dc3545; font-weight: bold;">${fc}/5 (잠김)</span>
                             </c:when>
                             <c:otherwise>
-                              <span class="badge badge-success">0/5</span>
+                              <span style="color: #000000;">${fc}/5</span>
                             </c:otherwise>
                           </c:choose>
                         </td>
+                       
                         <td>
                           <c:choose>
                             <c:when test="${admin.createdAt != null}">
@@ -160,9 +159,7 @@
                           <button class="btn btn-sm btn-outline-info" onclick="viewAdminDetail('${admin.adminId}')">상세</button>
                         </td>
                         <td>
-                          <c:if test="${admin.status != 'DELETED'}">
-                            <button class="btn btn-sm btn-outline-warning" onclick="editAdmin('${admin.adminId}')">수정</button>
-                          </c:if>
+                          <button class="btn btn-sm btn-outline-warning" onclick="editAdmin('${admin.adminId}')">수정</button>
                         </td>
                       </tr>
                     </c:forEach>
@@ -425,8 +422,8 @@
                 <div class="form-group">
                   <label class="form-label required">상태</label>
                   <select class="form-control" id="editAdminStatus" required>
-                    <option value="ACTIVE">활성</option>
-                    <option value="INACTIVE">비활성</option>
+                    <option value="ACTIVE">재직</option>
+                    <option value="INACTIVE">휴직</option>
                   </select>
                 </div>
               </div>
@@ -437,6 +434,7 @@
           <button type="button" class="btn btn-secondary" data-dismiss="modal">취소</button>
           <button type="button" class="btn custom-navy" onclick="updateAdmin()">수정</button>
           <button type="button" class="btn btn-danger" onclick="deleteAdminFromModal()">삭제</button>
+          <button type="button" class="btn btn-success" id="unlockBtn" style="display:none;" onclick="unlockAccountFromModal()">잠금해제</button>
         </div>
       </div>
     </div>
@@ -493,9 +491,9 @@
     const currentSortColumn = document.getElementById('sortColumn').value;
     const currentSortOrder = document.getElementById('sortOrder').value;
     
-    let newSortOrder = 'ASC';
-    if (currentSortColumn === column && currentSortOrder === 'ASC') {
-      newSortOrder = 'DESC';
+    let newSortOrder = 'asc';
+    if (currentSortColumn === column && currentSortOrder === 'asc') {
+      newSortOrder = 'desc';
     }
     
     document.getElementById('sortColumn').value = column;

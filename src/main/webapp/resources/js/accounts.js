@@ -101,7 +101,7 @@ function checkPhoneDuplicate(phone, currentId) {
       },
       error: function (xhr, status, error) {
         console.error('전화번호 중복 확인 오류:', error);
-        reject('전화번호 중복 확인 중 오류가 발생했습니다.');
+        resolve(false); // 오류 시에는 중복이 아닌 것으로 처리하여 진행
       }
     });
   });
@@ -215,7 +215,7 @@ function addAdmin() {
         proceed();
       }).catch(function (err) {
         console.error('전화번호 중복 확인 오류:', err);
-        alert('등록 중 오류가 발생했습니다.');
+        proceed(); // 오류 시에도 진행
       });
     } else {
       proceed();
@@ -259,6 +259,16 @@ function editAdmin(adminId) {
       if (elements.editAdminPhone) elements.editAdminPhone.value = admin.phone || '';
       if (elements.editAdminRole) elements.editAdminRole.value = admin.roleId || '';
       if (elements.editAdminStatus) elements.editAdminStatus.value = admin.status || 'ACTIVE';
+
+      // 잠김 상태면 잠금해제 버튼 표시
+      var unlockBtn = document.getElementById('unlockBtn');
+      if (unlockBtn) {
+        if (admin.status === 'LOCKED') {
+          unlockBtn.style.display = 'inline-block';
+        } else {
+          unlockBtn.style.display = 'none';
+        }
+      }
 
       $('#editAdminModal').modal('show');
     },
@@ -335,7 +345,7 @@ function updateAdmin() {
         afterDupCheck();
       }).catch(function (err) {
         console.error('전화번호 중복 확인 오류:', err);
-        alert('수정 중 오류가 발생했습니다.');
+        afterDupCheck(); // 오류 시에도 진행
       });
     } else {
       afterDupCheck();
@@ -344,6 +354,41 @@ function updateAdmin() {
   } catch (error) {
     console.error('updateAdmin 오류:', error);
     alert('수정 중 오류가 발생했습니다.');
+  }
+}
+
+// 수정 모달에서 잠금 해제
+function unlockAccountFromModal() {
+  var adminIdElement = document.getElementById('editAdminId');
+  if (!adminIdElement) {
+    alert('관리자 ID를 찾을 수 없습니다.');
+    return;
+  }
+
+  var adminId = adminIdElement.value;
+  if (!adminId) {
+    alert('유효하지 않은 관리자 ID입니다.');
+    return;
+  }
+
+  if (confirm('계정 잠금을 해제하시겠습니까?')) {
+    $.ajax({
+      url: contextPath + '/admin/settings/accounts/' + encodeURIComponent(adminId) + '/unlock',
+      type: 'PUT',
+      success: function (response) {
+        if (response && response.success) {
+          alert('계정 잠금이 해제되었습니다.');
+          $('#editAdminModal').modal('hide');
+          location.reload();
+        } else {
+          alert('해제 실패: ' + (response && response.message ? response.message : '알 수 없는 오류'));
+        }
+      },
+      error: function (xhr, status, error) {
+        console.error('잠금 해제 오류:', error);
+        alert('잠금 해제 중 오류가 발생했습니다.');
+      }
+    });
   }
 }
 
@@ -369,6 +414,7 @@ function viewAdminDetail(adminId) {
       detailHtml += '<tr><td><strong>소속/역할</strong></td><td>' + getRoleNameDetail(admin.roleId) + '</td></tr>';
       detailHtml += '<tr><td><strong>연락처</strong></td><td>' + (admin.phone || '-') + '</td></tr>';
       detailHtml += '<tr><td><strong>상태</strong></td><td>' + getStatusBadge(admin.status) + '</td></tr>';
+      detailHtml += '<tr><td><strong>실패횟수</strong></td><td>' + (admin.failCount || 0) + '/5</td></tr>';
       detailHtml += '<tr><td><strong>등록일</strong></td><td>' + formatDate(admin.createdAt) + '</td></tr>';
       detailHtml += '<tr><td><strong>최종수정일</strong></td><td>' + formatDate(admin.updatedAt) + '</td></tr>';
 
@@ -441,7 +487,7 @@ function deleteAdminFromModal() {
   }
 }
 
-// 일반 관리자 - 내 정보 수정 (async/await 제거)
+// 일반 관리자 - 내 정보 수정 (본인 제외 중복 확인)
 function updateMyInfo() {
   try {
     var elements = {
@@ -496,13 +542,18 @@ function updateMyInfo() {
       });
     };
 
+    // 전화번호가 있으면 중복 확인 (본인 제외)
     if (phone) {
       checkPhoneDuplicate(phone, currentAdminId).then(function (isDup) {
-        if (isDup) { alert('이미 사용 중인 전화번호입니다.'); elements.phone.focus(); return; }
+        if (isDup) { 
+          alert('이미 사용 중인 전화번호입니다.'); 
+          elements.phone.focus(); 
+          return; 
+        }
         go();
       }).catch(function (err) {
         console.error('전화번호 중복 확인 오류:', err);
-        alert('수정 중 오류가 발생했습니다.');
+        go(); // 오류 시에는 그냥 진행
       });
     } else {
       go();
@@ -526,12 +577,12 @@ function getRoleNameDetail(roleId) {
 }
 
 function getStatusBadge(status) {
-  if (status === 'ACTIVE') {
-    return '<span class="badge badge-success">활성</span>';
-  } else if (status === 'DELETED') {
-    return '<span class="badge badge-danger">삭제됨</span>';
+  if (status === 'LOCKED') {
+    return '<span class="badge badge-danger">잠김</span>';
+  } else if (status === 'ACTIVE') {
+    return '<span class="badge badge-success">재직</span>';
   } else if (status === 'INACTIVE') {
-    return '<span class="badge badge-secondary">비활성</span>';
+    return '<span class="badge badge-secondary">휴직</span>';
   } else {
     return '<span class="badge badge-light">' + (status || '알 수 없음') + '</span>';
   }
@@ -557,3 +608,4 @@ window.viewAdminDetail = viewAdminDetail;
 window.editAdminFromDetail = editAdminFromDetail;
 window.deleteAdminFromModal = deleteAdminFromModal;
 window.updateMyInfo = updateMyInfo;
+window.unlockAccountFromModal = unlockAccountFromModal;

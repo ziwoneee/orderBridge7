@@ -15,5 +15,9 @@ public class AdminUserVO {
     private String status;        // 계정 상태 (ACTIVE / INACTIVE)
     private Date createdAt;       // 등록일시 (계정 생성일)
     private Date updatedAt;       // 수정일시 (정보 수정 시점)
+    
+    private Date lastLoginAt;   // 마지막 로그인 성공 시각
+    private Date lastFailedAt;  // 마지막 로그인 실패 시각
+    private Date lockedAt;      // 잠금 시각
 
 }
