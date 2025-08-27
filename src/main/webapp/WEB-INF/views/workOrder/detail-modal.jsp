@@ -143,7 +143,7 @@
 
   <!-- 자재 BOM 정보 -->
   <h5 class="text-primary font-weight-bold" style="color: #1C355E !important;">
-    <i class="ti-view-list-alt"></i> 자재 소요량
+    자재 소요량
   </h5>
 
   <div class="table-responsive">
@@ -238,6 +238,9 @@
 /* 편집 모드 스타일 */
 .edit-mode select, .edit-mode textarea { width: 100%; }
 .edit-mode-buttons .btn { margin-left: 5px; }
+
+#bomTable thead th { background-color: #1C355E !important; color: #fff !important; }
+
 </style>
 
 <script>

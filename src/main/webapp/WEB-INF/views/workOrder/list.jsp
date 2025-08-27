@@ -101,10 +101,7 @@
                 </ul>
                 
                 <!-- 작업지시 등록 버튼 - 팝업용 -->
-				<a href="#" id="openOrderPopupBtn" class="btn btn-primary"
-				   style="background-color: #1C355E; border-color: #1C355E;">
-				  <i class="ti-plus"></i> 작업지시 등록
-				</a>
+				<a href="#" id="openOrderPopupBtn" class="btn btn-success mb-2">작업 지시 등록</a>
 			         
               </div>
                   
