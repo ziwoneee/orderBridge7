@@ -19,5 +19,6 @@ public class AdminUserVO {
     private Date lastLoginAt;   // 마지막 로그인 성공 시각
     private Date lastFailedAt;  // 마지막 로그인 실패 시각
     private Date lockedAt;      // 잠금 시각
+    private Boolean isLocked;   // 잠금 상태 
 
 }
