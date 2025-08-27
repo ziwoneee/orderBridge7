@@ -1,5 +1,6 @@
 package com.itwillbs.persistence;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -27,7 +28,7 @@ public interface MaterialInventoryDAO {
 	List<MaterialInventoryVO> selectAvailableLotsForMaterial(String materialId);
     
 	//자재 재고 차감 (박스용)
-	void decreaseLotQuantity(String inventoryId, int deductQty);
+	void decreaseLotQuantity(String inventoryId, BigDecimal deduct);
 	
 	// 자재 기본 정보 조회 (새로 추가)
     MaterialInventoryVO selectMaterialInfo(String materialId) throws Exception;

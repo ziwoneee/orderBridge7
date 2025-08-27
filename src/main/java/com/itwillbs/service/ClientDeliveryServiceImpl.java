@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -124,31 +125,34 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
             deliveryDAO.updateOrderDetailStatus(r.getDetailId(), "SHIPPED");
         }
         
-        // ✅ 자재 소진 규칙 적용
-        int rm0018Qty = 0; // 100단위 박스
-        int rm0017Qty = 0; // 소박스(≤30)
+     // ✅ 자재 소진 규칙 적용
+        BigDecimal rm0018Qty = BigDecimal.ZERO; // 대박스(100개)
+        int rm0017Qty = 0;                      // 소박스(≤30개)
 
-        // 1) 30개 이하 → RM-0017 1개만
         if (totalOrderQty <= 30) {
             rm0017Qty = 1;
         } else {
-            // 2) 100개 단위마다 RM-0018 1개
-            rm0018Qty = totalOrderQty / 100;
-
-            // 3) 나머지 처리
+            rm0018Qty = BigDecimal.valueOf(totalOrderQty / 100); // 정수 나눗셈
             int remainder = totalOrderQty % 100;
             if (remainder > 0) {
-                if (remainder <= 30) {
-                    rm0017Qty = 1;     // 나머지 ≤ 30 → RM-0017 1개 추가
-                } else {
-                    rm0018Qty += 1;    // 나머지 > 30 → RM-0018 1개 추가
-                }
+                if (remainder <= 30) rm0017Qty = 1;
+                else rm0018Qty = rm0018Qty.add(BigDecimal.ONE);
             }
         }
 
         // ✅ 실제 차감 (FEFO)
-        if (rm0018Qty > 0) consumeMaterialFefo("RM-0018", rm0018Qty);
-        if (rm0017Qty > 0) consumeMaterialFefo("RM-0017", rm0017Qty);
+        if (rm0018Qty.compareTo(BigDecimal.ZERO) > 0) {
+            // consumeMaterialFefo(String, BigDecimal) 버전이 있으면 그대로
+            consumeMaterialFefo("RM-0018", rm0018Qty);
+
+            // 만약 메서드 시그니처가 int면 ↓로 호출
+            // consumeMaterialFefo("RM-0018", rm0018Qty.intValue());
+        }
+        if (rm0017Qty > 0) {
+            // 타입 맞추기 (BigDecimal 버전 쓰면 변환)
+            consumeMaterialFefo("RM-0017", BigDecimal.valueOf(rm0017Qty));
+            // 또는 메서드가 int면 그대로: consumeMaterialFefo("RM-0017", rm0017Qty);
+        }
 
         
 
@@ -279,22 +283,27 @@ public class ClientDeliveryServiceImpl implements ClientDeliveryService {
 
    
     //자재 박스 선입선출
-    private void consumeMaterialFefo(String materialId, int needQty) {
-        List<MaterialInventoryVO> lots = materialInventoryDAO.selectAvailableLotsForMaterial(materialId);
-        int remain = needQty;
+    private void consumeMaterialFefo(String materialId, java.math.BigDecimal needQty) {
+        java.util.List<MaterialInventoryVO> lots = materialInventoryDAO.selectAvailableLotsForMaterial(materialId);
+
+        java.math.BigDecimal remain = (needQty == null ? java.math.BigDecimal.ZERO
+                : needQty).setScale(4, java.math.RoundingMode.HALF_UP);
 
         for (MaterialInventoryVO lot : lots) {
-            if (remain <= 0) break;
-            int available = lot.getQuantity();
-            if (available <= 0) continue;
+            if (remain.compareTo(java.math.BigDecimal.ZERO) <= 0) break;
 
-            int deduct = Math.min(available, remain);
-            materialInventoryDAO.decreaseLotQuantity(lot.getInventoryId(), deduct);
-            remain -= deduct;
+            java.math.BigDecimal available = (lot.getQuantity() == null ? java.math.BigDecimal.ZERO
+                    : lot.getQuantity());
+
+            if (available.compareTo(java.math.BigDecimal.ZERO) <= 0) continue;
+
+            java.math.BigDecimal deduct = available.min(remain); // Math.min 대신
+            materialInventoryDAO.decreaseLotQuantity(lot.getInventoryId(), deduct); // BigDecimal로
+            remain = remain.subtract(deduct);
         }
 
-        if (remain > 0) {
-            throw new IllegalStateException("자재 부족: " + materialId + ", 부족=" + remain);
+        if (remain.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            throw new IllegalStateException("자재 부족: " + materialId + ", 부족=" + remain.stripTrailingZeros().toPlainString());
         }
     }
 

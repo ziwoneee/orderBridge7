@@ -1,5 +1,6 @@
 package com.itwillbs.service;
 
+import java.math.BigDecimal;
 import java.util.*;
 import org.apache.ibatis.session.SqlSession;
 import org.springframework.stereotype.Service;
@@ -214,4 +215,9 @@ public class DashboardServiceImpl implements DashboardService {
     private static Double toDouble(Object o) {
         return (o instanceof Number) ? ((Number) o).doubleValue() : null;
     }
+    
+    private static BigDecimal nz(BigDecimal v) {
+        return (v == null) ? BigDecimal.ZERO : v;
+    }
+    
 }

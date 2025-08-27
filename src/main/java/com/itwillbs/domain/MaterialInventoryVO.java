@@ -10,7 +10,7 @@ public class MaterialInventoryVO {
 
     private String inventoryId;         // 재고 ID (재고 고유 식별자)
     private String materialId;          // 자재 ID (해당 자재의 자재 ID)
-    private int quantity;               // 보유 수량 (현재 보유하고 있는 수량)
+    private BigDecimal quantity;        // 보유 수량 (현재 보유하고 있는 수량)
     private String lotNo;               // LOT 번호 (자재의 LOT 구분값)
     private Date expirationDate;        // 유통기한 (해당 자재의 유통기한)
     private Date receivedDate;          // 입고일 (입고된 날짜)

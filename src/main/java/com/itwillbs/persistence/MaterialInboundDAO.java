@@ -1,5 +1,6 @@
 package com.itwillbs.persistence;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -116,6 +117,8 @@ public interface MaterialInboundDAO {
     
     // MaterialInboundDAO.java
     int updateInboundHandledByIfBlank(String inboundId, String handledBy);
+
+	void updateInventoryQuantity(String materialId, String warehouseCode, BigDecimal stockQtyBD);
 
 
 
