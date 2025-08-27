@@ -6,6 +6,7 @@ import lombok.Data;
 
 @Data
 public class MaterialInventoryVO {
+	
 
     private String inventoryId;         // 재고 ID (재고 고유 식별자)
     private String materialId;          // 자재 ID (해당 자재의 자재 ID)
