@@ -27,16 +27,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // 이벤트 리스너 초기화
 function initializeEventListeners() {
-  // 검색 입력창 엔터 키 이벤트
-  var searchInput = document.getElementById('searchInput');
-  if (searchInput) {
-    searchInput.addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') {
-        searchAdmins();
-      }
-    });
-  }
-
   // 관리자 ID 접두사 변경 시 역할 자동 설정
   var adminIdPrefix = document.getElementById('adminIdPrefix');
   var adminRole = document.getElementById('adminRole');
@@ -107,31 +97,7 @@ function checkPhoneDuplicate(phone, currentId) {
   });
 }
 
-// 검색 기능 (URLSearchParams 미사용)
-function searchAdmins() {
-  var searchInput = document.getElementById('searchInput');
-  var roleFilter = document.getElementById('roleFilter');
-  var statusFilter = document.getElementById('statusFilter');
-
-  if (!searchInput || !roleFilter || !statusFilter) {
-    console.error('검색 요소를 찾을 수 없습니다.');
-    return;
-  }
-
-  var searchValue = searchInput.value.trim();
-  var roleValue = roleFilter.value;
-  var statusValue = statusFilter.value;
-
-  var params = [];
-  if (searchValue) params.push('search=' + encodeURIComponent(searchValue));
-  if (roleValue) params.push('role=' + encodeURIComponent(roleValue));
-  if (statusValue) params.push('status=' + encodeURIComponent(statusValue));
-
-  var url = contextPath + '/admin/settings/accounts' + (params.length ? '?' + params.join('&') : '');
-  window.location.href = url;
-}
-
-// 관리자 추가 (async/await 제거)
+// 관리자 추가
 function addAdmin() {
   try {
     // 필수 요소들 가져오기
@@ -250,7 +216,8 @@ function editAdmin(adminId) {
         editAdminName: document.getElementById('editAdminName'),
         editAdminPhone: document.getElementById('editAdminPhone'),
         editAdminRole: document.getElementById('editAdminRole'),
-        editAdminStatus: document.getElementById('editAdminStatus')
+        editAdminStatus: document.getElementById('editAdminStatus'),
+        lockedStatusNote: document.getElementById('lockedStatusNote')
       };
 
       if (elements.editAdminId) elements.editAdminId.value = admin.adminId || '';
@@ -258,12 +225,32 @@ function editAdmin(adminId) {
       if (elements.editAdminName) elements.editAdminName.value = admin.name || '';
       if (elements.editAdminPhone) elements.editAdminPhone.value = admin.phone || '';
       if (elements.editAdminRole) elements.editAdminRole.value = admin.roleId || '';
-      if (elements.editAdminStatus) elements.editAdminStatus.value = admin.status || 'ACTIVE';
+
+      // 상태 처리 - isLocked 사용
+      if (admin.isLocked) {
+        // 잠김 상태면 상태 선택 비활성화하고 안내 메시지 표시
+        if (elements.editAdminStatus) {
+          elements.editAdminStatus.disabled = true;
+          elements.editAdminStatus.value = admin.status || 'ACTIVE'; // 원래 상태 표시
+        }
+        if (elements.lockedStatusNote) {
+          elements.lockedStatusNote.style.display = 'block';
+        }
+      } else {
+        // 일반 상태면 정상 처리
+        if (elements.editAdminStatus) {
+          elements.editAdminStatus.disabled = false;
+          elements.editAdminStatus.value = admin.status || 'ACTIVE';
+        }
+        if (elements.lockedStatusNote) {
+          elements.lockedStatusNote.style.display = 'none';
+        }
+      }
 
       // 잠김 상태면 잠금해제 버튼 표시
       var unlockBtn = document.getElementById('unlockBtn');
       if (unlockBtn) {
-        if (admin.status === 'LOCKED') {
+        if (admin.isLocked) {
           unlockBtn.style.display = 'inline-block';
         } else {
           unlockBtn.style.display = 'none';
@@ -279,7 +266,7 @@ function editAdmin(adminId) {
   });
 }
 
-// 관리자 정보 업데이트 (async/await 제거)
+// 관리자 정보 업데이트
 function updateAdmin() {
   try {
     var elements = {
@@ -413,8 +400,9 @@ function viewAdminDetail(adminId) {
       detailHtml += '<tr><td><strong>이름</strong></td><td>' + (admin.name || '-') + '</td></tr>';
       detailHtml += '<tr><td><strong>소속/역할</strong></td><td>' + getRoleNameDetail(admin.roleId) + '</td></tr>';
       detailHtml += '<tr><td><strong>연락처</strong></td><td>' + (admin.phone || '-') + '</td></tr>';
-      detailHtml += '<tr><td><strong>상태</strong></td><td>' + getStatusBadge(admin.status) + '</td></tr>';
-      detailHtml += '<tr><td><strong>실패횟수</strong></td><td>' + (admin.failCount || 0) + '/5</td></tr>';
+      detailHtml += '<tr><td><strong>상태</strong></td><td>' + getStatusBadge(admin.status, admin.isLocked) + '</td></tr>';
+      detailHtml += '<tr><td><strong>로그인 실패횟수</strong></td><td>' + (admin.failCount || 0) + '/5회</td></tr>';
+      detailHtml += '<tr><td><strong>최근 로그인</strong></td><td>' + formatDateTime(admin.lastLoginAt) + '</td></tr>';
       detailHtml += '<tr><td><strong>등록일</strong></td><td>' + formatDate(admin.createdAt) + '</td></tr>';
       detailHtml += '<tr><td><strong>최종수정일</strong></td><td>' + formatDate(admin.updatedAt) + '</td></tr>';
 
@@ -487,7 +475,7 @@ function deleteAdminFromModal() {
   }
 }
 
-// 일반 관리자 - 내 정보 수정 (본인 제외 중복 확인)
+// 일반 관리자 - 내 정보 수정
 function updateMyInfo() {
   try {
     var elements = {
@@ -576,18 +564,24 @@ function getRoleNameDetail(roleId) {
   return roleMap[roleId] || '<span class="badge badge-secondary">' + (roleId || '알 수 없음') + '</span>';
 }
 
-function getStatusBadge(status) {
-  if (status === 'LOCKED') {
-    return '<span class="badge badge-danger">잠김</span>';
+// 상태 배지 생성 (메인 목록용 - 잠김 상태만 표시)
+function getStatusBadge(status, isLocked) {
+  var result = '';
+  
+  if (isLocked) {
+    result += '<span class="badge badge-danger">잠김</span>';
   } else if (status === 'ACTIVE') {
-    return '<span class="badge badge-success">재직</span>';
+    result += '<span class="badge badge-success">재직</span>';
   } else if (status === 'INACTIVE') {
-    return '<span class="badge badge-secondary">휴직</span>';
+    result += '<span class="badge badge-secondary">휴직</span>';
   } else {
-    return '<span class="badge badge-light">' + (status || '알 수 없음') + '</span>';
+    result += '<span class="badge badge-light">' + (status || '알 수 없음') + '</span>';
   }
+  
+  return result;
 }
 
+// 날짜 포맷팅 (날짜만)
 function formatDate(dateString) {
   if (!dateString) return '-';
   try {
@@ -598,9 +592,20 @@ function formatDate(dateString) {
   }
 }
 
+// 날짜시간 포맷팅 (상세보기용)
+function formatDateTime(dateString) {
+  if (!dateString) return '로그인 기록 없음';
+  try {
+    var date = new Date(dateString);
+    return date.toLocaleDateString('ko-KR') + ' ' + date.toLocaleTimeString('ko-KR', { hour12: false });
+  } catch (error) {
+    console.error('날짜시간 포맷팅 오류:', error);
+    return '-';
+  }
+}
+
 // 전역 함수로 등록 (JSP에서 호출할 수 있도록)
 window.formatPhoneNumber = formatPhoneNumber;
-window.searchAdmins = searchAdmins;
 window.addAdmin = addAdmin;
 window.editAdmin = editAdmin;
 window.updateAdmin = updateAdmin;

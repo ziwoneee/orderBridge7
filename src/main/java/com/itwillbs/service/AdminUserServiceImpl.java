@@ -32,10 +32,17 @@ public class AdminUserServiceImpl implements AdminUserService {
         AdminUserVO dbVO = adminUserMapper.findByAdminId(inputVO.getAdminId());
         if (dbVO == null) return null;
 
-        // 2) ACTIVE만 로그인 허용
+        // 2) ACTIVE이면서 잠기지 않은 상태만 로그인 허용
         String st = dbVO.getStatus();
+        Boolean locked = dbVO.getIsLocked();
+        
         if (!"ACTIVE".equals(st)) {
             log.warn("Login blocked (status={}): adminId={}", st, inputVO.getAdminId());
+            return null;
+        }
+        
+        if (Boolean.TRUE.equals(locked)) {
+            log.warn("Login blocked (locked=true): adminId={}", inputVO.getAdminId());
             return null;
         }
 
@@ -45,14 +52,14 @@ public class AdminUserServiceImpl implements AdminUserService {
         boolean matched = (encPw != null) && PasswordEncoderUtil.matches(rawPw, encPw);
 
         if (matched) {
-            // 성공: 실패횟수 0, last_login_at = NOW()
+            // 성공: 실패횟수 0, 잠금해제, last_login_at = NOW()
             adminUserMapper.resetFailCount(dbVO.getAdminId());
             AdminUserVO fresh = adminUserMapper.findByAdminId(dbVO.getAdminId());
             log.info("Login success: adminId={}", dbVO.getAdminId());
             return fresh;
         }
 
-        // 4) 실패: 실패횟수 +1 (ACTIVE일 때만 증가되도록 XML에서 필터)
+        // 4) 실패: 실패횟수 +1, 5회 시 잠금
         adminUserMapper.increaseFailCount(dbVO.getAdminId());
 
         // 증가 후 상태 확정
@@ -60,7 +67,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         int fc = (after != null ? after.getFailCount() : 0);
         int remaining = Math.max(0, MAX_FAIL - fc);
 
-        if (after != null && "LOCKED".equals(after.getStatus())) {
+        if (after != null && Boolean.TRUE.equals(after.getIsLocked())) {
             log.warn("Account locked (failCount={}): adminId={}", fc, dbVO.getAdminId());
             return null;
         }
@@ -86,6 +93,11 @@ public class AdminUserServiceImpl implements AdminUserService {
         // 비밀번호 BCrypt 인코딩
         String encodedPw = PasswordEncoderUtil.encode(vo.getPassword());
         vo.setPassword(encodedPw);
+        
+        // 기본값 설정
+        if (vo.getStatus() == null) vo.setStatus("ACTIVE");
+        if (vo.getIsLocked() == null) vo.setIsLocked(false);
+        
         adminUserMapper.insertAdmin(vo);
     }
     

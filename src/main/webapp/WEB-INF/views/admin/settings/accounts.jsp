@@ -36,7 +36,6 @@
                     <option value="">상태</option>
                     <option value="ACTIVE" ${cri.status == 'ACTIVE' ? 'selected' : ''}>재직</option>
                     <option value="INACTIVE" ${cri.status == 'INACTIVE' ? 'selected' : ''}>휴직</option>
-                    <option value="LOCKED" ${cri.status == 'LOCKED' ? 'selected' : ''}>잠김</option>
                   </select>
                 </div>
                 <div class="col-md-4">
@@ -72,22 +71,50 @@
             <table class="table">
               <thead class="table-header-dark">
                 <tr>
-                  <th onclick="sortTable('admin_id')" style="cursor: pointer;">
-                    사번 ${cri.sortColumn == 'admin_id' ? (cri.sortOrder == 'asc' ? '▲' : '▼') : ''}
+                  <th>
+                    <a href="?page=${cri.page}&keyword=${cri.keyword}&condition=${cri.condition}&status=${cri.status}&sortColumn=admin_id&sortOrder=${cri.sortColumn == 'admin_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+                       class="text-white text-decoration-none">
+                      사번
+                      <c:choose>
+                        <c:when test="${cri.sortColumn == 'admin_id'}">
+                          <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+                        </c:when>
+                        <c:otherwise>
+                          <span class="neutral-arrow">⇅</span>
+                        </c:otherwise>
+                      </c:choose>
+                    </a>
                   </th>
-                  <th onclick="sortTable('name')" style="cursor: pointer;">
-                    이름 ${cri.sortColumn == 'name' ? (cri.sortOrder == 'asc' ? '▲' : '▼') : ''}
+                  <th>
+                    <a href="?page=${cri.page}&keyword=${cri.keyword}&condition=${cri.condition}&status=${cri.status}&sortColumn=name&sortOrder=${cri.sortColumn == 'name' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+                       class="text-white text-decoration-none">
+                      이름
+                      <c:choose>
+                        <c:when test="${cri.sortColumn == 'name'}">
+                          <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+                        </c:when>
+                        <c:otherwise>
+                          <span class="neutral-arrow">⇅</span>
+                        </c:otherwise>
+                      </c:choose>
+                    </a>
                   </th>
                   <th>소속/역할</th>
                   <th>연락처</th>
-                  <th onclick="sortTable('status')" style="cursor: pointer;">
-                    상태 ${cri.sortColumn == 'status' ? (cri.sortOrder == 'asc' ? '▲' : '▼') : ''}
-                  </th>
-                  <th onclick="sortTable('fail_count')" style="cursor: pointer;">
-                    실패횟수 ${cri.sortColumn == 'fail_count' ? (cri.sortOrder == 'asc' ? '▲' : '▼') : ''}
-                  </th>
-                  <th onclick="sortTable('created_at')" style="cursor: pointer;">
-                    등록일 ${cri.sortColumn == 'created_at' ? (cri.sortOrder == 'asc' ? '▲' : '▼') : ''}
+                  <th>상태</th>
+                  <th>
+                    <a href="?page=${cri.page}&keyword=${cri.keyword}&condition=${cri.condition}&status=${cri.status}&sortColumn=created_at&sortOrder=${cri.sortColumn == 'created_at' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+                       class="text-white text-decoration-none">
+                      등록일
+                      <c:choose>
+                        <c:when test="${cri.sortColumn == 'created_at'}">
+                          <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+                        </c:when>
+                        <c:otherwise>
+                          <span class="neutral-arrow">⇅</span>
+                        </c:otherwise>
+                      </c:choose>
+                    </a>
                   </th>
                   <th>상세</th>
                   <th>관리</th>
@@ -97,7 +124,7 @@
                 <c:choose>
                   <c:when test="${not empty adminList}">
                     <c:forEach var="admin" items="${adminList}">
-                      <tr class="${(admin.status == 'INACTIVE' || admin.status == 'DELETED' || admin.status == 'LOCKED') ? 'inactive-row' : ''}">
+                      <tr>
                         <td>${admin.adminId}</td>
                         <td>${admin.name}</td>
                         <td>
@@ -119,34 +146,30 @@
                             </c:otherwise>
                           </c:choose>
                         </td>
-                        <td>${admin.phone != null ? admin.phone : '-'}</td>
                         <td>
                           <c:choose>
-                            <c:when test="${admin.status == 'LOCKED'}">
+                            <c:when test="${admin.phone != null && admin.phone != ''}">
+                              ${admin.phone}
+                            </c:when>
+                            <c:otherwise>-</c:otherwise>
+                          </c:choose>
+                        </td>
+                        <td>
+                          <c:choose>
+                            <c:when test="${admin.isLocked}">
                               <span class="badge badge-danger">잠김</span>
                             </c:when>
                             <c:when test="${admin.status == 'ACTIVE'}">
                               <span class="badge badge-success">재직</span>
                             </c:when>
-                            <c:otherwise>
+                            <c:when test="${admin.status == 'INACTIVE'}">
                               <span class="badge badge-secondary">휴직</span>
-                            </c:otherwise>
-                          </c:choose>
-                        </td>
-                       
-                        <td>
-                          <c:set var="fc" value="${admin.failCount}" />
-                          
-                          <c:choose>
-                            <c:when test="${admin.status == 'LOCKED' || fc >= 5}">
-                              <span style="color: #dc3545; font-weight: bold;">${fc}/5 (잠김)</span>
                             </c:when>
                             <c:otherwise>
-                              <span style="color: #000000;">${fc}/5</span>
+                              <span class="badge badge-light">${admin.status}</span>
                             </c:otherwise>
                           </c:choose>
                         </td>
-                       
                         <td>
                           <c:choose>
                             <c:when test="${admin.createdAt != null}">
@@ -166,7 +189,7 @@
                   </c:when>
                   <c:otherwise>
                     <tr>
-                      <td colspan="9" class="text-center py-4">등록된 관리자가 없습니다.</td>
+                      <td colspan="8" class="text-center py-4">등록된 관리자가 없습니다.</td>
                     </tr>
                   </c:otherwise>
                 </c:choose>
@@ -425,6 +448,9 @@
                     <option value="ACTIVE">재직</option>
                     <option value="INACTIVE">휴직</option>
                   </select>
+                  <small class="form-text text-muted" id="lockedStatusNote" style="display:none; color:#dc3545;">
+                    현재 잠김 상태입니다. 상태 변경을 위해서는 먼저 잠금을 해제해주세요.
+                  </small>
                 </div>
               </div>
             </div>
@@ -486,31 +512,6 @@
     }
     input.value = value;
   }
-  
-  function sortTable(column) {
-    const currentSortColumn = document.getElementById('sortColumn').value;
-    const currentSortOrder = document.getElementById('sortOrder').value;
-    
-    let newSortOrder = 'asc';
-    if (currentSortColumn === column && currentSortOrder === 'asc') {
-      newSortOrder = 'desc';
-    }
-    
-    document.getElementById('sortColumn').value = column;
-    document.getElementById('sortOrder').value = newSortOrder;
-    document.querySelector('form').submit();
-  }
-  
-  // 페이지 로드 후 비활성 행들을 맨 아래로 이동
-  document.addEventListener('DOMContentLoaded', function() {
-    const tbody = document.querySelector('tbody');
-    const inactiveRows = document.querySelectorAll('.inactive-row');
-    
-    // 비활성 행들을 맨 아래로 이동
-    inactiveRows.forEach(function(row) {
-      tbody.appendChild(row);
-    });
-  });
 </script>
 
 <script src="${pageContext.request.contextPath}/resources/js/accounts.js"></script>

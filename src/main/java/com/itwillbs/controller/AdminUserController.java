@@ -55,73 +55,73 @@ public class AdminUserController {
 	    return "admin/login";
 	}
 
-    // 로그인 처리(POST)
-    @PostMapping("/admin/login")
-    public String login(AdminUserVO vo,
-    					HttpSession session, 
-    					HttpServletRequest request,
-    					HttpServletResponse response,
-    					RedirectAttributes rttr) {
-    	
-    	// 입력한 ID에 해당하는 관리자 정보 조회
-        AdminUserVO dbVO = adminUserService.findByAdminId(vo.getAdminId());
-
-        // 존재하지 않는 계정
-        if (dbVO == null) {
-            rttr.addFlashAttribute("errorMsg", "아이디 또는 비밀번호가 일치하지 않습니다.");
-            return "redirect:/admin/login";
-        }
-
-        // 잠긴 계정일 경우
-        if ("LOCKED".equals(dbVO.getStatus())) {
-            rttr.addFlashAttribute("errorMsg", "계정이 잠겨 있습니다. 관리자에게 문의하세요.");
-            return "redirect:/admin/login";
-        }
-
-        // 비밀번호 일치 여부 확인
-        AdminUserVO loginVO = adminUserService.login(vo);
-
-        if (loginVO != null) {
-        	System.out.println("로그인 성공 → 세션 저장: " + loginVO.getAdminId() + " / 이름: " + loginVO.getName());
-
-        	// 로그인 성공: 세션 저장 + 자동 로그아웃 타이머 설정
-        	// 로그인 성공: 세션 저장 + 자동 로그아웃 타이머 설정
-        	session.setAttribute("loginAdmin", loginVO);
-        	session.setAttribute("adminId", loginVO.getAdminId());      
-        	session.setAttribute("adminName", loginVO.getName());        
-        	session.setMaxInactiveInterval(30 * 60); // 30분 동안 미사용 시 세션 만료
-           
-            // 아이디 저장 체크 여부 확인
-            String remember = request.getParameter("remember");
-
-            if ("on".equals(remember)) {
-            	// 쿠키 생성 (아이디 저장)
-                Cookie cookie = new Cookie("rememberAdminId", loginVO.getAdminId());
-                cookie.setMaxAge(60 * 60 * 24 * 7); // 7일간 유지 
-                cookie.setPath("/");
-                response.addCookie(cookie);
-            } else {
-            	// 기존 쿠키 삭제 
-                Cookie cookie = new Cookie("rememberAdminId", null);
-                cookie.setMaxAge(0); // 즉시 삭제
-                cookie.setPath("/");
-                response.addCookie(cookie);
-            }
-            
-            return "redirect:/admin/dashboard";
-        } else {
-            // 실패 시 최신 상태 다시 조회
-            AdminUserVO updatedVO = adminUserService.findByAdminId(vo.getAdminId()); // 추가
-            
-            if (updatedVO != null && "LOCKED".equals(updatedVO.getStatus())) {
-                rttr.addFlashAttribute("errorMsg", "계정이 잠겨 있습니다. 관리자에게 문의하세요.");
-            } else {
-                rttr.addFlashAttribute("errorMsg", "아이디 또는 비밀번호가 일치하지 않습니다.");
-            }
-            return "redirect:/admin/login";
-        }
-    }
-    
+	// 로그인 처리(POST)
+	@PostMapping("/admin/login")
+	public String login(AdminUserVO vo,
+	                   HttpSession session, 
+	                   HttpServletRequest request,
+	                   HttpServletResponse response,
+	                   RedirectAttributes rttr) {
+	    
+	    // 입력한 ID에 해당하는 관리자 정보 조회
+	    AdminUserVO dbVO = adminUserService.findByAdminId(vo.getAdminId());
+	    
+	    // 존재하지 않는 계정
+	    if (dbVO == null) {
+	        rttr.addFlashAttribute("errorMsg", "아이디 또는 비밀번호가 일치하지 않습니다.");
+	        return "redirect:/admin/login";
+	    }
+	    
+	    // 잠긴 계정일 경우 - is_locked 컬럼 체크로 변경
+	    if (Boolean.TRUE.equals(dbVO.getIsLocked())) {
+	        rttr.addFlashAttribute("errorMsg", "계정이 잠겨 있습니다. 관리자에게 문의하세요.");
+	        return "redirect:/admin/login";
+	    }
+	    
+	    // 비밀번호 일치 여부 확인
+	    AdminUserVO loginVO = adminUserService.login(vo);
+	    
+	    if (loginVO != null) {
+	        System.out.println("로그인 성공 → 세션 저장: " + loginVO.getAdminId() + " / 이름: " + loginVO.getName());
+	        
+	        // 로그인 성공: 세션 저장 + 자동 로그아웃 타이머 설정
+	        session.setAttribute("loginAdmin", loginVO);
+	        session.setAttribute("adminId", loginVO.getAdminId());      
+	        session.setAttribute("adminName", loginVO.getName());        
+	        session.setMaxInactiveInterval(30 * 60); // 30분 동안 미사용 시 세션 만료
+	       
+	        // 아이디 저장 체크 여부 확인
+	        String remember = request.getParameter("remember");
+	        
+	        if ("on".equals(remember)) {
+	            // 쿠키 생성 (아이디 저장)
+	            Cookie cookie = new Cookie("rememberAdminId", loginVO.getAdminId());
+	            cookie.setMaxAge(60 * 60 * 24 * 7); // 7일간 유지 
+	            cookie.setPath("/");
+	            response.addCookie(cookie);
+	        } else {
+	            // 기존 쿠키 삭제 
+	            Cookie cookie = new Cookie("rememberAdminId", null);
+	            cookie.setMaxAge(0); // 즉시 삭제
+	            cookie.setPath("/");
+	            response.addCookie(cookie);
+	        }
+	        
+	        return "redirect:/admin/dashboard";
+	    } else {
+	        // 실패 시 최신 상태 다시 조회
+	        AdminUserVO updatedVO = adminUserService.findByAdminId(vo.getAdminId());
+	        
+	        // is_locked 컬럼 체크로 변경
+	        if (updatedVO != null && Boolean.TRUE.equals(updatedVO.getIsLocked())) {
+	            rttr.addFlashAttribute("errorMsg", "계정이 잠겨 있습니다. 관리자에게 문의하세요.");
+	        } else {
+	            rttr.addFlashAttribute("errorMsg", "아이디 또는 비밀번호가 일치하지 않습니다.");
+	        }
+	        return "redirect:/admin/login";
+	    }
+	}
+	
     // 로그아웃 처리 (GET)  
     @GetMapping("/admin/logout")
     public String logout(HttpSession session, RedirectAttributes rttr) {

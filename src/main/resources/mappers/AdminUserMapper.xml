@@ -6,71 +6,66 @@
 
   <!-- ==================== 기본 CRUD 쿼리들 ==================== -->
 
-  <!-- [로그인용 단건 조회] 아이디만으로 조회, 비밀번호 비교는 Service에서 bcrypt로 -->
- 	<select id="findByAdminId" parameterType="string"
+  <!-- [로그인용 단건 조회] -->
+  <select id="findByAdminId" parameterType="string"
         resultType="com.itwillbs.domain.AdminUserVO">
-	  SELECT
-	    admin_id        AS adminId,
-	    password,
-	    name,
-	    phone,
-	    role_id         AS roleId,
-	    fail_count      AS failCount,
-	    status,
-	    created_at      AS createdAt,
-	    updated_at      AS updatedAt,
-	    last_login_at   AS lastLoginAt,
-	    last_failed_at  AS lastFailedAt,
-	    locked_at       AS lockedAt
-	  FROM admin_user
-	  WHERE admin_id = #{adminId}
-	</select>
+    SELECT
+      admin_id        AS adminId,
+      password,
+      name,
+      phone,
+      role_id         AS roleId,
+      fail_count      AS failCount,
+      status,
+      is_locked       AS isLocked,
+      created_at      AS createdAt,
+      updated_at      AS updatedAt,
+      last_login_at   AS lastLoginAt,
+      last_failed_at  AS lastFailedAt,
+      locked_at       AS lockedAt
+    FROM admin_user
+    WHERE admin_id = #{adminId}
+  </select>
 
   <!-- [등록] 운영자가 수동 생성 -->
   <insert id="insertAdmin" parameterType="com.itwillbs.domain.AdminUserVO">
     INSERT INTO admin_user
-      (admin_id, password, name, phone, role_id, fail_count, status, created_at)
+      (admin_id, password, name, phone, role_id, fail_count, status, is_locked, created_at)
     VALUES
       (#{adminId}, #{password}, #{name}, #{phone}, #{roleId},
-       COALESCE(#{failCount}, 0), COALESCE(#{status}, 'ACTIVE'), NOW())
+       COALESCE(#{failCount}, 0), COALESCE(#{status}, 'ACTIVE'), FALSE, NOW())
   </insert>
 
-<!-- [로그인 실패] 실패횟수 +1, 5회 도달 시 즉시 LOCK -->
-	<update id="increaseFailCount" parameterType="string">
-	  UPDATE admin_user
-	     SET fail_count = fail_count + 1,
-	         status =
-	           CASE
-	             WHEN fail_count + 1 >= 6 THEN 'LOCKED'
-	             ELSE status
-	           END,
-	         last_failed_at = NOW(),
-	         locked_at =
-	           CASE
-	             WHEN (fail_count + 1) >= 5 THEN NOW()
-	             ELSE locked_at
-	           END
-	   WHERE admin_id = #{adminId}
-	     AND status = 'ACTIVE'
-	</update>
+  <!-- [로그인 실패] is_locked만 변경, status는 유지 -->
+  <update id="increaseFailCount" parameterType="string">
+    UPDATE admin_user
+       SET fail_count = fail_count + 1,
+           is_locked = CASE WHEN (fail_count + 1) > 5 THEN TRUE ELSE is_locked END,
+           last_failed_at = NOW(),
+           locked_at = CASE WHEN (fail_count + 1) > 5 THEN NOW() ELSE locked_at END
+     WHERE admin_id = #{adminId}
+       AND status = 'ACTIVE'
+       AND is_locked = FALSE
+  </update>
 
-  <!-- [로그인 성공] 실패횟수 0 -->
+  <!-- [로그인 성공] 실패횟수 0, 잠금해제 -->
   <update id="resetFailCount" parameterType="string">
-	  UPDATE admin_user
-	     SET fail_count = 0,
-	         last_login_at = NOW()
-	   WHERE admin_id = #{adminId}
-	</update>
+    UPDATE admin_user
+       SET fail_count = 0,
+           is_locked = FALSE,
+           last_login_at = NOW()
+     WHERE admin_id = #{adminId}
+  </update>
 
-  <!-- [잠금 해제] 설정 화면/버튼에서 사용 -->
-	<update id="unlockAccount" parameterType="string">
-      UPDATE admin_user
-      SET status = 'ACTIVE',
-         fail_count = 0,
-         locked_at = NULL,
-         updated_at = NOW()
-   WHERE admin_id = #{adminId}
-	</update>
+  <!-- [잠금 해제] -->
+  <update id="unlockAccount" parameterType="string">
+    UPDATE admin_user
+    SET is_locked = FALSE,
+       fail_count = 0,
+       locked_at = NULL,
+       updated_at = NOW()
+    WHERE admin_id = #{adminId}
+  </update>
 
   <!-- 관리자 정보 수정 (최고관리자용) -->
   <update id="updateAdmin" parameterType="com.itwillbs.domain.AdminUserVO">
@@ -129,6 +124,7 @@
         phone,
         role_id as roleId,
         status,
+        is_locked as isLocked,
         fail_count as failCount,
         created_at as createdAt,
         updated_at as updatedAt
@@ -145,7 +141,11 @@
         AND status = #{status}
     </if>
     ORDER BY 
-        status ASC,  -- ACTIVE가 먼저
+        CASE status 
+            WHEN 'ACTIVE' THEN 1
+            WHEN 'INACTIVE' THEN 2
+            ELSE 3
+        END,
         CASE role_id 
             WHEN 'SUPER' THEN 1
             WHEN 'PROD' THEN 2  
@@ -193,6 +193,7 @@
         phone,
         role_id as roleId,
         status,
+        is_locked as isLocked,
         fail_count as failCount,
         created_at as createdAt,
         updated_at as updatedAt
@@ -216,17 +217,8 @@
                         ELSE 5
                     END
                 </when>
-                <when test="sortColumn == 'status'">
-                    CASE status 
-                        WHEN 'ACTIVE' THEN 1
-                        WHEN 'INACTIVE' THEN 2
-                        WHEN 'LOCKED' THEN 3
-                        ELSE 4
-                    END
-                </when>
                 <when test="sortColumn == 'created_at'">created_at</when>
                 <when test="sortColumn == 'updated_at'">updated_at</when>
-                <when test="sortColumn == 'fail_count'">fail_count</when>
                 <otherwise>admin_id</otherwise>
             </choose>
             
@@ -237,9 +229,13 @@
             </choose>
         </when>
         
-        <!-- 기본 정렬: 상태(ACTIVE 먼저) → 역할 → 사번 -->
+        <!-- 기본 정렬: 재직자 먼저 → 휴직자 나중에 → 역할 → 사번 -->
         <otherwise>
-            status ASC,  -- ACTIVE가 먼저
+            CASE status 
+                WHEN 'ACTIVE' THEN 1
+                WHEN 'INACTIVE' THEN 2
+                ELSE 3
+            END,
             CASE role_id 
                 WHEN 'SUPER' THEN 1
                 WHEN 'PROD' THEN 2  
