@@ -371,83 +371,72 @@ function enforceMultiple(el) {
 //★ REPLACE: 기존 rowRecalc 전체를 아래로 교체
 //★ 수정된 rowRecalc 함수 - 발주 상세와 동일한 계산 로직 적용
 function rowRecalc(input){
-  var row = input.closest ? input.closest('tr') : (function(n){while(n && n.tagName!=='TR'){n=n.parentNode;}return n;})(input);
-  if (!row) return;
+	  var row = input.closest ? input.closest('tr') : (function(n){while(n && n.tagName!=='TR'){n=n.parentNode;}return n;})(input);
+	  if (!row) return;
 
-  // 기본 값들
-  var qtyInput    = row.querySelector("input[name$='.orderQuantity']");
-  var unitPriceEl = row.querySelector("input[name$='.unitPrice']");
-  var hiddenTot   = row.querySelector("input[type='hidden'][name$='.totalPrice']");
-  var visibleTot  = row.querySelector("input[name$='.visibleTotal']") 
-                 || (hiddenTot && hiddenTot.parentNode.querySelector("input[type='number']"));
-  var convSpan    = row.querySelector(".js-conv");
+	  var qtyInput    = row.querySelector("input[name$='.orderQuantity']");
+	  var unitPriceEl = row.querySelector("input[name$='.unitPrice']");
+	  var hiddenTot   = row.querySelector("input[type='hidden'][name$='.totalPrice']");
+	  var visibleTot  = row.querySelector("input[name$='.visibleTotal']") 
+	                 || (hiddenTot && hiddenTot.parentNode.querySelector("input[type='number']"));
+	  var convSpan    = row.querySelector(".js-conv");
 
-  var packs = Number(qtyInput && qtyInput.value ? qtyInput.value : 0) || 0;
-  var unitPrice = Number(unitPriceEl && unitPriceEl.value ? unitPriceEl.value : 0) || 0;
+	  var packs     = Number(qtyInput && qtyInput.value ? qtyInput.value : 0) || 0;
+	  var unitPrice = Number(unitPriceEl && unitPriceEl.value ? unitPriceEl.value : 0) || 0;
 
-  // ① 과금단위 확인
-  var priceUnit = (qtyInput && qtyInput.dataset && qtyInput.dataset.priceUnit)
-               || (row.querySelector("input[name$='.priceUnit']") || {}).value
-               || 'KG';
-  priceUnit = String(priceUnit).toUpperCase();
+	  // 과금(결제) 단위/환산
+	  var priceUnit  = (qtyInput && qtyInput.dataset && qtyInput.dataset.priceUnit)
+	                || (row.querySelector("input[name$='.priceUnit']") || {}).value || 'KG';
+	  priceUnit = String(priceUnit).toUpperCase();
 
-  // ② 팩당 과금수량 확인 (1 PACK = ? KG/L/BUNDLE)
-  var packQty = Number(qtyInput && qtyInput.dataset && qtyInput.dataset.conv) ||
-                Number((row.querySelector("input[name$='.convToBase']") || {}).value) ||
-                1;
+	  // 1 주문단위(=PACK/BOX/BOTTLE …) 당 과금수량
+	  var packQtyBase = Number(qtyInput && qtyInput.dataset && qtyInput.dataset.conv) ||
+	                    Number((row.querySelector("input[name$='.convToBase']") || {}).value) || 1;
 
-  // ③ 번들 특수 케이스
-  var bundlesPerPack = Number(qtyInput && qtyInput.dataset && qtyInput.dataset.bundlesPerPack) || 1;
+	  // 표시(재고) 단위/환산
+	  var displayUnit   = (qtyInput && qtyInput.dataset && qtyInput.dataset.displayUnit) || 'EA';
+	  displayUnit = String(displayUnit).toUpperCase();
+	  var packQtyDisplay = Number(qtyInput && qtyInput.dataset && qtyInput.dataset.convDisplay) || 1;
 
-  // === 발주 상세와 동일한 계산 로직 ===
-  var billedQty = 0;
-  var displayWeight = '';
-  var dispUnit = '';
+	  // 번들 케이스(필요 시)
+	  var bundlesPerPack = Number(qtyInput && qtyInput.dataset && qtyInput.dataset.bundlesPerPack) || 1;
 
-  if (priceUnit === 'KG') {
-    // KG으로 과금: PACK수 × kg/PACK
-    billedQty = packs * packQty;
-    displayWeight = billedQty.toLocaleString() + 'kg';
-    dispUnit = 'KG';
-  } else if (priceUnit === 'L') {
-    // L로 과금: PACK수 × L/PACK  
-    billedQty = packs * packQty;
-    displayWeight = billedQty.toLocaleString() + 'L';
-    dispUnit = 'L';
-  } else if (priceUnit === 'BUNDLE') {
-    // 번들로 과금
-    billedQty = packs * bundlesPerPack;
-    displayWeight = billedQty.toLocaleString() + '단';
-    dispUnit = 'BUNDLE';
-  } else {
-    // PACK 단가 또는 기타
-    billedQty = packs;
-    displayWeight = (packs * packQty).toLocaleString() + (priceUnit === 'PACK' ? 'PACK' : priceUnit);
-    dispUnit = priceUnit;
-  }
+	  // === 결제 수량 계산 ===
+	  var billedQty = 0;
+	  if (priceUnit === 'KG' || priceUnit === 'L' || priceUnit === 'PACK') {
+	    // ✔ PACK도 KG/L처럼 "곱셈"으로 처리
+	    billedQty = packs * packQtyBase;
+	  } else if (priceUnit === 'BUNDLE') {
+	    billedQty = packs * bundlesPerPack;
+	  } else {
+	    billedQty = packs; // EA 등
+	  }
 
-  // 총액 계산: 과금수량 × 단가
-  var total = Math.round(billedQty * unitPrice);
+	  // 총액
+	  var total = Math.round(billedQty * unitPrice);
+	  if (hiddenTot)  hiddenTot.value  = total;
+	  if (visibleTot) visibleTot.value = total;
 
-  // 디버깅 로그 (개발시에만)
-  console.log('계산 디버깅:', {
-    packs: packs,
-    packQty: packQty, 
-    priceUnit: priceUnit,
-    unitPrice: unitPrice,
-    billedQty: billedQty,
-    total: total,
-    calculation: `${packs} PACK × ${packQty} ${priceUnit} × ${unitPrice}원 = ${total}원`
-  });
+	  // === 표시(라벨) 수량: 재고/표시 단위로 보여준다 ===
+	  var displayQty = packs * packQtyDisplay;
+	  var label;
+	  if (displayUnit === 'KG') {
+	    label = Number(displayQty.toFixed(2)).toLocaleString() + 'kg';
+	  } else if (displayUnit === 'L') {
+	    label = Number(displayQty.toFixed(2)).toLocaleString() + 'L';
+	  } else {
+	    label = displayQty.toLocaleString() + (displayUnit === 'EA' ? '' : displayUnit);
+	  }
+	  if (convSpan) convSpan.textContent = label;
 
-  if (hiddenTot)  hiddenTot.value  = total;
-  if (visibleTot) visibleTot.value = total;
+	  // 디버깅
+	  console.log('계산 디버깅:', {
+	    packs, priceUnit, packQtyBase, displayUnit, packQtyDisplay,
+	    billedQty, displayQty, unitPrice, total,
+	    calculation: `${packs} × ${packQtyBase} ${priceUnit} × ${unitPrice} = ${total}`
+	  });
+	}
 
-  // 표시용 라벨 업데이트
-  if (convSpan) {
-    convSpan.textContent = displayWeight;
-  }
-}
 
 /* ---------------------------------------
  * [7] 공용 유틸
