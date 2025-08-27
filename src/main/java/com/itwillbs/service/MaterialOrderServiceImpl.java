@@ -1,5 +1,6 @@
 package com.itwillbs.service;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -165,12 +166,13 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
             throw new IllegalArgumentException("부족 자재 목록이 없습니다.");
         }
 
-        // [1] 부족 자재 Map (베이스 단위: g/ml/ea)
-        Map<String, Integer> shortageMap = request.getItems().stream()
+        // [1] 부족자재 맵 (kg/L/개, 소수 허용)
+        Map<String, BigDecimal> shortageMap = request.getItems().stream()
             .collect(Collectors.toMap(
                 PurchaseDraftRequest.ShortageItem::getMaterialId,
-                PurchaseDraftRequest.ShortageItem::getLackQty,
-                Integer::sum));
+                it -> it.getLackQty() == null ? BigDecimal.ZERO : it.getLackQty(),
+                BigDecimal::add
+            ));
 
         List<String> materialIds = new ArrayList<>(shortageMap.keySet());
 
@@ -271,51 +273,47 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
 
                 for (Map<String, Object> m : supplierMappings) {
                     String materialId = (String) m.get("materialId");
-                    Integer lackBaseObj = shortageMap.get(materialId); // 베이스 부족량(g/ml/ea)
-                    if (lackBaseObj == null || lackBaseObj <= 0) continue;
-                    int lackBase = lackBaseObj.intValue();
+                    BigDecimal lackQty = shortageMap.get(materialId);       // kg/L/개
+                    if (lackQty == null || lackQty.compareTo(BigDecimal.ZERO) <= 0) continue;
 
-                 // 단가/창고
-                    int unitPrice = ((Number) m.getOrDefault("unitPrice", 0)).intValue();
+                    // 단가/창고
+                    BigDecimal unitPrice = asBD(m.get("unitPrice"), BigDecimal.ZERO);
                     String warehouseCode = (String) m.getOrDefault("warehouseCode", "WH001");
 
-                    // 가격 단위는 한 번만 선언
-                    final String priceUnit = String.valueOf(m.getOrDefault("priceUnit", "BASE")).toUpperCase();
+                    // 단위 메타 (모두 같은 단위 전제: kg/L/개)
+                    BigDecimal packQtyBase = asBD(m.get("packQtyBase"), BigDecimal.ONE);           // 1팩 = ? (예: 20kg → 20)
+                    if (packQtyBase.compareTo(BigDecimal.ZERO) <= 0) packQtyBase = BigDecimal.ONE;
 
-                    // --- 매퍼에서 내려준 계산 메타 사용 ---
-                    double packQtyBase = 1d;
-                    Object pqb = m.get("packQtyBase");
-                    if (pqb instanceof Number) packQtyBase = ((Number) pqb).doubleValue();
-                    else if (pqb != null) try { packQtyBase = Double.parseDouble(pqb.toString()); } catch (Exception ignore) {}
-                    if (packQtyBase <= 0d) packQtyBase = 1d;
+                    BigDecimal convPerPackBilling = asBD(m.get("convPerPackBilling"), BigDecimal.ONE);
+                    if (convPerPackBilling.compareTo(BigDecimal.ZERO) <= 0) convPerPackBilling = BigDecimal.ONE;
 
-                    double convPerPackBilling = 1d;
-                    Object cpb = m.get("convPerPackBilling");
-                    if (cpb instanceof Number) convPerPackBilling = ((Number) cpb).doubleValue();
-                    else if (cpb != null) try { convPerPackBilling = Double.parseDouble(cpb.toString()); } catch (Exception ignore) {}
-                    if (convPerPackBilling <= 0d) convPerPackBilling = 1d;
+                    // 부족 → 팩수 (상향 반올림)
+                    int packs = lackQty
+                        .divide(packQtyBase, 0, java.math.RoundingMode.CEILING) // 소수점 올림
+                        .intValueExact();
 
-                    // 부족(베이스 g/ml/ea) -> PACK(상향반올림)
-                    int packs = (int) Math.ceil(lackBase / packQtyBase);
-
-                    // MOQ/배수 적용
-                    int moq = (m.get("minOrderQty") instanceof Number) ? ((Number) m.get("minOrderQty")).intValue() : 1;
-                    int multiple = (m.get("orderMultiple") instanceof Number) ? ((Number) m.get("orderMultiple")).intValue() : 1;
+                    // MOQ/배수
+                    int moq = asInt(m.get("minOrderQty"), 1);
+                    int multiple = asInt(m.get("orderMultiple"), 1);
                     if (packs < moq) packs = moq;
                     if (multiple > 1) packs = ((packs + multiple - 1) / multiple) * multiple;
 
                     // 과금수량 & 총액
-                    double billedQty = "PACK".equals(priceUnit) ? packs : packs * convPerPackBilling;
-                    long totalPrice = Math.round(billedQty * unitPrice);
+                    String priceUnit = String.valueOf(m.getOrDefault("priceUnit", "BASE")).toUpperCase();
+                    BigDecimal billedQty = "PACK".equals(priceUnit)
+                        ? new BigDecimal(packs)
+                        : new BigDecimal(packs).multiply(convPerPackBilling);
 
-                    // 저장 아이템
+                    // 금액은 정수원(원)으로 반올림
+                    BigDecimal totalPrice = billedQty.multiply(unitPrice).setScale(0, java.math.RoundingMode.HALF_UP);
+
                     Map<String, Object> item = new HashMap<>();
                     item.put("orderItemId", orderId + "-" + String.format("%03d", idx++));
                     item.put("orderId", orderId);
                     item.put("materialId", materialId);
-                    item.put("orderQuantity", packs);     // PACK 수량 저장
-                    item.put("unitPrice", unitPrice);
-                    item.put("totalPrice", totalPrice);   // (팩→과금단위)×단가
+                    item.put("orderQuantity", packs);                         // 저장은 팩 개수
+                    item.put("unitPrice", unitPrice);                         // DECIMAL 컬럼 권장
+                    item.put("totalPrice", totalPrice);                       // DECIMAL 또는 BIGINT 컬럼
                     item.put("warehouseCode", warehouseCode);
                     item.put("workOrderId", request.getWorkOrderId());
                     batch.add(item);
@@ -496,6 +494,18 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
     public MaterialOrderVO findByOrderId(String orderId) {
         return materialOrderDAO.findById(orderId);
     }
+    
+    
+    private static BigDecimal asBD(Object v, BigDecimal def){
+        if (v instanceof BigDecimal) return (BigDecimal) v;
+        if (v instanceof Number) return new BigDecimal(((Number) v).toString());
+        try { return v == null ? def : new BigDecimal(v.toString()); } catch (Exception e) { return def; }
+    }
+    private static int asInt(Object v, int def){
+        if (v instanceof Number) return ((Number)v).intValue();
+        try { return v == null ? def : Integer.parseInt(v.toString()); } catch(Exception e){ return def; }
+    }
+
 
     
 }

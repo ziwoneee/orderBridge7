@@ -1,5 +1,6 @@
 package com.itwillbs.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import lombok.Data;
@@ -16,7 +17,7 @@ public class PurchaseDraftRequest {
     @Data
     public static class ShortageItem {
         private String materialId;
-        private Integer lackQty;                 // 부족 수량(= 발주 후보 수량)
+        private BigDecimal lackQty;                 // 부족 수량(= 발주 후보 수량)
     }
 
 }

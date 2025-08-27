@@ -403,10 +403,10 @@ $('#btnCreateDraft').off('click.draft').on('click.draft', function (e) {
           return {
             materialId: item.materialId,
             materialName: item.materialName,
-            lackQty: item.packs            // ★ 서버는 "팩 개수"로 받음
-            // 서버가 나중에 orderQty(기본단위)도 받도록 바뀌면 함께 전송
-            // orderQty: item.orderQty,
-            // packQty:  item.packQty
+            // ✅ “기본단위(kg/L/EA)의 수량”을 보낸다
+            //   - FE가 MOQ/배수까지 반영했다면 orderQty 사용
+            //   - “진짜 부족량”만 보내고 서버가 반올림/배수처리 하게 하려면 lackQty 사용
+            lackQty: item.orderQty   // 또는 lackQty: item.lackQty
           };
         })
       };
@@ -455,7 +455,8 @@ function showOrderPreviewConfirm(shortages){
 	    totalOrder += packs;         // ✅ 팩 개수 합계로
 	    totalAmount+= Number(item.amount)||0;
 
-	    if (ord>lack) adjustedItems.push('• ' + item.materialName + ': ' + lack + ' → ' + ord);
+	    const clean = v => (Math.round(Number(v || 0)*100)/100).toString().replace(/\.?0+$/,'');
+	    if (ord>lack) adjustedItems.push('• ' + item.materialName + ': ' + clean(lack) + ' → ' + clean(ord));
 
 	    var supply = item.supplyUnit || getSupplyUnit(item.materialId);
 	    // ord는 항상 packs*pk라 그대로 써도 OK (아래 eqText는 기본단위 총량 표기)
