@@ -1,5 +1,7 @@
 package com.itwillbs.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
@@ -385,26 +387,38 @@ public class MaterialInboundServiceImpl implements MaterialInboundService {
         dto.setInboundStatus(newStatus);
         miDAO.updateInboundItem(dto);
 
-     // === (C) 재고 반영 — ★ 개선된 재고단위 보정 ★
-        double stockPerPack = calculateStockPerPack(convToStock, packQty, convToBase, priceUnit, stockUnit);
+        // === (C) 재고 반영 — ★ 개선된 재고단위 보정 ★
+     // 1) 1PACK 당 재고수량
+        double stockPerPackD = calculateStockPerPack(convToStock, packQty, convToBase, priceUnit, stockUnit);
 
-        long stockQtyThisTime = Math.round(packsThisTime * stockPerPack);
-        
+        // 2) BigDecimal로 변환 + 4자리 반올림
+        BigDecimal stockPerPack = BigDecimal.valueOf(stockPerPackD).setScale(4, RoundingMode.HALF_UP);
+
+        // 3) 이번 입고 재고수량: packs × stockPerPack (단위 규칙 적용: EA면 정수 내림 등)
+        BigDecimal stockQtyBD = stockPerPack
+                .multiply(BigDecimal.valueOf(packsThisTime))
+                .setScale(4, RoundingMode.HALF_UP);
+
+        // 필요하면 단위별 정밀도 보정 (EA=정수):
+        if ("EA".equalsIgnoreCase(stockUnit) || "개".equals(stockUnit)) {
+            stockQtyBD = stockQtyBD.setScale(0, RoundingMode.DOWN);
+        }
 
         if (miDAO.checkInventoryExists(dto.getMaterialId(), dto.getWarehouseCode())) {
-            miDAO.updateInventoryQuantity(dto.getMaterialId(), dto.getWarehouseCode(), (int) stockQtyThisTime);
+            // ★ addQty도 BigDecimal로
+            miDAO.updateInventoryQuantity(dto.getMaterialId(), dto.getWarehouseCode(), stockQtyBD);
         } else {
             MaterialInventoryVO vo = new MaterialInventoryVO();
             vo.setInventoryId(generateInventoryId());
             vo.setMaterialId(dto.getMaterialId());
-            vo.setQuantity((int) stockQtyThisTime);   // ★ stock_unit 기준 수량
+            vo.setQuantity(stockQtyBD);                 // ★ BigDecimal 세팅
             vo.setLotNo(dto.getLotNo());
             vo.setExpirationDate(dto.getExpirationDate());
             vo.setReceivedDate(new Date());
             vo.setWarehouseCode(dto.getWarehouseCode());
             vo.setStatus("정상");
             vo.setInventoryStatus("보관중");
-            miDAO.insertInventory(vo);
+            miDAO.insertInventory(vo);                  // insert 쿼리도 DECIMAL 컬럼에 맞게
         }
 
         // 8) 마스터/발주 상태 갱신

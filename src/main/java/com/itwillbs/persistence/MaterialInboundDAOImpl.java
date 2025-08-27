@@ -1,5 +1,6 @@
 package com.itwillbs.persistence;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,16 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
 	private SqlSession sqlSession;
 
 	private static final String NAMESPACE = "com.itwillbs.mapper.MaterialInboundMapper.";
+	
+	
+	
+
+
+	@Override
+	public void updateInventoryQuantity(String materialId, String warehouseCode, BigDecimal stockQtyBD) {
+		// TODO Auto-generated method stub
+		
+	}
 
 
 	// 입고 목록 조회

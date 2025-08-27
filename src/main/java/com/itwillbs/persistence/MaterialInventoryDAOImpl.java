@@ -1,5 +1,6 @@
 package com.itwillbs.persistence;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +55,7 @@ public class MaterialInventoryDAOImpl implements MaterialInventoryDAO {
 	
 	// 자재 재고 차감(박스용)
     @Override
-    public void decreaseLotQuantity(String inventoryId, int deductQty) {
+    public void decreaseLotQuantity(String inventoryId, BigDecimal deductQty) {
         java.util.Map<String, Object> param = new java.util.HashMap<>();
         param.put("inventoryId", inventoryId);
         param.put("deductQty", deductQty);
