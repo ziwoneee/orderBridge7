@@ -220,7 +220,7 @@
 			          <td class="font-weight-medium">${inv.materialId}</td>
 			          <td>${inv.materialName}</td>
 			          <td>${inv.materialType}</td>
-			          <td class="text-end"><fmt:formatNumber value="${inv.quantity}" pattern="#,###"/></td>
+			          <td class="text-end"><fmt:formatNumber value="${inv.quantity}" pattern="#,##0.##"/></td>
 			          <td class="text-end"><fmt:formatNumber value="${inv.safetyStock}" pattern="#,###"/></td>
 					  <td>
 					    <c:choose>
