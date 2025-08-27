@@ -28,13 +28,13 @@
         )
       </if>
       <if test="startDate != null and startDate != ''">
-        AND DATE(created_at) &gt;= #{startDate}
-      </if>
-      <if test="endDate != null and endDate != ''">
-        AND DATE(created_at) &lt;= #{endDate}
-      </if>
+		  AND DATE(created_at) &gt;= STR_TO_DATE(#{startDate}, '%Y-%m-%d')
+		</if>
+		<if test="endDate != null and endDate != ''">
+		  AND DATE(created_at) &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d')
+		</if>
 
-    <!-- ✅ 안전한 정렬 컬럼만 허용 -->
+    <!--  안전한 정렬 컬럼만 허용 -->
     <choose>
       <when test="sortColumn == 'created_at'">
         ORDER BY created_at ${sortOrder}
@@ -53,7 +53,7 @@
     LIMIT #{pageStart}, #{perPageNum}
   </select>
 
-  <!-- ✅ 총 개수 조회 -->
+  <!--  총 개수 조회 -->
   <select id="countProductionResults" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
     SELECT COUNT(*)
     FROM production_result
@@ -64,14 +64,14 @@
         )
       </if>
       <if test="startDate != null and startDate != ''">
-        AND DATE(created_at) &gt;= #{startDate}
-      </if>
-      <if test="endDate != null and endDate != ''">
-        AND DATE(created_at) &lt;= #{endDate}
-      </if>
+		  AND DATE(created_at) &gt;= STR_TO_DATE(#{startDate}, '%Y-%m-%d')
+		</if>
+		<if test="endDate != null and endDate != ''">
+		  AND DATE(created_at) &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d')
+		</if>
   </select>
   
-  <!-- 🆕 완제품 입고 자동등록 (진행률 필드 추가) -->
+  <!--  완제품 입고 자동등록 (진행률 필드 추가) -->
   <insert id="insertResult" parameterType="com.itwillbs.domain.ProductionResultVO">
     INSERT INTO production_result (
       result_id,
@@ -84,7 +84,7 @@
       started_at,
       ended_at,
       created_at,
-      progress_rate AS progressRate,
+      progress_rate,
       cumulative_qty 
     ) VALUES (
       #{resultId},
@@ -119,7 +119,7 @@
     ORDER BY created_at DESC
   </select>
 
-  <!-- 🆕 LOT 기준 최신 result_id (develop 브랜치에서 추가) -->
+  <!-- LOT 기준 최신 result_id (develop 브랜치에서 추가) -->
   <select id="getLatestResultIdByLot" parameterType="String" resultType="String">
     SELECT result_id
     FROM production_result
@@ -128,7 +128,7 @@
     LIMIT 1
   </select>
 
-  <!-- 🆕 상세 조회 (DTO에 맞춰 alias) - develop 브랜치에서 추가 -->
+  <!--  상세 조회 (DTO에 맞춰 alias) - develop 브랜치에서 추가 -->
   <select id="getDetailByResultId" parameterType="string"
           resultType="com.itwillbs.dto.ProductionResultDTO">
     SELECT
@@ -283,7 +283,7 @@
   </select>
 
   <!-- ================== 생산실적 상세 ================== -->
-  <!-- 🆕 진행률 필드 추가 (96-보완-등록 브랜치) -->
+  <!--  진행률 필드 추가 (96-보완-등록 브랜치) -->
   <select id="selectResultDetail" parameterType="string"
           resultType="com.itwillbs.dto.ProductionResultDTO">
     SELECT
