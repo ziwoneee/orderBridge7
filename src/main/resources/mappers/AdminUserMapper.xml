@@ -127,44 +127,45 @@
   <!-- ==================== 페이징 처리 관련 쿼리들 ==================== -->
 
   <!-- 관리자 목록 조회 (기존 - 단순 검색) -->
+  <!-- 휴직 상태면 무조건 맨 아래  -->
   <select id="getAdminList" resultType="com.itwillbs.domain.AdminUserVO">
-    SELECT 
-        admin_id as adminId,
-        name,
-        phone,
-        role_id as roleId,
-        status,
-        is_locked as isLocked,
-        fail_count as failCount,
-        created_at as createdAt,
-        updated_at as updatedAt
-    FROM admin_user
-    WHERE status != 'DELETED'
-    <if test="search != null and search != ''">
-        AND (admin_id LIKE CONCAT('%', #{search}, '%') 
-             OR name LIKE CONCAT('%', #{search}, '%'))
-    </if>
-    <if test="role != null and role != ''">
-        AND role_id = #{role}
-    </if>
-    <if test="status != null and status != ''">
-        AND status = #{status}
-    </if>
-    ORDER BY 
-        CASE status 
-            WHEN 'ACTIVE' THEN 1
-            WHEN 'INACTIVE' THEN 2
-            ELSE 3
-        END,
-        CASE role_id 
-            WHEN 'SUPER' THEN 1
-            WHEN 'PROD' THEN 2  
-            WHEN 'SALES' THEN 3
-            WHEN 'MATERIAL' THEN 4
-            ELSE 5
-        END,
-        admin_id ASC
-  </select>
+  SELECT 
+      admin_id AS adminId,
+      name,
+      phone,
+      role_id AS roleId,
+      status,
+      is_locked AS isLocked,
+      fail_count AS failCount,
+      created_at AS createdAt,
+      updated_at AS UpdatedAt
+  FROM admin_user
+  WHERE status != 'DELETED'
+  <if test="search != null and search != ''">
+    AND (admin_id LIKE CONCAT('%', #{search}, '%')
+      OR name    LIKE CONCAT('%', #{search}, '%'))
+  </if>
+  <if test="role != null and role != ''">
+    AND role_id = #{role}
+  </if>
+  <if test="status != null and status != ''">
+    AND status = #{status}
+  </if>
+  ORDER BY
+    CASE status
+      WHEN 'INACTIVE' THEN 9
+      WHEN 'ACTIVE'   THEN 1
+      ELSE 5
+    END ASC,
+    CASE role_id
+      WHEN 'SUPER'    THEN 1
+      WHEN 'PROD'     THEN 2
+      WHEN 'SALES'    THEN 3
+      WHEN 'MATERIAL' THEN 4
+      ELSE 5
+    END ASC,
+    admin_id ASC
+</select>
 
   <!-- 공통 WHERE 조건 -->
   <sql id="searchCondition">
@@ -195,70 +196,74 @@
   </select>
 
   <!-- 관리자 목록 조회 (페이징 적용) -->
-  <select id="getAdminListWithPaging" parameterType="com.itwillbs.domain.SearchCriteria" 
-          resultType="com.itwillbs.domain.AdminUserVO">
-    SELECT 
-        admin_id as adminId,
-        name,
-        phone,
-        role_id as roleId,
-        status,
-        is_locked as isLocked,
-        fail_count as failCount,
-        created_at as createdAt,
-        updated_at as updatedAt
-    FROM admin_user
-    <include refid="searchCondition"/>
-    
-    <!-- 정렬 처리 -->
-    ORDER BY 
+  <select id="getAdminListWithPaging" parameterType="com.itwillbs.domain.SearchCriteria"
+        resultType="com.itwillbs.domain.AdminUserVO">
+  SELECT 
+      admin_id AS adminId,
+      name,
+      phone,
+      role_id AS roleId,
+      status,
+      is_locked AS isLocked,
+      fail_count AS failCount,
+      created_at AS createdAt,
+      updated_at AS updatedAt
+  FROM admin_user
+  <include refid="searchCondition"/>
+
+  ORDER BY
+
+    CASE status
+      WHEN 'INACTIVE' THEN 9
+      WHEN 'ACTIVE'   THEN 1
+      ELSE 5
+    END ASC,
+
     <choose>
-        <!-- 사용자가 정렬을 지정한 경우 -->
-        <when test="sortColumn != null and sortColumn != ''">
-            <choose>
-                <when test="sortColumn == 'admin_id'">admin_id</when>
-                <when test="sortColumn == 'name'">name</when>
-                <when test="sortColumn == 'role_id'">
-                    CASE role_id 
-                        WHEN 'SUPER' THEN 1
-                        WHEN 'PROD' THEN 2  
-                        WHEN 'SALES' THEN 3
-                        WHEN 'MATERIAL' THEN 4
-                        ELSE 5
-                    END
-                </when>
-                <when test="sortColumn == 'created_at'">created_at</when>
-                <when test="sortColumn == 'updated_at'">updated_at</when>
-                <otherwise>admin_id</otherwise>
-            </choose>
-            
-            <!-- 정렬 순서 -->
-            <choose>
-                <when test="sortOrder != null and sortOrder.toLowerCase() == 'desc'">DESC</when>
-                <otherwise>ASC</otherwise>
-            </choose>
-        </when>
-        
-        <!-- 기본 정렬: 재직자 먼저 → 휴직자 나중에 → 역할 → 사번 -->
-        <otherwise>
-            CASE status 
-                WHEN 'ACTIVE' THEN 1
-                WHEN 'INACTIVE' THEN 2
-                ELSE 3
-            END,
-            CASE role_id 
-                WHEN 'SUPER' THEN 1
-                WHEN 'PROD' THEN 2  
-                WHEN 'SALES' THEN 3
-                WHEN 'MATERIAL' THEN 4
-                ELSE 5
-            END,
-            admin_id ASC
-        </otherwise>
+      <when test="sortColumn != null and sortColumn != ''">
+        <choose>
+          <when test="sortColumn == 'admin_id'">admin_id</when>
+          <when test="sortColumn == 'name'">name</when>
+          <when test="sortColumn == 'role_id'">
+            CASE role_id
+              WHEN 'SUPER'    THEN 1
+              WHEN 'PROD'     THEN 2
+              WHEN 'SALES'    THEN 3
+              WHEN 'MATERIAL' THEN 4
+              ELSE 5
+            END
+          </when>
+          <when test="sortColumn == 'created_at'">created_at</when>
+          <when test="sortColumn == 'updated_at'">updated_at</when>
+          <when test="sortColumn == 'status'">
+
+            CASE status
+              WHEN 'ACTIVE'   THEN 1
+              WHEN 'INACTIVE' THEN 9
+              ELSE 5
+            END
+          </when>
+          <otherwise>admin_id</otherwise>
+        </choose>
+        <choose>
+          <when test="sortOrder != null and sortOrder.toLowerCase() == 'desc'">DESC</when>
+          <otherwise>ASC</otherwise>
+        </choose>,
+        admin_id ASC
+      </when>
+      <otherwise>
+        CASE role_id
+          WHEN 'SUPER'    THEN 1
+          WHEN 'PROD'     THEN 2
+          WHEN 'SALES'    THEN 3
+          WHEN 'MATERIAL' THEN 4
+          ELSE 5
+        END ASC,
+        admin_id ASC
+      </otherwise>
     </choose>
-    
-    <!-- 페이징 처리 -->
-    LIMIT #{pageStart}, #{perPageNum}
-  </select>
+
+  LIMIT #{pageStart}, #{perPageNum}
+</select>
 
 </mapper>
