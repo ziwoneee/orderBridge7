@@ -1,5 +1,6 @@
 package com.itwillbs.dto;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import lombok.Data;
@@ -62,7 +63,7 @@ public class DashboardDTO {
         private String materialId;
         private String materialName;
         private String unit;
-        private Integer quantity;      // 합계 재고
+        private BigDecimal quantity;      // 합계 재고
         private Integer safetyStock;
         private Date nextExpireDate;   // 남은 LOT 중 최솟값
         private String status;         // '부족' / '소진'
