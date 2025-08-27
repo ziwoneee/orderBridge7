@@ -19,20 +19,21 @@
 
   <!-- 무한스크롤용 알림 조회 -->
   <select id="selectPagedAlarms" resultType="com.itwillbs.domain.AlarmLogVO">
-	SELECT
-		al.alarm_id,
-		al.alarm_type,
-		al.message,
-		al.created_at,
-		at.target_id,
-		at.is_read,
-		at.read_at
-	FROM alarm_log al
-	JOIN alarm_target at ON al.alarm_id = at.alarm_id
-	WHERE at.admin_id = #{adminId}
-	ORDER BY al.created_at DESC
-	LIMIT #{limit} OFFSET #{offset}
-</select>
+	  SELECT
+	    al.alarm_id,
+	    al.alarm_type,
+	    al.message,
+	    al.url,          
+	    al.created_at,
+	    at.target_id,
+	    at.is_read,
+	    at.read_at
+	  FROM alarm_log al
+	  JOIN alarm_target at ON al.alarm_id = at.alarm_id
+	  WHERE at.admin_id = #{adminId}
+	  ORDER BY al.created_at DESC
+	  LIMIT #{limit} OFFSET #{offset}
+	</select>
 
 
   <!-- 안 읽은 알림 수 -->
@@ -57,22 +58,47 @@
     WHERE target_id = #{targetId}
   </delete>
   
-  <!-- 로그인한 관리자(adminId)가 읽지 않은 알림 목록 조회 -->
-  <select id="selectUnreadAlarmsByAdmin" parameterType="String" resultType="AlarmLogVO">
-	SELECT
-		l.alarm_id,
-		l.alarm_type,
-		l.message,
-		l.created_at,
-		t.target_id,
-		t.is_read,
-		t.read_at
-	FROM alarm_log l
-	JOIN alarm_target t ON l.alarm_id = t.alarm_id
-	WHERE t.admin_id = #{adminId}
-		AND t.is_read = 0
-	ORDER BY l.created_at DESC
+  <!-- 미읽음 알림 조회 -->
+  <select id="selectUnreadAlarmsByAdmin"
+        resultType="com.itwillbs.domain.AlarmLogVO">  <!-- ✅ FQN로 통일 -->
+	  SELECT
+	    l.alarm_id,
+	    l.alarm_type,
+	    l.message,
+	    l.url,            
+	    l.created_at,
+	    t.target_id,
+	    t.is_read,
+	    t.read_at
+	  FROM alarm_log l
+	  JOIN alarm_target t ON l.alarm_id = t.alarm_id
+	  WHERE t.admin_id = #{adminId}
+	    AND t.is_read = 0
+	  ORDER BY l.created_at DESC
+	</select>
+
+<!-- 역할들에 속한 전체 사용자에게 수신행 생성 (중복 방지용 DISTINCT) -->
+	<insert id="insertTargetsByRoles">
+	  INSERT INTO alarm_target (alarm_id, role_id, admin_id, is_read, read_at)
+	  SELECT
+	    #{alarmId}       AS alarm_id,
+	    au.role_id       AS role_id,
+	    au.admin_id      AS admin_id,
+	    0                AS is_read,
+	    NULL             AS read_at
+	  FROM admin_user au
+	  WHERE au.status = 'ACTIVE'
+	    AND au.role_id IN
+	    <foreach collection="roles" item="r" open="(" separator="," close=")">
+	      #{r}
+	    </foreach>
+	</insert>
+	
+	<select id="selectAvailableByProduct" parameterType="string" resultType="int">
+  SELECT
+    COALESCE((SELECT SUM(pi.inbound_qty) FROM product_inbound pi WHERE pi.product_id = #{productId}),0)
+    - COALESCE((SELECT SUM(po.outbound_qty) FROM product_outbound po WHERE po.product_id = #{productId}),0)
+    - COALESCE((SELECT SUM(sr.reserved_qty) FROM stock_reservation sr WHERE sr.product_id = #{productId}),0)
 </select>
-  
 
 </mapper>
