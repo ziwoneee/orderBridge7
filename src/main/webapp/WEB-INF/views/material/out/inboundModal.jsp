@@ -34,6 +34,7 @@
               </table>
             </div>
           </div>
+          
 
           <!-- 오른쪽: 선택한 입고건들의 가용 자재 집계 -->
           <div class="col-md-6">
@@ -74,6 +75,34 @@
 </div>
 
 <script>
+// 숫자 포맷: 소수점 3자리까지, 불필요한 0 제거
+function strip0(n){ 
+  var s=(Math.round(n*1000)/1000).toString(); 
+  return s.replace(/\.?0+$/,''); 
+}
+
+// 가용수량 셀 렌더링
+function renderAvailCell(x){
+  var q = Number(x.availableQty)||0;
+  var ou = (x.orderUnit||'').toUpperCase();   // 주문단위 (EA 등)
+  var su = (x.stockUnit||'').toUpperCase();   // 재고단위 (KG 등)
+  var conv = Number(x.convToStock)||1;        // 환산값
+  var eq = q * conv;                          // 재고단위 환산 수량
+  var html = '<div><strong>'+strip0(q)+'</strong> <span class="text-muted">'+ou+'</span></div>';
+  if(su){
+    html += '<div><small class="text-muted">(= '+strip0(eq)+' '+su+')</small></div>';
+  }
+  return html;
+}
+
+// 필요수량 셀 렌더링
+function renderReqCell(x){
+  var rq = Number(x.requiredQty)||0;
+  var ru = (x.requiredUnit||x.stockUnit||'').toUpperCase();
+  var html = '<div><strong>'+strip0(rq)+'</strong> <span class="text-muted">'+ru+'</span></div>';
+  return html;
+}
+
 // 컨텍스트 루트
 window.ctx = window.ctx || '${pageContext.request.contextPath}';
 
@@ -149,13 +178,13 @@ function loadCompletedInbounds(){
 
       list = Array.isArray(list) ? list : [];
 
-  	 // 1) 안전 필터: 진짜 '입고완료'만
+      // 1) 안전 필터: 진짜 '입고완료'만
       list = list.filter(function (r) {
         var st = r.status || r.inboundStatus || '입고완료';
         return st === '입고완료';
       });
 
-      // 1.5) 사용상태 AVAILABLE만 (추가)
+      // 1.5) 사용상태 AVAILABLE만
       list = list.filter(function (r) {
         return (r.usageStatus || 'AVAILABLE') === 'AVAILABLE';
       });
@@ -177,7 +206,6 @@ function loadCompletedInbounds(){
         seen[id] = 1;
         return true;
       });
-
 
       if (list.length === 0) {
         showEmpty($tb, '입고완료 건이 없습니다.', 5);
@@ -207,7 +235,6 @@ function loadCompletedInbounds(){
       showError($tb, '목록을 불러오지 못했습니다.', 5);
     });
 }
-
 
 /* -------- 체크박스 동기화 -------- */
 $(document).on('change', '#inb-check-all', function(){
@@ -269,13 +296,13 @@ function renderPickedInfoAndMaterials(){
 }
 
 function normalizeList(d){
-	  if (Array.isArray(d)) return d;
-	  if (d && Array.isArray(d.list)) return d.list;
-	  if (d && Array.isArray(d.rows)) return d.rows;
-	  if (d && Array.isArray(d.data)) return d.data;
-	  if (d && d.result && Array.isArray(d.result.list)) return d.result.list;
-	  return [];
-	}
+  if (Array.isArray(d)) return d;
+  if (d && Array.isArray(d.list)) return d.list;
+  if (d && Array.isArray(d.rows)) return d.rows;
+  if (d && Array.isArray(d.data)) return d.data;
+  if (d && d.result && Array.isArray(d.result.list)) return d.result.list;
+  return [];
+}
 
 /* -------- 오른쪽: 선택건 합산 로드 -------- */
 function loadAndRenderAggregatedMaterials(inboundIds){
@@ -283,81 +310,80 @@ function loadAndRenderAggregatedMaterials(inboundIds){
   showLoading($matTb, '가용 자재 집계중...', 5);
 
   try {
-	  var reqs = inboundIds.map(function(id){
-		  return $.getJSON(ctx + '/material/outbound/available-materials', { 
-		    inboundId: id,
-		    workOrderId: currentWorkOrderId
-		  })
-		  .done(function(d){ console.log('[available-materials]', id, d); })
-		  .fail(function(x){ console.warn('[available-materials:FAIL]', id, x.status, x.responseText); });
-		});
+    var reqs = inboundIds.map(function(id){
+      return $.getJSON(ctx + '/material/outbound/available-materials', { 
+        inboundId: id,
+        workOrderId: currentWorkOrderId
+      })
+      .done(function(d){ console.log('[available-materials]', id, d); })
+      .fail(function(x){ console.warn('[available-materials:FAIL]', id, x.status, x.responseText); });
+    });
 
-	  $.when.apply($, reqs).done(function () {
-		  var mats = [];
+    $.when.apply($, reqs).done(function () {
+      var mats = [];
+      var args = Array.prototype.slice.call(arguments);
+      if (reqs.length === 1) { args = [args]; }
 
-		  // arguments를 표준 배열로
-		  var args = Array.prototype.slice.call(arguments);
-		  if (reqs.length === 1) {
-		    // 단일 요청인 경우도 튜플처럼 보이게 맞춤
-		    args = [args];
-		  }
+      args.forEach(function (arg) {
+        var data = Array.isArray(arg) ? arg[0] : arg;
+        mats = mats.concat(normalizeList(data));
+      });
 
-		  args.forEach(function (arg) {
-		    // 여러개면 [data, textStatus, jqXHR], 단일이면 data만 올 수도 있음
-		    var data = Array.isArray(arg) ? arg[0] : arg;
-		    mats = mats.concat(normalizeList(data));
-		  });
+      if (!mats.length) {
+        showEmpty($matTb, '가용한 자재가 없습니다.', 5);
+        $('#totalAvailableMaterials').text(0);
+        return;
+      }
 
-		  if (!mats.length) {
-		    showEmpty($matTb, '가용한 자재가 없습니다.', 5);
-		    $('#totalAvailableMaterials').text(0);
-		    return;
-		  }
+      // 집계
+      var map = {}, orderKeys = [];
+      mats.forEach(function (m) {
+        var key = (m.materialId || '') + '|' + (m.lotNo || '');
+        if (!map[key]) {
+          map[key] = {
+            materialId: m.materialId,
+            materialName: m.materialName,
+            lotNo: m.lotNo || '',
+            availableQty: 0,
+            requiredQty: Number(m.requiredQty || 0),
+            expirationDate: m.expirationDate,
+            orderUnit: m.orderUnit,
+            stockUnit: m.stockUnit,
+            convToStock: m.convToStock,
+            requiredUnit: m.requiredUnit
+          };
+          orderKeys.push(key);
+        }
+        map[key].availableQty += Number(m.availableQty || m.qty || 0);
+        if (!map[key].expirationDate && m.expirationDate) {
+          map[key].expirationDate = m.expirationDate;
+        }
+      });
 
-		  // 이하 집계/정렬/렌더링은 기존 그대로…
-		  var map = {}, orderKeys = [];
-		  mats.forEach(function (m) {
-		    var key = (m.materialId || '') + '|' + (m.lotNo || '');
-		    if (!map[key]) {
-		      map[key] = {
-		        materialId: m.materialId,
-		        materialName: m.materialName,
-		        lotNo: m.lotNo || '',
-		        availableQty: 0,
-		        requiredQty: Number(m.requiredQty || 0),
-		        expirationDate: m.expirationDate
-		      };
-		      orderKeys.push(key);
-		    }
-		    map[key].availableQty += Number(m.availableQty || m.qty || 0);
-		    if (!map[key].expirationDate && m.expirationDate) {
-		      map[key].expirationDate = m.expirationDate;
-		    }
-		  });
+      var rowsArr = orderKeys.map(function (k) { return map[k]; })
+        .sort(function (a, b) {
+          var ad = new Date(a.expirationDate || '9999-12-31').getTime();
+          var bd = new Date(b.expirationDate || '9999-12-31').getTime();
+          return ad - bd;
+        });
 
-		  var rowsArr = orderKeys.map(function (k) { return map[k]; })
-		    .sort(function (a, b) {
-		      var ad = new Date(a.expirationDate || '9999-12-31').getTime();
-		      var bd = new Date(b.expirationDate || '9999-12-31').getTime();
-		      return ad - bd;
-		    });
+      // 행 렌더링
+      var html = rowsArr.map(function (x) {
+        return '<tr>'
+          + '<td>' + (x.materialName||'') + '<br><small class="text-muted">' + (x.materialId||'') + '</small></td>'
+          + '<td class="text-center"><span class="badge badge-light">' + (x.lotNo||'') + '</span></td>'
+          + '<td class="text-center">' + renderAvailCell(x) + '</td>'
+          + '<td class="text-center">' + renderReqCell(x) + '</td>'
+          + '<td class="text-center">' + (toYmd(x.expirationDate) || '-') + '</td>'
+          + '</tr>';
+      }).join('');
 
-		  var html = rowsArr.map(function (x) {
-		    return '<tr>'
-		      + '<td>' + (x.materialName||'') + '<br><small class="text-muted">' + (x.materialId||'') + '</small></td>'
-		      + '<td class="text-center"><span class="badge badge-light">' + (x.lotNo||'') + '</span></td>'
-		      + '<td class="text-center"><strong>' + (x.availableQty||0) + '</strong></td>'
-		      + '<td class="text-center">' + (x.requiredQty||0) + '</td>'
-		      + '<td class="text-center">' + (toYmd(x.expirationDate) || '-') + '</td>'
-		      + '</tr>';
-		  }).join('');
-
-		  $matTb.html(html);
-		  $('#totalAvailableMaterials').text(rowsArr.length);
-		}).fail(function () {
-		  showError($matTb, '가용 자재 집계 실패', 5);
-		  $('#totalAvailableMaterials').text(0);
-		});
+      $matTb.html(html);
+      $('#totalAvailableMaterials').text(rowsArr.length);
+    }).fail(function () {
+      showError($matTb, '가용 자재 집계 실패', 5);
+      $('#totalAvailableMaterials').text(0);
+    });
 
   } catch (e) {
     console.error(e);
@@ -366,19 +392,13 @@ function loadAndRenderAggregatedMaterials(inboundIds){
   }
 }
 
-
-/* -------- 진행 버튼: 다중 입고건으로 register 이동 -------- */
+/* -------- 진행 버튼 -------- */
 $(document).on('click', '#btnConfirmInbound', function(){
   const ids = Array.from(pickedInboundIds);
   if (!(ids.length>0 && currentWorkOrderId)) {
     alert('같은 작업지시의 입고건을 하나 이상 선택하세요.');
     return;
   }
-
-  // (선택) 사용상태 업데이트 – 대량이면 서버에서 일괄 처리 권장
-  // updateInboundUsageStatus(ids[0]);
-
-  // register로 이동 (백엔드에서 inboundIds 처리 필요)
   location.href = ctx + '/material/outbound/register'
     + '?workOrderId=' + encodeURIComponent(currentWorkOrderId)
     + '&inboundIds=' + encodeURIComponent(ids.join(','));
@@ -390,5 +410,4 @@ function updateInboundUsageStatus(inboundId){
     .done(function(res){ console.log('입고건 상태 업데이트 완료', res); })
     .fail(function(){ console.warn('입고건 상태 업데이트 실패(무시)'); });
 }
-
 </script>

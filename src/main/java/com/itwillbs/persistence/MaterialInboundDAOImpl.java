@@ -87,7 +87,11 @@ public class MaterialInboundDAOImpl implements MaterialInboundDAO {
 	public void insertMaterialInboundItem(MaterialInboundItemVO vo) throws Exception {
 	    sqlSession.insert(NAMESPACE + "insertMaterialInboundItem", vo);
 	}
-
+	
+	@Override
+    public Map<String, Object> getPackMetaByOrderItemId(String orderItemId) {
+        return sqlSession.selectOne(NAMESPACE + "getPackMetaByOrderItemId", orderItemId);
+    }
 
 
 	// MaterialInboundDAOImpl.java에 추가할 메서드

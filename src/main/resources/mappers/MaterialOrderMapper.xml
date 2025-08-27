@@ -262,22 +262,44 @@
 	
 	<!-- 자재ID 목록으로 거래처-자재 매핑 정보 조회 -->
 	<select id="selectSupplierItemMappings" parameterType="list" resultType="map">
-	   SELECT
-	    si.supplier_id   AS supplierId,
-	    si.material_id   AS materialId,
-	    si.unit_price    AS unitPrice,
-	    COALESCE(m.warehouse_code, 'WH001') AS warehouseCode,
-	    s.supplier_name  AS supplierName,
-	    m.material_name  AS materialName,
-	    -- ▼ 구매정책/단위 보강
-	    si.min_order_qty   AS minOrderQty,
-	    si.order_multiple  AS orderMultiple,
-	    si.pack_qty        AS packQty,
-	    si.conv_to_base    AS convToBase,
-	    si.unit            AS purchaseUnit
+	  SELECT
+	    si.supplier_id    AS supplierId,
+	    si.material_id    AS materialId,
+	    si.unit_price     AS unitPrice,
+	    COALESCE(m.warehouse_code,'WH001') AS warehouseCode,
+	    s.supplier_name   AS supplierName,
+	    m.material_name   AS materialName,
+	
+	    -- 원본 메타
+	    si.min_order_qty  AS minOrderQty,
+	    si.order_multiple AS orderMultiple,
+	    si.pack_qty       AS packQty,        -- 1 PACK = ? (g/ml/ea)
+	    si.conv_to_base   AS convToBase,     -- 1 PACK = ? (price_unit 수량)
+	    si.price_unit     AS priceUnit,      -- 과금단위 (KG/L/PACK/EA/BUNDLE…)
+	    si.unit           AS purchaseUnit,   -- 주문단위
+	    si.conv_to_stock  AS convToStock,    -- 표시/재고 환산 (예: 10단)
+	    si.stock_unit     AS stockUnit,
+	
+	    -- ★ 계산된 열 (서비스는 이 두 가지만 써도 동작)
+	    /* 1) 1 PACK을 '베이스(g/ml/ea)'로 환산 */
+	    CASE
+	      WHEN si.pack_qty IS NOT NULL AND si.pack_qty > 0 THEN si.pack_qty
+	      WHEN si.price_unit IN ('KG','L')                THEN si.conv_to_base * 1000
+	      ELSE COALESCE(NULLIF(si.conv_to_base,0),1)
+	    END AS packQtyBase,
+	
+	    /* 2) 1 PACK이 '과금단위'로 몇 개인지 */
+	    CASE
+	      WHEN si.price_unit = 'PACK'        THEN 1
+	      WHEN si.price_unit IN ('KG','L')   THEN COALESCE(NULLIF(si.conv_to_base,0),1)
+	      WHEN si.price_unit IN ('BUNDLE','EA')
+	           THEN COALESCE(NULLIF(si.conv_to_base,0), NULLIF(si.conv_to_stock,0), 1)
+	      ELSE COALESCE(NULLIF(si.conv_to_base,0), 1)
+	    END AS convPerPackBilling
+	
 	  FROM supplier_item si
-	  JOIN material m ON m.material_id = si.material_id
-	  JOIN supplier s ON s.supplier_id = si.supplier_id
+	  JOIN material  m ON m.material_id = si.material_id
+	  JOIN supplier  s ON s.supplier_id = si.supplier_id
 	  WHERE si.supply_available = 'Y'
 	    AND m.use_yn = 'Y'
 	    AND m.purchasable_flag = 'Y'
@@ -287,6 +309,9 @@
 	    </foreach>
 	  ORDER BY si.supplier_id, m.material_name
 	</select>
+
+
+
 	
 	<!-- 발주 초안 헤더 등록 -->
 	<insert id="insertOrderHeaderDraft" parameterType="map">
