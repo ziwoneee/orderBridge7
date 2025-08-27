@@ -8,7 +8,7 @@
   <!-- =============================================================== -->
   <!-- 목록: 검색/정렬/페이징 + 누적(양품/불량) + 잔여 + 재고(집계)        -->
   <!-- =============================================================== -->
-  <select id="selectWorkOrderList" resultType="com.itwillbs.dto.WorkOrderDTO">
+ <select id="selectWorkOrderList" resultType="com.itwillbs.dto.WorkOrderDTO">
     SELECT
       w.order_id AS orderId,
       w.product_id AS productId,
@@ -98,106 +98,71 @@
       </if>
     </where>
 
-    <!-- 정렬 화이트리스트 -->
-    ORDER BY
+    -- 기본: 최신순 + 완료 아래 + 긴급만 위
+-- 정렬 클릭 시: 사용자 정렬 우선 + 완료 아래 (긴급 고정 X)
+ORDER BY
+<choose>
+  <!-- 사용자가 정렬 지정한 경우 -->
+  <when test="sortColumn != null and sortColumn != ''">
+    -- 완료는 항상 아래
+    CASE WHEN w.status = 'COMPLETED' THEN 1 ELSE 0 END ASC,
     <choose>
-      <when test="sortColumn != null and sortColumn != ''">
+      <when test="sortColumn == 'order_id'">
+        w.order_id
         <choose>
-          <when test="sortColumn == 'priority'">
-            CASE w.priority
-              WHEN 'EMERGENCY' THEN 1
-              WHEN 'HIGH'      THEN 2
-              WHEN 'NORMAL'    THEN 3
-              WHEN 'LOW'       THEN 4
-              ELSE 5
-            END
-            <choose>
-              <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'"> ASC </when>
-              <when test="sortOrder != null and sortOrder.toUpperCase() == 'DESC'"> DESC </when>
-              <otherwise> ASC </otherwise>
-            </choose>
-          </when>
-
-          <when test="sortColumn == 'status'">
-            CASE w.status
-              WHEN 'WAITING'     THEN 1
-              WHEN 'READY'       THEN 2
-              WHEN 'IN_PROGRESS' THEN 3
-              WHEN 'COMPLETED'   THEN 4
-              ELSE 5
-            END
-            <choose>
-              <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'"> ASC </when>
-              <when test="sortOrder != null and sortOrder.toUpperCase() == 'DESC'"> DESC </when>
-              <otherwise> ASC </otherwise>
-            </choose>
-          </when>
-
-          <when test="sortColumn == 'order_id'">
-            w.order_id
-            <choose>
-              <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'"> ASC </when>
-              <when test="sortOrder != null and sortOrder.toUpperCase() == 'DESC'"> DESC </when>
-              <otherwise> ASC </otherwise>
-            </choose>
-          </when>
-
-          <when test="sortColumn == 'created_at'">
-            w.created_at
-            <choose>
-              <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'"> ASC </when>
-              <when test="sortOrder != null and sortOrder.toUpperCase() == 'DESC'"> DESC </when>
-              <otherwise> DESC </otherwise>
-            </choose>
-          </when>
-
-          <when test="sortColumn == 'due_date'">
-            w.due_date IS NULL, w.due_date
-            <choose>
-              <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'"> ASC </when>
-              <when test="sortOrder != null and sortOrder.toUpperCase() == 'DESC'"> DESC </when>
-              <otherwise> ASC </otherwise>
-            </choose>
-          </when>
-
-          <when test="sortColumn == 'order_qty'">
-            w.order_qty
-            <choose>
-              <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'"> ASC </when>
-              <when test="sortOrder != null and sortOrder.toUpperCase() == 'DESC'"> DESC </when>
-              <otherwise> DESC </otherwise>
-            </choose>
-          </when>
-
-          <when test="sortColumn == 'product_name'">
-            p.product_name
-            <choose>
-              <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'"> ASC </when>
-              <when test="sortOrder != null and sortOrder.toUpperCase() == 'DESC'"> DESC </when>
-              <otherwise> ASC </otherwise>
-            </choose>
-          </when>
-
-          <when test="sortColumn == 'line_id'">
-            COALESCE(l.line_name, CAST(w.line_id AS CHAR))
-            <choose>
-              <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'"> ASC </when>
-              <when test="sortOrder != null and sortOrder.toUpperCase() == 'DESC'"> DESC </when>
-              <otherwise> ASC </otherwise>
-            </choose>
-          </when>
-
-          <otherwise>
-            CASE WHEN w.status = 'COMPLETED' THEN 1 ELSE 0 END,
-            w.created_at DESC
-          </otherwise>
+          <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'"> ASC </when>
+          <when test="sortOrder != null and sortOrder.toUpperCase() == 'DESC'"> DESC </when>
+          <otherwise> DESC </otherwise>
         </choose>
       </when>
+
+      <when test="sortColumn == 'created_at'">
+        w.created_at
+        <choose>
+          <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'"> ASC </when>
+          <when test="sortOrder != null and sortOrder.toUpperCase() == 'DESC'"> DESC </when>
+          <otherwise> DESC </otherwise>
+        </choose>
+      </when>
+
+      <when test="sortColumn == 'due_date'">
+        (w.due_date IS NULL) ASC,
+        w.due_date
+        <choose>
+          <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'"> ASC </when>
+          <when test="sortOrder != null and sortOrder.toUpperCase() == 'DESC'"> DESC </when>
+          <otherwise> ASC </otherwise>
+        </choose>
+      </when>
+
+      <when test="sortColumn == 'priority'">
+        CASE w.priority
+          WHEN 'EMERGENCY' THEN 1
+          WHEN 'HIGH'      THEN 2
+          WHEN 'NORMAL'    THEN 3
+          WHEN 'LOW'       THEN 4
+          ELSE 5
+        END
+        <choose>
+          <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'"> ASC </when>
+          <when test="sortOrder != null and sortOrder.toUpperCase() == 'DESC'"> DESC </when>
+          <otherwise> ASC </otherwise>
+        </choose>
+      </when>
+
       <otherwise>
-        CASE WHEN w.status = 'COMPLETED' THEN 1 ELSE 0 END,
         w.created_at DESC
       </otherwise>
     </choose>
+  </when>
+
+  <!-- 사용자가 정렬 지정 안 한 경우(초기 진입): 최신순 + 완료 아래 + 긴급만 위 -->
+  <otherwise>
+    CASE WHEN w.status = 'COMPLETED' THEN 1 ELSE 0 END ASC,
+    CASE WHEN w.priority = 'EMERGENCY' THEN 0 ELSE 1 END ASC,
+    w.created_at DESC
+  </otherwise>
+</choose>
 
     LIMIT #{pageStart}, #{perPageNum}
   </select>
