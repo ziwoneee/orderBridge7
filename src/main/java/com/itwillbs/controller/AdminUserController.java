@@ -58,61 +58,59 @@ public class AdminUserController {
 	// 로그인 처리(POST)
 	@PostMapping("/admin/login")
 	public String login(AdminUserVO vo,
-	                   HttpSession session, 
-	                   HttpServletRequest request,
-	                   HttpServletResponse response,
-	                   RedirectAttributes rttr) {
-	    
-	    // 입력한 ID에 해당하는 관리자 정보 조회
+	                    HttpSession session,
+	                    HttpServletRequest request,
+	                    HttpServletResponse response,
+	                    RedirectAttributes rttr) {
+
 	    AdminUserVO dbVO = adminUserService.findByAdminId(vo.getAdminId());
-	    
-	    // 존재하지 않는 계정
 	    if (dbVO == null) {
 	        rttr.addFlashAttribute("errorMsg", "아이디 또는 비밀번호가 일치하지 않습니다.");
 	        return "redirect:/admin/login";
 	    }
-	    
-	    // 잠긴 계정일 경우 - is_locked 컬럼 체크로 변경
+
 	    if (Boolean.TRUE.equals(dbVO.getIsLocked())) {
 	        rttr.addFlashAttribute("errorMsg", "계정이 잠겨 있습니다. 관리자에게 문의하세요.");
 	        return "redirect:/admin/login";
 	    }
-	    
-	    // 비밀번호 일치 여부 확인
+
+	    // bcrypt 검증 + 실패횟수 업데이트/잠금처리는 service에서
 	    AdminUserVO loginVO = adminUserService.login(vo);
-	    
 	    if (loginVO != null) {
-	        System.out.println("로그인 성공 → 세션 저장: " + loginVO.getAdminId() + " / 이름: " + loginVO.getName());
-	        
-	        // 로그인 성공: 세션 저장 + 자동 로그아웃 타이머 설정
+	        //  세션 고정화 방지: 로그인 성공 시 세션 아이디 교체 (서블릿 3.1+)
+	        try { request.changeSessionId(); } catch (UnsupportedOperationException ignore) {}
+
+	        // 민감정보는 세션에 안 넣는 게 좋아요 (hashed pw라도)
+	        loginVO.setPassword(null);
+
+	        // 세션 세팅
 	        session.setAttribute("loginAdmin", loginVO);
-	        session.setAttribute("adminId", loginVO.getAdminId());      
-	        session.setAttribute("adminName", loginVO.getName());        
-	        session.setMaxInactiveInterval(30 * 60); // 30분 동안 미사용 시 세션 만료
-	       
-	        // 아이디 저장 체크 여부 확인
+	        session.setAttribute("adminId", loginVO.getAdminId());
+	        session.setAttribute("adminName", loginVO.getName());
+	        session.setMaxInactiveInterval(30 * 60);
+
+	        //  역할값 정규화: null→"", trim+대문자 (DB: SUPER/PROD/MATERIAL/SALES)
+	        String role = (loginVO.getRoleId() == null) ? "" : loginVO.getRoleId().trim().toUpperCase();
+	        session.setAttribute("roleId", role);                // SUPER / PROD / MATERIAL / SALES
+	        session.setAttribute("isSuperAdmin", "SUPER".equals(role)); // JSP에서 ${isSuperAdmin}로 사용
+
+	        // 아이디 저장 쿠키
 	        String remember = request.getParameter("remember");
-	        
+	        Cookie cookie;
 	        if ("on".equals(remember)) {
-	            // 쿠키 생성 (아이디 저장)
-	            Cookie cookie = new Cookie("rememberAdminId", loginVO.getAdminId());
-	            cookie.setMaxAge(60 * 60 * 24 * 7); // 7일간 유지 
-	            cookie.setPath("/");
-	            response.addCookie(cookie);
+	            cookie = new Cookie("rememberAdminId", loginVO.getAdminId());
+	            cookie.setMaxAge(60 * 60 * 24 * 7); // 7일
 	        } else {
-	            // 기존 쿠키 삭제 
-	            Cookie cookie = new Cookie("rememberAdminId", null);
-	            cookie.setMaxAge(0); // 즉시 삭제
-	            cookie.setPath("/");
-	            response.addCookie(cookie);
+	            cookie = new Cookie("rememberAdminId", null);
+	            cookie.setMaxAge(0); // 삭제
 	        }
-	        
+	        cookie.setPath("/");
+	        cookie.setHttpOnly(true);
+	        response.addCookie(cookie);
+
 	        return "redirect:/admin/dashboard";
 	    } else {
-	        // 실패 시 최신 상태 다시 조회
 	        AdminUserVO updatedVO = adminUserService.findByAdminId(vo.getAdminId());
-	        
-	        // is_locked 컬럼 체크로 변경
 	        if (updatedVO != null && Boolean.TRUE.equals(updatedVO.getIsLocked())) {
 	            rttr.addFlashAttribute("errorMsg", "계정이 잠겨 있습니다. 관리자에게 문의하세요.");
 	        } else {
@@ -121,14 +119,14 @@ public class AdminUserController {
 	        return "redirect:/admin/login";
 	    }
 	}
-	
-    // 로그아웃 처리 (GET)  
-    @GetMapping("/admin/logout")
-    public String logout(HttpSession session, RedirectAttributes rttr) {
-        session.invalidate();
-        rttr.addFlashAttribute("msg", "로그아웃 되었습니다.");
-        return "redirect:/admin/login";
-    }
+
+	// 로그아웃
+	@GetMapping("/admin/logout")
+	public String logout(HttpSession session, RedirectAttributes rttr) {
+	    session.invalidate();
+	    rttr.addFlashAttribute("msg", "로그아웃 되었습니다.");
+	    return "redirect:/admin/login";
+	}
     
     // ==================== 설정 페이지 관련 메서드들 ====================
     
