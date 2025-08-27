@@ -214,27 +214,38 @@ document.addEventListener('DOMContentLoaded', function () {
       materialMap = {}; supplierItemMap = {};
       for (var i=0; i<data.length; i++) {
         var it = data[i];
-        // 1 PACK → 과금단위(KG/L/…) : conv_to_base가 비어있을 수 있으니 conv_to_stock까지 폴백
-        var convBase  = Number(
-          (it.convToBase  != null ? it.convToBase  : it.conv_to_base) ||
-          (it.convToStock != null ? it.convToStock : it.conv_to_stock) ||
-          1
-        );
-        // 1 PACK → 표시단위(보통 재고단위). 없으면 convBase로 폴백
-        var convStock = Number(
-          (it.convToStock != null ? it.convToStock : it.conv_to_stock) ||
-          convBase
-        );
+        
+        var purchaseUnit = String(it.orderUnit || it.unit || 'EA').toUpperCase();
+        var priceUnit    = String(it.priceUnit || it.price_unit || purchaseUnit).toUpperCase();
+        var stockUnit    = String(it.stockUnit || it.stock_unit || priceUnit).toUpperCase();
+        var convBaseRaw  = (it.convToBase  != null ? it.convToBase  : it.conv_to_base);
+        var convStockRaw = (it.convToStock != null ? it.convToStock : it.conv_to_stock);
+   
+       // ✅ 과금 환산: 서버의 conv_to_base를 최우선, 없으면 conv_to_stock으로 폴백
+        var convBase = Number(
+         (convBaseRaw != null && convBaseRaw !== '') ? convBaseRaw
+                                                       : (convStockRaw || 1)
+         );
+   
+       // 표시 환산: 재고/표시 단위 기준. 없으면 convBase 사용
+        var convDisplay = Number(convStockRaw || 0);
+        
+       if (!convDisplay) {
+         if (priceUnit === 'L'  && (stockUnit === 'ML' || stockUnit === 'CC')) convDisplay = convBase * 1000;
+         else if (priceUnit === 'KG' && (stockUnit === 'G' || stockUnit === 'GRAM')) convDisplay = convBase * 1000;
+         else convDisplay = convBase;
+       }
+        
         var normalized = {
           materialId   : it.materialId,
           materialName : it.materialName,
           warehouseCode: it.warehouseCode || '',
-          unit         : (it.orderUnit || it.unit || 'EA').toUpperCase(),
-          priceUnitCalc: (it.priceUnit || 'KG').toUpperCase(),
-          displayUnit  : (it.stockUnit || it.priceUnit || 'KG').toUpperCase(),
+          unit         : purchaseUnit,       // BOTTLE
+          priceUnitCalc: priceUnit,          // EA
+          displayUnit  : stockUnit,          // ML
           unitPrice    : Number(it.unitPrice || 0),
-          convBase     : convBase,   // 계산용
-          convDisplay  : convStock,  // 표시용
+          convBase     : convBase,           // ★ 1 (EA 과금)
+          convDisplay  : convDisplay,        // ★ 1800 (표시용)
           minOrderQty  : Number(it.minOrderQty || 1),
           orderMultiple: Number(it.orderMultiple || 1)
         };
@@ -371,72 +382,69 @@ function enforceMultiple(el) {
 //★ REPLACE: 기존 rowRecalc 전체를 아래로 교체
 //★ 수정된 rowRecalc 함수 - 발주 상세와 동일한 계산 로직 적용
 function rowRecalc(input){
-	  var row = input.closest ? input.closest('tr') : (function(n){while(n && n.tagName!=='TR'){n=n.parentNode;}return n;})(input);
-	  if (!row) return;
+  var row = input.closest ? input.closest('tr') : (function(n){while(n && n.tagName!=='TR'){n=n.parentNode;}return n;})(input);
+  if (!row) return;
 
-	  var qtyInput    = row.querySelector("input[name$='.orderQuantity']");
-	  var unitPriceEl = row.querySelector("input[name$='.unitPrice']");
-	  var hiddenTot   = row.querySelector("input[type='hidden'][name$='.totalPrice']");
-	  var visibleTot  = row.querySelector("input[name$='.visibleTotal']") 
-	                 || (hiddenTot && hiddenTot.parentNode.querySelector("input[type='number']"));
-	  var convSpan    = row.querySelector(".js-conv");
+  // 기본 값들
+  var qtyInput    = row.querySelector("input[name$='.orderQuantity']");
+  var unitPriceEl = row.querySelector("input[name$='.unitPrice']");
+  var hiddenTot   = row.querySelector("input[type='hidden'][name$='.totalPrice']");
+  var visibleTot  = row.querySelector("input[name$='.visibleTotal']") 
+                 || (hiddenTot && hiddenTot.parentNode.querySelector("input[type='number']"));
+  var convSpan    = row.querySelector(".js-conv");
 
-	  var packs     = Number(qtyInput && qtyInput.value ? qtyInput.value : 0) || 0;
-	  var unitPrice = Number(unitPriceEl && unitPriceEl.value ? unitPriceEl.value : 0) || 0;
+  var packs = Number(qtyInput && qtyInput.value ? qtyInput.value : 0) || 0;
+  var unitPrice = Number(unitPriceEl && unitPriceEl.value ? unitPriceEl.value : 0) || 0;
 
-	  // 과금(결제) 단위/환산
-	  var priceUnit  = (qtyInput && qtyInput.dataset && qtyInput.dataset.priceUnit)
-	                || (row.querySelector("input[name$='.priceUnit']") || {}).value || 'KG';
-	  priceUnit = String(priceUnit).toUpperCase();
+  // ① 과금단위 확인
+  var priceUnit = (qtyInput && qtyInput.dataset && qtyInput.dataset.priceUnit)
+               || (row.querySelector("input[name$='.priceUnit']") || {}).value
+               || 'KG';
+  priceUnit = String(priceUnit).toUpperCase();
 
-	  // 1 주문단위(=PACK/BOX/BOTTLE …) 당 과금수량
-	  var packQtyBase = Number(qtyInput && qtyInput.dataset && qtyInput.dataset.conv) ||
-	                    Number((row.querySelector("input[name$='.convToBase']") || {}).value) || 1;
+  // ② 팩당 과금수량 확인 (1 PACK = ? KG/L/BUNDLE)
+  var packQty = Number(qtyInput && qtyInput.dataset && qtyInput.dataset.conv) ||
+                Number((row.querySelector("input[name$='.convToBase']") || {}).value) ||
+                1;
 
-	  // 표시(재고) 단위/환산
-	  var displayUnit   = (qtyInput && qtyInput.dataset && qtyInput.dataset.displayUnit) || 'EA';
-	  displayUnit = String(displayUnit).toUpperCase();
-	  var packQtyDisplay = Number(qtyInput && qtyInput.dataset && qtyInput.dataset.convDisplay) || 1;
+  // ③ 번들 특수 케이스
+  var bundlesPerPack = Number(qtyInput && qtyInput.dataset && qtyInput.dataset.bundlesPerPack) || 1;
 
-	  // 번들 케이스(필요 시)
-	  var bundlesPerPack = Number(qtyInput && qtyInput.dataset && qtyInput.dataset.bundlesPerPack) || 1;
+  //✅ 공통 공식 (단위 무관): 과금수량 = PACK × convBase
+  var billedQty = packs * packQty;
+  
+  // 총액 계산: 과금수량 × 단가
+  var total = Math.round(billedQty * unitPrice);
 
-	  // === 결제 수량 계산 ===
-	  var billedQty = 0;
-	  if (priceUnit === 'KG' || priceUnit === 'L' || priceUnit === 'PACK') {
-	    // ✔ PACK도 KG/L처럼 "곱셈"으로 처리
-	    billedQty = packs * packQtyBase;
-	  } else if (priceUnit === 'BUNDLE') {
-	    billedQty = packs * bundlesPerPack;
-	  } else {
-	    billedQty = packs; // EA 등
-	  }
+  // 디버깅 로그 (개발시에만)
+  console.log('계산 디버깅:', {
+    packs: packs,
+    packQty: packQty, 
+    priceUnit: priceUnit,
+    unitPrice: unitPrice,
+    billedQty: billedQty,
+    total: total,
+    calculation: `${packs} PACK × ${packQty} ${priceUnit} × ${unitPrice}원 = ${total}원`
+  });
 
-	  // 총액
-	  var total = Math.round(billedQty * unitPrice);
-	  if (hiddenTot)  hiddenTot.value  = total;
-	  if (visibleTot) visibleTot.value = total;
+  if (hiddenTot)  hiddenTot.value  = total;
+  if (visibleTot) visibleTot.value = total;
 
-	  // === 표시(라벨) 수량: 재고/표시 단위로 보여준다 ===
-	  var displayQty = packs * packQtyDisplay;
-	  var label;
-	  if (displayUnit === 'KG') {
-	    label = Number(displayQty.toFixed(2)).toLocaleString() + 'kg';
-	  } else if (displayUnit === 'L') {
-	    label = Number(displayQty.toFixed(2)).toLocaleString() + 'L';
-	  } else {
-	    label = displayQty.toLocaleString() + (displayUnit === 'EA' ? '' : displayUnit);
-	  }
-	  if (convSpan) convSpan.textContent = label;
-
-	  // 디버깅
-	  console.log('계산 디버깅:', {
-	    packs, priceUnit, packQtyBase, displayUnit, packQtyDisplay,
-	    billedQty, displayQty, unitPrice, total,
-	    calculation: `${packs} × ${packQtyBase} ${priceUnit} × ${unitPrice} = ${total}`
-	  });
-	}
-
+  //표시용 라벨: PACK × convDisplay
+  if (convSpan) {
+  var convDisp = Number(qtyInput && qtyInput.dataset && qtyInput.dataset.convDisplay) || packQty;
+  var dispUnit = (qtyInput && qtyInput.dataset && qtyInput.dataset.displayUnit) || priceUnit;
+  var displayQty = packs * convDisp;
+  // KG/L는 소수 표시, 그 외 정수
+  if (dispUnit === 'KG' || dispUnit === 'L') {
+    convSpan.textContent = Number(displayQty.toFixed(2)).toLocaleString() + (dispUnit === 'KG' ? 'kg' : 'L');
+  } else if (dispUnit === 'EA') {
+    convSpan.textContent = displayQty.toLocaleString() + 'EA';
+  } else {
+    convSpan.textContent = displayQty.toLocaleString() + ' ' + dispUnit;
+  }
+ }
+}
 
 /* ---------------------------------------
  * [7] 공용 유틸
