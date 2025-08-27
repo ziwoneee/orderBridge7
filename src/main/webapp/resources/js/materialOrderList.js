@@ -97,8 +97,13 @@ function fetchSupplierMetaMap(supplierId){
 
         var unitPrice = Number(coalesce(it.unitPrice,   it.unit_price,   0));
         var priceUnit = String(coalesce(it.priceUnit,   it.price_unit,   'EA')).toUpperCase();
-        var convBase  = Number(coalesce(it.convToBase,  it.conv_to_base, 1));
+        
+        // 1 PACK → 과금단위 수량(convBase): conv_to_base 없으면 conv_to_stock으로 폴백
+        var convBase  = Number(coalesce(it.convToBase,  it.conv_to_base,  it.convToStock, it.conv_to_stock, 1));
+        // 1 PACK → 표시/재고단위 수량(convStock): 기본은 conv_to_stock, 없으면 convBase
         var convStock = Number(coalesce(it.convToStock, it.conv_to_stock, convBase));
+
+        
         var stockUnit = String(coalesce(it.stockUnit,   it.stock_unit,   priceUnit)).toUpperCase();
 
         // 번들일 때만 팩=번들수량으로 사용 (삼항 금지 버전)
@@ -117,7 +122,7 @@ function fetchSupplierMetaMap(supplierId){
         };
       }
 
-      supplierMetaCache = { id: supplierId, map: map };
+      __supplierMetaCache = { id: supplierId, map: map };
       return map;
     });
 }
@@ -184,35 +189,24 @@ $(document).on('click', '.btnOrderDetail', function () {
           const dispQty  = packs * Number(meta.convToStock || meta.packQty || 1);
           const dispText = fmtQtyWithUnit(dispQty, meta.stockUnit || priceUnit);
 
-          // 과금 수량
-          let billedQty = 0;
-          if (priceUnit === 'KG' || priceUnit === 'L') {
-            billedQty = packs * Number(meta.packQty || 1);               // ex) 2 PACK × 1.8L
-          } else if (priceUnit === 'BUNDLE') {
-            billedQty = packs * Number(meta.bundlesPerPack || 1);        // ex) 2 PACK × 10단
-          } else {
-            billedQty = packs;                                           // EA/PACK 등
-          }
+          // 과금 수량 - 등록 화면과 동일한 로직 적용
+          const convBase = Number(meta.packQty || 1);
+          const billedQty = packs * convBase;  // 모든 단위에 대해 동일한 계산
           const amount = Math.round(billedQty * unitPrice);
 
-          // 디버깅 로그
+          // 디버깅 로그도 수정
           console.log(`${it.materialId} 계산:`, {
             packs,
             priceUnit,
             unitPrice,
-            packQty: meta.packQty,
+            convBase,  // packQty 대신 convBase 사용
             convToStock: meta.convToStock,
             stockUnit: meta.stockUnit,
             billedQty,
             amount,
-            calculation:
-              (priceUnit === 'KG' || priceUnit === 'L')
-                ? `${packs} PACK × ${meta.packQty} ${priceUnit} × ${unitPrice}원 = ${amount}원`
-                : (priceUnit === 'BUNDLE')
-                  ? `${packs} PACK × ${meta.bundlesPerPack} ${priceUnit} × ${unitPrice}원 = ${amount}원`
-                  : `${packs} ${priceUnit} × ${unitPrice}원 = ${amount}원`
+            calculation: `${packs} PACK × ${convBase} ${priceUnit} × ${unitPrice}원 = ${amount}원`
           });
-
+          
           $tbody.append(
             `<tr>
                <td>${it.materialId}</td>
