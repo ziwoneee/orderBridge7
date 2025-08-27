@@ -55,7 +55,7 @@
               <div class="row">
                 <div class="col-12 d-flex justify-content-end">
                   <button type="button" class="btn btn-success" data-toggle="modal" data-target="#addAdminModal" onclick="openAddAdminModal()">
-                    <i class="ti-plus"></i> 신규 등록
+                    신규 등록
                   </button>
                 </div>
               </div>

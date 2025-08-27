@@ -1,131 +1,123 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<!-- 역할별 노출 분기 -->
+<c:set var="role" value="${sessionScope.roleId}" />
 
-	<nav class="sidebar sidebar-offcanvas" id="sidebar">
-	  <ul class="nav">
-	  
-	          <!-- 기준 정보 관리 시작 -->
-	          <li class="nav-item ${menu eq 'basic' ? 'active' : ''}">
-	            <a class="nav-link"
-				   data-toggle="collapse"
-				   href="#menu-basic"
-				   aria-expanded="${menu eq 'basic' ? 'true' : 'false'}"
-				   aria-controls="menu-basic">
-	              <i class="ti-layers-alt menu-icon"></i>
-	              <span class="menu-title">기준 정보 관리</span>
-	              <i class="menu-arrow"></i>
-	            </a>
-	            <div class="collapse ${menu eq 'basic' ? 'show' : ''}" id="menu-basic">
-	              <ul class="nav flex-column sub-menu">
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/material/list">자재 정보</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/master/bom/list">BOM 정보</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/master/product/list">완제품 정보</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/client/list">고객사 정보</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/supplier/list">협력사 정보</a></li>
-	              </ul>
-	            </div>
-	          </li>
-	          <!-- 기준 정보 관리 끝 -->
-	          
-	          <!-- 영업 관리 시작 -->
-	          <li class="nav-item ${menu eq 'sales' ? 'active' : ''}">
-   	            <a class="nav-link"
-				   data-toggle="collapse"
-				   href="#menu-sales"
-				   aria-expanded="${menu eq 'sales' ? 'true' : 'false'}"
-				   aria-controls="menu-sales">
-	              <i class="ti-briefcase menu-icon"></i>
-	              <span class="menu-title">영업 관리</span>
-	              <i class="menu-arrow"></i>
-	            </a>
-	            <div class="collapse ${menu eq 'sales' ? 'show' : ''}" id="menu-sales">
-	              <ul class="nav flex-column sub-menu">
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/clientorder/list">수주 관리</a></li>	             
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/shipment/list">출하 관리</a></li>
-	              </ul>
-	            </div>
-	          </li>
-	          <!-- 영업 관리 끝 -->
-	          
-	          <!-- 생산 관리 시작 -->
-	          <li class="nav-item ${menu eq 'production' ? 'active' : ''}">
-	             <a class="nav-link" data-toggle="collapse"
-				     href="#menu-production"
-				     aria-expanded="${menu eq 'production' ? 'true' : 'false'}"
-	                 aria-controls="menu-production">
-	              <i class="ti-reload menu-icon"></i>
-	              <span class="menu-title">생산 관리</span>
-	              <i class="menu-arrow"></i>
-	            </a>
-	            <div class="collapse ${menu eq 'production' ? 'show' : ''}" id="menu-production">
-	              <ul class="nav flex-column sub-menu">
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/workorder/list">작업 지시</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/production/result/list">실적 관리</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/line/list">라인 관리</a></li>
-	              </ul>
-	            </div>
-	          </li>
-	          <!-- 생산 관리 끝 -->
-	          
-	          <!-- 자재 관리 시작 -->
-	          <li class="nav-item ${menu eq 'material' ? 'active' : ''}">
-              	<a class="nav-link" data-toggle="collapse"
-				   href="#menu-material"
-				   aria-expanded="${menu eq 'material' ? 'true' : 'false'}"
-				   aria-controls="menu-material">
-	              <i class="ti-package menu-icon"></i>
-	              <span class="menu-title">자재 관리</span>
-	              <i class="menu-arrow"></i>
-	            </a>
-	            <div class="collapse ${menu eq 'material' ? 'show' : ''}" id="menu-material">
-	              <ul class="nav flex-column sub-menu">
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/material/inventory/summary">재고 현황</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/material/order/list">발주 관리</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/material/inbound/list">입고 관리</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/material/outbound/list">출고 관리</a></li>
-	              </ul>
-	            </div>
-	          </li>
-	          <!-- 자재 관리 끝 -->
-	          
-	          <!-- 완제품 관리 시작 -->
-	          <li class="nav-item ${menu eq 'product' ? 'active' : ''}">
-	            <a class="nav-link" data-toggle="collapse"
-				   href="#menu-product"
-				   aria-expanded="${menu eq 'product' ? 'true' : 'false'}"
-				   aria-controls="menu-product">
-	              <i class="ti-check-box menu-icon"></i>
-	              <span class="menu-title">완제품 관리</span>
-	              <i class="menu-arrow"></i>
-	            </a>
-	            <div class="collapse ${menu eq 'product' ? 'show' : ''}" id="menu-product">
-	              <ul class="nav flex-column sub-menu">
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/product/stocklist">재고 현황</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/product/inbound/list">입고 관리</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/product/outbound/list">출고 관리</a></li>
-	              </ul>
-	            </div>
-	          </li>
-	          <!-- 완제품 관리 끝 -->
-	          
-	          <!-- AI 시작 -->
-	          <li class="nav-item ${menu eq 'ai' ? 'active' : ''}">
-	            <a class="nav-link" data-toggle="collapse"
-				   href="#menu-ai"
-				   aria-expanded="${menu eq 'ai' ? 'true' : 'false'}"
-				   aria-controls="menu-ai">
-	              <i class="ti-thought menu-icon"></i>
-	              <span class="menu-title">AI 예측</span>
-	              <i class="menu-arrow"></i>
-	            </a>
-	            <div class="collapse ${menu eq 'ai' ? 'show' : ''}" id="menu-ai">
-	              <ul class="nav flex-column sub-menu">
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/ai/eta">납기 예측</a></li>
-	                <li class="nav-item"> <a class="nav-link" href="${pageContext.request.contextPath}/ai/pred-logs">GPT 이력 조회</a></li>
-	              </ul>
-	            </div>
-	          </li>
-	          <!-- AI 끝 -->
-	
-	  </ul>
-	</nav>
-	<!-- End Sidebar -->
+<nav class="sidebar sidebar-offcanvas" id="sidebar">
+  <ul class="nav">
+
+    <!-- 기준 정보 관리: 모두 노출 -->
+    <li class="nav-item ${menu eq 'basic' ? 'active' : ''}">
+      <a class="nav-link" data-toggle="collapse" href="#menu-basic"
+         aria-expanded="${menu eq 'basic' ? 'true' : 'false'}" aria-controls="menu-basic">
+        <i class="ti-layers-alt menu-icon"></i>
+        <span class="menu-title">기준 정보 관리</span>
+        <i class="menu-arrow"></i>
+      </a>
+      <div class="collapse ${menu eq 'basic' ? 'show' : ''}" id="menu-basic">
+        <ul class="nav flex-column sub-menu">
+          <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/material/list">자재 정보</a></li>
+          <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/master/bom/list">BOM 정보</a></li>
+          <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/master/product/list">완제품 정보</a></li>
+          <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/client/list">고객사 정보</a></li>
+          <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/supplier/list">협력사 정보</a></li>
+        </ul>
+      </div>
+    </li>
+
+    <!-- 영업 관리: SUPER or SALES -->
+    <c:if test="${role == 'SUPER' || role == 'SALES'}">
+      <li class="nav-item ${menu eq 'sales' ? 'active' : ''}">
+        <a class="nav-link" data-toggle="collapse" href="#menu-sales"
+           aria-expanded="${menu eq 'sales' ? 'true' : 'false'}" aria-controls="menu-sales">
+          <i class="ti-briefcase menu-icon"></i>
+          <span class="menu-title">영업 관리</span>
+          <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse ${menu eq 'sales' ? 'show' : ''}" id="menu-sales">
+          <ul class="nav flex-column sub-menu">
+            <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/clientorder/list">수주 관리</a></li>
+            <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/shipment/list">출하 관리</a></li>
+          </ul>
+        </div>
+      </li>
+    </c:if>
+
+    <!-- 생산 관리: SUPER or PROD -->
+    <c:if test="${role == 'SUPER' || role == 'PROD'}">
+      <li class="nav-item ${menu eq 'production' ? 'active' : ''}">
+        <a class="nav-link" data-toggle="collapse" href="#menu-production"
+           aria-expanded="${menu eq 'production' ? 'true' : 'false'}" aria-controls="menu-production">
+          <i class="ti-reload menu-icon"></i>
+          <span class="menu-title">생산 관리</span>
+          <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse ${menu eq 'production' ? 'show' : ''}" id="menu-production">
+          <ul class="nav flex-column sub-menu">
+            <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/workorder/list">작업 지시</a></li>
+            <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/production/result/list">실적 관리</a></li>
+            <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/line/list">라인 관리</a></li>
+          </ul>
+        </div>
+      </li>
+    </c:if>
+
+    <!-- 자재 관리: SUPER or MATERIAL -->
+    <c:if test="${role == 'SUPER' || role == 'MATERIAL'}">
+      <li class="nav-item ${menu eq 'material' ? 'active' : ''}">
+        <a class="nav-link" data-toggle="collapse" href="#menu-material"
+           aria-expanded="${menu eq 'material' ? 'true' : 'false'}" aria-controls="menu-material">
+          <i class="ti-package menu-icon"></i>
+          <span class="menu-title">자재 관리</span>
+          <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse ${menu eq 'material' ? 'show' : ''}" id="menu-material">
+          <ul class="nav flex-column sub-menu">
+            <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/material/inventory/summary">재고 현황</a></li>
+            <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/material/order/list">발주 관리</a></li>
+            <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/material/inbound/list">입고 관리</a></li>
+            <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/material/outbound/list">출고 관리</a></li>
+          </ul>
+        </div>
+      </li>
+    </c:if>
+
+    <!-- 완제품 관리: SUPER or MATERIAL -->
+    <c:if test="${role == 'SUPER' || role == 'MATERIAL'}">
+      <li class="nav-item ${menu eq 'product' ? 'active' : ''}">
+        <a class="nav-link" data-toggle="collapse" href="#menu-product"
+           aria-expanded="${menu eq 'product' ? 'true' : 'false'}" aria-controls="menu-product">
+          <i class="ti-check-box menu-icon"></i>
+          <span class="menu-title">완제품 관리</span>
+          <i class="menu-arrow"></i>
+        </a>
+        <div class="collapse ${menu eq 'product' ? 'show' : ''}" id="menu-product">
+          <ul class="nav flex-column sub-menu">
+            <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/product/stocklist">재고 현황</a></li>
+            <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/product/inbound/list">입고 관리</a></li>
+            <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/product/outbound/list">출고 관리</a></li>
+          </ul>
+        </div>
+      </li>
+    </c:if>
+
+    <!-- AI: 납기 예측은 모두, GPT 이력은 SUPER만 -->
+    <li class="nav-item ${menu eq 'ai' ? 'active' : ''}">
+      <a class="nav-link" data-toggle="collapse" href="#menu-ai"
+         aria-expanded="${menu eq 'ai' ? 'true' : 'false'}" aria-controls="menu-ai">
+        <i class="ti-thought menu-icon"></i>
+        <span class="menu-title">AI 예측</span>
+        <i class="menu-arrow"></i>
+      </a>
+      <div class="collapse ${menu eq 'ai' ? 'show' : ''}" id="menu-ai">
+        <ul class="nav flex-column sub-menu">
+          <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/ai/eta">납기 예측</a></li>
+          <c:if test="${role == 'SUPER'}">
+            <li class="nav-item"><a class="nav-link" href="${pageContext.request.contextPath}/ai/pred-logs">GPT 이력 조회</a></li>
+          </c:if>
+        </ul>
+      </div>
+    </li>
+
+  </ul>
+</nav>

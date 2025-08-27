@@ -73,7 +73,7 @@
 					</ul>
 
 					<!-- 신규등록: 폼으로 이동(폼에서 IN_PROGRESS만 선택 가능) -->
-					<a href="${cpath}/production/result/form" class="btn btn-success">신규등록</a>
+<a href="${cpath}/production/result/form" class="btn btn-success mb-2">생산 실적 등록</a>
 				</div>
 
 				<!-- 목록 -->
