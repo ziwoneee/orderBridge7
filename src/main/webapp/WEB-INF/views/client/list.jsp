@@ -45,17 +45,11 @@
                 <a href="/client/list" class="btn btn-light">
           <i class="ti-reload"></i> 초기화
         </a>
-        	
-        <!--  신규등록 버튼 최고 관리자만 되게 수정 -->
-        <c:choose>
-		  <c:when test="${role == 'SUPER'}">
-		    <a href="${pageContext.request.contextPath}/client/register" class="btn btn-success me-2">신규 등록</a>
-		  </c:when>
-		  <c:otherwise>
-		    <button type="button" class="btn btn-success me-2" disabled title="권한이 없습니다">신규 등록</button>
-		  </c:otherwise>
-		</c:choose>
-		
+
+		        <a href="${pageContext.request.contextPath}/client/register"
+				   class="btn btn-success me-2">
+				  신규 등록
+				</a>
               </div>
             </form>
           </div>
