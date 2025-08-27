@@ -177,6 +177,13 @@
    * 생산 라인 현황(가로 배치) 렌더링
    * @param {Array<object>} lines
    */
+  /**
+   * 생산 라인 현황(가로 배치) 렌더링
+   * - 라인 3칸 고정 표시
+   * - 라인 상태가 INACTIVE면 본문 대신 비활성 안내 노출
+   * - 진행률은 안전 계산(없으면 producedQty/orderQty로 보충, 0~100 클램프)
+   * @param {Array<object>} lines
+   */
   function updateLineStatusHorizontal(lines) {
     const container = getElementById('cards-lines');
     if (!container) return;
@@ -189,6 +196,7 @@
     // 기존 placeholder 제거
     container.innerHTML = '';
 
+    // 데이터 없을 때
     if (!Array.isArray(lines) || lines.length === 0) {
       const emptyCol = document.createElement('div');
       emptyCol.className = 'col-12 text-center text-muted py-4 h5';
@@ -197,7 +205,7 @@
       return;
     }
 
-    // 3칸 고정(필요시 조정)
+    // 3칸 고정(필요시 조정 가능)
     const maxLines = 3;
     const displayLines = lines.slice(0, maxLines);
     while (displayLines.length < maxLines) {
@@ -213,9 +221,25 @@
       });
     }
 
+    // 진행률 보정 유틸(0~100)
+    const clamp = (v) => Math.max(0, Math.min(100, Math.round(v)));
+    const calcProgress = (line) => {
+      // 1) 서버에서 준 progressRate 우선
+      const pr = Number(line.progressRate);
+      if (Number.isFinite(pr)) return clamp(pr);
+      // 2) producedQty / orderQty 보충 계산
+      const produced = Number(line.producedQty);
+      const orderQty = Number(line.orderQty);
+      if (Number.isFinite(produced) && Number.isFinite(orderQty) && orderQty > 0) {
+        return clamp((produced / orderQty) * 100);
+      }
+      return 0;
+    };
+
     displayLines.forEach((line, idx) => {
       const statusInfo = getLineStatusInfo(line.state);
-      const progress = line.progressRate ? Math.round(line.progressRate) : 0;
+      const isInactive = String(line.state || '').toUpperCase() === 'INACTIVE';
+      const progress = isInactive ? 0 : calcProgress(line);
 
       // column wrapper
       const col = document.createElement('div');
@@ -233,8 +257,18 @@
          <span class="badge ${statusInfo.badgeClass}">${statusInfo.text}</span>`;
       card.appendChild(header);
 
-      // 카드 본문
-      if (line.workOrderId && !line.isEmpty) {
+      // === 카드 본문 ===
+      if (isInactive) {
+        // 🔒 비활성 라인: 안내만 노출
+        const idle = document.createElement('div');
+        idle.className = 'text-center text-muted py-4';
+        idle.innerHTML =
+          `<i class="mdi mdi-power-plug-off-outline mdi-48px mb-3 d-block"></i>
+           <h6 class="mb-0">라인이 비활성 상태입니다</h6>`;
+        card.appendChild(idle);
+
+      } else if (line.workOrderId && !line.isEmpty) {
+        // 작업지시 존재: 상세 본문
         const body = document.createElement('div');
         body.innerHTML =
           `<div class="mb-3">
@@ -248,16 +282,19 @@
                  <span class="text-dark">${formatDate(line.dueDate)}</span>
                </div>
              </div>
+
              <div class="mb-3">
                <small class="text-muted">제품: </small>
                <span class="font-weight-medium">${esc(line.productName || '-')}</span>
                ${line.orderQty ? ` (${formatNumber(line.orderQty)})` : ''}
              </div>
+
              <div class="progress mb-3" style="height:10px;">
                <div class="progress-bar ${statusInfo.progressClass}"
                     style="width:${progress}%"
                     title="${progress}% 완료"></div>
              </div>
+
              <div class="row text-center">
                <div class="col-4">
                  <small class="text-muted d-block">양품</small>
@@ -274,7 +311,9 @@
              </div>
            </div>`;
         card.appendChild(body);
+
       } else {
+        // 작업 없음: 일반 안내
         const idle = document.createElement('div');
         idle.className = 'text-center text-muted py-4';
         idle.innerHTML =
@@ -629,42 +668,20 @@
    * 라인 상태 → 배지/카드/프로그레스 클래스
    */
   function getLineStatusInfo(state) {
-    const status = (state || '').toUpperCase();
-    switch (status) {
-      case 'IN_PROGRESS':
-        return {
-          text: '생산중',
-          badgeClass: 'badge-success',
-          cardClass: 'line-active',
-          progressClass: 'bg-success',
-          textClass: 'text-success'
-        };
-      case 'READY':
-        return {
-          text: '준비완료',
-          badgeClass: 'badge-info',
-          cardClass: 'line-ready',
-          progressClass: 'bg-info',
-          textClass: 'text-info'
-        };
-      case 'WAITING':
-        return {
-          text: '대기중',
-          badgeClass: 'badge-warning',
-          cardClass: 'line-waiting',
-          progressClass: 'bg-warning',
-          textClass: 'text-warning'
-        };
-      default:
-        return {
-          text: '미생산',
-          badgeClass: 'badge-secondary',
-          cardClass: 'line-idle',
-          progressClass: 'bg-secondary',
-          textClass: 'text-secondary'
-        };
-    }
-  }
+	  const status = (state || '').toUpperCase();
+	  switch (status) {
+	    case 'IN_PROGRESS':
+	      return { text:'생산중',  badgeClass:'badge-success',  cardClass:'line-active',   progressClass:'bg-success',   textClass:'text-success' };
+	    case 'READY':
+	      return { text:'준비완료',badgeClass:'badge-info',     cardClass:'line-ready',    progressClass:'bg-info',      textClass:'text-info' };
+	    case 'WAITING':
+	      return { text:'대기중',  badgeClass:'badge-warning',  cardClass:'line-waiting',  progressClass:'bg-warning',   textClass:'text-warning' };
+	    case 'INACTIVE': 
+	      return { text:'비활성',  badgeClass:'badge-secondary',cardClass:'line-disabled', progressClass:'bg-secondary', textClass:'text-secondary' };
+	    default:
+	      return { text:'미생산',  badgeClass:'badge-secondary',cardClass:'line-idle',     progressClass:'bg-secondary', textClass:'text-secondary' };
+	  }
+	}
 
   function createEmptyRow(colspan, message) {
     return (

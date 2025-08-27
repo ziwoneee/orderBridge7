@@ -54,7 +54,7 @@ public class DashboardServiceImpl implements DashboardService {
         List<ProductStockVO> fgSummaryAll =
             sql.selectList(NS_FG_STK + ".getProductStockSummaryList");
 
-        // 6) ✔ 모달과 동일 기준(<50)으로 '부족' 목록/개수 계산
+        // 6) 모달과 동일 기준(<50)으로 '부족' 목록/개수 계산
         List<DashboardDTO.FgRow> fgShortageList =
             buildFgShortageList(fgSummaryAll, FG_SHORTAGE_THRESHOLD, /*limit*/10);
 
@@ -74,7 +74,7 @@ public class DashboardServiceImpl implements DashboardService {
     // 하단 카드 빌더
     // --------------------------------------------------------------------
 
-    /** 🔥 신규: 품목 정보까지 포함한 오늘 수주 Top-N */
+    /**  신규: 품목 정보까지 포함한 오늘 수주 Top-N */
     private List<DashboardDTO.TodayOrderRow> fetchTodayOrdersWithProducts() {
         return sql.selectList(NS_DASH + ".selectTodayOrdersWithProducts");
     }
@@ -87,18 +87,32 @@ public class DashboardServiceImpl implements DashboardService {
 
         for (Map<String, Object> m : rows) {
             DashboardDTO.LineCard c = new DashboardDTO.LineCard();
-            c.setLineId       ( str(m.get("lineId")) );
-            c.setLineName     ( str(m.get("lineName")) );
-            c.setState        ( str(m.get("state")) ); // IN_PROGRESS/READY/WAITING/IDLE
-            c.setWorkOrderId  ( str(m.get("workOrderId")) );
-            c.setProductId    ( str(m.get("productId")) );
-            c.setProductName  ( str(m.get("productName")) );
-            c.setOrderQty     ( toInt(m.get("orderQty")) );
-            c.setDueDate      ( (Date) m.get("dueDate") );
-            c.setProducedQty  ( toInt(m.get("producedQty")) );
-            c.setProgressRate ( toDouble(m.get("progressRate")) );
-            c.setReadyCount   ( toInt(m.get("readyCount")) );
-            c.setWaitingCount ( toInt(m.get("waitingCount")) );
+            c.setLineId      ( str(m.get("lineId")) );
+            c.setLineName    ( str(m.get("lineName")) );
+            c.setState       ( str(m.get("state")) );
+            c.setWorkOrderId ( str(m.get("workOrderId")) );
+            c.setProductId   ( str(m.get("productId")) );
+            c.setProductName ( str(m.get("productName")) );
+            c.setOrderQty    ( toInt(m.get("orderQty")) );
+            c.setDueDate     ( (Date) m.get("dueDate") );
+            c.setProducedQty ( toInt(m.get("producedQty")) );
+            c.setProgressRate( toDouble(m.get("progressRate")) );
+            c.setReadyCount  ( toInt(m.get("readyCount")) );
+            c.setWaitingCount( toInt(m.get("waitingCount")) );
+
+            //  라인 상태 필드로 재확인
+            String lineStatus = str(m.get("lineStatus"));
+            if ("INACTIVE".equalsIgnoreCase(lineStatus)) {
+                c.setState("INACTIVE");
+                c.setWorkOrderId(null);
+                c.setProductId(null);
+                c.setProductName(null);
+                c.setOrderQty(null);
+                c.setProducedQty(0);
+                c.setProgressRate(0d);
+                c.setReadyCount(0);
+                c.setWaitingCount(0);
+            }
             out.add(c);
         }
         return out;
@@ -129,7 +143,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     /**
-     * ✔ 완제품 '부족' 목록 생성 (가용 < threshold)
+     *   완제품 '부족' 목록 생성 (가용 < threshold)
      * - ProductStockVO 목록을 받아서 DashboardDTO.FgRow로 변환
      * - 제품명 정렬 후 상위 limit개 반환
      */
@@ -141,7 +155,7 @@ public class DashboardServiceImpl implements DashboardService {
 
         for (ProductStockVO v : src) {
             int available = v.getAvailableQty();
-            // ✔ 기준 변경: <= 0 → < threshold(=50)
+            // 기준 변경: <= 0 → < threshold(=50)
             if (available < threshold) {
                 DashboardDTO.FgRow row = new DashboardDTO.FgRow();
                 row.setProductId    ( v.getProductId() );
