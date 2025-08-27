@@ -6,6 +6,31 @@
   
 <mapper namespace="com.itwillbs.mapper.MaterialReservationMapper">
 
+	  <!-- 현재고: BigDecimal -->
+	  <select id="selectOnhandDecimal" parameterType="string"
+	          resultType="java.math.BigDecimal">
+	    SELECT COALESCE(SUM(quantity), 0)
+	    FROM material_inventory
+	    WHERE material_id = #{materialId}
+	  </select>
+	
+	  <!-- 자재별 전체 예약합: BigDecimal -->
+	  <select id="sumReservedByMaterialDecimal" parameterType="string"
+	          resultType="java.math.BigDecimal">
+	    SELECT COALESCE(SUM(reserved_qty), 0)
+	    FROM material_reservation
+	    WHERE material_id = #{materialId}
+	  </select>
+	
+	  <!-- 이번 작업지시 예약: BigDecimal -->
+	  <select id="selectWoReservedDecimal" parameterType="map"
+	          resultType="java.math.BigDecimal">
+	    SELECT COALESCE(SUM(reserved_qty), 0)
+	    FROM material_reservation
+	    WHERE work_order_id = #{workOrderId}
+	      AND material_id   = #{materialId}
+	  </select>
+
 	  <!-- [예약 upsert]
 	       - 같은 (wo, material)면 수량 누적
 	       - updated_at 자동 갱신 -->

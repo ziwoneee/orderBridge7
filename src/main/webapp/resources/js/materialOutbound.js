@@ -225,7 +225,7 @@ function fmtQty(qty, unit){
   return String(qty);
 }
 function stepByUnit(u){
-  return (u === 'kg' || u === 'L') ? 0.01 : 1;   // kg,L 은 소수 허용, '개'는 정수
+  return (u === 'kg' || u === 'L') ? 0.001 : 1;   // kg,L 은 소수 허용, '개'는 정수
 }
 
 //===== 숫자 라운드/표기 유틸 =====
@@ -259,7 +259,9 @@ function fmtNum(n, dp){                    // 화면 표기용
 }
 function dpByUnit(u){                      // 단위별 소수 자리
   u = String(u||'').toLowerCase();
-  return (u === 'kg' || u === 'l') ? 2 : 0;
+  if (u === 'kg' || u === 'l') return 3;   // 소수점 3자리 허용
+  if (u === '개') return 0;               // 포장재 같은 정수 단위
+  return 3;       
 }
 
 
@@ -739,7 +741,7 @@ function renderMaterialRows(items) {
     return $.get(ctx + '/material/inventory/lot-details', { materialId: item.materialId })
 	.then(function(resp) {
 		
-	// ✅ 다양한 래핑 대응
+		// ✅ 다양한 래핑 대응
 	    var lots = [];
 	    if (Array.isArray(resp)) lots = resp;
 	    else if (resp && Array.isArray(resp.lotList)) lots = resp.lotList;
@@ -787,28 +789,36 @@ function renderMaterialRows(items) {
           onhandFromLots = 0;
         }
         
+        // ★ 현재고 보정: API가 0을 주면 LOT 합계를 사용
+        var effOnhand = Math.max(onhandTotal, onhandFromLots);
+
+        // 예약값 계산(기존 로직 유지)
         var reservedThis = Number(
-        		  (avail.reservedForThis != null) ? avail.reservedForThis
-        		  : (avail.woReserved != null)    ? avail.woReserved
-        		  : 0
-        		);
+          (avail.reservedForThis != null) ? avail.reservedForThis
+          : (avail.woReserved != null)    ? avail.woReserved
+          : 0
+        );
 
-        		var reservedOthers = (function(){
-        		  if (avail.reservedOthers != null) return Number(avail.reservedOthers) || 0;
-        		  // reservedTotal이 전체이면 = total - this
-        		  if (avail.reservedTotal != null) {
-        		    var tot = Number(avail.reservedTotal) || 0;
-        		    return Math.max(0, tot - reservedThis);
-        		  }
-        		  return 0;
-        		})();
+        var reservedOthers = (function(){
+          if (avail.reservedOthers != null) return Number(avail.reservedOthers) || 0;
+          if (avail.reservedTotal != null) {
+            var tot = Number(avail.reservedTotal) || 0;
+            return Math.max(0, tot - reservedThis);
+          }
+          return 0;
+        })();
 
-        let a4wo = (avail.availableForThisWO != null)
-          ? Number(avail.availableForThisWO)
-          : Math.max(0, onhandTotal - reservedOthers) + reservedThis;
+        // ★ 가용 계산을 보정된 현재고 기준으로
+        let a4wo = Math.max(0, effOnhand - reservedOthers) + reservedThis;
 
-        a4wo = Math.min(a4wo, onhandTotal, onhandFromLots);
+        // ★ LOT 합계와도 일치시키기
+        a4wo = Math.min(a4wo, effOnhand, onhandFromLots);
+
         var cap = Math.max(0, Math.min(required, a4wo));
+
+        // 회색 보조문구도 effOnhand 사용
+        var totalReserved = reservedOthers + reservedThis;
+        var info = '가용 ' + a4wo + '  /  현재고 ' + effOnhand + '  /  예약 ' + totalReserved;
 
         var mid = item.materialId;
         if (mid === 'RM-0015') { a4wo = required; cap = required; }
@@ -998,6 +1008,7 @@ function updateRowSumAndValidate($row) {
   
   // 안전한 반올림 적용
   const sumRounded = round(sum, dp);
+  const targetRounded = round(target, dp);
   
   // 표시용 포맷팅 (불필요한 0 제거)
   $row.find('.sum').text(formatClean(sumRounded, dp));
@@ -1006,7 +1017,7 @@ function updateRowSumAndValidate($row) {
   const preview = (mid === 'RM-0015') ? '-' : formatClean(Math.min(sumRounded, required), dp);
   $row.find('.preview-reserve').text(preview);
   
-  const shortage = (mid === 'RM-0015') ? 0 : Math.max(0, required - sumRounded);
+  const shortage = (mid === 'RM-0015') ? 0 : Math.max(0, round(required, dp) - sumRounded);
   $row.find('.shortage').text(formatClean(shortage, dp));
 
   // 부족 여부 판단도 오차 허용으로
@@ -1018,7 +1029,7 @@ function updateRowSumAndValidate($row) {
     $row.addClass('table-secondary');
   } else if (isShortage) {
     $row.addClass('table-warning');
-  } else if (Math.abs(sumRounded - target) <= EPS) {
+  } else if (Math.abs(sumRounded - targetRounded) <= EPS) {
     $row.addClass('table-success');
   } else if (sumRounded > 0) {
     $row.addClass('table-warning');
@@ -1052,8 +1063,10 @@ $(document).on('input change blur', '.lot-qty', function() {
   if (inputValue > remaining) inputValue = remaining;
 
   // ✅ 부동소수점 오차 수정하여 값 설정
-  const cleanValue = round(inputValue, 2);
-  $input.val(cleanValue);
+  const unit = $row.data('unit') || baseUnitOf($row.data('material'));
+  const dp   = dpByUnit(unit);  // 단위별 소수 자릿수
+  const cleanValue = round(inputValue, dp);
+  $input.val(cleanValue.toFixed(dp));  // 소수점 고정 자리수로 표시
   
   updateRowSumAndValidate($row);
   window.validateAll();
@@ -1273,6 +1286,10 @@ function autoAllocateForRow($row, onlyIfEnough) {
 	  const target = Math.min(required, cap);
 	  const $lotInputs = $row.find('.lot-qty');
 	  
+	  // 단위에 맞는 소수 자리(kg/L -> 3)
+	  const unit = $row.data('unit') || baseUnitOf($row.data('material'));
+	  const dp   = dpByUnit(unit);
+	  
 	  if (!$lotInputs.length || target <= 0) {
 	    $row.find('.lot-qty').val(0);
 	    updateRowSumAndValidate($row);
@@ -1300,8 +1317,8 @@ function autoAllocateForRow($row, onlyIfEnough) {
 	    const allocateQty = Math.min(Math.max(0, maxQty), needed);
 	    
 	    // ✅ 자동 배정 시에도 부동소수점 오차 수정
-	    const cleanQty = round(allocateQty, 2);
-	    $(this).val(cleanQty);
+	    const cleanQty = round(allocateQty, dp);     // ← 3자리 반올림
+	    $(this).val(cleanQty.toFixed(dp));           
 	    allocatedSum += cleanQty;
 	  });
 

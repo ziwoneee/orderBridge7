@@ -1,5 +1,6 @@
 package com.itwillbs.persistence;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,29 @@ public class MaterialReservationDAOImpl implements MaterialReservationDAO {
     private SqlSession sqlSession;
 	
 	private static final String NAMESPACE = "com.itwillbs.mapper.MaterialReservationMapper.";
+	
+	
+	@Override
+    public BigDecimal selectOnhandDecimal(String materialId) {
+        BigDecimal v = sqlSession.selectOne(NAMESPACE + "selectOnhandDecimal", materialId);
+        return v != null ? v : BigDecimal.ZERO;
+    }
+
+    @Override
+    public BigDecimal sumReservedByMaterialDecimal(String materialId) {
+        BigDecimal v = sqlSession.selectOne(NAMESPACE + "sumReservedByMaterialDecimal", materialId);
+        return v != null ? v : BigDecimal.ZERO;
+    }
+
+    @Override
+    public BigDecimal selectWoReservedDecimal(String workOrderId, String materialId) {
+        Map<String,Object> p = new HashMap<>();
+        p.put("workOrderId", workOrderId);
+        p.put("materialId",  materialId);
+        BigDecimal v = sqlSession.selectOne(NAMESPACE + "selectWoReservedDecimal", p);
+        return v != null ? v : BigDecimal.ZERO;
+    }
+    
 	
 	
 	// 예약 upsert: 같은 (WO, 자재)이면 수량 누적

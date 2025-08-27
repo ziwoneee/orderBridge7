@@ -1,5 +1,6 @@
 package com.itwillbs.persistence;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -46,4 +47,10 @@ public interface MaterialReservationDAO {
     // 자재/거래처 기준 리드타임 최대값(없으면 defaultLeadDays 반환)
     Integer selectMaxLeadDaysForShortagePO(String workOrderId, int defaultLeadDays) throws Exception;
 	
+    
+    // ReservationDAO.java
+    BigDecimal selectOnhandDecimal(String materialId);
+    BigDecimal sumReservedByMaterialDecimal(String materialId);
+    BigDecimal selectWoReservedDecimal(String workOrderId, String materialId);
+
 }
