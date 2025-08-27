@@ -21,7 +21,7 @@ function addItemRowFromMaterial(item) {
     var minQ = Number(item.minOrderQty || 1);
     var mul  = Number(item.orderMultiple || 1);
     var defaultQty = Math.max(minQ, mul);
-    var _coef = (priceUnitCalc === purchaseUnit ? 1 : convDisplay);
+    var _coef = (priceUnitCalc === purchaseUnit ? 1 : convBase);
     var unitPrice = Number(item.unitPrice || 0);
 
     var row = document.createElement("tr");
@@ -43,7 +43,7 @@ function addItemRowFromMaterial(item) {
       // 계산용 데이터셋
       + '         data-purchase-unit="'+purchaseUnit+'"'
       + '         data-price-unit="'+priceUnitCalc+'"'
-      + '         data-conv="'+(priceUnitCalc===purchaseUnit ? 1 : convBase)+'"'  // ★ 계산용은 convBase
+      + '         data-conv="'+(priceUnitCalc===purchaseUnit ? 1 : convBase)+'"'
       // 표시용 데이터셋
       + '         data-display-unit="'+displayUnit+'"'
       + '         data-conv-display="'+convDisplay+'"'
@@ -134,17 +134,25 @@ function upgradeExistingRows() {
         if (tr.querySelector("input[name$='.convToBase']")) continue; // 이미 새 구조
 
         var idx = itemIndex++;
+        
+        // ★ 추가: 교체 전에 기존 materialId 확보
+        var prevHidden = tr.querySelector("input[type='hidden'][name$='.materialId']");
+        var prevSelect = tr.querySelector("select[name$='.materialId']");
+        var prevMatId  = (prevHidden && prevHidden.value) || (prevSelect && prevSelect.value) || '';
 
         // 1) 자재 셀 교체
         var matCell = tr.children[0];
         matCell.innerHTML =
-            '<select name="orderItems['+idx+'].materialId" class="form-control" onchange="onMaterialSelect(this)">'
-          + '  <option value="">선택</option>'
-          +      getMaterialOptions()
-          + '</select>'
-          + '<input type="hidden" name="orderItems['+idx+'].unit" value="">'
-          + '<input type="hidden" name="orderItems['+idx+'].priceUnit" value="">'
-          + '<input type="hidden" name="orderItems['+idx+'].convToBase" value="1">';
+            '<select name="orderItems['+idx+'].materialId" class="form-control" onchange="onMaterialSelect(this)">' +
+            '  <option value="">선택</option>' + getMaterialOptions() +
+            '</select>' +
+            '<input type="hidden" name="orderItems['+idx+'].unit" value="">' +
+            '<input type="hidden" name="orderItems['+idx+'].priceUnit" value="">' +
+            '<input type="hidden" name="orderItems['+idx+'].convToBase" value="1">';
+
+        // ★ 추가: 이전 materialId를 data-prev로 보관
+        var newSel = matCell.querySelector("select[name$='.materialId']");
+        if (newSel) newSel.dataset.prev = prevMatId;
 
         // 2) 수량 셀 교체
         var qtyCell = tr.children[1];
@@ -200,43 +208,81 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!supplierId) return;
 
     fetch('/supplierItem/list?supplierId=' + encodeURIComponent(supplierId))
-      .then(function(res){ if(!res.ok) throw new Error('Network error'); return res.json(); })
-      .then(function(data){
-        for (var i=0; i<data.length; i++) {
-          var it = data[i];
-          const convBase   = Number(it.convToBase  || it.conv_to_base  || 1);
-            const convStock  = Number(it.convToStock || it.conv_to_stock || convBase);
-            var normalized = {
-            materialId   : it.materialId,
-            materialName : it.materialName,
-            warehouseCode: it.warehouseCode || '',
-            unit         : (it.orderUnit || it.unit || 'EA').toUpperCase(),
-            priceUnitCalc: (it.priceUnit || 'KG').toUpperCase(),
-            displayUnit  : (it.stockUnit || it.priceUnit || 'KG').toUpperCase(),
-            unitPrice    : Number(it.unitPrice || 0),
-            convBase     : convBase, 			// ★ 계산용
-            convDisplay  : convStock,  			// ★ 표시용
-            minOrderQty  : Number(it.minOrderQty || 1),
-            orderMultiple: Number(it.orderMultiple || 1)
-          };
-          materialMap[normalized.materialId]     = normalized;
-          supplierItemMap[normalized.materialId] = normalized;
-        }
-        upgradeExistingRows();
-        var optionHTML = getMaterialOptions();
-        var sels = document.querySelectorAll("select[name$='.materialId']");
-        for (var j=0; j<sels.length; j++) {
-          sels[j].innerHTML = '<option value="">선택</option>' + optionHTML;
-          sels[j].setAttribute("onchange", "onMaterialSelect(this)");
-        }
-      })
-      .catch(function(err){
-        console.error(err);
-        alert('거래처 자재 목록을 불러오지 못했습니다.');
-      });
-  });
-});
+    .then(function(res){ if(!res.ok) throw new Error('Network error'); return res.json(); })
+    .then(function(data){
+      // 1) 맵 갱신
+      materialMap = {}; supplierItemMap = {};
+      for (var i=0; i<data.length; i++) {
+        var it = data[i];
+        // 1 PACK → 과금단위(KG/L/…) : conv_to_base가 비어있을 수 있으니 conv_to_stock까지 폴백
+        var convBase  = Number(
+          (it.convToBase  != null ? it.convToBase  : it.conv_to_base) ||
+          (it.convToStock != null ? it.convToStock : it.conv_to_stock) ||
+          1
+        );
+        // 1 PACK → 표시단위(보통 재고단위). 없으면 convBase로 폴백
+        var convStock = Number(
+          (it.convToStock != null ? it.convToStock : it.conv_to_stock) ||
+          convBase
+        );
+        var normalized = {
+          materialId   : it.materialId,
+          materialName : it.materialName,
+          warehouseCode: it.warehouseCode || '',
+          unit         : (it.orderUnit || it.unit || 'EA').toUpperCase(),
+          priceUnitCalc: (it.priceUnit || 'KG').toUpperCase(),
+          displayUnit  : (it.stockUnit || it.priceUnit || 'KG').toUpperCase(),
+          unitPrice    : Number(it.unitPrice || 0),
+          convBase     : convBase,   // 계산용
+          convDisplay  : convStock,  // 표시용
+          minOrderQty  : Number(it.minOrderQty || 1),
+          orderMultiple: Number(it.orderMultiple || 1)
+        };
+        materialMap[normalized.materialId]     = normalized;
+        supplierItemMap[normalized.materialId] = normalized;
+      }
 
+      upgradeExistingRows();
+
+      // 2) select 옵션 갱신 + 기존 선택 복원 + onMaterialSelect 강제 호출
+      var optionHTML = getMaterialOptions();
+      var sels = document.querySelectorAll("select[name$='.materialId']");
+      for (var j=0; j<sels.length; j++) {
+        var prev = sels[j].value;
+        if (!prev) prev = sels[j].dataset.prev || '';
+        if (!prev) {
+            var hid = sels[j].parentNode.querySelector('input[type="hidden"][name$=".materialId"]');
+            if (hid && hid.value) prev = hid.value;
+        }
+
+        sels[j].innerHTML = '<option value="">선택</option>' + optionHTML;
+        sels[j].setAttribute("onchange", "onMaterialSelect(this)");
+
+        if (prev) {
+          sels[j].value = prev;
+          onMaterialSelect(sels[j]); // dataset/hidden 주입
+        }
+      }
+
+      // 3) 모든 행 강제 재계산(안전망)
+      setTimeout(function(){
+        var rows = document.querySelectorAll('#itemTable tbody tr');
+        for (var k=0; k<rows.length; k++){
+          var trg = rows[k].querySelector("input[name$='.unitPrice']") ||
+                    rows[k].querySelector("input[name$='.orderQuantity']");
+          if (trg) rowRecalc(trg);
+        }
+      }, 0);
+    })
+    .catch(function(err){
+      console.error(err);
+      alert('거래처 자재 목록을 불러오지 못했습니다.');
+    });
+  });   // ✅ change 핸들러 닫기
+  
+  //✅ 초기 로드 때도 한 번 강제로 change 날려서 메타 로딩/계산 실행
+  if (supplierSel.value) { try { _dispatchChange(supplierSel); } catch(e) { supplierSel.dispatchEvent(new Event('change')); } }
+});     // ✅ DOMContentLoaded 닫기
 
 /* ---------------------------------------
  * [5] 자재 선택 → 단가/단위 바인딩
@@ -275,7 +321,7 @@ function onMaterialSelect(selectElement) {
     if (qtyInput) {
         qtyInput.dataset.purchaseUnit = purchaseUnit;
         qtyInput.dataset.priceUnit    = priceUnitCalc;          // 계산용(KG/L/…)
-        qtyInput.dataset.conv         = String(convBase);       // 1PACK→과금단위
+        qtyInput.dataset.conv         = String(convBase); // 과금환산은 항상 convBase
 
         qtyInput.dataset.displayUnit  = displayUnit;                                 // 표시용
         qtyInput.dataset.convDisplay  = String(convDisplay);
@@ -322,52 +368,85 @@ function enforceMultiple(el) {
     el.value = v;
 }
 
+//★ REPLACE: 기존 rowRecalc 전체를 아래로 교체
+//★ 수정된 rowRecalc 함수 - 발주 상세와 동일한 계산 로직 적용
 function rowRecalc(input){
-	  // 행 찾기
-	  const row = input.closest ? input.closest('tr') : (function(n){while(n && n.tagName!=='TR'){n=n.parentNode;}return n;})(input);
-	  if (!row) return;
+  var row = input.closest ? input.closest('tr') : (function(n){while(n && n.tagName!=='TR'){n=n.parentNode;}return n;})(input);
+  if (!row) return;
 
-	  // 엘리먼트
-	  const qtyInput   = row.querySelector("input[name$='.orderQuantity']");
-	  const unitPriceI = row.querySelector("input[name$='.unitPrice']");
-	  const hiddenTot  = row.querySelector("input[type='hidden'][name$='.totalPrice']");
-	  const visibleTot = row.querySelector("input[name$='.visibleTotal']");
-	  const convSpan   = row.querySelector(".js-conv");
+  // 기본 값들
+  var qtyInput    = row.querySelector("input[name$='.orderQuantity']");
+  var unitPriceEl = row.querySelector("input[name$='.unitPrice']");
+  var hiddenTot   = row.querySelector("input[type='hidden'][name$='.totalPrice']");
+  var visibleTot  = row.querySelector("input[name$='.visibleTotal']") 
+                 || (hiddenTot && hiddenTot.parentNode.querySelector("input[type='number']"));
+  var convSpan    = row.querySelector(".js-conv");
 
-	  // 수량 보정(최소/배수는 기존 로직 유지)
-	  let qty = parseInt(qtyInput && qtyInput.value ? qtyInput.value : '0', 10);
-	  const min = parseInt(qtyInput && qtyInput.min ? qtyInput.min : '1', 10) || 1;
-	  if (!Number.isFinite(qty) || qty < min) { qty = min; if (qtyInput) qtyInput.value = qty; }
+  var packs = Number(qtyInput && qtyInput.value ? qtyInput.value : 0) || 0;
+  var unitPrice = Number(unitPriceEl && unitPriceEl.value ? unitPriceEl.value : 0) || 0;
 
-	  const unitPrice = Number(unitPriceI && unitPriceI.value ? unitPriceI.value : 0);
+  // ① 과금단위 확인
+  var priceUnit = (qtyInput && qtyInput.dataset && qtyInput.dataset.priceUnit)
+               || (row.querySelector("input[name$='.priceUnit']") || {}).value
+               || 'KG';
+  priceUnit = String(priceUnit).toUpperCase();
 
-	  // ★ 계산은 전부 dataset 기반
-	  const priceUnit = String(qtyInput.dataset.priceUnit || 'PACK').toUpperCase(); // 과금단위
-	  const conv      = Number(qtyInput.dataset.conv || 1);           // 1 PACK → 과금단위 수량
-	  const dispUnit  = String(qtyInput.dataset.displayUnit || priceUnit);
-	  const dispConv  = Number(qtyInput.dataset.convDisplay || conv); // 1 PACK → 표시단위 수량
+  // ② 팩당 과금수량 확인 (1 PACK = ? KG/L/BUNDLE)
+  var packQty = Number(qtyInput && qtyInput.dataset && qtyInput.dataset.conv) ||
+                Number((row.querySelector("input[name$='.convToBase']") || {}).value) ||
+                1;
 
-	  // 과금수량(billedQty) 계산
-	  let billedQty;
-	  if (priceUnit === 'KG' || priceUnit === 'L')      billedQty = qty * conv;   // 팩 × kg/L
-	  else if (priceUnit === 'PACK')                    billedQty = qty;          // 팩 과금
-	  else                                              billedQty = qty * conv;   // 기타 단위
+  // ③ 번들 특수 케이스
+  var bundlesPerPack = Number(qtyInput && qtyInput.dataset && qtyInput.dataset.bundlesPerPack) || 1;
 
-	  const total = Math.round(billedQty * unitPrice);
+  // === 발주 상세와 동일한 계산 로직 ===
+  var billedQty = 0;
+  var displayWeight = '';
+  var dispUnit = '';
 
-	  if (hiddenTot)  hiddenTot.value  = total;
-	  if (visibleTot) visibleTot.value = total;
-	  if (convSpan)   convSpan.textContent = (qty * dispConv).toLocaleString() + ' ' + dispUnit;
+  if (priceUnit === 'KG') {
+    // KG으로 과금: PACK수 × kg/PACK
+    billedQty = packs * packQty;
+    displayWeight = billedQty.toLocaleString() + 'kg';
+    dispUnit = 'KG';
+  } else if (priceUnit === 'L') {
+    // L로 과금: PACK수 × L/PACK  
+    billedQty = packs * packQty;
+    displayWeight = billedQty.toLocaleString() + 'L';
+    dispUnit = 'L';
+  } else if (priceUnit === 'BUNDLE') {
+    // 번들로 과금
+    billedQty = packs * bundlesPerPack;
+    displayWeight = billedQty.toLocaleString() + '단';
+    dispUnit = 'BUNDLE';
+  } else {
+    // PACK 단가 또는 기타
+    billedQty = packs;
+    displayWeight = (packs * packQty).toLocaleString() + (priceUnit === 'PACK' ? 'PACK' : priceUnit);
+    dispUnit = priceUnit;
+  }
 
-	  // (있다면) 합계 재계산 호출
-	  if (typeof recalcSummary === 'function') recalcSummary();
-	}
+  // 총액 계산: 과금수량 × 단가
+  var total = Math.round(billedQty * unitPrice);
 
+  // 디버깅 로그 (개발시에만)
+  console.log('계산 디버깅:', {
+    packs: packs,
+    packQty: packQty, 
+    priceUnit: priceUnit,
+    unitPrice: unitPrice,
+    billedQty: billedQty,
+    total: total,
+    calculation: `${packs} PACK × ${packQty} ${priceUnit} × ${unitPrice}원 = ${total}원`
+  });
 
-// dataset 헬퍼 함수
-function ds(element, key, defaultValue) {
-    if (!element || !element.dataset) return defaultValue;
-    return element.dataset[key] || defaultValue;
+  if (hiddenTot)  hiddenTot.value  = total;
+  if (visibleTot) visibleTot.value = total;
+
+  // 표시용 라벨 업데이트
+  if (convSpan) {
+    convSpan.textContent = displayWeight;
+  }
 }
 
 /* ---------------------------------------
@@ -858,3 +937,201 @@ document.addEventListener('DOMContentLoaded', function () {
   };
   window.FormData.prototype = OrigFD.prototype; // 프로토 유지
 })();
+
+
+/* ---------------------------------------
+ * [자재 중복 검사 기능] 
+ * ------------------------------------- */
+
+// 자재 선택 시 중복 검사
+function checkDuplicateMaterial(selectElement) {
+    var selectedId = selectElement.value;
+    if (!selectedId) return true; // 빈 선택은 허용
+
+    var currentRow = selectElement.closest('tr');
+    var allSelects = document.querySelectorAll('select[name$=".materialId"]');
+    var duplicateCount = 0;
+    var duplicateRows = [];
+
+    for (var i = 0; i < allSelects.length; i++) {
+        var sel = allSelects[i];
+        var row = sel.closest('tr');
+        
+        // 현재 행이 아니고, 같은 자재가 선택되어 있으면
+        if (row !== currentRow && sel.value === selectedId) {
+            duplicateCount++;
+            duplicateRows.push(row);
+        }
+    }
+
+    if (duplicateCount > 0) {
+        // 중복된 자재명 가져오기
+        var materialName = selectElement.options[selectElement.selectedIndex].text;
+        
+        if (confirm(`"${materialName}" 자재가 이미 ${duplicateCount}개 행에서 선택되어 있습니다.\n\n계속 추가하시겠습니까?\n\n※ 동일 자재를 여러 행에 나누어 주문하면 관리가 복잡해질 수 있습니다.`)) {
+            return true; // 사용자가 계속하겠다고 함
+        } else {
+            // 선택 취소
+            selectElement.value = '';
+            
+            // 기존 값들 초기화
+            var row = selectElement.closest('tr');
+            resetRowToDefault(row);
+            
+            return false;
+        }
+    }
+
+    return true; // 중복 없음
+}
+
+// 행을 기본값으로 리셋
+function resetRowToDefault(row) {
+    if (!row) return;
+
+    var qtyInput = row.querySelector("input[name$='.orderQuantity']");
+    var unitPriceInput = row.querySelector("input[name$='.unitPrice']");
+    var totalInputs = row.querySelectorAll("input[name$='.totalPrice'], input[name$='.visibleTotal']");
+    var warehouseInput = row.querySelector("input[name$='.warehouseCode']");
+    var hintSmall = row.querySelector("td:nth-child(2) small.text-muted");
+    var convSpan = row.querySelector(".js-conv");
+    
+    // hidden 필드들 초기화
+    var hiddenInputs = row.querySelectorAll("input[name$='.unit'], input[name$='.priceUnit'], input[name$='.convToBase']");
+    hiddenInputs.forEach(function(input) {
+        if (input.name.includes('.unit')) input.value = 'EA';
+        else if (input.name.includes('.priceUnit')) input.value = 'EA';
+        else if (input.name.includes('.convToBase')) input.value = '1';
+    });
+
+    // 수량 관련 초기화
+    if (qtyInput) {
+        qtyInput.value = '1';
+        qtyInput.min = '1';
+        qtyInput.dataset.multiple = '1';
+        qtyInput.dataset.purchaseUnit = 'EA';
+        qtyInput.dataset.priceUnit = 'EA';
+        qtyInput.dataset.conv = '1';
+        qtyInput.dataset.displayUnit = 'EA';
+        qtyInput.dataset.convDisplay = '1';
+    }
+
+    // 단가 초기화
+    if (unitPriceInput) {
+        unitPriceInput.value = '0';
+    }
+
+    // 총액 초기화
+    totalInputs.forEach(function(input) {
+        input.value = '0';
+    });
+
+    // 창고 초기화
+    if (warehouseInput) {
+        warehouseInput.value = '';
+    }
+
+    // 힌트 초기화
+    if (hintSmall) {
+        hintSmall.textContent = '-';
+    }
+
+    // 환산량 표시 초기화
+    if (convSpan) {
+        convSpan.textContent = '0 EA';
+    }
+}
+
+// 기존 onMaterialSelect 함수를 래핑
+var _originalOnMaterialSelect = window.onMaterialSelect;
+window.onMaterialSelect = function(selectElement) {
+    // 먼저 중복 검사
+    if (!checkDuplicateMaterial(selectElement)) {
+        return; // 중복이고 사용자가 취소했으면 여기서 중단
+    }
+    
+    // 중복이 없거나 사용자가 계속하겠다고 하면 기존 로직 실행
+    if (_originalOnMaterialSelect) {
+        _originalOnMaterialSelect(selectElement);
+    }
+};
+
+// 이벤트 위임도 업데이트
+document.addEventListener("change", function (e) {
+    var t = e.target || e.srcElement;
+    if (!t || !t.matches || !t.matches("select[name$='.materialId']")) return;
+    
+    // 위의 래핑된 onMaterialSelect가 호출됨
+    onMaterialSelect(t);
+});
+
+/* ---------------------------------------
+ * [통합 요약 기능 - 동일 자재 자동 합계]
+ * ------------------------------------- */
+function showMaterialSummary() {
+    var rows = document.querySelectorAll('#itemTable tbody tr');
+    var summary = {}; // materialId -> {name, totalPacks, totalAmount, rows: []}
+    
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var sel = row.querySelector('select[name$=".materialId"]');
+        var qtyInput = row.querySelector('input[name$=".orderQuantity"]');
+        var totalInput = row.querySelector('input[name$=".totalPrice"], input[name$=".visibleTotal"]');
+        
+        if (!sel || !sel.value || !qtyInput || Number(qtyInput.value) <= 0) continue;
+        
+        var materialId = sel.value;
+        var materialName = sel.options[sel.selectedIndex].text;
+        var packs = Number(qtyInput.value) || 0;
+        var amount = Number(totalInput ? totalInput.value : 0) || 0;
+        
+        if (!summary[materialId]) {
+            summary[materialId] = {
+                name: materialName,
+                totalPacks: 0,
+                totalAmount: 0,
+                rows: []
+            };
+        }
+        
+        summary[materialId].totalPacks += packs;
+        summary[materialId].totalAmount += amount;
+        summary[materialId].rows.push(i + 1);
+    }
+    
+    // 중복된 자재만 표시
+    var duplicates = Object.keys(summary).filter(id => summary[id].rows.length > 1);
+    
+    if (duplicates.length === 0) {
+        alert('중복된 자재가 없습니다.');
+        return;
+    }
+    
+    var message = '=== 중복 자재 요약 ===\n\n';
+    duplicates.forEach(function(materialId) {
+        var item = summary[materialId];
+        message += `📦 ${item.name}\n`;
+        message += `   • 총 수량: ${item.totalPacks.toLocaleString()} PACK\n`;
+        message += `   • 총 금액: ${item.totalAmount.toLocaleString()}원\n`;
+        message += `   • 행 위치: ${item.rows.join(', ')}번째\n\n`;
+    });
+    
+    message += '\n💡 동일 자재는 하나의 행으로 통합하는 것을 권장합니다.';
+    
+    alert(message);
+}
+
+// 요약 버튼을 발주 항목 테이블 상단에 추가
+document.addEventListener('DOMContentLoaded', function() {
+    var tableWrapper = document.querySelector('#itemTable');
+    if (tableWrapper && tableWrapper.parentNode) {
+        var summaryBtn = document.createElement('button');
+        summaryBtn.type = 'button';
+        summaryBtn.className = 'btn btn-sm btn-info float-right mb-2';
+        summaryBtn.innerHTML = '📋 자재 요약';
+        summaryBtn.onclick = showMaterialSummary;
+        
+        tableWrapper.parentNode.insertBefore(summaryBtn, tableWrapper);
+    }
+});
+
