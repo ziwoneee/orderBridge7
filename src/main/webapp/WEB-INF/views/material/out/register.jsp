@@ -59,20 +59,22 @@
 		  <div class="card">
 		    <div class="card-header bg-light"><b>자재별 필요수량 & LOT 선택 (FEFO)</b></div>
 		    <div class="card-body" style="padding:0;">
+		    <div class="table-responsive">
 		      <table class="table table-bordered table-condensed" style="margin:0;">
 		        <thead>
 		          <tr>
-		            <th style="width:200px;">자재</th>
+		            <th class="min-180">자재</th>
 		            <th class="text-center">필요수량</th>
-		            <th>LOT 선택 (유통기한 빠른 순)</th>
-		            <th class="text-center">예약수량(이번 WO)</th>
-		            <th class="text-center">예상예약</th> 
+		            <th class="min-320">LOT 선택 (유통기한 빠른 순)</th>
+		            <th class="text-center hidden-xs">예약수량(이번 WO)</th>
+		            <th class="text-center hidden-xs">예상예약</th> 
 		            <th class="text-center">선택합계</th>
 		            <th class="text-center">부족</th>
 		          </tr>
 		        </thead>
 		        <tbody id="materialLotBody"><!-- JS 로드 --></tbody>
 		      </table>
+		    </div>
 		    </div>
 		  </div>
 		
@@ -117,4 +119,12 @@
 <%@ include file="/WEB-INF/views/material/out/orderModal.jsp" %>
 
 <script>var ctx='${pageContext.request.contextPath}';</script>
+<style>
+  .min-180{min-width:180px;} .min-320{min-width:320px;}
+  @media(max-width:767px){
+    .table-condensed th, .table-condensed td{padding:6px 8px; font-size:12px; white-space:nowrap;}
+    .lot-row .col-md-5, .lot-row .col-md-4, .lot-row .col-md-3{width:100%; float:none; margin-bottom:6px;}
+    .btn-block-xs{display:block; width:100%;}
+  }
+</style>
 <script src="${pageContext.request.contextPath}/resources/js/materialOutbound.js"></script>

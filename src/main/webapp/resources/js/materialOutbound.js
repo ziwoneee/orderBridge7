@@ -970,31 +970,33 @@ function updateRowSumAndValidate($row) {
 	  const cap      = (capData == null) ? required : Number(capData);
 	  const target   = Math.min(required, cap);
 
-	  // 단위별 자리수 결정
 	  const mid  = String($row.data('material') || '');
 	  const unit = $row.data('unit') || baseUnitOf(mid);
-	  const dp = dpByUnit(unit);
+	  const dp   = dpByUnit(unit);
 
-	  // 합계 계산
+	  // 합계
 	  let sum = 0;
 	  $row.find('.lot-qty').each(function(){ sum += Number(this.value) || 0; });
 	  const sumR = round(sum, dp);
-
-	  // 표기
 	  $row.find('.sum').text( fmtNum(sumR, dp) );
 
-	  // 예상예약/부족 (물은 특례)
-	  const preview = (mid === 'RM-0015') ? '-' : fmtNum(round(Math.min(sum, required), dp), dp);
+	  // 예상예약 / 부족 수치
+	  const preview  = (mid === 'RM-0015') ? '-' : fmtNum(round(Math.min(sum, required), dp), dp);
 	  $row.find('.preview-reserve').text(preview);
-
 	  const shortage = (mid === 'RM-0015') ? 0 : Math.max(0, required - sum);
 	  $row.find('.shortage').text( fmtNum(round(shortage, dp), dp) );
 
-	  // 색상 규칙 (비교는 오차 허용)
+	  // ✅ 부족 여부(재고/가용이 필요수량 미만) 우선 표시
+	  const isShortage = (mid !== 'RM-0015') && (cap + EPS < required);
+
 	  $row.removeClass('table-success table-warning table-danger table-secondary');
+
 	  if (required <= 0) {
 	    $row.addClass('table-secondary');
-	  }else if (Math.abs(sum - target) <= EPS) {
+	  } else if (isShortage) {
+	    // 항상 노란색으로 경고(합계를 cap까지 채워도 노란색 유지)
+	    $row.addClass('table-warning');
+	  } else if (Math.abs(sum - target) <= EPS) {
 	    $row.addClass('table-success');
 	  } else if (sum > 0) {
 	    $row.addClass('table-warning');
@@ -1002,7 +1004,6 @@ function updateRowSumAndValidate($row) {
 	    $row.addClass('table-danger');
 	  }
 	}
-
 
 
 /* ---------- 입력 제한 및 실시간 검증 ---------- */
