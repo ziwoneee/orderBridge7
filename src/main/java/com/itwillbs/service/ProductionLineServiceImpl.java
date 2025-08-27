@@ -47,15 +47,41 @@ public class ProductionLineServiceImpl implements ProductionLineService {
     @Transactional
     public int updateStatus(String lineId, String status) {
         log.info("생산라인 상태 변경 - ID: {}, 상태: {}", lineId, status);
-        
-        int result = productionLineMapper.updateStatus(lineId, status);
-        if (result == 0) {
-            throw new RuntimeException("해당 생산라인을 찾을 수 없습니다: " + lineId);
+
+        if (!"ACTIVE".equalsIgnoreCase(status) && !"INACTIVE".equalsIgnoreCase(status)) {
+            throw new IllegalArgumentException("유효하지 않은 상태값입니다. (ACTIVE/INACTIVE)");
         }
-        
-        return result;
+
+        int updated;
+        if ("INACTIVE".equalsIgnoreCase(status)) {
+            // 진행중 작업이 있으면 DB 레벨에서 차단
+            updated = productionLineMapper.updateStatusIfNoRunning(lineId, status);
+            if (updated == 0) {
+                // 친절한 메시지를 위해 원인 추정
+                WorkOrderDTO running = productionLineMapper.selectCurrentWorkByLineId(lineId);
+                if (running != null) {
+                    throw new IllegalStateException("해당 라인에 진행중 작업이 있어 비활성화할 수 없습니다.");
+                }
+                ProductionLineVO line = productionLineMapper.selectProductionLineDetail(lineId);
+                if (line == null) {
+                    throw new IllegalArgumentException("해당 생산라인을 찾을 수 없습니다: " + lineId);
+                }
+                throw new IllegalStateException("이미 비활성 상태이거나 동시성으로 변경에 실패했습니다.");
+            }
+        } else {
+            // ACTIVE로 전환은 일반 업데이트
+            updated = productionLineMapper.updateStatus(lineId, status);
+            if (updated == 0) {
+                ProductionLineVO line = productionLineMapper.selectProductionLineDetail(lineId);
+                if (line == null) {
+                    throw new IllegalArgumentException("해당 생산라인을 찾을 수 없습니다: " + lineId);
+                }
+                throw new IllegalStateException("이미 활성 상태이거나 동시성으로 변경에 실패했습니다.");
+            }
+        }
+        return updated;
     }
-    
+
     @Override
     public WorkOrderDTO getCurrentWorkByLine(String lineId) {
         log.debug("라인 진행중 작업 조회 - lineId: {}", lineId);

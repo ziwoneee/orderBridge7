@@ -88,9 +88,21 @@
           console.log('BOM 요청 전송...');
         },
         success: function (bomList) {
-          console.log('BOM 응답 받음:', bomList);
-          const tbody = $('#bomTableBody');
-          tbody.empty();
+        	  console.log('BOM 응답 받음:', bomList);
+        	  const tbody = $('#bomTableBody');
+        	  tbody.empty();
+
+        	  // ⬇️ 소수 3~4자리 표시용 포맷터(천단위 구분 없음)
+        	  function fmt34(v) {
+        	    const n = Number(v);
+        	    return Number.isFinite(n)
+        	      ? new Intl.NumberFormat(undefined, {
+        	          minimumFractionDigits: 3,
+        	          maximumFractionDigits: 4,
+        	          useGrouping: false
+        	        }).format(n)
+        	      : '0.000';
+        	  }
 
           if (!bomList || !bomList.length) {
             tbody.html('<tr><td colspan="6" class="text-center text-muted">BOM 정보 없음</td></tr>');
@@ -107,19 +119,19 @@
 
             hiddenMaterials.push({
               materialId: item.materialId,
-              requiredQty: total
+              requiredQty: total		// 전송용은 원본값 그대로
             });
 
             const row =
-              '<tr>' +
-              '<td>' + (item.materialId || '') + '</td>' +
-              '<td>' + (item.materialName || '') + '</td>' +
-              '<td>' + (item.materialType || '') + '</td>' +
-              '<td class="text-center">' + per10.toFixed(1) + '</td>' +
-              '<td class="text-center font-weight-bold">' + total.toFixed(1) + '</td>' +
-              '<td>' + (item.unit || '') + '</td>' +
-              '</tr>';
-            tbody.append(row);
+            	  '<tr>' +
+            	  '<td>' + (item.materialId || '') + '</td>' +
+            	  '<td>' + (item.materialName || '') + '</td>' +
+            	  '<td>' + (item.materialType || '') + '</td>' +
+            	  '<td class="text-center">' + fmt34(per10) + '</td>' +            // 3~4자리 표기
+            	  '<td class="text-center font-weight-bold">' + fmt34(total) + '</td>' + // 3~4자리 표기
+            	  '<td>' + (item.unit || '') + '</td>' +
+            	  '</tr>';
+            	tbody.append(row);
           });
 
           window.materialList = hiddenMaterials;

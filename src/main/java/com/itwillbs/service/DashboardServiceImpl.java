@@ -21,6 +21,9 @@ public class DashboardServiceImpl implements DashboardService {
     private static final String NS_RM_INV = "com.itwillbs.mapper.MaterialInventoryMapper";
     private static final String NS_FG_STK = "com.itwillbs.mapper.ProductStockMapper";
 
+    /** ✔ 모달과 동일 기준: 가용 < 50 → ‘부족’ */
+    private static final int FG_SHORTAGE_THRESHOLD = 50;
+
     @Override
     public DashboardDTO getDashboardData() {
         DashboardDTO dto = new DashboardDTO();
@@ -31,49 +34,47 @@ public class DashboardServiceImpl implements DashboardService {
         dto.setTodayOrdersConfirmed( nz( (Integer) sql.selectOne(NS_DASH + ".countOrdersConfirmedToday") ) );
 
         // 2) 작업지시 현황
-        dto.setWoWaiting   ( nz( (Integer) sql.selectOne(NS_DASH + ".countWoWaiting") ) );
-        dto.setWoReady     ( nz( (Integer) sql.selectOne(NS_DASH + ".countWoReady") ) );
-        dto.setWoInProgress( nz( (Integer) sql.selectOne(NS_DASH + ".countWoInProgress") ) );
+        dto.setWoWaiting    ( nz( (Integer) sql.selectOne(NS_DASH + ".countWoWaiting") ) );
+        dto.setWoReady      ( nz( (Integer) sql.selectOne(NS_DASH + ".countWoReady") ) );
+        dto.setWoInProgress ( nz( (Integer) sql.selectOne(NS_DASH + ".countWoInProgress") ) );
 
         // 3) 오늘 완료 지시 & 오늘 생산 실적
-        dto.setWoCompletedToday     ( nz( (Integer) sql.selectOne(NS_DASH + ".countWoCompletedToday") ) );
-        dto.setProductionActualToday( nz( (Integer) sql.selectOne(NS_DASH + ".sumProductionActualToday") ) );
+        dto.setWoCompletedToday      ( nz( (Integer) sql.selectOne(NS_DASH + ".countWoCompletedToday") ) );
+        dto.setProductionActualToday ( nz( (Integer) sql.selectOne(NS_DASH + ".sumProductionActualToday") ) );
 
-        // 4) 원자재 현황(부족/소진) — 네가 준 MaterialInventoryMapper.selectStatusCounts 그대로 사용
+        // 4) 원자재 현황(부족/소진)
         Map<String, Object> rmCounts = sql.selectOne(
-            NS_RM_INV + ".selectStatusCounts", buildMaterialInvCriteria(null, null, null, null)
+            NS_RM_INV + ".selectStatusCounts",
+            buildMaterialInvCriteria(null, null, null, null)
         );
         dto.setRmShortageCount ( nzMap(rmCounts, "shortage") );
         dto.setRmExhaustedCount( nzMap(rmCounts, "exhausted") );
 
-        // 5) 완제품 부족(가용 <= 0) 개수
-        List<ProductStockVO> fgSummary = sql.selectList(NS_FG_STK + ".getProductStockSummaryList");
-        int fgShortage = 0;
-        if (fgSummary != null) {
-            for (ProductStockVO v : fgSummary) {
-                // availableQty가 int든 Integer든 상관없이 안전하게 처리
-                int available = v.getAvailableQty();
-                if (available <= 0) fgShortage++;
-            }
-        }
-        dto.setFgShortageCount(fgShortage);
+        // 5) 완제품 재고 요약 가져오기 (제품별: on_hand, reserved, available 포함)
+        List<ProductStockVO> fgSummaryAll =
+            sql.selectList(NS_FG_STK + ".getProductStockSummaryList");
+
+        // 6) 모달과 동일 기준(<50)으로 '부족' 목록/개수 계산
+        List<DashboardDTO.FgRow> fgShortageList =
+            buildFgShortageList(fgSummaryAll, FG_SHORTAGE_THRESHOLD, /*limit*/10);
+
+        dto.setFgShortage      ( fgShortageList );          // 목록(하단 테이블)
+        dto.setFgShortageCount ( fgShortageList.size() );   // 타일(상단 숫자)
 
         // ===== 하단 카드 =====
-        // 🔥 개선: 품목 정보까지 포함한 새 쿼리 사용
-        dto.setTodayOrders( fetchTodayOrdersWithProducts() ); 
-        dto.setLines      ( fetchLineCards() );        
-        dto.setRmShortage ( fetchRmListByStatus("부족", 10) );  
-        dto.setRmExhausted( fetchRmListByStatus("소진", 10) );  
-        dto.setFgShortage ( fetchFgShortageTop10(fgSummary) ); 
+        dto.setTodayOrders ( fetchTodayOrdersWithProducts() ); // 오늘 수주 Top-N (품목 포함)
+        dto.setLines       ( fetchLineCards() );               // 라인 카드 3개
+        dto.setRmShortage  ( fetchRmListByStatus("부족", 10) ); // 원자재 부족 Top10
+        dto.setRmExhausted ( fetchRmListByStatus("소진", 10) ); // 원자재 소진 Top10
 
         return dto;
     }
 
-    // -----------------------------
+    // --------------------------------------------------------------------
     // 하단 카드 빌더
-    // -----------------------------
+    // --------------------------------------------------------------------
 
-    /** 🔥 신규: 품목 정보까지 포함한 오늘 수주 Top10 */
+    /**  신규: 품목 정보까지 포함한 오늘 수주 Top-N */
     private List<DashboardDTO.TodayOrderRow> fetchTodayOrdersWithProducts() {
         return sql.selectList(NS_DASH + ".selectTodayOrdersWithProducts");
     }
@@ -88,7 +89,7 @@ public class DashboardServiceImpl implements DashboardService {
             DashboardDTO.LineCard c = new DashboardDTO.LineCard();
             c.setLineId      ( str(m.get("lineId")) );
             c.setLineName    ( str(m.get("lineName")) );
-            c.setState       ( str(m.get("state")) ); // IN_PROGRESS/READY/WAITING/IDLE
+            c.setState       ( str(m.get("state")) );
             c.setWorkOrderId ( str(m.get("workOrderId")) );
             c.setProductId   ( str(m.get("productId")) );
             c.setProductName ( str(m.get("productName")) );
@@ -98,73 +99,96 @@ public class DashboardServiceImpl implements DashboardService {
             c.setProgressRate( toDouble(m.get("progressRate")) );
             c.setReadyCount  ( toInt(m.get("readyCount")) );
             c.setWaitingCount( toInt(m.get("waitingCount")) );
+
+            //  라인 상태 필드로 재확인
+            String lineStatus = str(m.get("lineStatus"));
+            if ("INACTIVE".equalsIgnoreCase(lineStatus)) {
+                c.setState("INACTIVE");
+                c.setWorkOrderId(null);
+                c.setProductId(null);
+                c.setProductName(null);
+                c.setOrderQty(null);
+                c.setProducedQty(0);
+                c.setProgressRate(0d);
+                c.setReadyCount(0);
+                c.setWaitingCount(0);
+            }
             out.add(c);
         }
         return out;
     }
 
-    /** 원자재 부족/소진 목록 */
+    /** 원자재 부족/소진 목록 (상태값 = '부족' | '소진') */
     private List<DashboardDTO.RmRow> fetchRmListByStatus(String status, int limit) {
         SearchCriteria sc = buildMaterialInvCriteria(null, null, status, limit);
-        List<MaterialInventoryVO> list = sql.selectList(NS_RM_INV + ".selectInventorySummaryList", sc);
+        List<MaterialInventoryVO> list =
+            sql.selectList(NS_RM_INV + ".selectInventorySummaryList", sc);
 
         List<DashboardDTO.RmRow> out = new ArrayList<>();
         if (list == null) return out;
 
         for (MaterialInventoryVO v : list) {
             DashboardDTO.RmRow r = new DashboardDTO.RmRow();
-            r.setMaterialId   ( v.getMaterialId() );
-            r.setMaterialName ( v.getMaterialName() );
-            r.setUnit         ( v.getUnit() );
-            r.setQuantity     ( nz(v.getQuantity()) );
-            r.setSafetyStock  ( nz(v.getSafetyStock()) );
-            r.setNextExpireDate( v.getExpirationDate() );
-            r.setStatus       ( status );
+            r.setMaterialId     ( v.getMaterialId() );
+            r.setMaterialName   ( v.getMaterialName() );
+            r.setUnit           ( v.getUnit() );
+            r.setQuantity       ( nz(v.getQuantity()) );
+            r.setSafetyStock    ( nz(v.getSafetyStock()) );
+            r.setNextExpireDate ( v.getExpirationDate() );
+            r.setStatus         ( status );
             out.add(r);
             if (out.size() >= limit) break;
         }
         return out;
     }
 
-    /** 완제품 가용<=0 TOP10 */
-    private List<DashboardDTO.FgRow> fetchFgShortageTop10(List<ProductStockVO> fgSummaryAll) {
-        List<ProductStockVO> src = (fgSummaryAll != null)
-                ? fgSummaryAll
-                : sql.selectList(NS_FG_STK + ".getProductStockSummaryList");
-
+    /**
+     *   완제품 '부족' 목록 생성 (가용 < threshold)
+     * - ProductStockVO 목록을 받아서 DashboardDTO.FgRow로 변환
+     * - 제품명 정렬 후 상위 limit개 반환
+     */
+    private List<DashboardDTO.FgRow> buildFgShortageList(List<ProductStockVO> src,
+                                                         int threshold,
+                                                         int limit) {
         List<DashboardDTO.FgRow> out = new ArrayList<>();
         if (src == null) return out;
 
         for (ProductStockVO v : src) {
             int available = v.getAvailableQty();
-            if (available <= 0) {
+            // 기준 변경: <= 0 → < threshold(=50)
+            if (available < threshold) {
                 DashboardDTO.FgRow row = new DashboardDTO.FgRow();
-                row.setProductId   ( v.getProductId() );
-                row.setProductName ( v.getProductName() );
-                row.setUnit        ( v.getUnit() );
-                row.setReservedQty ( v.getReservedQty() );
-                row.setAvailableQty( available );
+                row.setProductId    ( v.getProductId() );
+                row.setProductName  ( v.getProductName() );
+                row.setUnit         ( v.getUnit() );
+                row.setReservedQty  ( v.getReservedQty() );
+                row.setAvailableQty ( available );
                 out.add(row);
             }
         }
-        // 보기 좋게 제품명 정렬 후 상위 10개
+
+        // 보기 좋게 제품명 정렬
         out.sort(Comparator.comparing(
             DashboardDTO.FgRow::getProductName,
             Comparator.nullsLast(String::compareTo)
         ));
-        if (out.size() > 10) return out.subList(0, 10);
+
+        // 상위 limit개만 반환
+        if (limit > 0 && out.size() > limit) {
+            return out.subList(0, limit);
+        }
         return out;
     }
 
-    // -----------------------------
+    // --------------------------------------------------------------------
     // 유틸
-    // -----------------------------
+    // --------------------------------------------------------------------
     private SearchCriteria buildMaterialInvCriteria(String keyword, String materialType, String status, Integer limit) {
         SearchCriteria sc = new SearchCriteria();
         sc.setKeyword(keyword);
         sc.setMaterialType(materialType);
         sc.setStatus(status);
-        sc.setPage(1); // ✔ setPageStart 대신 setPage 사용
+        sc.setPage(1);
         sc.setPerPageNum( (limit == null) ? 10 : limit );
         sc.setSortColumn("material_id");
         sc.setSortOrder("asc");

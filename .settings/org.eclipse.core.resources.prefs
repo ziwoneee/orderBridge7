@@ -1,6 +1,7 @@
 eclipse.preferences.version=1
 encoding/.gitignore=UTF-8
 encoding//src/main/webapp/WEB-INF/views/admin/login.jsp=UTF-8
+encoding//src/main/webapp/WEB-INF/views/admin/settings/accounts.jsp=UTF-8
 encoding//src/main/webapp/WEB-INF/views/main/layout_footer.jsp=UTF-8
 encoding//src/main/webapp/WEB-INF/views/main/layout_head.jsp=UTF-8
 encoding//src/main/webapp/WEB-INF/views/main/sidebar.jsp=UTF-8

@@ -1,7 +1,10 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
+
 
 <div class="container-scroller">
   <%@ include file="/WEB-INF/views/main/top.jsp" %>      
@@ -112,38 +115,76 @@
       <tr>
         <!-- 작업지시번호 -->
         <th>
-          <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=order_id&sortOrder=${cri.sortColumn == 'order_id' && cri.sortOrder == 'ASC' ? 'DESC' : 'ASC'}"
-             class="text-white text-decoration-none">
+          <c:url var="sortOrderIdUrl" value="/workorder/list">
+            <c:param name="page" value="1"/>
+            <c:param name="perPageNum" value="${cri.perPageNum}"/>
+            <c:param name="keyword" value="${cri.keyword}"/>
+            <c:param name="status" value="${cri.status}"/>
+            <c:param name="startDate" value="${cri.startDate}"/>
+            <c:param name="endDate" value="${cri.endDate}"/>
+            <c:param name="sortColumn" value="order_id"/>
+            <c:param name="sortOrder"
+              value="${cri.sortColumn eq 'order_id' and fn:toUpperCase(cri.sortOrder) eq 'ASC' ? 'DESC' : 'ASC'}"/>
+          </c:url>
+          <a href="${sortOrderIdUrl}" class="text-white text-decoration-none">
             작업지시번호
-            <c:if test="${cri.sortColumn == 'order_id'}">
-              <i class="ti-arrow-${cri.sortOrder == 'ASC' ? 'up' : 'down'}"></i>
-            </c:if>
+            <c:choose>
+              <c:when test="${cri.sortColumn eq 'order_id'}">
+                <span>${fn:toUpperCase(cri.sortOrder) eq 'ASC' ? '▲' : '▼'}</span>
+              </c:when>
+              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
+            </c:choose>
           </a>
         </th>
 
         <!-- 작업지시일자 -->
         <th>
-          <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=created_at&sortOrder=${cri.sortColumn == 'created_at' && cri.sortOrder == 'ASC' ? 'DESC' : 'ASC'}"
-             class="text-white text-decoration-none">
+          <c:url var="sortCreatedUrl" value="/workorder/list">
+            <c:param name="page" value="1"/>
+            <c:param name="perPageNum" value="${cri.perPageNum}"/>
+            <c:param name="keyword" value="${cri.keyword}"/>
+            <c:param name="status" value="${cri.status}"/>
+            <c:param name="startDate" value="${cri.startDate}"/>
+            <c:param name="endDate" value="${cri.endDate}"/>
+            <c:param name="sortColumn" value="created_at"/>
+            <c:param name="sortOrder"
+              value="${cri.sortColumn eq 'created_at' and fn:toUpperCase(cri.sortOrder) eq 'ASC' ? 'DESC' : 'ASC'}"/>
+          </c:url>
+          <a href="${sortCreatedUrl}" class="text-white text-decoration-none">
             작업지시일자
-            <c:if test="${cri.sortColumn == 'created_at'}">
-              <i class="ti-arrow-${cri.sortOrder == 'ASC' ? 'up' : 'down'}"></i>
-            </c:if>
+            <c:choose>
+              <c:when test="${cri.sortColumn eq 'created_at'}">
+                <span>${fn:toUpperCase(cri.sortOrder) eq 'ASC' ? '▲' : '▼'}</span>
+              </c:when>
+              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
+            </c:choose>
           </a>
         </th>
 
         <!-- 납기일 -->
         <th>
-          <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=due_date&sortOrder=${cri.sortColumn == 'due_date' && cri.sortOrder == 'ASC' ? 'DESC' : 'ASC'}"
-             class="text-white text-decoration-none">
+          <c:url var="sortDueUrl" value="/workorder/list">
+            <c:param name="page" value="1"/>
+            <c:param name="perPageNum" value="${cri.perPageNum}"/>
+            <c:param name="keyword" value="${cri.keyword}"/>
+            <c:param name="status" value="${cri.status}"/>
+            <c:param name="startDate" value="${cri.startDate}"/>
+            <c:param name="endDate" value="${cri.endDate}"/>
+            <c:param name="sortColumn" value="due_date"/>
+            <c:param name="sortOrder"
+              value="${cri.sortColumn eq 'due_date' and fn:toUpperCase(cri.sortOrder) eq 'ASC' ? 'DESC' : 'ASC'}"/>
+          </c:url>
+          <a href="${sortDueUrl}" class="text-white text-decoration-none">
             납기일
-            <c:if test="${cri.sortColumn == 'due_date'}">
-              <i class="ti-arrow-${cri.sortOrder == 'ASC' ? 'up' : 'down'}"></i>
-            </c:if>
+            <c:choose>
+              <c:when test="${cri.sortColumn eq 'due_date'}">
+                <span>${fn:toUpperCase(cri.sortOrder) eq 'ASC' ? '▲' : '▼'}</span>
+              </c:when>
+              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
+            </c:choose>
           </a>
         </th>
 
-        <!-- 일반 컬럼 -->
         <th>라인ID</th>
         <th>제품명</th>
         <th>생산수량</th>
@@ -151,16 +192,31 @@
 
         <!-- 우선순위 -->
         <th>
-          <a href="/workorder/list?page=${cri.page}&perPageNum=${cri.perPageNum}&keyword=${cri.keyword}&status=${cri.status}&startDate=${cri.startDate}&endDate=${cri.endDate}&sortColumn=priority&sortOrder=${cri.sortColumn == 'priority' && cri.sortOrder == 'ASC' ? 'DESC' : 'ASC'}"
-             class="text-white text-decoration-none">
+          <c:url var="sortPriorityUrl" value="/workorder/list">
+            <c:param name="page" value="1"/>
+            <c:param name="perPageNum" value="${cri.perPageNum}"/>
+            <c:param name="keyword" value="${cri.keyword}"/>
+            <c:param name="status" value="${cri.status}"/>
+            <c:param name="startDate" value="${cri.startDate}"/>
+            <c:param name="endDate" value="${cri.endDate}"/>
+            <c:param name="sortColumn" value="priority"/>
+            <c:param name="sortOrder"
+              value="${cri.sortColumn eq 'priority' and fn:toUpperCase(cri.sortOrder) eq 'ASC' ? 'DESC' : 'ASC'}"/>
+          </c:url>
+          <a href="${sortPriorityUrl}" class="text-white text-decoration-none">
             우선순위
-            <c:if test="${cri.sortColumn == 'priority'}">
-              <i class="ti-arrow-${cri.sortOrder == 'ASC' ? 'up' : 'down'}"></i>
-            </c:if>
+            <c:choose>
+              <c:when test="${cri.sortColumn eq 'priority'}">
+                <span>${fn:toUpperCase(cri.sortOrder) eq 'ASC' ? '▲' : '▼'}</span>
+              </c:when>
+              <c:otherwise><span class="neutral-arrow">⇅</span></c:otherwise>
+            </c:choose>
           </a>
         </th>
 
+        <!-- 상태 (정렬 없음) -->
         <th>상태</th>
+
         <th>상세</th>
       </tr>
     </thead>
@@ -223,6 +279,7 @@
           </td>
         </tr>
       </c:forEach>
+      
       <!-- 데이터 없을 때 -->
       <c:if test="${empty workOrders}">
         <tr>
@@ -378,6 +435,12 @@
 .btn-primary:hover {
     background-color: #152a4a !important;
     border-color: #152a4a !important;
+}
+
+/* 정렬 아이콘 스타일 */
+.neutral-arrow {
+    color: #ccc;
+    opacity: 0.7;
 }
 
 </style>

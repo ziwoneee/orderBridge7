@@ -34,9 +34,8 @@
                 <div class="col-md-2">
                   <select class="form-control" name="status">
                     <option value="">상태</option>
-                    <option value="ACTIVE" ${cri.status == 'ACTIVE' ? 'selected' : ''}>활성</option>
-                    <option value="INACTIVE" ${cri.status == 'INACTIVE' ? 'selected' : ''}>비활성</option>
-                    <option value="LOCKED" ${cri.status == 'LOCKED' ? 'selected' : ''}>잠김</option>
+                    <option value="ACTIVE" ${cri.status == 'ACTIVE' ? 'selected' : ''}>재직</option>
+                    <option value="INACTIVE" ${cri.status == 'INACTIVE' ? 'selected' : ''}>휴직</option>
                   </select>
                 </div>
                 <div class="col-md-4">
@@ -55,14 +54,14 @@
               <!-- 두 번째 줄: 신규 등록 버튼만 오른쪽 끝에 -->
               <div class="row">
                 <div class="col-12 d-flex justify-content-end">
-                  <button type="button" class="btn btn-success" data-toggle="modal" data-target="#addAdminModal">
+                  <button type="button" class="btn btn-success" data-toggle="modal" data-target="#addAdminModal" onclick="openAddAdminModal()">
                     <i class="ti-plus"></i> 신규 등록
                   </button>
                 </div>
               </div>
               
               <input type="hidden" name="sortColumn" id="sortColumn" value="${cri.sortColumn != null ? cri.sortColumn : 'admin_id'}">
-              <input type="hidden" name="sortOrder" id="sortOrder" value="${cri.sortOrder != null ? cri.sortOrder : 'ASC'}">
+              <input type="hidden" name="sortOrder" id="sortOrder" value="${cri.sortOrder != null ? cri.sortOrder : 'asc'}">
               <input type="hidden" name="page" value="1">
             </form>
           </div>
@@ -72,18 +71,50 @@
             <table class="table">
               <thead class="table-header-dark">
                 <tr>
-                  <th onclick="sortTable('admin_id')" style="cursor: pointer;">
-                    사번 ${cri.sortColumn == 'admin_id' ? (cri.sortOrder == 'ASC' ? '↑' : '↓') : ''}
+                  <th>
+                    <a href="?page=${cri.page}&keyword=${cri.keyword}&condition=${cri.condition}&status=${cri.status}&sortColumn=admin_id&sortOrder=${cri.sortColumn == 'admin_id' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+                       class="text-white text-decoration-none">
+                      사번
+                      <c:choose>
+                        <c:when test="${cri.sortColumn == 'admin_id'}">
+                          <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+                        </c:when>
+                        <c:otherwise>
+                          <span class="neutral-arrow">⇅</span>
+                        </c:otherwise>
+                      </c:choose>
+                    </a>
                   </th>
-                  <th onclick="sortTable('name')" style="cursor: pointer;">
-                    이름 ${cri.sortColumn == 'name' ? (cri.sortOrder == 'ASC' ? '↑' : '↓') : ''}
+                  <th>
+                    <a href="?page=${cri.page}&keyword=${cri.keyword}&condition=${cri.condition}&status=${cri.status}&sortColumn=name&sortOrder=${cri.sortColumn == 'name' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+                       class="text-white text-decoration-none">
+                      이름
+                      <c:choose>
+                        <c:when test="${cri.sortColumn == 'name'}">
+                          <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+                        </c:when>
+                        <c:otherwise>
+                          <span class="neutral-arrow">⇅</span>
+                        </c:otherwise>
+                      </c:choose>
+                    </a>
                   </th>
                   <th>소속/역할</th>
                   <th>연락처</th>
                   <th>상태</th>
-                  <th>실패횟수</th>
-                  <th onclick="sortTable('created_at')" style="cursor: pointer;">
-                    등록일 ${cri.sortColumn == 'created_at' ? (cri.sortOrder == 'ASC' ? '↑' : '↓') : ''}
+                  <th>
+                    <a href="?page=${cri.page}&keyword=${cri.keyword}&condition=${cri.condition}&status=${cri.status}&sortColumn=created_at&sortOrder=${cri.sortColumn == 'created_at' && cri.sortOrder == 'asc' ? 'desc' : 'asc'}" 
+                       class="text-white text-decoration-none">
+                      등록일
+                      <c:choose>
+                        <c:when test="${cri.sortColumn == 'created_at'}">
+                          <span>${cri.sortOrder eq 'asc' ? '▲' : '▼'}</span>
+                        </c:when>
+                        <c:otherwise>
+                          <span class="neutral-arrow">⇅</span>
+                        </c:otherwise>
+                      </c:choose>
+                    </a>
                   </th>
                   <th>상세</th>
                   <th>관리</th>
@@ -93,7 +124,7 @@
                 <c:choose>
                   <c:when test="${not empty adminList}">
                     <c:forEach var="admin" items="${adminList}">
-                      <tr class="${(admin.status == 'INACTIVE' || admin.status == 'DELETED' || admin.status == 'LOCKED') ? 'inactive-row' : ''}">
+                      <tr>
                         <td>${admin.adminId}</td>
                         <td>${admin.name}</td>
                         <td>
@@ -115,36 +146,27 @@
                             </c:otherwise>
                           </c:choose>
                         </td>
-                        <td>${admin.phone != null ? admin.phone : '-'}</td>
                         <td>
                           <c:choose>
-                            <c:when test="${admin.status == 'ACTIVE'}">
-                              <span class="badge badge-success">활성</span>
+                            <c:when test="${admin.phone != null && admin.phone != ''}">
+                              ${admin.phone}
                             </c:when>
-                            <c:when test="${admin.status == 'LOCKED'}">
-                              <span class="badge badge-danger">잠김</span>
-                            </c:when>
-                            <c:when test="${admin.status == 'DELETED'}">
-                              <span class="badge badge-dark">삭제됨</span>
-                            </c:when>
-                            <c:otherwise>
-                              <span class="badge badge-secondary">비활성</span>
-                            </c:otherwise>
+                            <c:otherwise>-</c:otherwise>
                           </c:choose>
                         </td>
                         <td>
                           <c:choose>
-                            <c:when test="${admin.failCount >= 4}">
-                              <span class="badge badge-danger">${admin.failCount}/5</span>
+                            <c:when test="${admin.isLocked}">
+                              <span class="badge badge-danger">잠김</span>
                             </c:when>
-                            <c:when test="${admin.failCount >= 2}">
-                              <span class="badge badge-warning">${admin.failCount}/5</span>
+                            <c:when test="${admin.status == 'ACTIVE'}">
+                              <span class="badge badge-success">재직</span>
                             </c:when>
-                            <c:when test="${admin.failCount > 0}">
-                              <span class="badge badge-info">${admin.failCount}/5</span>
+                            <c:when test="${admin.status == 'INACTIVE'}">
+                              <span class="badge badge-secondary">휴직</span>
                             </c:when>
                             <c:otherwise>
-                              <span class="badge badge-success">0/5</span>
+                              <span class="badge badge-light">${admin.status}</span>
                             </c:otherwise>
                           </c:choose>
                         </td>
@@ -160,16 +182,14 @@
                           <button class="btn btn-sm btn-outline-info" onclick="viewAdminDetail('${admin.adminId}')">상세</button>
                         </td>
                         <td>
-                          <c:if test="${admin.status != 'DELETED'}">
-                            <button class="btn btn-sm btn-outline-warning" onclick="editAdmin('${admin.adminId}')">수정</button>
-                          </c:if>
+                          <button class="btn btn-sm btn-outline-warning" onclick="editAdmin('${admin.adminId}')">수정</button>
                         </td>
                       </tr>
                     </c:forEach>
                   </c:when>
                   <c:otherwise>
                     <tr>
-                      <td colspan="9" class="text-center py-4">등록된 관리자가 없습니다.</td>
+                      <td colspan="8" class="text-center py-4">등록된 관리자가 없습니다.</td>
                     </tr>
                   </c:otherwise>
                 </c:choose>
@@ -301,17 +321,8 @@
               <div class="col-md-6">
                 <div class="form-group">
                   <label class="form-label required">관리자 ID (사번)</label>
-                  <div class="input-group">
-                    <div class="input-group-prepend">
-                      <select class="form-control" id="adminIdPrefix" style="max-width: 120px;">
-                        <option value="A">A (최고관리자)</option>
-                        <option value="P">P (생산)</option>
-                        <option value="S">S (영업)</option>
-                        <option value="M">M (자재)</option>
-                      </select>
-                    </div>
-                    <input type="text" class="form-control" id="adminIdNumber" placeholder="0001" maxlength="4">
-                  </div>
+                  <input type="text" class="form-control" id="adminIdNumber" placeholder="자동 생성됩니다" readonly style="background-color: #f8f9fa;">
+                  <small class="form-text text-muted">사번은 자동으로 생성됩니다 (예: 250001)</small>
                 </div>
               </div>
               <div class="col-md-6">
@@ -425,9 +436,12 @@
                 <div class="form-group">
                   <label class="form-label required">상태</label>
                   <select class="form-control" id="editAdminStatus" required>
-                    <option value="ACTIVE">활성</option>
-                    <option value="INACTIVE">비활성</option>
+                    <option value="ACTIVE">재직</option>
+                    <option value="INACTIVE">휴직</option>
                   </select>
+                  <small class="form-text text-muted" id="lockedStatusNote" style="display:none; color:#dc3545;">
+                    현재 잠김 상태입니다. 상태 변경을 위해서는 먼저 잠금을 해제해주세요.
+                  </small>
                 </div>
               </div>
             </div>
@@ -437,6 +451,7 @@
           <button type="button" class="btn btn-secondary" data-dismiss="modal">취소</button>
           <button type="button" class="btn custom-navy" onclick="updateAdmin()">수정</button>
           <button type="button" class="btn btn-danger" onclick="deleteAdminFromModal()">삭제</button>
+          <button type="button" class="btn btn-success" id="unlockBtn" style="display:none;" onclick="unlockAccountFromModal()">잠금해제</button>
         </div>
       </div>
     </div>
@@ -476,8 +491,10 @@
     document.head.appendChild(meta);
   }
   
-  window.isSuperAdmin = ${sessionScope.loginAdmin.roleId == 'SUPER'};
+  window.isSuperAdmin   = ${sessionScope.loginAdmin.roleId == 'SUPER'};
   window.currentAdminId = '${sessionScope.loginAdmin.adminId}';
+  /* (원본 전화번호 전달) */
+  window.myOriginalPhone = '<c:out value="${sessionScope.loginAdmin.phone}" default=""/>';
   
   function formatPhoneNumber(input) {
     let value = input.value.replace(/[^0-9]/g, '');
@@ -488,31 +505,6 @@
     }
     input.value = value;
   }
-  
-  function sortTable(column) {
-    const currentSortColumn = document.getElementById('sortColumn').value;
-    const currentSortOrder = document.getElementById('sortOrder').value;
-    
-    let newSortOrder = 'ASC';
-    if (currentSortColumn === column && currentSortOrder === 'ASC') {
-      newSortOrder = 'DESC';
-    }
-    
-    document.getElementById('sortColumn').value = column;
-    document.getElementById('sortOrder').value = newSortOrder;
-    document.querySelector('form').submit();
-  }
-  
-  // 페이지 로드 후 비활성 행들을 맨 아래로 이동
-  document.addEventListener('DOMContentLoaded', function() {
-    const tbody = document.querySelector('tbody');
-    const inactiveRows = document.querySelectorAll('.inactive-row');
-    
-    // 비활성 행들을 맨 아래로 이동
-    inactiveRows.forEach(function(row) {
-      tbody.appendChild(row);
-    });
-  });
 </script>
 
 <script src="${pageContext.request.contextPath}/resources/js/accounts.js"></script>

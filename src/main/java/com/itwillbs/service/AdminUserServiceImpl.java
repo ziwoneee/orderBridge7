@@ -2,6 +2,8 @@ package com.itwillbs.service;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,31 +18,63 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Autowired
     private AdminUserMapper adminUserMapper;
     
+    private static final Logger log = LoggerFactory.getLogger(AdminUserServiceImpl.class);
+
+    /** DB(increaseFailCount XML)의 5와 반드시 동일해야 함 */
+    private static final int MAX_FAIL = 5;
+    
     /**
      * 로그인 처리
      */
     @Override
     public AdminUserVO login(AdminUserVO inputVO) {
-        // 1) 아이디로 DB 조회
+        // 1) 사용자 조회
         AdminUserVO dbVO = adminUserMapper.findByAdminId(inputVO.getAdminId());
-        if (dbVO == null) {
-            return null; // 아이디 없음
-        }
-        // 2) 이미 잠금 상태면 바로 로그인 불가
-        if ("LOCKED".equals(dbVO.getStatus())) {
+        if (dbVO == null) return null;
+
+        // 2) ACTIVE이면서 잠기지 않은 상태만 로그인 허용
+        String st = dbVO.getStatus();
+        Boolean locked = dbVO.getIsLocked();
+        
+        if (!"ACTIVE".equals(st)) {
+            log.warn("Login blocked (status={}): adminId={}", st, inputVO.getAdminId());
             return null;
         }
-        // 3) 비밀번호 비교 (BCrypt)
-        boolean matched = PasswordEncoderUtil.matches(inputVO.getPassword(), dbVO.getPassword());
+        
+        if (Boolean.TRUE.equals(locked)) {
+            log.warn("Login blocked (locked=true): adminId={}", inputVO.getAdminId());
+            return null;
+        }
+
+        // 3) 비밀번호 비교 (DB 비번 null이면 실패)
+        String rawPw = inputVO.getPassword();
+        String encPw = dbVO.getPassword();
+        boolean matched = (encPw != null) && PasswordEncoderUtil.matches(rawPw, encPw);
+
         if (matched) {
-            // 로그인 성공 → 실패 카운트 초기화
+            // 성공: 실패횟수 0, 잠금해제, last_login_at = NOW()
             adminUserMapper.resetFailCount(dbVO.getAdminId());
-            return dbVO;
-        } else {
-            // 로그인 실패 → 실패 카운트 +1
-            adminUserMapper.increaseFailCount(dbVO.getAdminId());
+            AdminUserVO fresh = adminUserMapper.findByAdminId(dbVO.getAdminId());
+            log.info("Login success: adminId={}", dbVO.getAdminId());
+            return fresh;
+        }
+
+        // 4) 실패: 실패횟수 +1, 5회 시 잠금
+        adminUserMapper.increaseFailCount(dbVO.getAdminId());
+
+        // 증가 후 상태 확정
+        AdminUserVO after = adminUserMapper.findByAdminId(dbVO.getAdminId());
+        int fc = (after != null ? after.getFailCount() : 0);
+        int remaining = Math.max(0, MAX_FAIL - fc);
+
+        if (after != null && Boolean.TRUE.equals(after.getIsLocked())) {
+            log.warn("Account locked (failCount={}): adminId={}", fc, dbVO.getAdminId());
             return null;
         }
+
+        log.info("Login failed: adminId={}", dbVO.getAdminId());
+        log.info("failCount={}, remaining={}", fc, remaining); 
+        return null;
     }
     
     /**
@@ -59,7 +93,31 @@ public class AdminUserServiceImpl implements AdminUserService {
         // 비밀번호 BCrypt 인코딩
         String encodedPw = PasswordEncoderUtil.encode(vo.getPassword());
         vo.setPassword(encodedPw);
+        
+        // 기본값 설정
+        if (vo.getStatus() == null) vo.setStatus("ACTIVE");
+        if (vo.getIsLocked() == null) vo.setIsLocked(false);
+        
         adminUserMapper.insertAdmin(vo);
+    }
+    
+    /**
+     * 다음 사번 자동 생성 (2025001, 2025002...)
+     */
+    @Override
+    public String generateNextAdminId() {
+        int currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
+        String maxId = adminUserMapper.getMaxAdminIdByYear(String.valueOf(currentYear));
+        
+        // admin 같은 문자 ID는 무시하고, 숫자로만 된 7자리 ID 중에서 최대값 찾기
+        if (maxId == null || maxId.isEmpty() || !maxId.matches("^\\d{7}$")) {
+            // 해당 연도 첫 번째 관리자
+            return currentYear + "001";
+        }
+        
+        // 기존 최대값에서 +1
+        int nextNum = Integer.parseInt(maxId.substring(4)) + 1;
+        return currentYear + String.format("%03d", nextNum);
     }
     
     /**
@@ -114,11 +172,11 @@ public class AdminUserServiceImpl implements AdminUserService {
      */
     @Override
     public boolean isPhoneDuplicate(String phone, String currentAdminId) {
-        return adminUserMapper.checkPhoneDuplicate(phone, currentAdminId) > 0;
+        String norm = phone == null ? null : phone.replaceAll("[^0-9]", "");
+        return adminUserMapper.checkPhoneDuplicate(norm, currentAdminId) > 0;
     }
     
     // ========== 페이징 처리 관련 메서드 ==========
-    
     /**
      * 관리자 목록 조회 (기존 - 단순 검색)
      */
