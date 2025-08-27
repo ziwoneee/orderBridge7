@@ -27,23 +27,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // 이벤트 리스너 초기화
 function initializeEventListeners() {
-  // 관리자 ID 접두사 변경 시 역할 자동 설정
-  var adminIdPrefix = document.getElementById('adminIdPrefix');
-  var adminRole = document.getElementById('adminRole');
-  if (adminIdPrefix && adminRole) {
-    adminIdPrefix.addEventListener('change', function () {
-      var prefix = this.value;
-      var roleMap = {
-        'A': 'SUPER',
-        'P': 'PROD',
-        'S': 'SALES',
-        'M': 'MATERIAL'
-      };
-      if (roleMap[prefix]) {
-        adminRole.value = roleMap[prefix];
-      }
-    });
-  }
+  // 접두사 기반 자동 역할 설정 제거됨
+  // 이제 관리자가 직접 역할을 선택해야 함
 }
 
 // 전화번호 자동 포맷팅 함수 (JSP에서도 사용)
@@ -97,6 +82,28 @@ function checkPhoneDuplicate(phone, currentId) {
   });
 }
 
+// 관리자 추가 모달이 열릴 때 사번 자동 생성
+function openAddAdminModal() {
+  // 사번 자동 생성
+  $.ajax({
+    url: contextPath + '/admin/settings/accounts/next-id',
+    type: 'GET',
+    success: function (response) {
+      if (response && response.success) {
+        $('#adminIdNumber').val(response.nextId);
+      } else {
+        alert('사번 생성 실패: ' + (response.message || '알 수 없는 오류'));
+        $('#addAdminModal').modal('hide'); // 실패시 모달 닫기
+      }
+    },
+    error: function (xhr, status, error) {
+      console.error('사번 생성 오류:', error);
+      alert('사번 생성 중 오류가 발생했습니다.');
+      $('#addAdminModal').modal('hide'); // 실패시 모달 닫기
+    }
+  });
+}
+
 // 관리자 추가
 function addAdmin() {
   try {
@@ -104,7 +111,6 @@ function addAdmin() {
     var elements = {
       password: document.getElementById('adminPassword'),
       passwordConfirm: document.getElementById('adminPasswordConfirm'),
-      prefix: document.getElementById('adminIdPrefix'),
       number: document.getElementById('adminIdNumber'),
       name: document.getElementById('adminName'),
       phone: document.getElementById('adminPhone'),
@@ -123,7 +129,6 @@ function addAdmin() {
 
     var password = elements.password.value;
     var passwordConfirm = elements.passwordConfirm.value;
-    var prefix = elements.prefix.value;
     var number = elements.number.value;
     var name = elements.name.value.trim();
     var phone = elements.phone.value.trim();
@@ -133,12 +138,12 @@ function addAdmin() {
     if (!name) { alert('이름을 입력해주세요.'); elements.name.focus(); return; }
     if (!password) { alert('비밀번호를 입력해주세요.'); elements.password.focus(); return; }
     if (password !== passwordConfirm) { alert('비밀번호가 일치하지 않습니다.'); elements.passwordConfirm.focus(); return; }
-    if (!number || number.length !== 4 || !/^\d{4}$/.test(number)) { alert('사번은 4자리 숫자로 입력해주세요. (예: 0001)'); elements.number.focus(); return; }
+    if (!number || number.length !== 7 || !/^\d{7}$/.test(number)) { alert('사번이 올바르지 않습니다. 새로고침 후 다시 시도해주세요.'); return; }
     if (!role) { alert('역할을 선택해주세요.'); elements.role.focus(); return; }
     if (phone && !validatePhoneNumber(phone)) { alert('전화번호는 010-0000-0000 형식으로 입력해주세요.'); elements.phone.focus(); return; }
 
     var proceed = function () {
-      var adminId = prefix + number;
+      var adminId = number; // 이제 7자리 숫자만 사용
       var adminData = {
         adminId: adminId,
         name: name,
@@ -614,3 +619,4 @@ window.editAdminFromDetail = editAdminFromDetail;
 window.deleteAdminFromModal = deleteAdminFromModal;
 window.updateMyInfo = updateMyInfo;
 window.unlockAccountFromModal = unlockAccountFromModal;
+window.openAddAdminModal = openAddAdminModal;

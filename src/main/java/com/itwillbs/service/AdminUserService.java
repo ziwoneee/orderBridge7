@@ -16,6 +16,9 @@ public interface AdminUserService {
     // 관리자 등록
     void insertAdmin(AdminUserVO adminVO);
     
+    // 관리자 사번 자동 생성
+    String generateNextAdminId();
+    
     // 관리자 정보 수정 (최고관리자용)
     void updateAdmin(AdminUserVO adminVO);
     

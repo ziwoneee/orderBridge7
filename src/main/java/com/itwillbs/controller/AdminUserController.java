@@ -202,11 +202,15 @@ public class AdminUserController {
                 return ResponseEntity.ok(result);
             }
             
-            // 중복 체크
+            // 사번 자동 생성
+            String nextAdminId = adminUserService.generateNextAdminId();
+            adminVO.setAdminId(nextAdminId);
+            
+            // 중복 체크 (혹시 모를 상황 대비)
             AdminUserVO existingAdmin = adminUserService.findByAdminId(adminVO.getAdminId());
             if (existingAdmin != null) {
                 result.put("success", false);
-                result.put("message", "이미 존재하는 사번입니다.");
+                result.put("message", "사번 생성 중 중복이 발생했습니다. 다시 시도해주세요.");
                 return ResponseEntity.ok(result);
             }
             
@@ -224,6 +228,7 @@ public class AdminUserController {
             adminUserService.insertAdmin(adminVO);
             result.put("success", true);
             result.put("message", "관리자가 성공적으로 등록되었습니다.");
+            result.put("adminId", nextAdminId); // 생성된 사번도 반환
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -233,6 +238,38 @@ public class AdminUserController {
         
         return ResponseEntity.ok(result);
     }
+    
+    /**
+     * 다음 사번 자동 생성 (최고관리자만)
+     */
+    @GetMapping("/admin/settings/accounts/next-id")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getNextAdminId(HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // 권한 체크
+            AdminUserVO loginAdmin = (AdminUserVO) session.getAttribute("loginAdmin");
+            if (loginAdmin == null || !"SUPER".equals(loginAdmin.getRoleId())) {
+                result.put("success", false);
+                result.put("message", "권한이 없습니다.");
+                return ResponseEntity.ok(result);
+            }
+            
+            String nextId = adminUserService.generateNextAdminId();
+            result.put("success", true);
+            result.put("nextId", nextId);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.put("success", false);
+            result.put("message", "사번 생성 실패: " + e.getMessage());
+        }
+        
+        return ResponseEntity.ok(result);
+    }
+    
+    
     
     /**
      * 관리자 상세 조회 (최고관리자만)

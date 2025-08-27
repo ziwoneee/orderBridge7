@@ -54,7 +54,7 @@
               <!-- 두 번째 줄: 신규 등록 버튼만 오른쪽 끝에 -->
               <div class="row">
                 <div class="col-12 d-flex justify-content-end">
-                  <button type="button" class="btn btn-success" data-toggle="modal" data-target="#addAdminModal">
+                  <button type="button" class="btn btn-success" data-toggle="modal" data-target="#addAdminModal" onclick="openAddAdminModal()">
                     <i class="ti-plus"></i> 신규 등록
                   </button>
                 </div>
@@ -321,17 +321,8 @@
               <div class="col-md-6">
                 <div class="form-group">
                   <label class="form-label required">관리자 ID (사번)</label>
-                  <div class="input-group">
-                    <div class="input-group-prepend">
-                      <select class="form-control" id="adminIdPrefix" style="max-width: 120px;">
-                        <option value="A">A (최고관리자)</option>
-                        <option value="P">P (생산)</option>
-                        <option value="S">S (영업)</option>
-                        <option value="M">M (자재)</option>
-                      </select>
-                    </div>
-                    <input type="text" class="form-control" id="adminIdNumber" placeholder="0001" maxlength="4">
-                  </div>
+                  <input type="text" class="form-control" id="adminIdNumber" placeholder="자동 생성됩니다" readonly style="background-color: #f8f9fa;">
+                  <small class="form-text text-muted">사번은 자동으로 생성됩니다 (예: 250001)</small>
                 </div>
               </div>
               <div class="col-md-6">
@@ -512,6 +503,7 @@
     }
     input.value = value;
   }
+
 </script>
 
 <script src="${pageContext.request.contextPath}/resources/js/accounts.js"></script>

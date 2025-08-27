@@ -16,6 +16,7 @@ public interface AdminUserMapper {
     
     // [등록] 운영자가 수동 생성 (Service에서 비번 bcrypt 후 넣기)
     void insertAdmin(AdminUserVO vo);
+    String getMaxAdminIdByYear(String year);
     
     // [로그인 실패] 실패횟수 +1, 5회 도달 시 즉시 LOCK (XML에서 한 번에 처리)
     void increaseFailCount(String adminId);

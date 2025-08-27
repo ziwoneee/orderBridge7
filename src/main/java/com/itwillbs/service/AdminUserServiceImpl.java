@@ -102,6 +102,25 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
     
     /**
+     * 다음 사번 자동 생성 (2025001, 2025002...)
+     */
+    @Override
+    public String generateNextAdminId() {
+        int currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
+        String maxId = adminUserMapper.getMaxAdminIdByYear(String.valueOf(currentYear));
+        
+        // admin 같은 문자 ID는 무시하고, 숫자로만 된 7자리 ID 중에서 최대값 찾기
+        if (maxId == null || maxId.isEmpty() || !maxId.matches("^\\d{7}$")) {
+            // 해당 연도 첫 번째 관리자
+            return currentYear + "001";
+        }
+        
+        // 기존 최대값에서 +1
+        int nextNum = Integer.parseInt(maxId.substring(4)) + 1;
+        return currentYear + String.format("%03d", nextNum);
+    }
+    
+    /**
      * 관리자 정보 수정 (최고관리자용)
      */
     @Override
@@ -157,7 +176,6 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
     
     // ========== 페이징 처리 관련 메서드 ==========
-    
     /**
      * 관리자 목록 조회 (기존 - 단순 검색)
      */

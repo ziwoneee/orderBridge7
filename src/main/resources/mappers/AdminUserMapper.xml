@@ -35,6 +35,16 @@
       (#{adminId}, #{password}, #{name}, #{phone}, #{roleId},
        COALESCE(#{failCount}, 0), COALESCE(#{status}, 'ACTIVE'), FALSE, NOW())
   </insert>
+  
+  <!-- [등록] 연도별 최대 사번 조회 -->
+	<select id="getMaxAdminIdByYear" parameterType="string" resultType="string">
+	    SELECT MAX(admin_id) 
+	    FROM admin_user 
+	    WHERE admin_id LIKE CONCAT(#{year}, '%')
+	    AND LENGTH(admin_id) = 7
+	    AND admin_id REGEXP '^[0-9]{7}$'
+	    AND admin_id != 'admin'  -- admin 제외
+	</select>
 
   <!-- [로그인 실패] is_locked만 변경, status는 유지 -->
   <update id="increaseFailCount" parameterType="string">
