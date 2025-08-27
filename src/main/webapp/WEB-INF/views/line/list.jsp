@@ -203,19 +203,53 @@
 </style>
 
 <script>
-function showLineDetail(lineId) {
-    $.ajax({
-        url: '/line/detail',  
-        method: 'GET',
-        data: { lineId: lineId },
-        success: function(response) {
-            $('#lineDetailContent').html(response);
-            $('#lineDetailModal').modal('show');
-        },
-        error: function() {
-            alert('상세 정보를 불러오는데 실패했습니다.');
-        }
-    });
-}
+(function(){
+  var ctx = window.CONTEXT_PATH || '${pageContext.request.contextPath}';
 
+  // 상세 모달 로더
+  window.showLineDetail = function(lineId) {
+    $.ajax({
+      url: ctx + '/line/detail',
+      method: 'GET',
+      data: { lineId: lineId },
+      success: function(response) {
+        $('#lineDetailContent').html(response);
+        $('#lineDetailModal').modal('show');
+        // 방금 주입된 partial 안의 툴팁 다시 초기화
+        $('#lineDetailModal [data-toggle="tooltip"]').tooltip();
+      },
+      error: function() {
+        alert('상세 정보를 불러오는데 실패했습니다.');
+      }
+    });
+  };
+
+  // 위임 바인딩: 모달 내부 버튼(.js-toggle-line) 클릭 처리
+  $(document).on('click', '.js-toggle-line', function(e){
+    var btn = this;
+    if (btn.disabled) return;
+
+    var lineId = btn.dataset.lineId;
+    var next   = btn.dataset.next; // ACTIVE or INACTIVE
+    var msg    = '라인을 ' + (next === 'ACTIVE' ? '활성화' : '비활성화') + '하시겠습니까?';
+    if(!confirm(msg)) return;
+
+    btn.disabled = true; // 중복 클릭 방지
+    $.post(ctx + '/line/updateStatus', { lineId: lineId, status: next })
+      .done(function(res){
+        if(res && res.success){
+          alert('상태가 변경되었습니다.');
+          location.reload();
+        }else{
+          alert('상태 변경 실패: ' + (res && res.message ? res.message : '알 수 없음'));
+        }
+      })
+      .fail(function(){
+        alert('시스템 오류가 발생했습니다.');
+      })
+      .always(function(){
+        btn.disabled = false;
+      });
+  });
+})();
 </script>

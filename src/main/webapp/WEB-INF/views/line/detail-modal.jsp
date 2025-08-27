@@ -56,16 +56,46 @@
           </strong>
         </p>
 
-        <c:choose>
-          <c:when test="${line.status eq 'ACTIVE'}">
-            <button type="button" class="btn btn-warning js-toggle-line"
-                    data-line-id="${line.lineId}" data-next="INACTIVE">비활성화</button>
-          </c:when>
-          <c:otherwise>
-            <button type="button" class="btn btn-success js-toggle-line"
-                    data-line-id="${line.lineId}" data-next="ACTIVE">활성화</button>
-          </c:otherwise>
-        </c:choose>
+        <c:set var="hasRunning" value="${not empty currentWork}" />
+        
+	<!-- 라인이 ACTIVE일 때 -->
+	<!-- 진행중 작업 있으면: 비활성화 버튼 잠그고 툴팁은 span에 -->
+	<!-- 진행중 작업 없으면: 정상 클릭 가능 -->
+	<!-- 라인이 INACTIVE일 때 -->
+		<c:choose>
+  
+  <c:when test="${line.status eq 'ACTIVE'}">
+    <c:choose>
+      
+      <c:when test="${hasRunning}">
+        <span class="d-inline-block" tabindex="0"
+              data-toggle="tooltip"
+              title="진행중 작업이 있어 비활성화할 수 없습니다.">
+          <button type="button"
+                  class="btn btn-warning js-toggle-line"
+                  data-line-id="${line.lineId}"
+                  data-next="INACTIVE"
+                  disabled
+                  style="pointer-events: none;">비활성화</button>
+        </span>
+      </c:when>
+      
+      <c:otherwise>
+        <button type="button"
+                class="btn btn-warning js-toggle-line"
+                data-line-id="${line.lineId}"
+                data-next="INACTIVE">비활성화</button>
+      </c:otherwise>
+    </c:choose>
+  </c:when>
+
+  <c:otherwise>
+    <button type="button"
+            class="btn btn-success js-toggle-line"
+            data-line-id="${line.lineId}"
+            data-next="ACTIVE">활성화</button>
+  </c:otherwise>
+</c:choose>
       </div>
     </div>
   </div>
@@ -143,7 +173,12 @@
 						  </c:choose>
 						</td>
                       <td>
-						  <fmt:formatDate value="${work.dueDate}" pattern="yyyy-MM-dd"/>
+						  <c:choose>
+						    <c:when test="${not empty work.dueDate}">
+						      <fmt:formatDate value="${work.dueDate}" pattern="yyyy-MM-dd"/>
+						    </c:when>
+						    <c:otherwise>-</c:otherwise>
+						  </c:choose>
 						</td>
                     </tr>
                   </c:forEach>
@@ -165,25 +200,3 @@
   <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
 </div>
 
-
-
-<script>
-  // 모달 내부 전용: 상태 토글 -> /line/updateStatus (form-data)
-  document.addEventListener('click', function(e){
-    const btn = e.target.closest('.js-toggle-line');
-    if(!btn) return;
-
-    const lineId = btn.dataset.lineId;
-    const next   = btn.dataset.next; // ACTIVE or INACTIVE
-    const msg = '라인을 ' + (next === 'ACTIVE' ? '활성화' : '비활성화') + '하시겠습니까?';
-
-    if(!confirm(msg)) return;
-
-    $.post('/line/updateStatus', { lineId: lineId, status: next })
-     .done(function(res){
-        if(res && res.success){ alert('상태가 변경되었습니다.'); location.reload(); }
-        else { alert('상태 변경 실패: ' + (res && res.message ? res.message : '알 수 없음')); }
-     })
-     .fail(function(){ alert('시스템 오류가 발생했습니다.'); });
-  });
-</script>

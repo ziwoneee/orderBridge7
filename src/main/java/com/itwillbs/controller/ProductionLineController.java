@@ -75,19 +75,49 @@ public class ProductionLineController {
     public ResponseEntity<Map<String, Object>> updateStatus(
             @RequestParam("lineId") String lineId,
             @RequestParam("status") String status) {
-        
+
         log.info("생산라인 상태 변경 요청 - ID: {}, 상태: {}", lineId, status);
-        
-        Map<String, Object> response = new HashMap<>();
+
+        Map<String, Object> res = new HashMap<>();
+
+        // 1) 상태값 검증
+        if (!"ACTIVE".equalsIgnoreCase(status) && !"INACTIVE".equalsIgnoreCase(status)) {
+            res.put("success", false);
+            res.put("message", "유효하지 않은 상태값입니다. (ACTIVE/INACTIVE만 허용)");
+            return ResponseEntity.badRequest().body(res);
+        }
+
         try {
-            int result = productionLineService.updateStatus(lineId, status);
-            response.put("success", result > 0);
-            response.put("message", result > 0 ? "상태가 변경되었습니다." : "상태 변경에 실패했습니다.");
+            // 2) 비활성화 사전 차단 (진행중 작업이 있으면 즉시 거절)
+            if ("INACTIVE".equalsIgnoreCase(status)) {
+                var running = productionLineService.getCurrentWorkByLine(lineId);
+                if (running != null) {
+                    res.put("success", false);
+                    res.put("message", "해당 라인에 진행중 작업이 있어 비활성화할 수 없습니다.");
+                    return ResponseEntity.ok(res); // 200으로 주고 success=false (프론트 로직 유지)
+                }
+            }
+
+            // 3) 상태 변경 시도
+            int updated = productionLineService.updateStatus(lineId, status);
+
+            if (updated > 0) {
+                res.put("success", true);
+                res.put("message", "상태가 변경되었습니다.");
+            } else {
+                // DB 레벨에서 존재하지 않거나(없는 lineId), 동시성으로 조건 미충족일 수 있음
+                res.put("success", false);
+                res.put("message",
+                    "상태 변경에 실패했습니다."
+                    + ("INACTIVE".equalsIgnoreCase(status) ? " (진행중 작업이 있거나 이미 변경되었습니다.)" : ""));
+            }
+            return ResponseEntity.ok(res);
+
         } catch (Exception e) {
             log.error("상태 변경 오류", e);
-            response.put("success", false);
-            response.put("message", "오류 발생: " + e.getMessage());
+            res.put("success", false);
+            res.put("message", "오류 발생: " + e.getMessage());
+            return ResponseEntity.ok(res); // 프런트가 .done에서 res.success로 처리하므로 200 유지
         }
-        return ResponseEntity.ok(response);
     }
 }

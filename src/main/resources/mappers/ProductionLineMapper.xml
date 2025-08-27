@@ -54,6 +54,20 @@
         SET status = #{status}
         WHERE line_id = #{lineId}
     </update>
+    
+    <!-- 진행중 작업 없을 때만 상태 변경 -->
+	<update id="updateStatusIfNoRunning">
+	  UPDATE production_line
+	  SET `status` = #{status}, updated_at = NOW()
+	  WHERE line_id = #{lineId}
+	    AND NOT EXISTS (
+	      SELECT 1
+	      FROM work_order wo
+	      WHERE wo.line_id = #{lineId}
+	        AND wo.status = 'IN_PROGRESS'
+	        AND wo.is_deleted = FALSE
+	    )
+	</update>
 
     <!-- 진행 중 1건 -->
     <select id="selectCurrentWorkByLineId"
