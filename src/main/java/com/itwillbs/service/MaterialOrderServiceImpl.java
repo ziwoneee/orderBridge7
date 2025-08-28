@@ -521,7 +521,7 @@ public class MaterialOrderServiceImpl implements MaterialOrderService {
         approvalTokenDAO.insert(token);
 
         // 5. 승인 링크 생성
-        String approvalLink = "http://localhost:8088/approval/confirm?token=" + tokenId;
+        String approvalLink = "http://c7d2503t1p2.itwillbs.com/approval/confirm?token=" + tokenId;
 
         // 6. 메일 전송
         String subject = "[OrderBridge] 발주 승인 요청";
