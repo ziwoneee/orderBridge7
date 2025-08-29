@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.itwillbs.mapper.ProductionLineMapper">
+
+    <!-- 사용 가능한 생산 라인 전체 조회 -->
+    <select id="selectAvailableLines" resultType="com.itwillbs.domain.ProductionLineVO">
+        SELECT
+            line_id,
+            line_name,
+            status
+        FROM production_line
+        WHERE status = 'ACTIVE'
+        ORDER BY line_name ASC
+    </select>
+    
+    <!-- 모든 생산라인 조회 (작업현황 포함) -->
+    <select id="selectAllLines" resultType="com.itwillbs.domain.ProductionLineVO">
+        SELECT
+            pl.line_id,
+            pl.line_name,
+            pl.status,
+            wo.order_id AS currentWorkOrder
+        FROM production_line pl
+        LEFT JOIN work_order wo 
+            ON pl.line_id = wo.line_id 
+           AND wo.status = 'IN_PROGRESS' 
+           AND wo.is_deleted = FALSE
+        ORDER BY pl.line_id ASC
+    </select>
+
+    <!-- 상태별 개수 조회 -->
+    <select id="selectCountByStatus" parameterType="string" resultType="int">
+        SELECT COUNT(*)
+        FROM production_line
+        WHERE status = #{status}
+    </select>
+
+    <!-- 생산라인 상세 조회 -->
+    <select id="selectProductionLineDetail" parameterType="string" resultType="com.itwillbs.domain.ProductionLineVO">
+        SELECT
+            line_id,
+            line_name,
+            status
+        FROM production_line
+        WHERE line_id = #{lineId}
+    </select>
+
+    <!-- 상태 변경 -->
+    <update id="updateStatus">
+        UPDATE production_line
+        SET status = #{status}
+        WHERE line_id = #{lineId}
+    </update>
+    
+    <!-- 진행중 작업 없을 때만 상태 변경 -->
+	<update id="updateStatusIfNoRunning">
+	  UPDATE production_line
+	  SET `status` = #{status}, updated_at = NOW()
+	  WHERE line_id = #{lineId}
+	    AND NOT EXISTS (
+	      SELECT 1
+	      FROM work_order wo
+	      WHERE wo.line_id = #{lineId}
+	        AND wo.status = 'IN_PROGRESS'
+	        AND wo.is_deleted = FALSE
+	    )
+	</update>
+
+    <!-- 진행 중 1건 -->
+    <select id="selectCurrentWorkByLineId"
+            parameterType="string"
+            resultType="com.itwillbs.dto.WorkOrderDTO">
+        SELECT
+            wo.order_id       AS orderId,
+            wo.product_id     AS productId,
+            p.product_name    AS productName,
+            wo.order_qty      AS orderQty,
+            wo.priority       AS priority,
+
+            ( SELECT pr.started_at
+              FROM production_result pr
+              WHERE pr.order_id = wo.order_id
+                AND pr.ended_at IS NULL
+              ORDER BY pr.started_at DESC
+              LIMIT 1 ) AS startedAt,  
+
+            wo.updated_at     AS updatedAt,
+            (
+              SELECT MIN(co.cl_delivery_date)
+              FROM work_order_client_order wco
+              JOIN client_order co ON wco.cl_order_id = co.cl_order_id
+              WHERE wco.work_order_id = wo.order_id
+            ) AS dueDate
+        FROM work_order wo
+        JOIN product p ON wo.product_id = p.product_id
+        WHERE wo.line_id = #{lineId}
+          AND wo.status = 'IN_PROGRESS'
+          AND wo.is_deleted = FALSE
+        ORDER BY wo.updated_at DESC
+        LIMIT 1
+    </select>
+
+    <!-- 대기 목록 -->
+    <select id="selectWaitingWorksByLineId"
+            parameterType="string"
+            resultType="com.itwillbs.dto.WorkOrderDTO">
+        SELECT
+            wo.order_id       AS orderId,
+            wo.product_id     AS productId,
+            p.product_name    AS productName,
+            wo.order_qty      AS orderQty,
+            wo.priority       AS priority,
+            (
+              SELECT MIN(co.cl_delivery_date)
+              FROM work_order_client_order wco
+              JOIN client_order co ON wco.cl_order_id = co.cl_order_id
+              WHERE wco.work_order_id = wo.order_id
+            ) AS dueDate
+        FROM work_order wo
+        JOIN product p ON wo.product_id = p.product_id
+        WHERE wo.line_id = #{lineId}
+          AND wo.status = 'READY'
+          AND wo.is_deleted = FALSE
+        ORDER BY
+            CASE wo.priority
+              WHEN 'EMERGENCY' THEN 1
+              WHEN 'HIGH'      THEN 2
+              WHEN 'NORMAL'    THEN 3
+              ELSE 4
+            END,
+            wo.created_at ASC
+    </select>
+
+</mapper>

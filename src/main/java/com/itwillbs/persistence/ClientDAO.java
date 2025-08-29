@@ -14,4 +14,15 @@ public interface ClientDAO {
     ClientVO selectClientById(String clientId); //고객사 상세조회
     
     List<ClientVO> getAllClients();//고객사 전체목록 (수주등록용)
+
+    void updateClient(ClientVO client);//고객사 수정
+
+    List<ClientVO> getActiveClients();  // 활성화 상태인 고객 목록
+    
+    boolean isBusinessNumberExists(String businessNumber); //사업자번호 중복확인
+    
+    String findEmailById(String clientId);
+    
+    String findNameById(String clientId);
+
 }

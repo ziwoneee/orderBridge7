@@ -19,17 +19,14 @@
     	   <!-- 제목 -->
 			<div class="col-12 mb-4">
 			  <h3 class="font-weight-bold">고객사 상세 정보</h3>
-              <h6 class="font-weight-normal mb-0">고객사 상세정보화면입니다. <span class="text-primary">강조쓰</span></h6>
 			</div>
         
-          <div class="col-md-12 grid-margin">
-            <div class="row">
-              <div class="contentbody"> 
-                <!-- 본문내용 시작 -->
-                <div class="row">
+          
+                <!-- 본문내용 시작 -->     
                   <!-- ✅ 기본 정보 -->
-                  <div class="col-md-6 me-3"> 
-                    <div class="card mb-4" style="width:600px; height:450px;">
+                  <div class="row w-100">            
+	            <div class="col-md-6">
+	                <div class="card">
                       <div class="card-header bg-primary text-white font-weight-bold">기본 정보</div>
                       <div class="card-body">
                         <table class="table table-bordered">
@@ -39,6 +36,9 @@
                           <tr><th class="bg-light">연락처</th><td>${client.clientTel}</td></tr>
                           <tr><th class="bg-light">업태</th><td>${client.businessType}</td></tr>
                           <tr><th class="bg-light">종목</th><td>${client.businessProduct}</td></tr>
+                          <tr><th class="bg-light">고객 유형1</th><td>${client.clientType1}</td></tr>
+							<tr><th class="bg-light">고객 유형2</th><td>${client.clientType2}</td></tr>
+                                              
                           <tr><th class="bg-light">등록상태</th>
                             <td>
                               <span class="badge badge-${client.statusCode == 1 ? 'success' : 'secondary'}">
@@ -50,10 +50,12 @@
                       </div>
                     </div>
                   </div>
+         
                   <!-- ✅ 주소 & 담당자 정보 -->
-                  <div class="card mb-4" style="width:600px; height:450px;">
-                    <div class="card-header bg-info text-white font-weight-bold">주소 & 담당자 정보</div>
-                    <div class="card-body">
+                  <div class="col-md-6">
+              <div class="card mb-4">
+                <div class="card-header bg-info text-white">주소 및 담당자 정보</div>
+                <div class="card-body">
                       <table class="table table-bordered">
                         <tr><th class="bg-light w-25">우편번호</th><td>${client.postCode}</td></tr>
                         <tr><th class="bg-light">주소</th><td>${client.address}</td></tr>
@@ -66,26 +68,28 @@
                       </table>
                     </div>
                   </div>
+                   </div>
                   <!-- ✅ 버튼 영역 -->
-                  <div class="text-right">
+                   <div class="col-12 mt-4 text-center">
                     <a href="/client/list" class="btn btn-outline-secondary">목록으로</a>
-                    <a href="/client/update?clientId=${client.clientId}" class="btn btn-warning">수정</a>
-                    <a href="/client/delete?clientId=${client.clientId}" class="btn btn-danger"
-                       onclick="return confirm('정말 삭제하시겠습니까?');">삭제</a>
-                  </div>
+                   <a href="/client/edit?clientId=${client.clientId}" class="btn btn-primary">수정</a>
+<%--                     <a href="/client/delete?clientId=${client.clientId}" class="btn btn-danger" --%>
+<!--                        onclick="return confirm('정말 삭제하시겠습니까?');">삭제</a> -->
+                 
                 </div>
               </div>
+              </div>
+              </div>
+             
               <!-- 페이징하실거면 여기서 시작 -->
               <!--  본문내용 끝 -->    
-            </div>
+          
             <!-- 페이징 끝 -->
-          </div>
-        </div>
         
-      </div>
       <!-- content-wrapper 끝 -->
 	  <%@ include file="/WEB-INF/views/main/layout_footer.jsp" %>
-     </div>
+     	
+       </div>
      <!-- 본문.jsp main-panel ends -->
   </div>   
   <!-- container-fluid page-body-wrapper 끝 -->

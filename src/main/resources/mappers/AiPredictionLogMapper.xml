@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.itwillbs.mapper.AiPredictionLogMapper">
+
+  <!-- 로그 저장 -->
+  <insert id="insert" parameterType="com.itwillbs.dto.AiPredictionLogDTO">
+    INSERT INTO ai_prediction_log
+      (requested_by, request_type, input_data_json, prediction_result_json, created_at)
+    VALUES
+      (#{requestedBy}, #{requestType}, #{inputDataJson}, #{predictionResultJson}, NOW())
+  </insert>
+
+  <!-- 전체 카운트 -->
+  <select id="getLogCount" resultType="int">
+    SELECT COUNT(*)
+    FROM ai_prediction_log
+    <where>
+      <if test="q != null and q != ''">
+        (requested_by LIKE CONCAT('%', #{q}, '%')
+         OR request_type LIKE CONCAT('%', #{q}, '%')
+         OR input_data_json LIKE CONCAT('%', #{q}, '%')
+         OR prediction_result_json LIKE CONCAT('%', #{q}, '%'))
+      </if>
+      <if test="from != null">
+        AND created_at &gt;= #{from}
+      </if>
+      <if test="to != null">
+        AND created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)
+      </if>
+    </where>
+  </select>
+
+  <!-- 페이징된 목록 -->
+	<select id="searchWithPaging" resultType="com.itwillbs.dto.AiPredictionLogDTO">
+	  SELECT
+	    l.log_id,
+	    l.requested_by,
+	    l.request_type,
+	    l.input_data_json,
+	    l.prediction_result_json,
+	    l.created_at,
+	    u.name AS requestedByName   <!-- ★ DTO 매핑 안전하게 camelCase로 -->
+	  FROM ai_prediction_log l
+	  LEFT JOIN admin_user u
+	         ON u.admin_id = l.requested_by
+	  <where>
+	    <if test="q != null and q != ''">
+	      (
+	        l.requested_by LIKE CONCAT('%', #{q}, '%')
+	        OR l.request_type LIKE CONCAT('%', #{q}, '%')
+	        OR l.input_data_json LIKE CONCAT('%', #{q}, '%')
+	        OR l.prediction_result_json LIKE CONCAT('%', #{q}, '%')
+	        OR u.admin_name LIKE CONCAT('%', #{q}, '%')   <!-- ★ 이름으로도 검색 원하면 추가 -->
+	      )
+	    </if>
+	    <if test="from != null">
+	      AND l.created_at &gt;= #{from}
+	    </if>
+	    <if test="to != null">
+	      AND l.created_at &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)
+	    </if>
+	  </where>
+	  ORDER BY l.created_at DESC
+	  <!-- 둘 중 하나 택1 (하단 참고) -->
+	  LIMIT #{cri.pageStart}, #{cri.perPageNum}
+	  <!-- 또는: LIMIT #{cri.perPageNum} OFFSET #{cri.pageStart} -->
+	</select>
+
+  
+</mapper>

@@ -1,9 +1,9 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
 
-<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 
 <div class="container-scroller">
 
@@ -18,21 +18,20 @@
         #clientSuggestionList { position: absolute; z-index: 9999; width: 100%; background: #fff !important; border: 1px solid #ccc; max-height: 200px; overflow-y: auto; }
         #clientSuggestionList a { display: block; padding: 8px 12px; text-decoration: none; color: #000; font-size: 14px;}
         #clientSuggestionList a:hover { background: #f1f1f1;}
-         #submitBtn:disabled {cursor: not-allowed;  opacity: 0.6;}
+        
     </style>
 
     <div class="main-panel">
-        <div class="content-wrapper" style="height: 800px;">
-            <div class="row">
-            
-            
+        <div class="content-wrapper" >
+            <div class="row">                  
                 <div class="col-md-12 grid-margin">
-                    <div class="col-12 col-xl-8 mb-4 mb-xl-0">
-                        <h3 class="font-weight-bold">신규 수주 등록</h3>
-                    </div>
-                    <div class="contentbody" style="width:1200px;">
-                        <!-- 거래처 정보 입력 -->
-                        <div class="card p-3 mb-4">
+                    <div class="col-12 mb-4">
+          <h3 class="font-weight-bold">신규 수주 등록</h3>
+        </div>
+                        
+<div class="contentbody" style="width:1200px;">
+ <!-- 거래처 정보 입력 -->
+ <div class="card p-3 mb-4">
   <div class="row">
     <!-- 왼쪽: 거래처 정보 -->
     <div class="col-md-8" >
@@ -49,6 +48,11 @@
         <label>전화번호</label>
         <input type="text" class="form-control" id="clientPhone" name="clientPhone">
       </div>
+      
+      <div class="form-group">
+  <label>우편번호</label>
+  <input type="text" id="postCodeView" class="form-control" placeholder="우편번호" readonly>
+</div>
       <div class="form-group">
   <label>주소</label>
   <div class="input-group">
@@ -71,16 +75,16 @@
     
   </div>
 </div>
-                        <!-- 주문 폼 -->
-                        <form id="orderForm" method="post" action="${pageContext.request.contextPath}/clientorder/register">
-                        <div class="col-md-4">
+<!-- 주문 폼 -->
+<form id="orderForm" method="post" action="${pageContext.request.contextPath}/clientorder/register">
+<div class="col-md-4">
       <div class="form-group">
         <label>납기 요청일</label>
         <input type="date" name="clDeliveryDate" id="clDeliveryDate" class="form-control" required>
       </div>
        <div class="form-group">
   <label>요청 사항</label>
-  <textarea class="form-control" id="detailMemo" name="clOrderMemo" rows="3" maxlength="10" placeholder="최대 10자까지 입력 가능" required></textarea>
+  <textarea class="form-control" id="detailMemo" name="clOrderMemo" rows="3" maxlength="10" placeholder="최대 10자까지 입력 가능" ></textarea>
 <small id="memoHelp" class="form-text text-muted text-right d-block">
   <span id="memoCharCount">0</span>/10자 입력
 </small>
@@ -97,9 +101,9 @@
                             
                             
                             <div id="productCart1"></div>
-                            <button type="button" class="btn btn-outline-primary" onclick="addProductItem()">+ 제품 추가</button>
-                            <button type="submit" class="btn btn-success" id="submitBtn">수주 등록</button>
-                            <a href="${pageContext.request.contextPath}/clientorder/list" class="btn btn-secondary">목록</a>
+                            <button type="button" class="btn btn-info" onclick="addProductItem()">제품 추가</button>
+                            <button type="submit" class="btn btn-primary" >수주 등록</button>
+                            <a href="${pageContext.request.contextPath}/clientorder/list" class="btn btn-outline-secondary">목록</a>
                         </form>
                     </div>
                 </div>
@@ -159,8 +163,11 @@ $(document).ready(function () {
                         $('#clientPhone').val(client.clientTel);                       
                         $('#deliveryAddressView').val((client.address || '') + ' ' + (client.addressDetail || ''));
                         $('#deliveryAddress').val((client.address || '') + ' ' + (client.addressDetail || ''));
+                        $('#postCodeView').val(client.postCode || '');
+                        $('#postCodeHidden').val(client.postCode || '');
                         $('#clientManager').val(client.managerName);
-                   suggestionBox.empty();
+                     
+                        suggestionBox.empty();
                     });
                     suggestionBox.append(item);
                 }
@@ -307,6 +314,7 @@ function updateSubmitButtonState() {
   document.getElementById("submitBtn").disabled = !hasValidProduct;
 }
 </script>
+
 <script>
   // 대한민국 공휴일 배열 (yyyy-mm-dd 형식)
   const holidays = [ "2025-08-15", "2025-09-16" ];
@@ -370,7 +378,9 @@ function execDaumPostcode() {
   new daum.Postcode({
     oncomplete: function(data) {
     	    	// 우편번호 설정
+        document.getElementById("postCodeView").value = data.zonecode;
         document.getElementById("postCodeHidden").value = data.zonecode;
+
     	
       // 도로명주소 선택 시
       var fullRoadAddr = data.roadAddress;

@@ -27,6 +27,7 @@
       address_detail   AS addressDetail,
       status_code      AS statusCode,
       created_at       AS createdAt
+    
     FROM client
     <where>
       <if test="keyword != null and keyword != ''">
@@ -35,7 +36,36 @@
         OR ceo_name LIKE CONCAT('%', #{keyword}, '%'))
       </if>
     </where>
-    ORDER BY ${sortColumn} ${sortOrder}
+    <choose>
+  <when test="sortColumn == 'clientname' and sortOrder == 'asc'">
+    ORDER BY client_name ASC
+  </when>
+  <when test="sortColumn == 'clientname' and sortOrder == 'desc'">
+    ORDER BY client_name DESC
+  </when>
+  <when test="sortColumn == 'businessnumber' and sortOrder == 'asc'">
+    ORDER BY business_number ASC
+  </when>
+  <when test="sortColumn == 'businessnumber' and sortOrder == 'desc'">
+    ORDER BY business_number DESC
+  </when>
+  <when test="sortColumn == 'createdat' and sortOrder == 'asc'">
+    ORDER BY created_at ASC
+  </when>
+  <when test="sortColumn == 'createdat' and sortOrder == 'desc'">
+    ORDER BY created_at DESC
+  </when>
+  <when test="sortColumn == 'statuscode' and sortOrder == 'asc'">
+    ORDER BY status_code ASC
+  </when>
+  <when test="sortColumn == 'statuscode' and sortOrder == 'desc'">
+    ORDER BY status_code DESC
+  </when>
+  <otherwise>
+    ORDER BY created_at DESC
+  </otherwise>
+</choose>
+
     LIMIT #{pageStart}, #{perPageNum}
   </select>
 
@@ -100,9 +130,66 @@
       client_tel       AS clientTel,
       address          AS address,
       address_detail   AS addressDetail,
-      manager_name     AS managerName
+      manager_name     AS managerName,
+       post_code        AS postCode  
     FROM client
     ORDER BY client_name ASC
   </select>
+  
+  <!-- 고객사 수정 -->
+  <update id="updateClient" parameterType="com.itwillbs.domain.ClientVO">
+  UPDATE client
+  SET
+    client_name       = #{clientName},
+    client_type1      = #{clientType1},
+    client_type2      = #{clientType2},
+    business_number   = #{businessNumber},
+    ceo_name          = #{ceoName},
+    client_tel        = #{clientTel},
+    business_type     = #{businessType},
+    business_product  = #{businessProduct},
+    manager_name      = #{managerName},
+    manager_dept      = #{managerDept},
+    manager_tel       = #{managerTel},
+    manager_email     = #{managerEmail},
+    fax_number        = #{faxNumber},
+    post_code         = #{postCode},
+    address           = #{address},
+    address_detail    = #{addressDetail},
+    status_code       = #{statusCode}
+  WHERE client_id = #{clientId}
+</update>
+
+<!-- 고객사 활성화 목록 -->
+<select id="getActiveClients" resultType="com.itwillbs.domain.ClientVO">
+  SELECT * FROM client
+  WHERE status_code = 1
+</select>
+
+<!-- 사업자번호 중복확인 -->
+<select id="checkBusinessNumber" parameterType="string" resultType="int">
+  SELECT COUNT(*)
+  FROM client
+  WHERE business_number = #{businessNumber}
+</select>
+
+ <!-- client_id로 담당자 이메일 조회 -->
+<select id="findEmailById" parameterType="string" resultType="string">
+  SELECT manager_email
+  FROM client
+  WHERE client_id = #{clientId}
+  LIMIT 1
+</select>
+
+<!-- client_id로 고객사명 조회 -->
+<select id="findNameById" parameterType="string" resultType="string">
+  SELECT client_name
+  FROM client
+  WHERE client_id = #{clientId}
+  LIMIT 1
+</select>
+
+
+  
 
 </mapper>

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.itwillbs.domain.ProductInboundVO;
 import com.itwillbs.domain.ProductionResultVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.ProductionResultDTO;
 import com.itwillbs.persistence.ProductInboundDAO;
 import com.itwillbs.persistence.ProductStockDAO;
 import com.itwillbs.persistence.ProductionResultDAO;
@@ -25,6 +26,9 @@ public class ProductInboundServiceImpl implements ProductInboundService {
 
     @Autowired
     private ProductionResultDAO productionResultDAO;
+    
+    @Autowired
+    private ProductStockService productStockService;
 
     // ✅ 실제 입고 등록
     @Transactional
@@ -36,6 +40,9 @@ public class ProductInboundServiceImpl implements ProductInboundService {
 
         inboundDAO.insertInbound(vo);
         stockDAO.upsertStockQty(vo.getProductId(), vo.getLotNo(), vo.getInboundQty());
+    
+        // ✅ 입고 이력 기록
+        productStockService.insertTransaction("입고", vo.getLotNo(), vo.getInboundQty(), vo.getProductId(), null, "시스템",vo.getInboundId(),null,null);
     }
 
     // ✅ 생산 결과 기반 임시 조회용 리스트
@@ -168,9 +175,9 @@ public class ProductInboundServiceImpl implements ProductInboundService {
     // ✅ 제품 ID로 제품명 반환
     private String extractProductNameFromProductId(String productId) {
         switch (productId) {
-            case "FG-0001": return "돼지국밥";
-            case "FG-0002": return "순대국밥";
-            case "FG-0003": return "한우곰탕";
+            case "FG-001": return "돼지국밥";
+            case "FG-002": return "순대국밥";
+            case "FG-003": return "한우곰탕";
             default: return "기타제품";
         }
     }
@@ -187,5 +194,5 @@ public class ProductInboundServiceImpl implements ProductInboundService {
     public int countInboundList(SearchCriteria cri) {
         return inboundDAO.countInboundList(cri);
     }
-
+   
 }

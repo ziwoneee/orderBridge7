@@ -11,4 +11,15 @@ public interface ProductOutboundDAO {
     List<ProductOutboundVO> searchOutboundList(SearchCriteria cri);
     int countOutboundList(SearchCriteria cri);
     
+    // ✅ 오늘 날짜 기준 최대 일련번호 조회    
+    Integer getMaxOutboundSeqToday(String today);
+
+    //상세보기
+    ProductOutboundVO getOutboundDetail(String outboundId);
+    
+    //출하 취소시 삭제
+    void deleteOutboundByOrderId(String clOrderId);
+
+    
+    
 }

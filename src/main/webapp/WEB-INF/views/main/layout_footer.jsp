@@ -1,15 +1,25 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 
         <!-- 푸터 시작 -->
-        <footer class="footer">
-          <div class="d-sm-flex justify-content-center justify-content-sm-between">
-            <span class="text-muted text-center text-sm-left d-block d-sm-inline-block">Copyright © 2021.  Premium <a href="https://www.bootstrapdash.com/" target="_blank">Bootstrap admin template</a> from BootstrapDash. All rights reserved.</span>
-            <span class="float-none float-sm-right d-block mt-1 mt-sm-0 text-center">Hand-crafted & made with <i class="ti-heart text-danger ml-1"></i></span>
-          </div>
-          <div class="d-sm-flex justify-content-center justify-content-sm-between">
-            <span class="text-muted text-center text-sm-left d-block d-sm-inline-block">Distributed by <a href="https://www.themewagon.com/" target="_blank">Themewagon</a></span> 
-          </div>
-        </footer>
+      <!-- 푸터 시작 -->
+<footer class="footer">
+  <div class="d-sm-flex justify-content-center justify-content-sm-between">
+    <span class="text-muted text-center text-sm-left d-block d-sm-inline-block">
+      Copyright © 2025. <strong>Order Bridge MES</strong>. All rights reserved.
+    </span>
+    <span class="float-none float-sm-right d-block mt-1 mt-sm-0 text-center">
+      Hand-crafted & made with <i class="ti-heart text-danger ml-1"></i> in Busan
+    </span>
+  </div>
+  <div class="d-sm-flex justify-content-center justify-content-sm-between">
+    <span class="text-muted text-center text-sm-left d-block d-sm-inline-block">
+      대표: 이오더 ｜ 사업자등록번호: 123-45-67890 ｜ 부산광역시 부산진구 전포동 오더로 123
+      <br>
+      고객센터: 051-123-4567 ｜ 이메일: info@orderbridge.co.kr
+    </span> 
+  </div>
+</footer>
+
         <!-- 푸터 끝 -->
         <!-- partial -->
 

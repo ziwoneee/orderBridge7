@@ -17,6 +17,7 @@ public class ClientDAOImpl implements ClientDAO {
     //고객사 목록 조회
     @Override
     public List<ClientVO> getClientList(SearchCriteria cri) {
+    	System.out.println(cri);
         return sqlSession.selectList(NAMESPACE + ".getClientList", cri);
     }
 
@@ -43,4 +44,36 @@ public class ClientDAOImpl implements ClientDAO {
     public List<ClientVO> getAllClients() {
         return sqlSession.selectList(NAMESPACE + ".getAllClients");
     }
+    //고객사 수정
+    @Override
+    public void updateClient(ClientVO client) {
+        sqlSession.update(NAMESPACE + ".updateClient", client);
+    }
+
+    //고객사 활성화 목록
+    @Override
+    public List<ClientVO> getActiveClients() {
+        return sqlSession.selectList(NAMESPACE + ".getActiveClients");
+    }
+
+    //사업자번호 중복확인
+    @Override
+    public boolean isBusinessNumberExists(String businessNumber) {
+        Integer count = sqlSession.selectOne(NAMESPACE + ".checkBusinessNumber", businessNumber);
+        return count != null && count > 0;
+    }
+
+    //이메일가져오기
+    @Override
+    public String findEmailById(String clientId) {
+        return sqlSession.selectOne(NAMESPACE + ".findEmailById", clientId);
+    }
+
+    //이름가져오기
+    @Override
+    public String findNameById(String clientId) {
+        return sqlSession.selectOne(NAMESPACE + ".findNameById", clientId);
+    }
+    
+    
 }

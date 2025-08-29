@@ -1,0 +1,615 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.itwillbs.mapper.WorkOrderMapper">
+
+  <!-- =============================================================== -->
+  <!-- 목록: 검색/정렬/페이징 + 누적(양품/불량) + 잔여 + 재고(집계)        -->
+  <!-- =============================================================== -->
+ <select id="selectWorkOrderList" resultType="com.itwillbs.dto.WorkOrderDTO">
+    SELECT
+      w.order_id AS orderId,
+      w.product_id AS productId,
+      w.line_id AS lineId,
+      w.order_qty AS orderQty,           -- 목표(지시수량)
+      w.priority,
+      w.status,
+      w.created_at AS createdAt,
+      w.updated_at AS updatedAt,
+      w.order_manager AS orderManager,
+
+      p.product_name AS productName,
+      p.unit,
+      l.line_name AS lineName,
+
+      ( SELECT GROUP_CONCAT(DISTINCT cl.client_name SEPARATOR ', ')
+          FROM work_order_client_order woco
+          JOIN client_order co ON woco.cl_order_id = co.cl_order_id
+          JOIN client cl ON co.client_id = cl.client_id
+         WHERE woco.work_order_id = w.order_id
+      ) AS clientName,
+
+      w.due_date AS dueDate,
+
+      -- 재고(제품별 합계)
+      IFNULL(ps.stock_qty, 0)     AS stockQty,
+      IFNULL(ps.available_qty, 0) AS availableQty,
+
+      -- 누적/잔여 (양품 누적만 목표 달성 판단)
+      COALESCE(pr_sum.produced_qty, 0) AS producedQty,   -- 양품 누적
+      COALESCE(pr_sum.defect_qty,   0) AS defectQty,     -- 불량 누적
+      GREATEST(w.order_qty - COALESCE(pr_sum.produced_qty, 0), 0) AS remainingQty,
+
+      -- (호환용) 기존 requiredQty 컬럼 유지
+      w.order_qty AS requiredQty
+
+    FROM work_order w
+    LEFT JOIN product p         ON w.product_id = p.product_id
+    LEFT JOIN production_line l ON w.line_id   = l.line_id
+
+    -- 재고 집계 JOIN
+    LEFT JOIN (
+      SELECT
+        product_id,
+        SUM(stock_qty)     AS stock_qty,
+        SUM(reserved_qty)  AS reserved_qty,
+        SUM(available_qty) AS available_qty,
+        SUM(safe_qty)      AS safe_qty
+      FROM product_stock
+      GROUP BY product_id
+    ) ps ON ps.product_id = w.product_id
+
+    -- 실적 집계 JOIN (양품 = actual - defect, 음수방지)
+    LEFT JOIN (
+      SELECT
+        order_id,
+        SUM(GREATEST(actual_qty - COALESCE(defect_qty,0), 0)) AS produced_qty,
+        SUM(COALESCE(defect_qty,0))                           AS defect_qty
+      FROM production_result
+      GROUP BY order_id
+    ) pr_sum ON pr_sum.order_id = w.order_id
+
+    <where>
+      w.is_deleted = FALSE
+      <if test="keyword != null and keyword != ''">
+        AND (
+          w.order_id LIKE CONCAT('%', #{keyword}, '%')
+          OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
+          OR EXISTS (
+            SELECT 1
+            FROM work_order_client_order woco
+            JOIN client_order co ON woco.cl_order_id = co.cl_order_id
+            JOIN client cl ON co.client_id = cl.client_id
+            WHERE woco.work_order_id = w.order_id
+              AND cl.client_name LIKE CONCAT('%', #{keyword}, '%')
+          )
+        )
+      </if>
+      <if test="status != null and status != ''">
+        AND w.status = #{status}
+      </if>
+      <if test="startDate != null and startDate != ''">
+        AND DATE(w.created_at) &gt;= #{startDate}
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND DATE(w.created_at) &lt;= #{endDate}
+      </if>
+    </where>
+
+    -- 기본: 최신순 + 완료 아래 + 긴급만 위
+-- 정렬 클릭 시: 사용자 정렬 우선 + 완료 아래 (긴급 고정 X)
+ORDER BY
+<choose>
+  <!-- 사용자가 정렬 지정한 경우 -->
+  <when test="sortColumn != null and sortColumn != ''">
+    -- 완료는 항상 아래
+    CASE WHEN w.status = 'COMPLETED' THEN 1 ELSE 0 END ASC,
+    <choose>
+      <when test="sortColumn == 'order_id'">
+        w.order_id
+        <choose>
+          <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'"> ASC </when>
+          <when test="sortOrder != null and sortOrder.toUpperCase() == 'DESC'"> DESC </when>
+          <otherwise> DESC </otherwise>
+        </choose>
+      </when>
+
+      <when test="sortColumn == 'created_at'">
+        w.created_at
+        <choose>
+          <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'"> ASC </when>
+          <when test="sortOrder != null and sortOrder.toUpperCase() == 'DESC'"> DESC </when>
+          <otherwise> DESC </otherwise>
+        </choose>
+      </when>
+
+      <when test="sortColumn == 'due_date'">
+        (w.due_date IS NULL) ASC,
+        w.due_date
+        <choose>
+          <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'"> ASC </when>
+          <when test="sortOrder != null and sortOrder.toUpperCase() == 'DESC'"> DESC </when>
+          <otherwise> ASC </otherwise>
+        </choose>
+      </when>
+
+      <when test="sortColumn == 'priority'">
+        CASE w.priority
+          WHEN 'EMERGENCY' THEN 1
+          WHEN 'HIGH'      THEN 2
+          WHEN 'NORMAL'    THEN 3
+          WHEN 'LOW'       THEN 4
+          ELSE 5
+        END
+        <choose>
+          <when test="sortOrder != null and sortOrder.toUpperCase() == 'ASC'"> ASC </when>
+          <when test="sortOrder != null and sortOrder.toUpperCase() == 'DESC'"> DESC </when>
+          <otherwise> ASC </otherwise>
+        </choose>
+      </when>
+
+      <otherwise>
+        w.created_at DESC
+      </otherwise>
+    </choose>
+  </when>
+
+  <!-- 사용자가 정렬 지정 안 한 경우(초기 진입): 최신순 + 완료 아래 + 긴급만 위 -->
+  <otherwise>
+    CASE WHEN w.status = 'COMPLETED' THEN 1 ELSE 0 END ASC,
+    CASE WHEN w.priority = 'EMERGENCY' THEN 0 ELSE 1 END ASC,
+    w.created_at DESC
+  </otherwise>
+</choose>
+
+    LIMIT #{pageStart}, #{perPageNum}
+  </select>
+
+  <!-- =============================================================== -->
+  <!-- 전체 건수 (페이징)                                           -->
+  <!-- =============================================================== -->
+  <select id="selectWorkOrderTotalCount" resultType="int">
+    SELECT COUNT(*)
+    FROM work_order w
+    LEFT JOIN product p ON w.product_id = p.product_id
+    <where>
+      w.is_deleted = FALSE
+      <if test="keyword != null and keyword != ''">
+        AND (
+          w.order_id LIKE CONCAT('%', #{keyword}, '%')
+          OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
+          OR EXISTS (
+            SELECT 1
+            FROM work_order_client_order woco
+            JOIN client_order co ON woco.cl_order_id = co.cl_order_id
+            JOIN client cl ON co.client_id = cl.client_id
+            WHERE woco.work_order_id = w.order_id
+              AND cl.client_name LIKE CONCAT('%', #{keyword}, '%')
+          )
+        )
+      </if>
+      <if test="status != null and status != ''">
+        AND w.status = #{status}
+      </if>
+      <if test="startDate != null and startDate != ''">
+        AND DATE(w.created_at) &gt;= #{startDate}
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND DATE(w.created_at) &lt;= #{endDate}
+      </if>
+    </where>
+  </select>
+
+  <!-- =============================================================== -->
+  <!-- 카운트 요약                                                   -->
+  <!-- =============================================================== -->
+  <select id="selectAllCount" resultType="int">
+    SELECT COUNT(*) FROM work_order WHERE is_deleted = FALSE
+  </select>
+
+  <select id="selectCountByStatus" parameterType="string" resultType="int">
+    SELECT COUNT(*) FROM work_order
+     WHERE status = #{status} AND is_deleted = FALSE
+  </select>
+
+  <!-- =============================================================== -->
+  <!-- 상세: 누적/잔여/재고 함께 조회                                 -->
+  <!-- =============================================================== -->
+  <select id="selectWorkOrderDetail" parameterType="string"
+          resultType="com.itwillbs.dto.WorkOrderDTO">
+    SELECT
+      w.order_id AS orderId,
+      w.product_id AS productId,
+      w.line_id AS lineId,
+      w.order_qty AS orderQty,
+      w.priority,
+      w.status,
+      w.created_at AS createdAt,
+      w.updated_at AS updatedAt,
+      w.remarks AS remarks,
+      w.order_manager AS orderManager,
+
+      p.product_name AS productName,
+      p.unit,
+      l.line_name AS lineName,
+
+      ( SELECT GROUP_CONCAT(DISTINCT cl.client_name SEPARATOR ', ')
+          FROM work_order_client_order woco
+          JOIN client_order co ON woco.cl_order_id = co.cl_order_id
+          JOIN client cl ON co.client_id = cl.client_id
+         WHERE woco.work_order_id = w.order_id
+      ) AS clientName,
+
+      w.due_date AS dueDate,
+
+      IFNULL(ps.stock_qty, 0)     AS stockQty,
+      IFNULL(ps.available_qty, 0) AS availableQty,
+
+      COALESCE(pr_sum.produced_qty, 0) AS producedQty,
+      COALESCE(pr_sum.defect_qty,   0) AS defectQty,
+      GREATEST(w.order_qty - COALESCE(pr_sum.produced_qty, 0), 0) AS remainingQty,
+
+      w.order_qty AS requiredQty
+
+    FROM work_order w
+    LEFT JOIN product p         ON w.product_id = p.product_id
+    LEFT JOIN production_line l ON w.line_id   = l.line_id
+
+    LEFT JOIN (
+      SELECT
+        product_id,
+        SUM(stock_qty)     AS stock_qty,
+        SUM(reserved_qty)  AS reserved_qty,
+        SUM(available_qty) AS available_qty,
+        SUM(safe_qty)      AS safe_qty
+      FROM product_stock
+      GROUP BY product_id
+    ) ps ON ps.product_id = w.product_id
+
+    LEFT JOIN (
+      SELECT
+        order_id,
+        SUM(GREATEST(actual_qty - COALESCE(defect_qty,0), 0)) AS produced_qty,
+        SUM(COALESCE(defect_qty,0))                           AS defect_qty
+      FROM production_result
+      WHERE order_id = #{orderId}
+      GROUP BY order_id
+    ) pr_sum ON pr_sum.order_id = w.order_id
+
+    WHERE w.order_id = #{orderId}
+  </select>
+
+  <!-- =============================================================== -->
+  <!-- 확정 수주 목록 (작업지시 등록용)                                -->
+  <!-- =============================================================== -->
+  <select id="selectConfirmedOrders" resultType="com.itwillbs.dto.WorkOrderDTO">
+    SELECT DISTINCT
+      co.cl_order_id  AS clOrderId,
+      cod.product_id  AS productId,
+      p.product_name  AS productName,
+      p.unit          AS unit,
+      co.client_id    AS clientId,
+      cl.client_name  AS clientName,
+      co.cl_order_date       AS clOrderDate,
+      co.cl_delivery_date    AS dueDate,
+      cod.order_qty          AS orderQty,
+      IFNULL(ps.available_qty, 0) AS availableQty,                     -- 가용재고 합
+      GREATEST(cod.order_qty - IFNULL(ps.available_qty, 0), 0) AS requiredQty
+    FROM client_order co
+    JOIN client_order_detail cod ON co.cl_order_id = cod.cl_order_id
+    JOIN client cl              ON co.client_id    = cl.client_id
+    JOIN product p              ON cod.product_id  = p.product_id
+    LEFT JOIN (
+      SELECT product_id, SUM(available_qty) AS available_qty
+      FROM product_stock GROUP BY product_id
+    ) ps ON cod.product_id = ps.product_id
+    <where>
+      co.cl_order_status = 'CONFIRMED'
+      AND NOT EXISTS (
+	  SELECT 1
+	  FROM work_order_client_order wco
+	  JOIN work_order w ON w.order_id = wco.work_order_id
+	  WHERE wco.cl_order_id = co.cl_order_id
+	    AND wco.product_id  = cod.product_id
+	    AND w.is_deleted = FALSE   
+	)
+      <if test="keyword != null and keyword != ''">
+        AND (
+          co.cl_order_id LIKE CONCAT('%', #{keyword}, '%')
+          OR cl.client_name LIKE CONCAT('%', #{keyword}, '%')
+          OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
+        )
+      </if>
+    </where>
+    ORDER BY co.cl_order_date DESC
+    LIMIT #{pageStart}, #{perPageNum}
+  </select>
+
+  <select id="selectConfirmedOrdersCount" resultType="int">
+    SELECT COUNT(DISTINCT CONCAT(co.cl_order_id, '-', cod.product_id))
+    FROM client_order co
+    JOIN client_order_detail cod ON co.cl_order_id = cod.cl_order_id
+    JOIN client cl              ON co.client_id    = cl.client_id
+    JOIN product p              ON cod.product_id  = p.product_id
+    WHERE co.cl_order_status = 'CONFIRMED'
+      AND NOT EXISTS (
+		  SELECT 1
+		  FROM work_order_client_order wco
+		  JOIN work_order w ON w.order_id = wco.work_order_id
+		  WHERE wco.cl_order_id = co.cl_order_id
+		    AND wco.product_id  = cod.product_id
+		    AND w.is_deleted = FALSE   
+		)
+    <if test="keyword != null and keyword != ''">
+      AND (
+        co.cl_order_id LIKE CONCAT('%', #{keyword}, '%')
+        OR cl.client_name LIKE CONCAT('%', #{keyword}, '%')
+        OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
+      )
+    </if>
+  </select>
+
+  <!-- =============================================================== -->
+  <!-- 수주+제품 상세 (등록 팝업용, 재고는 집계 테이블 기준)            -->
+  <!-- =============================================================== -->
+  <select id="getOrderDetail" resultType="com.itwillbs.dto.WorkOrderDTO">
+    SELECT
+      cod.cl_order_id AS clOrderId,
+      cod.product_id  AS productId,
+      p.product_name  AS productName,
+      co.client_id    AS clientId,
+      c.client_name   AS clientName,
+      co.cl_delivery_date AS dueDate,
+      cod.order_qty       AS orderQty,
+      IFNULL(ps.stock_qty, 0)     AS stockQty,
+      IFNULL(ps.available_qty, 0) AS availableQty,
+      GREATEST(cod.order_qty - IFNULL(ps.available_qty, 0), 0) AS requiredQty
+    FROM client_order co
+    JOIN client_order_detail cod ON co.cl_order_id = cod.cl_order_id
+    JOIN client c                ON co.client_id    = c.client_id
+    JOIN product p               ON cod.product_id  = p.product_id
+    LEFT JOIN (
+      SELECT
+        product_id,
+        SUM(stock_qty)     AS stock_qty,
+        SUM(available_qty) AS available_qty
+      FROM product_stock GROUP BY product_id
+    ) ps ON cod.product_id = ps.product_id
+    WHERE cod.cl_order_id = #{clOrderId}
+      AND cod.product_id  = #{productId}
+  </select>
+
+  <!-- =============================================================== -->
+  <!-- BOM                                                             -->
+  <!-- =============================================================== -->
+  <select id="getActiveBomIdByProductId" resultType="string">
+    SELECT bom_id FROM bom_master
+     WHERE product_id = #{productId}
+       AND status = 'ACTIVE'
+     ORDER BY bom_date DESC
+     LIMIT 1
+  </select>
+
+  <select id="getBomDetailByBomId" resultType="com.itwillbs.dto.BomItemDTO">
+    SELECT
+      material_id   AS materialId,
+      material_name AS materialName,
+      unit,
+      material_type AS materialType,
+      qty,
+      qty * #{orderQty} AS totalQty
+    FROM bom_detail
+    WHERE bom_id = #{bomId}
+  </select>
+
+  <!-- =============================================================== -->
+  <!-- 작업지시 CUD                                                    -->
+  <!-- =============================================================== -->
+  <select id="selectTodayMaxSequence" parameterType="string" resultType="int">
+    SELECT IFNULL(MAX(CAST(RIGHT(order_id, 3) AS UNSIGNED)), 0)
+    FROM work_order
+    WHERE order_id LIKE CONCAT('WO-', #{today}, '-%')
+  </select>
+
+  <insert id="insertWorkOrder" parameterType="com.itwillbs.dto.WorkOrderDTO">
+    INSERT INTO work_order (
+      order_id, product_id, line_id, order_qty, priority, status,
+      remarks, due_date, order_manager, created_at
+    ) VALUES (
+      #{orderId}, #{productId}, #{lineId}, #{orderQty}, #{priority},
+      IFNULL(#{status}, 'WAITING'), #{remarks}, #{dueDate},
+      #{orderManager}, NOW()
+    )
+  </insert>
+
+  <insert id="insertMergedOrder" parameterType="com.itwillbs.dto.WorkOrderMergedDTO">
+    INSERT INTO work_order_client_order (
+      work_order_id, cl_order_id, product_id, order_qty, created_at
+    ) VALUES ( #{workOrderId}, #{clOrderId}, #{productId}, #{orderQty}, NOW() )
+  </insert>
+
+  <insert id="insertWorkOrderMaterial"
+        parameterType="com.itwillbs.dto.WorkOrderMaterialDTO">
+  INSERT INTO work_order_material (work_order_id, material_id, required_qty, created_at)
+  VALUES (#{workOrderId}, #{materialId}, #{requiredQty, jdbcType=DECIMAL}, NOW())
+</insert>
+
+  <select id="selectMergedOrdersByWorkOrderId"
+          resultType="com.itwillbs.dto.WorkOrderMergedDTO">
+    SELECT
+      wco.cl_order_id AS clOrderId,
+      wco.product_id  AS productId,
+      wco.order_qty   AS orderQty,
+      cl.client_name  AS clientName,
+      co.cl_delivery_date AS dueDate
+    FROM work_order_client_order wco
+    JOIN client_order co ON wco.cl_order_id = co.cl_order_id
+    JOIN client cl      ON co.client_id     = cl.client_id
+    WHERE wco.work_order_id = #{workOrderId}
+  </select>
+
+  <update id="updateWorkOrder" parameterType="com.itwillbs.dto.WorkOrderDTO">
+    UPDATE work_order
+       SET line_id = #{lineId},
+           priority = #{priority},
+           remarks = #{remarks},
+           updated_at = NOW()
+     WHERE order_id = #{orderId}
+  </update>
+
+  <!-- 상태 변경 공용 -->
+  <update id="updateWorkOrderStatus">
+    UPDATE work_order
+       SET status = #{status},
+           updated_at = NOW()
+     WHERE order_id = #{orderId}
+  </update>
+
+  <!-- READY → IN_PROGRESS (생산 시작 버튼 전용) -->
+  <update id="startProduction" parameterType="string">
+    UPDATE work_order
+       SET status = 'IN_PROGRESS',
+           updated_at = NOW()
+     WHERE order_id = #{orderId}
+       AND status = 'READY'
+       AND is_deleted = FALSE
+  </update>
+
+  <!-- 소프트 삭제 -->
+  <update id="deleteWorkOrder" parameterType="string">
+    UPDATE work_order
+       SET is_deleted = TRUE,
+           updated_at = NOW()
+     WHERE order_id = #{orderId}
+  </update>
+
+    <!-- =============================================================== -->
+  <!-- 생산라인별 대기/준비/진행 목록                                  -->
+  <!-- =============================================================== -->
+  <select id="selectWorkOrdersByLine" parameterType="string"
+          resultType="com.itwillbs.dto.WorkOrderDTO">
+    SELECT
+      w.order_id AS orderId,
+      w.product_id AS productId,
+      w.order_qty AS orderQty,
+      w.priority,
+      w.status,
+      w.created_at AS createdAt,
+      p.product_name AS productName,
+      w.due_date AS dueDate
+    FROM work_order w
+    JOIN product p ON w.product_id = p.product_id
+    WHERE w.line_id = #{lineId}
+      AND w.status IN ('WAITING', 'READY', 'IN_PROGRESS')
+      AND w.is_deleted = FALSE
+    ORDER BY
+      CASE w.priority
+        WHEN 'EMERGENCY' THEN 1
+        WHEN 'HIGH'      THEN 2
+        WHEN 'NORMAL'    THEN 3
+        WHEN 'LOW'       THEN 4
+        ELSE 5
+      END,
+      w.due_date ASC
+  </select>
+  
+  <!-- 라인별 진행중 개수 -->
+  <select id="selectInProgressCountByLine" parameterType="string" resultType="int">
+    SELECT COUNT(*)
+    FROM work_order
+    WHERE line_id = #{lineId}
+      AND status = 'IN_PROGRESS'
+      AND is_deleted = FALSE
+  </select>
+
+  <!-- =============================================================== -->
+  <!-- 실적 입력용 목록                                                -->
+  <!-- =============================================================== -->
+  <select id="selectInProgressOnlyOrders" resultType="com.itwillbs.dto.WorkOrderDTO">
+    SELECT 
+      wo.order_id    AS orderId,
+      wo.product_id  AS productId,
+      p.product_name AS productName,
+      pl.line_name   AS lineName,
+      wo.order_qty   AS orderQty,
+      wo.status,
+      COALESCE(pr_sum.produced_qty, 0) AS producedQty,
+      GREATEST(wo.order_qty - COALESCE(pr_sum.produced_qty, 0), 0) AS remainingQty
+    FROM work_order wo
+    LEFT JOIN product p        ON wo.product_id = p.product_id  
+    LEFT JOIN production_line pl ON wo.line_id = pl.line_id
+    LEFT JOIN (
+      SELECT 
+        order_id,
+        SUM(GREATEST(actual_qty - COALESCE(defect_qty,0), 0)) AS produced_qty
+      FROM production_result 
+      GROUP BY order_id
+    ) pr_sum ON wo.order_id = pr_sum.order_id
+    WHERE wo.status = 'IN_PROGRESS'
+      AND wo.is_deleted = FALSE
+    ORDER BY wo.created_at DESC
+  </select>
+
+  <!-- =============================================================== -->
+  <!-- 실적 반영: 완료만 자동 전환 (IN_PROGRESS 자동전환 제거)         -->
+  <!-- =============================================================== -->
+  <update id="applyResultToWorkOrder" parameterType="string">
+	  <![CDATA[
+	  UPDATE work_order w
+	  LEFT JOIN (
+	    SELECT pr.order_id,
+	           COALESCE(SUM(GREATEST(pr.actual_qty - COALESCE(pr.defect_qty,0),0)), 0) AS good_sum
+	    FROM production_result pr
+	    WHERE pr.order_id = #{orderId}
+	    GROUP BY pr.order_id
+	  ) r ON r.order_id = w.order_id
+	  SET w.status = CASE
+	                   WHEN COALESCE(r.good_sum, 0) >= w.order_qty THEN 'COMPLETED'
+	                   ELSE w.status
+	                 END,
+	      w.updated_at = NOW()
+	  WHERE w.order_id = #{orderId}
+	  ]]>
+	</update>
+
+  <!-- 단건 조회(상태 검증용) -->
+  <select id="selectWorkOrderById" parameterType="string" resultType="map">
+    SELECT order_id, order_qty, status, product_id, line_id
+    FROM work_order 
+    WHERE order_id = #{orderId}
+  </select>
+  
+  
+  <select id="selectOrdersByIds" resultType="com.itwillbs.dto.WorkOrderDTO">
+  SELECT
+    cod.cl_order_id AS clOrderId,
+    cod.product_id  AS productId,
+    p.product_name  AS productName,
+    co.client_id    AS clientId,
+    c.client_name   AS clientName,
+    co.cl_delivery_date AS dueDate,
+    cod.order_qty       AS orderQty,
+    IFNULL(ps.stock_qty, 0)     AS stockQty,
+    IFNULL(ps.available_qty, 0) AS availableQty,
+    GREATEST(cod.order_qty - IFNULL(ps.available_qty, 0), 0) AS requiredQty
+  FROM client_order co
+  JOIN client_order_detail cod ON co.cl_order_id = cod.cl_order_id
+  JOIN client c                ON co.client_id    = c.client_id
+  JOIN product p               ON cod.product_id  = p.product_id
+  LEFT JOIN (
+    SELECT
+      product_id,
+      SUM(stock_qty)     AS stock_qty,
+      SUM(available_qty) AS available_qty
+    FROM product_stock GROUP BY product_id
+  ) ps ON cod.product_id = ps.product_id
+  WHERE cod.product_id = #{productId}
+    AND cod.cl_order_id IN
+    <foreach collection="clOrderIds" item="id" open="(" separator="," close=")">
+      #{id}
+    </foreach>
+</select>
+
+</mapper>

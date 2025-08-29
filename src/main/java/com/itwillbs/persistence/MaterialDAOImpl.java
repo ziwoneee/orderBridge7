@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import com.itwillbs.domain.MaterialVO;
-import com.itwillbs.dto.PagingDTO;
+import com.itwillbs.domain.SearchCriteria;
 
 @Repository
 public class MaterialDAOImpl implements MaterialDAO {
@@ -25,9 +25,15 @@ public class MaterialDAOImpl implements MaterialDAO {
 	
 	// 1. 자재 목록 조회
 	@Override
-	public List<MaterialVO> getMaterialList() throws Exception {
+	public List<MaterialVO> getMaterialList(SearchCriteria cri) throws Exception {
 		
-		return sqlSession.selectList(NAMESPACE + "getMaterialList");
+		return sqlSession.selectList(NAMESPACE + "getMaterialList", cri);
+	}
+	
+	@Override
+	public int getMaterialCount(SearchCriteria cri) throws Exception {
+	    // 매퍼에서 제공하는 쿼리 실행, 조건에 맞는 자재 개수 조회
+	    return sqlSession.selectOne(NAMESPACE + "getMaterialCount", cri);
 	}
 
 	// 자재 등록
@@ -39,19 +45,17 @@ public class MaterialDAOImpl implements MaterialDAO {
 
 	// 자재 수정
 	@Override
-	public void updateMaterial(MaterialVO vo) throws Exception {
-
-		sqlSession.update(NAMESPACE + "updateMaterial", vo);
-	}
-	
-	// 자재ID 기준으로 해당 자재 조회 (단건)
-	@Override
-	public MaterialVO selectMaterialById(String materialId) throws Exception {
+	public MaterialVO getMaterial(String materialId) throws Exception {
 		
 		// 해당 자재ID로 자재 1건 조회 (없으면 null 반환)
-		return sqlSession.selectOne(NAMESPACE + "selectMaterialById", materialId);
+	    return sqlSession.selectOne(NAMESPACE + "getMaterial", materialId);
 	}
 
+	@Override
+	public void updateMaterial(MaterialVO vo) throws Exception {
+	    sqlSession.update(NAMESPACE + "updateMaterial", vo);
+	}
+	
 
 	// 자재 존재 여부 확인
 	@Override
@@ -68,18 +72,21 @@ public class MaterialDAOImpl implements MaterialDAO {
 	    return sqlSession.selectOne(NAMESPACE + "getMaxMaterialId");
 	}
 
+    // 목록 조회 (자재 발주관리 등록 폼에서 필요)
+	@Override
+	public List<MaterialVO> selectAllMaterials() {
+		
+		return sqlSession.selectList(NAMESPACE + "selectAllMaterials");
+	}
 	
-	// 전체 개수
-    @Override
-    public int getMaterialCount() throws Exception {
-        return sqlSession.selectOne(NAMESPACE + "getMaterialCount");
+	
+	// 자재 논리 삭제 처리
+	@Override
+    public void deleteMaterial(String materialId) throws Exception {
+        sqlSession.update(NAMESPACE + "deleteMaterial", materialId);
     }
-
-    // 페이징 리스트
-    @Override
-    public List<MaterialVO> getMaterialListPage(PagingDTO paging) throws Exception {
-        return sqlSession.selectList(NAMESPACE + "getMaterialListPage", paging);
-    }
+    
+    
 	
 
 }

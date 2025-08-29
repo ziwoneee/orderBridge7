@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itwillbs.mapper.DashboardMapper">
+
+  <!-- ================= 기본 카운트 쿼리들 (기존과 동일) ================= -->
+  
+  <!-- 오늘 수주: 접수 -->
+  <select id="countOrdersRequestedToday" resultType="int">
+    SELECT COUNT(*)
+    FROM client_order
+    WHERE cl_order_status = 'REQUESTED'
+      AND cl_order_date <![CDATA[>=]]> CURDATE()
+      AND cl_order_date <![CDATA[<]]> DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+  </select>
+
+  <!-- 오늘 수주: 확정 -->
+  <select id="countOrdersConfirmedToday" resultType="int">
+    SELECT COUNT(*)
+    FROM client_order
+    WHERE cl_order_status = 'CONFIRMED'
+      AND cl_order_date <![CDATA[>=]]> CURDATE()
+      AND cl_order_date <![CDATA[<]]> DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+  </select>
+
+  <!-- 작업지시 현황 -->
+  <select id="countWoWaiting" resultType="int">
+    SELECT COUNT(*) FROM work_order WHERE status='WAITING' AND IFNULL(is_deleted,0)=0
+  </select>
+
+  <select id="countWoReady" resultType="int">
+    SELECT COUNT(*) FROM work_order WHERE status='READY' AND IFNULL(is_deleted,0)=0
+  </select>
+
+  <select id="countWoInProgress" resultType="int">
+    SELECT COUNT(*) FROM work_order WHERE status='IN_PROGRESS' AND IFNULL(is_deleted,0)=0
+  </select>
+
+  <!-- 오늘 완료 지시 -->
+  <select id="countWoCompletedToday" resultType="int">
+    SELECT COUNT(*)
+    FROM work_order
+    WHERE status = 'COMPLETED'
+      AND updated_at <![CDATA[>=]]> CURDATE()
+      AND updated_at <![CDATA[<]]> DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+  </select>
+
+  <!-- 오늘 생산 실적 -->
+  <select id="sumProductionActualToday" resultType="int">
+    SELECT COALESCE(SUM(actual_qty - defect_qty), 0)
+    FROM production_result
+    WHERE ended_at <![CDATA[>=]]> CURDATE()
+      AND ended_at <![CDATA[<]]> DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+  </select>
+
+  <!-- ================= 대시보드 전용 신규 쿼리 ================= -->
+
+ <!-- 라인 현황 (대시보드 전용) -->
+<select id="selectLineCards" resultType="hashmap">
+  SELECT
+    l.line_id   AS lineId,
+    l.line_name AS lineName,
+
+    /* 라인 자체 상태: ACTIVE / INACTIVE / (NULL은 INACTIVE 간주) */
+    UPPER(IFNULL(l.status, 'INACTIVE')) AS lineStatus,
+
+    /* 🔥 비활성 우선: 라인이 INACTIVE(또는 NULL)이면 무조건 INACTIVE */
+    CASE
+      WHEN UPPER(IFNULL(l.status, 'INACTIVE')) = 'INACTIVE' THEN 'INACTIVE'
+      WHEN EXISTS(SELECT 1 FROM work_order w
+                   WHERE w.line_id = l.line_id
+                     AND w.status = 'IN_PROGRESS'
+                     AND IFNULL(w.is_deleted,0) = 0) THEN 'IN_PROGRESS'
+      WHEN EXISTS(SELECT 1 FROM work_order w
+                   WHERE w.line_id = l.line_id
+                     AND w.status = 'READY'
+                     AND IFNULL(w.is_deleted,0) = 0) THEN 'READY'
+      WHEN EXISTS(SELECT 1 FROM work_order w
+                   WHERE w.line_id = l.line_id
+                     AND w.status = 'WAITING'
+                     AND IFNULL(w.is_deleted,0) = 0) THEN 'WAITING'
+      ELSE 'IDLE'
+    END AS state,
+
+    /* 대표 지시: 비활성 이면 NULL */
+    CASE WHEN UPPER(IFNULL(l.status,'INACTIVE')) = 'INACTIVE' THEN NULL ELSE
+      (SELECT w.order_id
+         FROM work_order w
+        WHERE w.line_id = l.line_id
+          AND w.status IN ('IN_PROGRESS','READY','WAITING')
+          AND IFNULL(w.is_deleted,0) = 0
+        ORDER BY FIELD(w.status,'IN_PROGRESS','READY','WAITING'), w.due_date ASC
+        LIMIT 1)
+    END AS workOrderId,
+
+    CASE WHEN UPPER(IFNULL(l.status,'INACTIVE')) = 'INACTIVE' THEN NULL ELSE
+      (SELECT w.product_id
+         FROM work_order w
+        WHERE w.order_id = (
+          SELECT w2.order_id
+            FROM work_order w2
+           WHERE w2.line_id = l.line_id
+             AND w2.status IN ('IN_PROGRESS','READY','WAITING')
+             AND IFNULL(w2.is_deleted,0) = 0
+           ORDER BY FIELD(w2.status,'IN_PROGRESS','READY','WAITING'), w2.due_date ASC
+           LIMIT 1))
+    END AS productId,
+
+    CASE WHEN UPPER(IFNULL(l.status,'INACTIVE')) = 'INACTIVE' THEN NULL ELSE
+      (SELECT p.product_name
+         FROM product p
+         JOIN work_order w ON w.product_id = p.product_id
+        WHERE w.order_id = (
+          SELECT w2.order_id
+            FROM work_order w2
+           WHERE w2.line_id = l.line_id
+             AND w2.status IN ('IN_PROGRESS','READY','WAITING')
+             AND IFNULL(w2.is_deleted,0) = 0
+           ORDER BY FIELD(w2.status,'IN_PROGRESS','READY','WAITING'), w2.due_date ASC
+           LIMIT 1))
+    END AS productName,
+
+    CASE WHEN UPPER(IFNULL(l.status,'INACTIVE')) = 'INACTIVE' THEN NULL ELSE
+      (SELECT w.order_qty
+         FROM work_order w
+        WHERE w.order_id = (
+          SELECT w2.order_id
+            FROM work_order w2
+           WHERE w2.line_id = l.line_id
+             AND w2.status IN ('IN_PROGRESS','READY','WAITING')
+             AND IFNULL(w2.is_deleted,0) = 0
+           ORDER BY FIELD(w2.status,'IN_PROGRESS','READY','WAITING'), w2.due_date ASC
+           LIMIT 1))
+    END AS orderQty,
+
+    CASE WHEN UPPER(IFNULL(l.status,'INACTIVE')) = 'INACTIVE' THEN NULL ELSE
+      (SELECT w.due_date
+         FROM work_order w
+        WHERE w.order_id = (
+          SELECT w2.order_id
+            FROM work_order w2
+           WHERE w2.line_id = l.line_id
+             AND w2.status IN ('IN_PROGRESS','READY','WAITING')
+             AND IFNULL(w2.is_deleted,0) = 0
+           ORDER BY FIELD(w2.status,'IN_PROGRESS','READY','WAITING'), w2.due_date ASC
+           LIMIT 1))
+    END AS dueDate,
+
+    /* 누적 양품: 비활성 0 */
+    CASE WHEN UPPER(IFNULL(l.status,'INACTIVE')) = 'INACTIVE' THEN 0 ELSE
+      (SELECT COALESCE(SUM(pr.actual_qty - pr.defect_qty), 0)
+         FROM production_result pr
+        WHERE pr.order_id = (
+          SELECT w2.order_id
+            FROM work_order w2
+           WHERE w2.line_id = l.line_id
+             AND w2.status IN ('IN_PROGRESS','READY','WAITING')
+             AND IFNULL(w2.is_deleted,0) = 0
+           ORDER BY FIELD(w2.status,'IN_PROGRESS','READY','WAITING'), w2.due_date ASC
+           LIMIT 1))
+    END AS producedQty,
+
+    /* 진행률: 비활성 0, 0으로 나누기 방지 */
+    CASE
+      WHEN UPPER(IFNULL(l.status,'INACTIVE')) = 'INACTIVE' THEN 0
+      WHEN (SELECT w.order_qty
+              FROM work_order w
+             WHERE w.order_id = (
+               SELECT w2.order_id
+                 FROM work_order w2
+                WHERE w2.line_id = l.line_id
+                  AND w2.status IN ('IN_PROGRESS','READY','WAITING')
+                  AND IFNULL(w2.is_deleted,0) = 0
+                ORDER BY FIELD(w2.status,'IN_PROGRESS','READY','WAITING'), w2.due_date ASC
+                LIMIT 1)) > 0
+      THEN
+        100.0 *
+        (SELECT COALESCE(SUM(pr.actual_qty - pr.defect_qty), 0)
+           FROM production_result pr
+          WHERE pr.order_id = (
+            SELECT w2.order_id
+              FROM work_order w2
+             WHERE w2.line_id = l.line_id
+               AND w2.status IN ('IN_PROGRESS','READY','WAITING')
+               AND IFNULL(w2.is_deleted,0) = 0
+             ORDER BY FIELD(w2.status,'IN_PROGRESS','READY','WAITING'), w2.due_date ASC
+             LIMIT 1))
+        /
+        (SELECT w.order_qty
+           FROM work_order w
+          WHERE w.order_id = (
+            SELECT w2.order_id
+              FROM work_order w2
+             WHERE w2.line_id = l.line_id
+               AND w2.status IN ('IN_PROGRESS','READY','WAITING')
+               AND IFNULL(w2.is_deleted,0) = 0
+             ORDER BY FIELD(w2.status,'IN_PROGRESS','READY','WAITING'), w2.due_date ASC
+             LIMIT 1))
+      ELSE 0
+    END AS progressRate,
+
+    /* 대기건수: 비활성 0 */
+    CASE WHEN UPPER(IFNULL(l.status,'INACTIVE')) = 'INACTIVE' THEN 0 ELSE
+      (SELECT COUNT(*)
+         FROM work_order w
+        WHERE w.line_id = l.line_id
+          AND w.status = 'READY'
+          AND IFNULL(w.is_deleted,0) = 0)
+    END AS readyCount,
+
+    CASE WHEN UPPER(IFNULL(l.status,'INACTIVE')) = 'INACTIVE' THEN 0 ELSE
+      (SELECT COUNT(*)
+         FROM work_order w
+        WHERE w.line_id = l.line_id
+          AND w.status = 'WAITING'
+          AND IFNULL(w.is_deleted,0) = 0)
+    END AS waitingCount
+
+  FROM production_line l
+  ORDER BY l.line_id
+  LIMIT 3
+</select>
+
+  <!-- 🆕 오늘 수주 상세 목록 (정확한 컬럼명 적용) -->
+  <select id="selectTodayOrdersWithProducts" resultType="com.itwillbs.dto.DashboardDTO$TodayOrderRow">
+    SELECT 
+      co.cl_order_id AS clOrderId,
+      c.client_name AS clientName,
+      -- 품목 요약 (정확한 컬럼명 order_qty 사용)
+      GROUP_CONCAT(
+        CONCAT(p.product_name, '(', COALESCE(cod.order_qty, 0), ')')
+        ORDER BY cod.order_qty DESC
+        SEPARATOR ', '
+      ) AS productNames,
+      SUM(COALESCE(cod.order_qty, 0)) AS totalQty,
+      co.cl_order_status AS status,
+      co.cl_order_date AS createdAt
+    FROM client_order co
+    JOIN client c ON co.client_id = c.client_id
+    LEFT JOIN client_order_detail cod ON co.cl_order_id = cod.cl_order_id
+    LEFT JOIN product p ON cod.product_id = p.product_id
+    WHERE co.cl_order_date <![CDATA[>=]]> CURDATE()
+      AND co.cl_order_date <![CDATA[<]]> DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+      AND co.cl_order_status IN ('REQUESTED', 'CONFIRMED')
+    GROUP BY co.cl_order_id, c.client_name, co.cl_order_status, co.cl_order_date
+    ORDER BY co.cl_order_date DESC
+    LIMIT 10
+  </select>
+
+  <!-- 🆕 간단한 오늘 수주 목록 (백업용) -->
+  <select id="selectTodayOrdersSimple" resultType="com.itwillbs.dto.DashboardDTO$TodayOrderRow">
+    SELECT 
+      co.cl_order_id AS clOrderId,
+      c.client_name AS clientName,
+      '주문 품목' AS productNames,
+      0 AS totalQty,
+      co.cl_order_status AS status,
+      co.cl_order_date AS createdAt
+    FROM client_order co
+    JOIN client c ON co.client_id = c.client_id
+    WHERE co.cl_order_date <![CDATA[>=]]> CURDATE()
+      AND co.cl_order_date <![CDATA[<]]> DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+      AND co.cl_order_status IN ('REQUESTED', 'CONFIRMED')
+    ORDER BY co.cl_order_date DESC
+    LIMIT 10
+  </select>
+
+</mapper>

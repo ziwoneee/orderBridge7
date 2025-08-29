@@ -2,18 +2,17 @@ package com.itwillbs.service;
 
 import java.util.List;
 
+import com.itwillbs.domain.MaterialVO;
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.SupplierVO;
 
 public interface SupplierService {
 	
-	// 1. 협력사 리스트 조회 (검색조건/키워드 + 정렬)
-	List<SupplierVO> getSupplierList(String keyword, String condition, String sort, String order) throws Exception;
-	
 	// 1-1. 페이징이 포함된 리스트 조회
-		List<SupplierVO> getSupplierListPaged(int offset, int size, String keyword, String condition, String sort, String order) throws Exception;
+	List<SupplierVO> getSupplierList(SearchCriteria cri) throws Exception;
 		
 	// 1-2. 전체 협력사 수 조회 (페이징 계산용)
-	int getSupplierCount(String keyword, String condition) throws Exception;
+	int getSupplierCount(SearchCriteria cri) throws Exception;
 	
 	// 2. 특정 협력사 ID에 해당하는 상세 정보 반환
     SupplierVO getSupplierById(String supplierId) throws Exception;
@@ -31,6 +30,19 @@ public interface SupplierService {
     // 5. 협력사 정보 수정 기능
     void updateSupplier(SupplierVO vo) throws Exception;
     
+    // 목록 조회 (자재 발주관리 등록 폼에서 필요)
+    List<SupplierVO> getAllSuppliers() throws Exception;
     
+    
+    // 거래처 ID로 공급 자재 목록 조회 (자재 발주관리)
+    List<MaterialVO> getMaterialsBySupplier(String supplierId, String keyword) throws Exception;
+
+    
+    // 협력사 비활성화 처리 (소프트 삭제)
+    void deactivateSupplier(String supplierId) throws Exception;
+    
+    // 자재별 포장 단위 조회
+    Double getPackQtyByMaterial(String materialId) throws Exception;
+
 
 }

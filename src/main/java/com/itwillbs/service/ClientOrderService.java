@@ -25,5 +25,18 @@ public interface ClientOrderService {
     
     //수주 상세 보기
     ClientOrderVO getOrderById(String clOrderId);
+    
+    
+    //수주 입금확인
+    void updateOrderStatus(String orderNum, String status);
+    
+    //수주 삭제하기
+    void deleteOrder(String clOrderId);
 
+    //상태별 카운트
+    int countOrdersByStatus(String status);
+    int countAllOrders();
+
+    
+    
 }

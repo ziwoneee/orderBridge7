@@ -1,18 +1,24 @@
 package com.itwillbs.controller;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.itwillbs.domain.ProductInboundVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.ProductionResultDTO;
 import com.itwillbs.domain.PageMaker;
 import com.itwillbs.service.ProductInboundService;
 import com.itwillbs.service.ProductionResultService;
@@ -23,41 +29,55 @@ public class ProductInboundController {
 
     @Autowired
     private ProductInboundService inboundService;
-    
+
     @Autowired
     private ProductionResultService productionResultService;
 
-    // ✅ 입고 등록 (재고 현황 반영용)
+    // ✅ 입고 등록 (수동 등록 - 재고 반영용)
     @PostMapping("/register")
     public String registerInbound(ProductInboundVO vo) {
         inboundService.registerInbound(vo);
         return "redirect:/product/stocklist";
     }
 
-    // ✅ 입고 내역 조회 - 검색/정렬/날짜/페이징
+    // ✅ 입고 내역 리스트 페이지 (검색, 정렬, 날짜, 페이징)
     @GetMapping("/list")
     public String showInboundList(@ModelAttribute SearchCriteria cri, Model model) {
-    	 
-    	// ✅ 빈 문자열을 null로 변환 (검색 오류 방지)
+
+        // ✅ 빈 문자열을 null로 변환
         if (cri.getStartDate() != null && cri.getStartDate().trim().isEmpty()) {
             cri.setStartDate(null);
         }
         if (cri.getEndDate() != null && cri.getEndDate().trim().isEmpty()) {
             cri.setEndDate(null);
         }
-    	
+
+        // ✅ 허용 정렬 컬럼 리스트
+        List<String> allowed = Arrays.asList("productName", "createdAt", "manager");
+
+        // ✅ 정렬 컬럼 유효성 체크
+        if (cri.getSortColumn() == null) {
+            cri.setSortColumn("createdAt"); // 기본 정렬 컬럼
+        }
+
+        // ✅ 정렬 순서 유효성 체크
+        if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) {
+            cri.setSortOrder("desc"); // 기본 정렬 순서
+        }
+
+        // ✅ 조회
         List<ProductInboundVO> inboundList = inboundService.searchInboundList(cri);
         int totalCount = inboundService.countInboundList(cri);
-
         PageMaker pageMaker = new PageMaker(cri, totalCount);
 
         model.addAttribute("inboundList", inboundList);
+        model.addAttribute("cri", cri);
         model.addAttribute("pageMaker", pageMaker);
-        return "product/inboundList";  // /WEB-INF/views/product/inboundList.jsp
+        model.addAttribute("menu", "product");
+        return "product/inboundList";
     }
-    
-    
- // ✅ production_result 기반 자동 입고 저장
+
+    // ✅ 생산 결과 기반 자동 입고
     @PostMapping("/saveFromProduction")
     public String saveInboundFromProduction(RedirectAttributes rttr) {
         try {
@@ -70,13 +90,31 @@ public class ProductInboundController {
         return "redirect:/product/inbound/list";
     }
 
-    
+    // ✅ 기존 실적 기반 자동 입고
     @PostMapping("/autoInboundFromExisting")
     public String autoInboundFromExisting(RedirectAttributes rttr) {
         inboundService.autoInboundFromExistingResults();
         rttr.addFlashAttribute("msg", "기존 실적 데이터를 기반으로 입고가 등록되었습니다.");
         return "redirect:/product/inbound/list";
     }
-
+    
+    //입고 실적 모달
+    @GetMapping(value = "/detail", produces = "application/json; charset=UTF-8")
+    @ResponseBody
+    public ResponseEntity<?> getDetailByLot(@RequestParam String lotNo) {
+        try {
+            if (lotNo == null || lotNo.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("{\"message\":\"lotNo is required\"}");
+            }
+            ProductionResultDTO dto = productionResultService.getLatestDetailByLot(lotNo.trim()); // ⬅️ lotNo로 조회
+            if (dto == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("{\"message\":\"not found\"}");
+            }
+            return ResponseEntity.ok(dto);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("{\"message\":\"server error\"}");
+        }
+    }
 
 }

@@ -17,6 +17,8 @@ public class ProductInboundVO {
     private Date updDate;         // 수정일
     
     private String productName; // 제품명 (조인용)
+    private String resultId;
+    private Double progressRate;
 	
   
 

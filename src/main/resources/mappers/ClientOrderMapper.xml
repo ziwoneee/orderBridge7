@@ -10,6 +10,7 @@
       cl_order_id,
       client_id,
       admin_id,
+      admin_name,
       cl_order_num,
       cl_order_date,
       product_id,
@@ -24,6 +25,7 @@
       #{clOrderId},
       #{clientId},
       #{adminId},
+      #{adminName},
       #{clOrderNum},
       #{clOrderDate},
       #{productId},
@@ -53,6 +55,7 @@
         parameterType="com.itwillbs.domain.SearchCriteria">
   SELECT 
       co.*, 
+      co.admin_name,
       c.client_name,
       GROUP_CONCAT(p.product_name SEPARATOR ', ') AS productNames
   FROM
@@ -81,12 +84,14 @@
   </where>
   GROUP BY co.cl_order_id
   ORDER BY
-      <choose>
-          <when test="sortColumn != null and sortColumn != ''">
-              ${sortColumn}
-          </when>
-          <otherwise>co.cl_order_date</otherwise>
-      </choose>
+       <choose>
+    <when test="sortColumn == 'cl_order_num'">co.cl_order_num</when>
+    <when test="sortColumn == 'client_name'">c.client_name</when>
+    <when test="sortColumn == 'cl_order_date'">co.cl_order_date</when>
+    <when test="sortColumn == 'cl_delivery_date'">co.cl_delivery_date</when>
+    <when test="sortColumn == 'cl_order_status'">co.cl_order_status</when>
+    <otherwise>co.cl_order_date</otherwise>
+  </choose>
       <choose>
           <when test="sortOrder != null and sortOrder != ''">
               ${sortOrder}
@@ -151,6 +156,36 @@
     WHERE co.cl_order_id = #{clOrderId}
 </select>
 
+<!-- 입금확인 -->
+<update id="updateOrderStatus" parameterType="map">
+  UPDATE client_order
+  SET cl_order_status = #{status}
+  WHERE cl_order_id = #{orderNum}
+</update>
+
+
+<!-- 수주삭제 -->
+<update id="deleteOrder" parameterType="string">
+  UPDATE client_order
+  SET cl_order_status = 'CANCELLED'
+  WHERE cl_order_id = #{clOrderId}
+</update>
+
+<!-- 상태별 카운트 -->
+ <select id="countOrdersByStatus" parameterType="string" resultType="int">
+  SELECT COUNT(*) FROM client_order WHERE cl_order_status = #{status}
+</select>
+
+<select id="countAllOrders" resultType="int">
+  SELECT COUNT(*) FROM client_order
+</select>
+
+
+
+<select id="getOrderDetailsByOrderId" parameterType="string" resultType="com.itwillbs.domain.ClientOrderDetailVO">
+  SELECT * FROM client_order_detail
+  WHERE cl_order_id = #{clOrderId}
+</select>
 
   
 

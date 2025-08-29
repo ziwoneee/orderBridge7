@@ -5,10 +5,9 @@
 
 <mapper namespace="com.itwillbs.mapper.ProductionResultMapper">
 
+  <!-- ..............완제품 입고등록 아름 시작.................... -->
 
-<!-- ..............완제품 입고등록 아름 시작.................... -->
-
-  <!-- ✅ 생산결과 검색 + 정렬 + 날짜조회 + 페이징 -->
+  <!--  생산결과 검색 + 정렬 + 날짜조회 + 페이징 -->
   <select id="searchProductionResults" parameterType="com.itwillbs.domain.SearchCriteria" resultType="com.itwillbs.domain.ProductionResultVO">
     SELECT 
       result_id,
@@ -19,7 +18,8 @@
       worker_name,
       started_at,
       ended_at,
-      created_at
+      created_at,
+      progress_rate AS progressRate
     FROM production_result
     WHERE 1=1
       <if test="keyword != null and keyword != ''">
@@ -28,13 +28,13 @@
         )
       </if>
       <if test="startDate != null and startDate != ''">
-        AND DATE(created_at) &gt;= #{startDate}
-      </if>
-      <if test="endDate != null and endDate != ''">
-        AND DATE(created_at) &lt;= #{endDate}
-      </if>
+		  AND DATE(created_at) &gt;= STR_TO_DATE(#{startDate}, '%Y-%m-%d')
+		</if>
+		<if test="endDate != null and endDate != ''">
+		  AND DATE(created_at) &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d')
+		</if>
 
-    <!-- ✅ 안전한 정렬 컬럼만 허용 -->
+    <!--  안전한 정렬 컬럼만 허용 -->
     <choose>
       <when test="sortColumn == 'created_at'">
         ORDER BY created_at ${sortOrder}
@@ -53,7 +53,7 @@
     LIMIT #{pageStart}, #{perPageNum}
   </select>
 
-  <!-- ✅ 총 개수 조회 -->
+  <!--  총 개수 조회 -->
   <select id="countProductionResults" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
     SELECT COUNT(*)
     FROM production_result
@@ -64,41 +64,291 @@
         )
       </if>
       <if test="startDate != null and startDate != ''">
-        AND DATE(created_at) &gt;= #{startDate}
-      </if>
-      <if test="endDate != null and endDate != ''">
-        AND DATE(created_at) &lt;= #{endDate}
-      </if>
+		  AND DATE(created_at) &gt;= STR_TO_DATE(#{startDate}, '%Y-%m-%d')
+		</if>
+		<if test="endDate != null and endDate != ''">
+		  AND DATE(created_at) &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d')
+		</if>
   </select>
   
-  <!-- 완제품 입고 자동등록 -->
+  <!--  완제품 입고 자동등록 (진행률 필드 추가) -->
   <insert id="insertResult" parameterType="com.itwillbs.domain.ProductionResultVO">
     INSERT INTO production_result (
-        order_id, lot_no, actual_qty, defect_qty,
-        worker_name, started_at, ended_at, created_at
+      result_id,
+      order_id,
+      product_id,
+      lot_no,
+      actual_qty,
+      defect_qty,
+      worker_name,
+      started_at,
+      ended_at,
+      created_at,
+      progress_rate,
+      cumulative_qty 
     ) VALUES (
-        #{orderId}, #{lotNo}, #{actualQty}, #{defectQty},
-        #{workerName}, #{startedAt}, #{endedAt}, #{createdAt}
+      #{resultId},
+      #{orderId},
+      #{productId},
+      #{lotNo},
+      #{actualQty},
+      #{defectQty},
+      #{workerName},
+      #{startedAt},
+      #{endedAt},
+      #{createdAt},
+      #{progressRate},
+      #{cumulativeQty}
     )
-</insert>
+  </insert>
 
-<!-- 전체 생산 결과 조회 -->
-<select id="selectAllResults" resultType="com.itwillbs.domain.ProductionResultVO">
-  SELECT 
-    result_id,
-    order_id,
-    lot_no,
-    actual_qty,
-    defect_qty,
-    worker_name,
-    started_at,
-    ended_at,
-    created_at
-  FROM production_result
-  ORDER BY created_at DESC
-</select>
+  <!-- 전체 생산 결과 조회 -->
+  <select id="selectAllResults" resultType="com.itwillbs.domain.ProductionResultVO">
+    SELECT 
+      result_id,
+      order_id,
+      product_id,
+      lot_no,
+      actual_qty,
+      defect_qty,
+      worker_name,
+      started_at,
+      ended_at,
+      created_at
+    FROM production_result
+    ORDER BY created_at DESC
+  </select>
 
-<!-- ..............완제품 입고등록 아름 끝.................... -->  
-  
+  <!-- LOT 기준 최신 result_id (develop 브랜치에서 추가) -->
+  <select id="getLatestResultIdByLot" parameterType="String" resultType="String">
+    SELECT result_id
+    FROM production_result
+    WHERE lot_no = #{lotNo}
+    ORDER BY created_at DESC
+    LIMIT 1
+  </select>
+
+  <!--  상세 조회 (DTO에 맞춰 alias) - develop 브랜치에서 추가 -->
+  <select id="getDetailByResultId" parameterType="string"
+          resultType="com.itwillbs.dto.ProductionResultDTO">
+    SELECT
+      pr.result_id     AS resultId,
+      pr.order_id      AS orderId,
+      pr.product_id    AS productId,
+      pr.lot_no        AS lotNo,
+      pr.actual_qty    AS actualQty,
+      pr.defect_qty    AS defectQty,
+      pr.worker_name   AS workerName,
+      pr.started_at    AS startedAt,
+      pr.ended_at      AS endedAt,
+      pr.created_at    AS createdAt,
+      pr.progress_rate AS progressRate,
+
+      p.product_name   AS productName,
+
+      wo.order_qty     AS orderQty,
+      wo.order_manager AS orderManager,
+      wo.status        AS status,
+      wo.line_id       AS lineId,
+      wo.priority      AS priority,
+      wo.due_date      AS dueDate,
+
+      pl.line_name     AS lineName
+    FROM production_result pr
+    JOIN product p       ON p.product_id = pr.product_id
+    JOIN work_order wo   ON wo.order_id  = pr.order_id
+    LEFT JOIN production_line pl ON pl.line_id = wo.line_id
+    WHERE pr.result_id = #{resultId}
+  </select>
+
+  <!-- ..............완제품 입고등록 아름 끝.................... -->
+
+  <!-- ================== ID/LOT 시퀀스 ================== -->
+  <select id="selectTodayResultSeq" resultType="string">
+    SELECT LPAD(
+             IFNULL(MAX(CAST(SUBSTRING(result_id, 14, 3) AS UNSIGNED)), 0) + 1,
+             3,'0'
+           )
+    FROM production_result
+    WHERE result_id LIKE CONCAT('PRS-', DATE_FORMAT(NOW(), '%Y%m%d'), '%')
+  </select>
+
+  <select id="selectTodayLotSeq" resultType="string">
+    SELECT LPAD(
+             IFNULL(MAX(CAST(SUBSTRING(lot_no, -3) AS UNSIGNED)), 0) + 1,
+             3,'0'
+           )
+    FROM production_result
+    WHERE lot_no LIKE CONCAT('LOT-', #{productCode}, '-', #{dateStr}, '%')
+  </select>
+
+  <!-- ================== 생산실적 목록(조인/페이징) ================== -->
+  <!-- 양품누적/잔여를 함께 내려줌: good_sum = SUM(GREATEST(actual - defect,0)) -->
+  <select id="selectResultList"
+          parameterType="com.itwillbs.domain.SearchCriteria"
+          resultType="com.itwillbs.dto.ProductionResultDTO">
+    SELECT
+      -- production_result
+      pr.result_id, pr.order_id, pr.product_id, pr.lot_no,
+      pr.actual_qty, pr.defect_qty, pr.worker_name,
+      pr.started_at, pr.ended_at, pr.created_at, pr.progress_rate,
+
+      -- work_order
+      wo.status, wo.order_qty, wo.order_manager AS orderManager,
+
+      -- product / line
+      p.product_name AS productName,
+      pl.line_name   AS lineName,
+
+      -- 누적(양품)과 잔여
+      COALESCE(agg.good_sum, 0) AS producedQty,
+      COALESCE(agg.def_sum,  0) AS defectQtyTotal,
+      GREATEST(wo.order_qty - COALESCE(agg.good_sum, 0), 0) AS remainingQty
+
+    FROM production_result pr
+    LEFT JOIN work_order wo ON pr.order_id = wo.order_id
+    LEFT JOIN product p     ON pr.product_id = p.product_id
+    LEFT JOIN production_line pl ON wo.line_id = pl.line_id
+
+    -- 주문별 누적 집계
+    LEFT JOIN (
+      SELECT
+        order_id,
+        SUM(GREATEST(actual_qty - COALESCE(defect_qty,0), 0)) AS good_sum,
+        SUM(COALESCE(defect_qty,0))                           AS def_sum
+      FROM production_result
+      GROUP BY order_id
+    ) agg ON agg.order_id = pr.order_id
+
+    <where>
+      1=1
+      <if test="startDate != null and startDate != ''">
+        AND DATE(pr.created_at) &gt;= STR_TO_DATE(#{startDate}, '%Y-%m-%d')
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND DATE(pr.created_at) &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d')
+      </if>
+      <if test="status != null and status != ''">
+        AND wo.status = #{status}
+      </if>
+      <if test="keyword != null and keyword != ''">
+        AND (
+          pr.worker_name LIKE CONCAT('%', #{keyword}, '%')
+          OR pr.order_id LIKE CONCAT('%', #{keyword}, '%')
+          OR pr.lot_no   LIKE CONCAT('%', #{keyword}, '%')
+          OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
+        )
+      </if>
+    </where>
+
+    <choose>
+      <when test="sortColumn == 'created_at'"> ORDER BY pr.created_at ${sortOrder} </when>
+      <when test="sortColumn == 'lot_no'">     ORDER BY pr.lot_no ${sortOrder}     </when>
+      <when test="sortColumn == 'order_id'">   ORDER BY pr.order_id ${sortOrder}   </when>
+      <when test="sortColumn == 'actual_qty'"> ORDER BY pr.actual_qty ${sortOrder} </when>
+      <otherwise>                               ORDER BY pr.created_at DESC         </otherwise>
+    </choose>
+
+    LIMIT #{pageStart}, #{perPageNum}
+  </select>
+
+  <!-- 총 건수 (동일 필터) -->
+  <select id="selectResultCount"
+          parameterType="com.itwillbs.domain.SearchCriteria"
+          resultType="int">
+    SELECT COUNT(1)
+    FROM production_result pr
+    LEFT JOIN work_order wo ON pr.order_id = wo.order_id
+    LEFT JOIN product p     ON pr.product_id = p.product_id
+    <where>
+      1=1
+      <if test="startDate != null and startDate != ''">
+        AND DATE(pr.created_at) &gt;= STR_TO_DATE(#{startDate}, '%Y-%m-%d')
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND DATE(pr.created_at) &lt;= STR_TO_DATE(#{endDate}, '%Y-%m-%d')
+      </if>
+      <if test="status != null and status != ''">
+        AND wo.status = #{status}
+      </if>
+      <if test="keyword != null and keyword != ''">
+        AND (
+          pr.worker_name LIKE CONCAT('%', #{keyword}, '%')
+          OR pr.order_id LIKE CONCAT('%', #{keyword}, '%')
+          OR pr.lot_no   LIKE CONCAT('%', #{keyword}, '%')
+          OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
+        )
+      </if>
+    </where>
+  </select>
+
+  <!-- ================== 생산실적 상세 ================== -->
+  <!--  진행률 필드 추가 (96-보완-등록 브랜치) -->
+  <select id="selectResultDetail" parameterType="string"
+          resultType="com.itwillbs.dto.ProductionResultDTO">
+    SELECT
+      pr.result_id, pr.order_id, pr.product_id, pr.lot_no,
+      pr.actual_qty, pr.defect_qty, pr.worker_name,
+      pr.started_at, pr.ended_at, pr.created_at,
+      pr.progress_rate, pr.cumulative_qty,  <!-- 🆕 추가 -->
+      wo.status, wo.order_qty, wo.order_manager AS orderManager,
+      p.product_name AS productName,
+      pl.line_name   AS lineName,
+      -- 누적/잔여(해당 오더 기준)
+      COALESCE(agg.good_sum, 0) AS producedQty,
+      COALESCE(agg.def_sum,  0) AS defectQtyTotal,
+      GREATEST(wo.order_qty - COALESCE(agg.good_sum, 0), 0) AS remainingQty
+    FROM production_result pr
+    LEFT JOIN work_order wo ON pr.order_id = wo.order_id
+    LEFT JOIN product p     ON pr.product_id = p.product_id
+    LEFT JOIN production_line pl ON wo.line_id = pl.line_id
+    LEFT JOIN (
+      SELECT
+        order_id,
+        SUM(GREATEST(actual_qty - COALESCE(defect_qty,0), 0)) AS good_sum,
+        SUM(COALESCE(defect_qty,0))                           AS def_sum
+      FROM production_result
+      GROUP BY order_id
+    ) agg ON agg.order_id = pr.order_id
+    WHERE pr.result_id = #{resultId}
+  </select>
+
+  <!-- ================== 작업지시 연동(진행상황 보기) ================== -->
+  <!-- ⚠️ work_order에 produced_qty/defect_qty 컬럼 없으므로 집계로 계산 -->
+  <select id="selectWorkOrderProgress" parameterType="string" resultType="map">
+    SELECT
+      w.order_id,
+      w.order_qty AS targetQty,
+      COALESCE(a.good_sum, 0) AS producedQty,
+      COALESCE(a.def_sum,  0) AS defectQty,
+      GREATEST(w.order_qty - COALESCE(a.good_sum, 0), 0) AS remainingQty,
+      w.status
+    FROM work_order w
+    LEFT JOIN (
+      SELECT
+        order_id,
+        SUM(GREATEST(actual_qty - COALESCE(defect_qty,0), 0)) AS good_sum,
+        SUM(COALESCE(defect_qty,0))                           AS def_sum
+      FROM production_result
+      WHERE order_id = #{orderId}
+      GROUP BY order_id
+    ) a ON a.order_id = w.order_id
+    WHERE w.order_id = #{orderId}
+  </select>
+
+  <!-- ================== 합계 유틸 ================== -->
+  <!-- 양품 누적 합계 (actual - defect, 0미만 방지) -->
+  <select id="selectTotalProducedQty" parameterType="string" resultType="int">
+    SELECT COALESCE(SUM(GREATEST(actual_qty - COALESCE(defect_qty,0), 0)), 0)
+    FROM production_result
+    WHERE order_id = #{orderId}
+  </select>
+
+  <!-- 불량 누적 합계 -->
+  <select id="selectTotalDefectQty" parameterType="string" resultType="int">
+    SELECT COALESCE(SUM(defect_qty), 0)
+    FROM production_result
+    WHERE order_id = #{orderId}
+  </select>
 
 </mapper>

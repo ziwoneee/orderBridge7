@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.itwillbs.mapper.ApprovalTokenMapper">
+
+  <!-- 토큰 저장 -->
+  <insert id="insertToken" parameterType="com.itwillbs.domain.ApprovalTokenVO">
+  INSERT INTO approval_token (
+    token_id,
+    order_id,
+    email,
+    expires_at,
+    created_at
+  ) VALUES (
+    #{tokenId},
+    #{orderId},
+    #{email},
+    #{expiresAt},
+    NOW()
+  )
+</insert>
+
+
+
+
+  <!-- 토큰 조회 -->
+  <select id="findByTokenId" parameterType="string" resultType="com.itwillbs.domain.ApprovalTokenVO">
+    SELECT *
+    FROM approval_token
+    WHERE token_id = #{tokenId}
+  </select>
+
+  <!-- 사용 완료 처리 -->
+  <update id="markTokenUsed" parameterType="string">
+    UPDATE approval_token
+    SET is_used = true
+    WHERE token_id = #{tokenId}
+  </update>
+
+</mapper>

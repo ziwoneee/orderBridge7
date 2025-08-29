@@ -1,0 +1,518 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.itwillbs.mapper.MaterialOrderMapper">
+
+	<!-- 공통 WHERE: 목록/카운트가 동일 조건을 쓰도록 -->
+	<sql id="orderListWhere">
+	  <where>
+	    <if test="keyword != null and keyword != ''">
+	      (
+	        mo.order_id LIKE CONCAT('%', #{keyword}, '%')
+	        OR s.supplier_name LIKE CONCAT('%', #{keyword}, '%')
+	        /* 자재명 검색도 지원 (성능 OK) */
+	        OR EXISTS (
+	          SELECT 1
+	          FROM material_order_item moi2
+	          JOIN material m2 ON m2.material_id = moi2.material_id
+	          WHERE moi2.order_id = mo.order_id
+	            AND m2.material_name LIKE CONCAT('%', #{keyword}, '%')
+	        )
+	      )
+	    </if>
+	    <if test="startDate != null and startDate != ''">
+	      AND mo.order_date &gt;= #{startDate}
+	    </if>
+	    <if test="endDate != null and endDate != ''">
+	      AND mo.order_date &lt;= #{endDate}
+	    </if>
+	    <!-- 전체(ALL/null)일 때는 상태필터 미적용 -->
+	    <if test="status != null and status != '' and status != 'ALL'">
+	      AND mo.order_status = #{status}
+	    </if>
+	  </where>
+	</sql>
+	
+	<!-- 아이템 집계 서브쿼리: JOIN 중복으로 LIMIT 꼬임 방지 + 초안 누락 방지 -->
+	<sql id="orderItemsAgg">
+	  (
+	    SELECT
+	      moi.order_id,
+	      SUM(moi.order_quantity) AS total_qty,
+	      SUM(moi.total_price)    AS total_price,
+	      MIN(m.material_name)    AS rep_name,
+	      COUNT(*)                AS item_cnt,
+	      MAX(moi.warehouse_code) AS warehouse_code
+	    FROM material_order_item moi
+	    JOIN material m ON m.material_id = moi.material_id
+	    GROUP BY moi.order_id
+	  ) oi
+	</sql>
+
+
+	<!-- 1. 발주 목록 조회 -->
+	<select id="selectOrderList"
+        parameterType="com.itwillbs.domain.SearchCriteria"
+        resultType="com.itwillbs.domain.MaterialOrderVO">
+	  SELECT 
+	    mo.order_id              AS orderId,
+	    mo.supplier_id           AS supplierId,
+	    s.supplier_name          AS supplierName, 
+	    mo.order_date            AS orderDate,
+	    mo.order_status          AS orderStatus,
+	    mo.expected_arrived_date AS expectedArrivedDate,
+	    mo.created_by            AS createdBy,
+	    mo.handled_by            AS handledBy,
+	    hu.name                  AS handlerName,
+	    mo.note,
+	
+	    /* 대표 품명 */
+	    CASE 
+	      WHEN oi.item_cnt = 1 THEN oi.rep_name
+	      WHEN oi.item_cnt >= 2 THEN CONCAT(oi.rep_name, ' 외 ', oi.item_cnt - 1, '건')
+	      ELSE '-' 
+	    END                      AS materialName,
+	
+	    COALESCE(oi.total_qty, 0)     AS totalQuantity,
+	    COALESCE(oi.total_price, 0)   AS totalPrice,
+	    oi.warehouse_code             AS warehouseCode
+	
+	  FROM material_order mo
+	  LEFT JOIN supplier s ON s.supplier_id = mo.supplier_id
+	  LEFT JOIN <include refid="orderItemsAgg"/> ON oi.order_id = mo.order_id  <!-- ★ LEFT -->
+	  LEFT JOIN admin_user hu ON hu.admin_id = mo.handled_by
+	
+	  <include refid="orderListWhere"/>
+	
+	  <!-- 정렬 규칙 -->
+	  <choose>
+	  <!-- 사용자가 정렬 지정 -->
+	  <when test="sortColumn != null and sortColumn != ''">
+	    <!-- 위 ‘교체 후’와 동일 4분기 -->
+	    <choose>
+	      <when test="sortColumn == 'order_id'">
+	        ORDER BY mo.order_id ${sortOrder}
+	      </when>
+	      <when test="sortColumn == 'order_date'">
+	        ORDER BY mo.order_date ${sortOrder}, mo.order_id DESC
+	      </when>
+	      <when test="sortColumn == 'expected_arrived_date'">
+	        ORDER BY mo.expected_arrived_date ${sortOrder}, mo.order_id DESC
+	      </when>
+	      <otherwise>
+	        ORDER BY mo.order_date DESC, mo.order_id DESC
+	      </otherwise>
+	    </choose>
+	  </when>
+	
+	  <!-- 사용자가 정렬 미지정: 기본 정렬 -->
+	  <otherwise>
+	    <choose>
+	      <!-- 전체 탭일 때만 상태 가중 -->
+	      <when test="status == null or status == '' or status == 'ALL'">
+	        ORDER BY FIELD(mo.order_status,'초안','요청','승인','입고완료'),
+	                 mo.order_date DESC, mo.order_id DESC
+	      </when>
+	      <!-- 상태 탭 기본은 날짜 내림차순 -->
+	      <otherwise>
+	        ORDER BY mo.order_date DESC, mo.order_id DESC
+	      </otherwise>
+	    </choose>
+	  </otherwise>
+	</choose>
+
+	
+	  LIMIT #{pageStart}, #{perPageNum}
+	</select>
+
+	
+	<!-- 2. 총 건수 조회 : 주문 기준 + LEFT JOIN + EXISTS 검색 -->
+	<select id="getTotalCount"
+	        parameterType="com.itwillbs.domain.SearchCriteria"
+	        resultType="int">
+	  SELECT COUNT(*)
+	  FROM material_order mo
+	  LEFT JOIN supplier s ON s.supplier_id = mo.supplier_id
+	  <where>
+	    <if test="keyword != null and keyword != ''">
+	      (
+	        mo.order_id LIKE CONCAT('%', #{keyword}, '%')
+	        OR s.supplier_name LIKE CONCAT('%', #{keyword}, '%')
+	        OR EXISTS (
+	          SELECT 1
+	          FROM material_order_item moi2
+	          JOIN material m2 ON m2.material_id = moi2.material_id
+	          WHERE moi2.order_id = mo.order_id
+	            AND m2.material_name LIKE CONCAT('%', #{keyword}, '%')
+	        )
+	      )
+	    </if>
+	    <if test="startDate != null and startDate != ''">
+	      AND mo.order_date &gt;= #{startDate}
+	    </if>
+	    <if test="endDate != null and endDate != ''">
+	      AND mo.order_date &lt;= #{endDate}
+	    </if>
+	    <if test="status != null and status != '' and status != 'ALL'">
+	      AND mo.order_status = #{status}
+	    </if>
+	  </where>
+	</select>
+
+
+	
+	<!-- 발주번호 생성 -->
+	<select id="generateOrderId" resultType="String">
+		SELECT CONCAT(
+			'PO-RM-', 
+			DATE_FORMAT(NOW(), '%Y%m%d'), 
+			'-', 
+			LPAD(
+				IFNULL(MAX(CAST(SUBSTRING(order_id, 16, 3) AS UNSIGNED)), 0) + 1, 
+				3, 
+				'0'
+			)
+		)
+		FROM material_order
+		WHERE order_id LIKE CONCAT('PO-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-%')
+	</select>
+	
+	<!-- 발주 등록 -->
+	<insert id="insertOrder" parameterType="com.itwillbs.domain.MaterialOrderVO">
+		INSERT INTO material_order (
+			order_id, supplier_id, order_date, order_status,
+			expected_arrived_date, created_by, handled_by, note, work_order_id
+		) VALUES (
+			#{orderId}, 
+			#{supplierId}, 
+			#{orderDate, jdbcType=DATE}, 
+			#{orderStatus},
+			#{expectedArrivedDate, jdbcType=DATE}, 
+			#{createdBy}, 
+			#{handledBy},
+			#{note},
+			#{workOrderId}
+		)
+	</insert>
+	
+	<!-- 발주 항목 등록 (VO 타입) -->
+	<insert id="insertOrderItem" parameterType="com.itwillbs.domain.MaterialOrderItemVO">
+	  INSERT INTO material_order_item (
+	    order_item_id,
+	    order_id,
+	    material_id,
+	    work_order_id,
+	    order_quantity,
+	    unit_price,
+	    total_price,
+	    warehouse_code
+	  )
+	  VALUES (
+	    #{orderItemId},
+	    #{orderId},
+	    #{materialId},
+	    #{workOrderId},
+	    #{orderQuantity},
+	    #{unitPrice},
+	    #{totalPrice},
+	    #{warehouseCode}
+	  )
+	</insert>
+	
+	<!-- 발주 항목 등록 (Map 타입) -->
+	<insert id="insertOrderItemMap" parameterType="map">
+		INSERT INTO material_order_item (
+			order_item_id, order_id, material_id, work_order_id, order_quantity,
+			unit_price, total_price, warehouse_code
+		) VALUES (
+			#{orderItemId},
+			#{orderId}, 
+			#{materialId}, 
+			#{workOrderId},
+			#{orderQuantity, jdbcType=INTEGER},
+			#{unitPrice, jdbcType=INTEGER},
+			#{totalPrice, jdbcType=INTEGER}, 
+			#{warehouseCode}
+		)
+	</insert>
+	
+	<!-- 자재명 키워드로 거래처 + 자재 단가 정보 조회 -->
+	<select id="searchSuppliersByMaterial" parameterType="string" resultType="com.itwillbs.dto.SupplierItemDTO">
+	  SELECT
+	    m.material_name AS materialName,
+	    s.supplier_id   AS supplierId,
+	    s.supplier_name AS supplierName,
+	    si.unit_price   AS unitPrice,
+	    m.warehouse_code AS warehouseCode
+	  FROM supplier_item si
+	  JOIN material m ON si.material_id = m.material_id
+	  JOIN supplier s ON si.supplier_id = s.supplier_id
+	  WHERE m.material_name LIKE CONCAT('%', #{keyword}, '%')
+	    AND s.status = '활성'
+	    AND si.supply_available = 'Y'
+	    AND m.use_yn = 'Y'
+	    AND m.purchasable_flag = 'Y'
+	  ORDER BY s.supplier_name ASC
+	</select>
+	
+	<!-- 부족분 발주 자동 생성 관련 쿼리 -->
+	
+	<!-- 자재ID 목록으로 거래처-자재 매핑 정보 조회 -->
+	<select id="selectSupplierItemMappings" parameterType="list" resultType="map">
+	  SELECT
+	    si.supplier_id    AS supplierId,
+	    si.material_id    AS materialId,
+	    si.unit_price     AS unitPrice,
+	    COALESCE(m.warehouse_code,'WH001') AS warehouseCode,
+	    s.supplier_name   AS supplierName,
+	    m.material_name   AS materialName,
+	
+	    -- 원본 메타
+	    si.min_order_qty  AS minOrderQty,
+	    si.order_multiple AS orderMultiple,
+	    si.pack_qty       AS packQty,        -- 1 PACK = ? (g/ml/ea)
+	    si.conv_to_base   AS convToBase,     -- 1 PACK = ? (price_unit 수량)
+	    si.price_unit     AS priceUnit,      -- 과금단위 (KG/L/PACK/EA/BUNDLE…)
+	    si.unit           AS purchaseUnit,   -- 주문단위
+	    si.conv_to_stock  AS convToStock,    -- 표시/재고 환산 (예: 10단)
+	    si.stock_unit     AS stockUnit,
+	
+	    -- ★ 계산된 열 (서비스는 이 두 가지만 써도 동작)
+	    /* 1) 1 PACK을 '베이스(g/ml/ea)'로 환산 */
+	    CASE
+	      WHEN si.pack_qty IS NOT NULL AND si.pack_qty > 0 THEN si.pack_qty
+	      WHEN si.price_unit IN ('KG','L')                THEN si.conv_to_base * 1000
+	      ELSE COALESCE(NULLIF(si.conv_to_base,0),1)
+	    END AS packQtyBase,
+	
+	    /* 2) 1 PACK이 '과금단위'로 몇 개인지 */
+	    CASE
+	      WHEN si.price_unit = 'PACK'        THEN 1
+	      WHEN si.price_unit IN ('KG','L')   THEN COALESCE(NULLIF(si.conv_to_base,0),1)
+	      WHEN si.price_unit IN ('BUNDLE','EA')
+	           THEN COALESCE(NULLIF(si.conv_to_base,0), NULLIF(si.conv_to_stock,0), 1)
+	      ELSE COALESCE(NULLIF(si.conv_to_base,0), 1)
+	    END AS convPerPackBilling
+	
+	  FROM supplier_item si
+	  JOIN material  m ON m.material_id = si.material_id
+	  JOIN supplier  s ON s.supplier_id = si.supplier_id
+	  WHERE si.supply_available = 'Y'
+	    AND m.use_yn = 'Y'
+	    AND m.purchasable_flag = 'Y'
+	    AND si.material_id IN
+	    <foreach collection="list" item="materialId" open="(" separator="," close=")">
+	      #{materialId}
+	    </foreach>
+	  ORDER BY si.supplier_id, m.material_name
+	</select>
+
+
+
+	
+	<!-- 발주 초안 헤더 등록 -->
+	<insert id="insertOrderHeaderDraft" parameterType="map">
+		<selectKey keyProperty="orderId" resultType="string" order="BEFORE">
+			SELECT CONCAT(
+				'PO-RM-',
+				DATE_FORMAT(NOW(), '%Y%m%d'),
+				'-',
+				LPAD(
+					IFNULL(MAX(CAST(SUBSTRING(order_id, 16, 3) AS UNSIGNED)), 0) + 1,
+					3, 
+					'0'
+				)
+			)
+			FROM material_order
+			WHERE order_id LIKE CONCAT('PO-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-%')
+		</selectKey>
+		
+		INSERT INTO material_order (
+			order_id, supplier_id, order_date, order_status,
+			expected_arrived_date, handled_by, note, work_order_id
+		) VALUES (
+			#{orderId}, 
+			#{supplierId}, 
+			NOW(), 
+			COALESCE(#{orderStatus}, '초안'),
+			#{expectedArrivedDate, jdbcType=DATE}, 
+			#{handledBy},
+			#{note},
+			#{workOrderId}
+		)
+	</insert>
+	
+	<!-- 발주 항목의 다음 순번 조회 -->
+	<select id="selectNextOrderItemIndex" parameterType="string" resultType="int">
+		SELECT COALESCE(
+			MAX(CAST(SUBSTRING_INDEX(order_item_id, '-', -1) AS UNSIGNED)), 
+			0
+		) + 1
+		FROM material_order_item
+		WHERE order_id = #{orderId}
+	</select>
+	
+	<!-- 발주 항목 배치 등록 -->
+	<insert id="insertOrderItemsBatch" parameterType="list">
+		<if test="list != null and list.size() > 0">
+			INSERT INTO material_order_item (
+				order_item_id, order_id, material_id, work_order_id, order_quantity,
+				unit_price, total_price, warehouse_code
+			) VALUES
+			<foreach collection="list" item="item" separator=",">
+				(
+					#{item.orderItemId},
+					#{item.orderId},
+					#{item.materialId},
+					#{item.workOrderId},
+					#{item.orderQuantity, jdbcType=INTEGER},
+					#{item.unitPrice, jdbcType=INTEGER},
+					#{item.totalPrice, jdbcType=INTEGER},
+					#{item.warehouseCode}
+				)
+			</foreach>
+		</if>
+	</insert>
+
+	<!-- 내부사용(N) 자재 조회 -->
+	<select id="selectNonPurchasableFromList" parameterType="list" resultType="map">
+	  SELECT m.material_id AS materialId, m.material_name AS materialName
+	  FROM material m
+	  WHERE m.purchasable_flag = 'N'
+	    AND m.material_id IN
+	    <foreach collection="list" item="id" open="(" separator="," close=")">
+	      #{id}
+	    </foreach>
+	</select>
+	
+	
+<!-- ===================================================================== -->
+<!-- 발주 초안에서 요청 쿼리 -->	
+<!-- ===================================================================== -->
+
+	<!-- 0) 초안 + 항목 로드 (검증용) -->
+	<select id="selectDraftWithItems" parameterType="string" resultType="map">
+	  SELECT 
+	    mo.order_id       AS orderId,
+	    mo.order_status   AS orderStatus,
+	    mo.supplier_id    AS supplierId,
+	    mo.order_date     AS orderDate,
+	    mo.expected_arrived_date AS expectedArrivedDate,
+	    mo.created_by     AS createdBy,
+	    mo.note,
+	    moi.order_item_id AS orderItemId,
+	    moi.material_id   AS materialId,
+	    moi.order_quantity AS orderQuantity,
+	    moi.unit_price    AS unitPrice,
+	    moi.total_price   AS totalPrice,
+	    moi.warehouse_code AS warehouseCode,
+	    moi.work_order_id AS workOrderId
+	  FROM material_order mo
+	  JOIN material_order_item moi ON moi.order_id = mo.order_id
+	  WHERE mo.order_id = #{orderId}
+	</select>
+	
+	<!-- 0-1) 항목 총액 합계 (있으면 보여주기/로그용) -->
+	<select id="selectItemsTotal" parameterType="string" resultType="int">
+	  SELECT COALESCE(SUM(total_price),0)
+	  FROM material_order_item
+	  WHERE order_id = #{orderId}
+	</select>
+	
+	<!-- 1) 상태 전이: 초안 -> 요청 (동시성 보호: 초안일 때만) -->
+	<update id="updateOrderToRequested" parameterType="string">
+	  UPDATE material_order
+	     SET order_status = '요청'
+	   WHERE order_id = #{orderId}
+	     AND order_status = '초안'
+	</update>
+
+
+
+<!-- ===================================================================== -->
+<!-- 발주 상세 -->	
+<!-- ===================================================================== -->
+	<!-- A. 주문 헤더 -->
+	<select id="selectOrderHeader" parameterType="string" resultType="map">
+	  SELECT 
+	    mo.order_id               AS orderId,
+	    mo.supplier_id            AS supplierId,
+	    s.supplier_name           AS supplierName,
+	    mo.order_date             AS orderDate,
+	    mo.expected_arrived_date  AS expectedArrivedDate,
+	    mo.order_status           AS orderStatus,
+	
+	    -- 담당자/작성자 ID
+	    mo.handled_by             AS handledBy,
+	    mo.created_by             AS createdBy,
+	
+	    -- 담당자/작성자 이름(admin_user.name)
+	    au_h.name                 AS handlerName,
+	    au_c.name                 AS createdByName,
+	
+	    mo.note                   AS note,
+	    mo.work_order_id          AS workOrderId
+	  FROM material_order mo
+	  JOIN supplier      s    ON s.supplier_id = mo.supplier_id
+	  LEFT JOIN admin_user au_h ON au_h.admin_id = mo.handled_by
+	  LEFT JOIN admin_user au_c ON au_c.admin_id = mo.created_by
+	  WHERE mo.order_id = #{orderId}
+	</select>
+	
+	<!-- B. 주문 아이템 목록 -->
+	<select id="selectOrderItems" parameterType="string" resultType="map">
+	  SELECT
+	    moi.order_item_id   AS orderItemId,
+	    moi.material_id     AS materialId,
+	    m.material_name     AS materialName,
+	    moi.order_quantity  AS orderQuantity,
+	    moi.unit_price      AS unitPrice,
+	    moi.total_price     AS totalPrice,
+	    moi.warehouse_code  AS warehouseCode,
+	    moi.work_order_id   AS workOrderId
+	  FROM material_order_item moi
+	  JOIN material m ON m.material_id = moi.material_id
+	  WHERE moi.order_id = #{orderId}
+	  ORDER BY moi.order_item_id
+	</select>
+
+
+
+
+
+<!-- ===================================================================== -->
+<!-- 발주 상태별 탭기능 카운트 -->	
+<!-- ===================================================================== -->
+	<select id="getCountByStatus" parameterType="string" resultType="int">
+	    SELECT COUNT(*) 
+	    FROM material_order 
+	    WHERE order_status = #{status}
+	</select>
+	
+	<!-- 또는 한 번에 모든 상태 카운트 조회 -->
+	<select id="getStatusCounts" resultType="map">
+	    SELECT order_status as status, COUNT(*) as count
+	    FROM material_order 
+	    GROUP BY order_status
+	</select>
+
+
+		<!-- 메일 승인 -->
+		<select id="findById" parameterType="string" resultType="com.itwillbs.domain.MaterialOrderVO">
+		  SELECT * FROM material_order WHERE order_id = #{orderId}
+		</select>
+		
+		<!-- 협력사 발주 승인 상태 변경 -->
+		<update id="updateOrderStatus" parameterType="com.itwillbs.domain.MaterialOrderVO">
+		  UPDATE material_order
+		  SET order_status = #{orderStatus}
+		  WHERE order_id = #{orderId}
+		</update>
+
+
+
+
+</mapper>

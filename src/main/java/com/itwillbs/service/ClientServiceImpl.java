@@ -41,4 +41,32 @@ public class ClientServiceImpl implements ClientService {
         return clientDao.getAllClients();
     }
     
+    //고객사 수정
+    @Override
+    public void updateClient(ClientVO client) {
+        clientDao.updateClient(client);
+    }
+
+    //고객사 활성화 목록
+    @Override
+    public List<ClientVO> getActiveClients() {
+        return clientDao.getActiveClients();
+    }
+    
+    //사업자번호 중복확인
+    @Override
+    public boolean isBusinessNumberExists(String businessNumber) {
+        return clientDao.isBusinessNumberExists(businessNumber);
+    }
+
+    @Override
+    public String getClientEmailById(String clientId) {
+        return clientDao.findEmailById(clientId);
+    }
+
+    @Override
+    public String getClientNameById(String clientId) {
+        return clientDao.findNameById(clientId);
+    }
+    
 }

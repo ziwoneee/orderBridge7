@@ -1,0 +1,638 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.itwillbs.mapper.MaterialOutboundMapper">
+
+	<!-- 출고 목록 조회 -->
+	<!-- 목록 + 카운트 (페이징) -->
+	<select id="getOutboundList" parameterType="com.itwillbs.domain.SearchCriteria" resultType="map">
+	  SELECT
+	    o.outbound_id   AS outboundId,
+	    o.work_order_id AS workOrderId,
+	    o.outbound_date AS outboundDate,
+	    o.due_date      AS dueDate,
+	    o.status        AS statusCode,           
+	    CASE 
+	      WHEN o.status = 'ISSUED' THEN '출고완료'
+	      ELSE '미출고'
+	    END               AS statusDisplay,
+	    o.handled_by      AS handledBy
+	  FROM material_outbound o
+	  <where>
+	    <if test="status != null and status != ''">
+	      AND o.status = #{status}
+	    </if>
+	    <if test="keyword != null and keyword != ''">
+	      AND (o.outbound_id LIKE CONCAT('%', #{keyword}, '%') 
+	           OR o.work_order_id LIKE CONCAT('%', #{keyword}, '%'))
+	    </if>
+	    <if test="startDate != null and startDate != ''">
+	      AND DATE(o.outbound_date) &gt;= #{startDate}
+	    </if>
+	    <if test="endDate != null and endDate != ''">
+	      AND DATE(o.outbound_date) &lt;= #{endDate}
+	    </if>
+	  </where>
+	  <choose>
+		  <!-- 사용자가 정렬을 요청한 경우 -->
+		  <when test="sortColumn != null and sortColumn != ''">
+		    ORDER BY
+		      /* ✅ 상태 우선순위: ISSUED(출고완료) 맨 뒤 */
+		      (CASE WHEN o.status = 'ISSUED' THEN 2 ELSE 1 END) ASC,
+		      <choose>
+		        <when test="sortColumn == 'outbound_id'">o.outbound_id</when>
+		        <when test="sortColumn == 'work_order_id'">o.work_order_id</when>
+		        <when test="sortColumn == 'outbound_date'">o.outbound_date</when>
+		        <when test="sortColumn == 'due_date'">o.due_date</when>
+		        <!-- 굳이 status 자체로 2차정렬을 하려면 여기서 o.status 말고 날짜 같은 보조정렬을 추천 -->
+		        <when test="sortColumn == 'status'">o.outbound_date</when>
+		        <otherwise>o.outbound_date</otherwise>
+		      </choose>
+		      <choose>
+		        <when test="sortOrder != null and sortOrder.toLowerCase() == 'asc'">ASC</when>
+		        <otherwise>DESC</otherwise>
+		      </choose>
+		  </when>
+		
+		  <!-- 기본 정렬(파라미터 없을 때) -->
+		  <otherwise>
+		    ORDER BY
+		      /* ✅ 기본도 출고완료 맨 뒤 */
+		      (CASE WHEN o.status = 'ISSUED' THEN 2 ELSE 1 END) ASC,
+		      o.outbound_date DESC,
+		      o.outbound_id DESC
+		  </otherwise>
+		</choose>
+
+	  LIMIT #{perPageNum} OFFSET #{pageStart}
+	</select>
+	
+	<select id="getMaterialOutboundCount" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">
+	  SELECT COUNT(*) 
+	  FROM material_outbound o
+	  <where>
+	    <if test="status != null and status != ''">
+	      AND o.status = #{status}
+	    </if>
+	    <if test="keyword != null and keyword != ''">
+	      AND (o.outbound_id LIKE CONCAT('%', #{keyword}, '%') 
+	           OR o.work_order_id LIKE CONCAT('%', #{keyword}, '%'))
+	    </if>
+	    <if test="startDate != null and startDate != ''">
+	      AND DATE(o.outbound_date) &gt;= #{startDate}
+	    </if>
+	    <if test="endDate != null and endDate != ''">
+	      AND DATE(o.outbound_date) &lt;= #{endDate}
+	    </if>
+	  </where>
+	</select>
+	
+	<!-- WAITING 작업지시 -->
+	<select id="getWaitingOrders" resultType="com.itwillbs.domain.WorkOrderVO">
+	  SELECT
+	    wo.order_id     AS orderId,
+	    wo.product_id   AS productId,
+	    p.product_name  AS productName,
+	    wo.line_id      AS lineId,
+	    wo.order_qty    AS orderQty,
+	    wo.due_date     AS dueDate
+	  FROM work_order wo
+	  LEFT JOIN product p ON p.product_id = wo.product_id
+	  WHERE wo.status = 'WAITING'
+	    AND wo.shortage_status = 'NONE'  <!-- ✅ 예전 동작 복구 포인트 -->
+	
+	    <!-- ✅ 이미 출고가 단 1건이라도 존재하면 제외 (상태 폭넓게) -->
+	    AND NOT EXISTS (
+	      SELECT 1
+	      FROM material_outbound ob
+	      WHERE ob.work_order_id = wo.order_id
+	        AND ob.status IN ('DRAFT','ISSUED','PARTIAL','COMPLETED')
+	    )
+	
+	    <!-- ✅ WO에 귀속된 '미완료 발주'가 하나라도 존재하면 제외 (수동 GENERAL은 work_order_id가 NULL이라 영향 X) -->
+	    AND NOT EXISTS (
+	      SELECT 1
+	      FROM material_order po
+	      WHERE po.work_order_id = wo.order_id
+	        AND po.order_status IN ('초안','요청','승인','부분입고','입고대기')
+	    )
+	
+	  ORDER BY wo.due_date ASC, wo.order_id ASC
+	</select>
+	
+	<!-- 등록 화면: 헤더 -->
+	<select id="getWorkOrderWithStock" parameterType="string" resultType="map">
+	  SELECT wo.order_id AS workOrderId, wo.product_id, wo.line_id, wo.due_date
+	  FROM work_order wo WHERE wo.order_id = #{_parameter}
+	</select>
+	
+	<!-- 등록 화면: 자재 + 현재고 합계 -->
+	<select id="getWorkOrderItemsWithStock" parameterType="string" resultType="map">
+	   SELECT
+	    wom.work_order_id                                 AS workOrderId,
+	    wom.material_id                                   AS materialId,
+	    wom.required_qty                                  AS requiredQty,
+	    IFNULL(r.reserved_qty, 0)                         AS reservedQtyThisWO,  -- ← 화면의 "예약수량(이번 WO)"에 바인딩
+	    IFNULL(inv.stock, 0)                              AS currentStock
+	  FROM work_order_material wom
+	  LEFT JOIN (
+	      SELECT material_id, SUM(quantity) AS stock
+	      FROM material_inventory
+	      GROUP BY material_id
+	  ) inv ON inv.material_id = wom.material_id
+	  LEFT JOIN material_reservation r
+	         ON r.work_order_id = wom.work_order_id       -- ★ 키 통일 (id vs no 혼용 금지)
+	        AND r.material_id   = wom.material_id
+	  WHERE wom.work_order_id = #{workOrderId}            -- ★ 파라미터 이름도 workOrderId로
+	  ORDER BY wom.material_id
+	</select>
+	
+	<!-- LOT 목록(참고: 인벤토리 컨트롤러에서 이 id를 호출) -->
+	<select id="getLotsByMaterial" parameterType="string" resultType="map">
+	  SELECT inventory_id, lot_no, quantity, expiration_date, warehouse_code
+	  FROM material_inventory
+	  WHERE material_id = #{_parameter}
+	    AND quantity > 0
+	    AND (is_discarded = 0 OR is_discarded IS NULL)
+	  ORDER BY expiration_date ASC, received_date ASC
+	</select>
+	
+	<!-- 헤더 INSERT -->
+	<insert id="insertMaterialOutboundHeader" parameterType="map">
+	  INSERT INTO material_outbound(
+	      outbound_id,
+	      work_order_id,
+	      source_inbound_id,        <!-- 추가 -->
+	      work_order_date,                             
+	      status,
+	      handled_by,
+	      due_date
+	  )
+	  VALUES(
+	      #{outbound_id},
+	      #{work_order_id},
+	      #{source_inbound_id},     <!-- 추가 -->
+	      (SELECT DATE(created_at) FROM work_order WHERE order_id = #{work_order_id}),
+	      #{status},
+	      #{handled_by},
+	      #{due_date}
+	  )
+	</insert>
+
+	
+	<!-- due_date 단건 조회 -->
+	<select id="selectWorkOrderDueDate" parameterType="string" resultType="date">
+	  SELECT due_date FROM work_order WHERE order_id = #{_parameter}
+	</select>
+	
+	<!-- 항목 INSERT (list of map) -->
+	<!-- MaterialOutboundMapper.xml -->
+	<insert id="insertMaterialOutboundItems">
+	  INSERT INTO material_outbound_item
+	  (outbound_item_id, outbound_id, material_id, quantity, lot_no, required_qty, inventory_id)
+	  VALUES
+	  <foreach collection="list" item="row" separator=",">
+	    (#{row.outbound_item_id},
+	     #{row.outbound_id},
+	     #{row.material_id},
+	     #{row.quantity},
+	     #{row.lot_no,jdbcType=VARCHAR},
+	     #{row.required_qty},
+	     <!-- inventory_id 자동 매핑 -->
+	     (SELECT inventory_id FROM material_inventory 
+	      WHERE lot_no = #{row.lot_no} AND material_id = #{row.material_id} LIMIT 1))
+	  </foreach>
+	</insert>
+
+
+	
+	<!-- 상세 헤더/항목 -->
+	<select id="getOutboundDetailFull" parameterType="string" resultType="map">
+	  SELECT outbound_id AS outboundId, work_order_id AS workOrderId,
+	         outbound_date AS outboundDate, due_date AS dueDate,
+	         status, handled_by AS handledBy
+	  FROM material_outbound
+	  WHERE outbound_id = #{_parameter}
+	</select>
+	
+	<select id="getOutboundItems" parameterType="string" resultType="map">
+	  SELECT 
+	  	i.material_id AS materialId,
+	   	m.material_name AS materialName,
+        i.quantity,
+        i.lot_no AS lotNo,
+        COALESCE(inv.warehouse_code, m.warehouse_code) AS warehouseCode,
+	    inv.expiration_date                             AS expirationDate
+	  FROM material_outbound_item i
+	  JOIN material m ON m.material_id = i.material_id
+	  LEFT JOIN material_inventory inv
+         ON inv.inventory_id = i.inventory_id
+         OR (inv.material_id = i.material_id AND inv.lot_no = i.lot_no)
+	  WHERE i.outbound_id = #{_parameter}
+	  ORDER BY i.material_id
+	</select>
+	
+	<!-- 처리: LOT 단위 차감 -->
+	<update id="decreaseInventoryByOutbound" parameterType="string">
+	  UPDATE material_inventory mi
+	  JOIN material_outbound_item oi
+	    ON oi.lot_no = mi.lot_no
+	   AND oi.material_id = mi.material_id
+	  SET mi.quantity = mi.quantity - oi.quantity
+	  WHERE oi.outbound_id = #{_parameter}
+	    AND mi.quantity >= oi.quantity
+	</update>
+	
+	<update id="updateOutboundAsCompleted" parameterType="string">
+	  UPDATE material_outbound
+	  SET status='ISSUED', outbound_date=NOW()
+	  WHERE outbound_id = #{_parameter}
+	</update>
+	
+	<!-- MaterialOutboundMapper.xml -->
+	<select id="countByStatus" parameterType="string" resultType="int">
+	  SELECT COUNT(*)
+	  FROM material_outbound
+	  WHERE status = #{_parameter}
+	</select>
+	
+	
+	<!-- 작업지시 헤더 1건 -->
+	<select id="selectWorkOrderHeader" parameterType="string" resultType="map">
+	  SELECT
+	    wo.order_id    AS workOrderId,
+	    wo.product_id  AS productId,
+	    wo.line_id     AS lineId,
+	    wo.due_date    AS dueDate
+	  FROM work_order wo
+	  WHERE wo.order_id = #{_parameter}
+	</select>
+	
+	<!-- 작업지시 자재 목록 (필요수량) -->
+	<select id="selectWorkOrderMaterials" parameterType="string" resultType="map">
+	  SELECT
+	    m.material_id      AS materialId,
+	    m.material_name    AS materialName,
+	    wom.required_qty   AS requiredQty,
+	    m.warehouse_code   AS defaultWarehouseCode  <!-- material 테이블 창고코드 바로 사용 -->
+	
+	  FROM work_order_material wom
+	  JOIN material m 
+	    ON m.material_id = wom.material_id
+	
+	  WHERE wom.work_order_id = #{_parameter}
+	  ORDER BY m.material_id
+	</select>
+	
+	
+	<update id="updateWorkOrderShortageStatus">
+	  UPDATE work_order
+	  SET shortage_status = #{status}
+	  WHERE order_id = #{workOrderId}
+	</update>
+	
+
+
+		<!-- [A] 특정 작업지시서가 출고 가능한 상태인지 체크 -->
+	  <!-- 조건: 자재별 재고 수량 >= 지시 필요 수량  → 모든 자재가 충족되어야 함 -->
+	  <select id="isWorkOrderReady" parameterType="string" resultType="int">
+		  SELECT
+		    CASE
+		      WHEN SUM(
+		        CASE
+		          WHEN wom.material_id = 'RM-0015' THEN 1                      
+		          WHEN GREATEST(COALESCE(inv.onhand,0)
+		                        - COALESCE(rs.others,0)
+		                        + COALESCE(rs.thiswo,0), 0) >= wom.required_qty
+		               THEN 1
+		          ELSE 0
+		        END
+		      ) = COUNT(*) THEN 1 ELSE 0
+		    END AS ready
+		  FROM work_order_material wom
+		  LEFT JOIN (
+		    SELECT material_id, SUM(quantity) AS onhand
+		    FROM material_inventory
+		    <!-- 필요하면 상태/창고 필터 추가 -->
+		    GROUP BY material_id
+		  ) inv ON inv.material_id = wom.material_id
+		  LEFT JOIN (
+		    SELECT material_id,
+		           SUM(CASE WHEN work_order_id = #{workOrderId} THEN reserved_qty ELSE 0 END) AS thiswo,
+		           SUM(CASE WHEN work_order_id &lt;&gt; #{workOrderId} THEN reserved_qty ELSE 0 END) AS others
+		    FROM material_reservation
+		    GROUP BY material_id
+		  ) rs ON rs.material_id = wom.material_id
+		  WHERE wom.work_order_id = #{workOrderId}
+		</select>
+
+	
+	  <!-- [B] 해당 작업지시서에 이미 출고 레코드가 있는지 여부 -->
+	  <select id="existsOutboundByWorkOrder" parameterType="string" resultType="int">
+	    SELECT COUNT(*) FROM material_outbound WHERE work_order_id = #{workOrderId}
+	  </select>
+	
+	  <!-- [C] 신규 출고ID 생성 -->
+	  <!-- 형식: OUT-RM-YYYYMMDD-001 -->
+	  <select id="nextOutboundId" resultType="string">
+	    SELECT CONCAT('OUT-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-',
+	           LPAD(COALESCE(MAX(CAST(SUBSTRING_INDEX(outbound_id,'-',-1) AS UNSIGNED)),0)+1,3,'0'))
+	    FROM material_outbound
+	    WHERE outbound_id LIKE CONCAT('OUT-RM-', DATE_FORMAT(NOW(), '%Y%m%d'), '-%')
+	  </select>
+	
+	  <!-- [D] 출고 마스터 테이블에 INSERT -->
+	  <insert id="insertMaterialOutbound">
+	    INSERT INTO material_outbound(outbound_id, work_order_id, status, created_at, updated_at)
+	    VALUES(#{outboundId}, #{workOrderId}, 'DRAFT', NOW(), NOW())
+	  </insert>
+	
+	  <!-- [E] 출고 아이템 테이블에 INSERT -->
+	  <!-- 작업지시서의 자재 목록을 그대로 복사해 미출고 상태로 생성 -->
+	  <insert id="insertOutboundItemsFromWOM">
+	    SET @row := 0;
+	    INSERT INTO material_outbound_item(outbound_item_id, outbound_id, material_id, quantity, status, created_at, updated_at)
+	    SELECT CONCAT(#{outboundId}, '-', LPAD(@row:=@row+1,3,'0')),
+	           #{outboundId},
+	           wom.material_id,
+	           wom.required_qty,
+	           '미출고',
+	           NOW(),
+	           NOW()
+	    FROM work_order_material wom
+	    WHERE wom.work_order_id = #{workOrderId}
+	  </insert>
+
+
+		
+		<!-- 입고완료건 목록 -->
+		<!-- 입고완료건 목록 (DRAFT/ISSUED로 잡아둔 수량까지 가용에서 차감) -->
+		<select id="getInboundDoneList" parameterType="map" resultType="map">
+		  SELECT
+		    i.inbound_id   AS inboundId,
+		    i.order_id     AS orderId,
+		    i.inbound_date AS inboundDate,
+		
+		    moi.work_order_id AS workOrderId,
+		    wo.product_id     AS productId,
+		    wo.line_id        AS lineId,
+		    wo.due_date       AS dueDate,
+		
+		    /* 총 입고 수량 */
+		    SUM(ii.quantity) AS totalInboundQty,
+		
+		    /* 이미 잡아둔/출고된 수량 (LOT 단위 합계의 합) */
+		    SUM(COALESCE(used.used_qty, 0)) AS usedQty,
+		
+		    /* 가용 수량 = 총입고 - 사용(=DRAFT+ISSUED) */
+		    (SUM(ii.quantity) - SUM(COALESCE(used.used_qty, 0))) AS availableQty
+		
+		  FROM material_inbound i
+		  JOIN material_inbound_item ii
+		    ON ii.inbound_id = i.inbound_id
+		
+		  JOIN material_order mo
+		    ON mo.order_id = i.order_id
+		
+		  LEFT JOIN material_order_item moi
+		    ON moi.order_item_id = ii.order_item_id
+		
+		  LEFT JOIN work_order wo
+		    ON wo.order_id = moi.work_order_id
+		
+		  /* LOT별 사용합 계산 (DRAFT + ISSUED 모두 포함) */
+		  LEFT JOIN (
+		    SELECT
+		      oi.lot_no,
+		      SUM(oi.quantity) AS used_qty
+		    FROM material_outbound_item oi
+		    JOIN material_outbound o
+		      ON o.outbound_id = oi.outbound_id
+		    WHERE o.status IN ('DRAFT','ISSUED')
+		      AND oi.lot_no IS NOT NULL AND oi.lot_no &lt;&gt; ''
+		    GROUP BY oi.lot_no
+		  ) used
+		    ON used.lot_no = ii.lot_no
+		
+		  WHERE i.inbound_status = '입고완료'
+		    AND i.usage_status = 'AVAILABLE'
+		
+		  <if test="workOrderId != null and workOrderId != ''">
+		    /* (옵션) 특정 WO 컨텍스트일 때만: 그 WO에 남은 필요가 있는 경우만 */
+		    AND EXISTS (
+		      SELECT 1
+		      FROM (
+		        SELECT wom.material_id,
+		               SUM(wom.required_qty) AS req,
+		               COALESCE(SUM(oi.quantity),0) AS issued
+		        FROM work_order_material wom
+		        LEFT JOIN material_outbound mo2
+		          ON mo2.work_order_id = wom.work_order_id
+		         AND mo2.status IN ('DRAFT','ISSUED')
+		        LEFT JOIN material_outbound_item oi
+		          ON oi.outbound_id = mo2.outbound_id
+		         AND oi.material_id  = wom.material_id
+		        WHERE wom.work_order_id = #{workOrderId}
+		        GROUP BY wom.material_id
+		        HAVING COALESCE(SUM(oi.quantity),0) &lt; SUM(wom.required_qty)
+		      ) remain
+		    )
+		  </if>
+		
+		  GROUP BY
+		    i.inbound_id, i.order_id, i.inbound_date,
+		    moi.work_order_id, wo.product_id, wo.line_id, wo.due_date
+		
+		  HAVING (SUM(ii.quantity) - SUM(COALESCE(used.used_qty, 0))) &gt; 0
+		  ORDER BY i.inbound_date DESC
+		</select>
+
+
+
+
+
+		<!-- inboundId로 작업지시 헤더 조회 -->
+		<select id="getInboundDetailForOutbound" parameterType="string" resultType="map">
+		  SELECT
+		    w.order_id   AS workOrderId,
+		    w.product_id AS productId,
+		    w.line_id    AS lineId,
+		    w.due_date   AS dueDate
+		  FROM material_inbound i
+		  JOIN material_order o ON o.order_id  = i.order_id      <!-- 발주(가운데 테이블) -->
+		  JOIN work_order     w ON w.order_id  = o.work_order_id <!-- 발주가 참조한 작업지시 -->
+		  WHERE i.inbound_id = #{_parameter}
+		</select>
+		
+		
+		<!-- 입고ID -> 작업지시ID 해석 -->
+		<select id="findWorkOrderIdByInbound" parameterType="string" resultType="string">
+		  SELECT wom.work_order_id
+		  FROM material_inbound i
+		  JOIN material_order_item moi ON moi.order_id = i.order_id
+		  JOIN work_order_material wom  ON wom.material_id = moi.material_id
+		  JOIN work_order wo           ON wo.order_id = wom.work_order_id
+		  WHERE i.inbound_id = #{_parameter}
+		    AND IFNULL(wo.is_deleted,0) = 0
+		  ORDER BY 
+		    CASE wo.status WHEN 'IN_PROGRESS' THEN 0 WHEN 'WAITING' THEN 1 ELSE 2 END,
+		    wo.due_date ASC
+		  LIMIT 1
+		</select>
+		
+		
+		
+		<!-- [R1] 작업지시별로 '남은 필요수량'이 있으면 개수>0 반환 -->
+		<select id="countRemainByWorkOrder" parameterType="string" resultType="int">
+		  SELECT COUNT(*)
+		  FROM (
+		    SELECT wom.material_id,
+		           SUM(wom.required_qty)                         AS req,
+		           COALESCE(SUM(oi.quantity), 0)                 AS issued
+		    FROM work_order_material wom
+		    LEFT JOIN material_outbound mo
+		           ON mo.work_order_id = wom.work_order_id
+		          AND mo.status = 'ISSUED'                      -- 출고 완료건만 집계
+		    LEFT JOIN material_outbound_item oi
+		           ON oi.outbound_id = mo.outbound_id
+		          AND oi.material_id   = wom.material_id
+		    WHERE wom.work_order_id = #{workOrderId}
+		    GROUP BY wom.material_id
+		    HAVING COALESCE(SUM(oi.quantity),0) &lt; SUM(wom.required_qty)   -- 아직 모자라면 남음
+		  ) t
+		</select>
+		
+		<!-- [R2] 부족해결로 업데이트 -->
+		<update id="updateWorkOrderShortageResolved" parameterType="string">
+		  UPDATE work_order
+		     SET shortage_status = 'RESOLVED',
+		         updated_at = NOW()
+		   WHERE order_id = #{_parameter}
+		</update>
+		
+<!-- ================================================================= -->
+<!-- 4. 새로 추가할 쿼리들 -->
+<!-- ================================================================= -->
+
+	<!-- 특정 입고건의 가용 자재 목록 -->
+	<select id="getAvailableMaterialsByInbound" parameterType="map" resultType="map">
+	  SELECT
+	    ii.material_id            AS materialId,
+	    m.material_name           AS materialName,
+	    COALESCE(ii.lot_no, '')   AS lotNo,
+	    /* 가용수량 = 입고수량 - (이미 출고로 묶인 수량) */
+	    (COALESCE(ii.quantity, 0) - COALESCE(used.used_qty, 0)) AS availableQty,
+	    ii.expiration_date        AS expirationDate,
+	    /* 필요수량: 작업지시별 자재 필요 분량 */
+	    COALESCE(wom.required_qty, 0) AS requiredQty,
+	
+	    /* ▼ 추가: 표시용 단위/환산 */
+	    COALESCE(si.order_unit,'EA')  AS orderUnit,
+	    COALESCE(si.stock_unit,'KG')  AS stockUnit,
+	    COALESCE(si.conv_to_stock,1)  AS convToStock,
+	
+	    /* 필요수량 단위: BOM 단위 사용 */
+	    bd.unit AS requiredUnit
+	
+	  FROM material_inbound_item ii
+	  JOIN material_inbound i   ON i.inbound_id = ii.inbound_id
+	  JOIN material m           ON m.material_id = ii.material_id
+	
+	  /* 출고로 사용된 수량 */
+	  LEFT JOIN (
+	    SELECT
+	      moi.material_id,
+	      COALESCE(moi.lot_no, '') AS lot_no,
+	      SUM(moi.quantity)        AS used_qty
+	    FROM material_outbound_item moi
+	    GROUP BY moi.material_id, COALESCE(moi.lot_no, '')
+	  ) used
+	    ON used.material_id = ii.material_id
+	   AND used.lot_no      = COALESCE(ii.lot_no, '')
+	
+	  /* 작업지시 필요수량 */
+	  LEFT JOIN work_order_material wom
+	    ON wom.work_order_id = #{workOrderId}
+	   AND wom.material_id   = ii.material_id
+	
+	  /* BOM에서 단위 가져오기 */
+	  LEFT JOIN bom_detail bd
+	    ON bd.material_id = ii.material_id
+	    /* 필요하면 특정 BOM으로 제한: AND bd.bom_id = (해당 WO의 BOM) */
+	
+	  /* 단위/환산 정보 */
+	  LEFT JOIN supplier_item si
+	    ON si.material_id = ii.material_id
+	
+	  WHERE i.inbound_id = #{inboundId}
+	    AND i.inbound_status = '입고완료'
+	    AND (COALESCE(ii.quantity, 0) - COALESCE(used.used_qty, 0)) > 0
+	
+	  ORDER BY ii.expiration_date ASC
+	</select>
+
+
+
+
+	
+	<!-- 입고건 사용 상태 업데이트 (새로 추가) -->
+	<update id="updateInboundUsageStatus" parameterType="string">
+	  UPDATE material_inbound i
+	  JOIN (
+	    SELECT 
+	      ii.inbound_id,
+	      SUM(ii.quantity) AS total_inbound,
+	      COALESCE(SUM(used.used_qty), 0) AS total_used
+	    FROM material_inbound_item ii
+	    LEFT JOIN (
+	      SELECT 
+	        oi.lot_no,
+	        SUM(oi.quantity) AS used_qty
+	      FROM material_outbound_item oi
+	      JOIN material_outbound o ON o.outbound_id = oi.outbound_id
+	      WHERE o.status IN ('DRAFT','PARTIAL','ISSUED')
+	      GROUP BY oi.lot_no
+	    ) used ON used.lot_no = ii.lot_no
+	    WHERE ii.inbound_id = #{inboundId}
+	    GROUP BY ii.inbound_id
+	  ) calc ON calc.inbound_id = i.inbound_id
+	  SET i.usage_status = CASE
+	    WHEN calc.total_used = 0 THEN 'AVAILABLE'
+	    WHEN calc.total_used >= calc.total_inbound THEN 'FULLY_USED'
+	    ELSE 'PARTIALLY_USED'
+	  END
+	  WHERE i.inbound_id = #{inboundId}
+	</update>
+	
+	<!-- 이번 출고로 사용된 입고건 찾기 -->
+	<select id="findInboundIdsByOutbound" parameterType="string" resultType="string">
+	  SELECT DISTINCT ii.inbound_id
+	  FROM material_outbound_item oi
+	  JOIN material_inbound_item  ii ON ii.lot_no = oi.lot_no
+	  WHERE oi.outbound_id = #{outboundId}
+	</select>
+	
+	<!-- 출고 → 작업지시서 ID 역추적 -->
+	<select id="getWorkOrderIdByOutbound" parameterType="string" resultType="string">
+	  SELECT o.work_order_id
+	  FROM material_outbound o
+	  WHERE o.outbound_id = #{outboundId}
+	</select>
+	
+	<!-- 작업지시 상태 갱신: WAITING → READY (이미 READY면 그대로) -->
+	<update id="updateWorkOrderStatus" parameterType="map">
+	  UPDATE work_order
+	     SET status = #{status},
+	         updated_at = NOW()
+	   WHERE order_id = #{workOrderId}
+	     AND (status IS NULL OR status = 'WAITING')
+	</update>
+	
+	
+
+
+
+</mapper>

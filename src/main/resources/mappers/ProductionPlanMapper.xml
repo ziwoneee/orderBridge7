@@ -22,11 +22,6 @@
       AND d.cl_order_id = #{clOrderId}
   </select>
 
-  <!-- CONFIRMED 상태 수주 총 개수 조회 -->
-  <select id="getConfirmedOrderTotalCount" resultType="int">
-    SELECT COUNT(*) FROM client_order WHERE cl_order_status = 'CONFIRMED'
-  </select>
-
   <!-- CONFIRMED 상태 수주 목록 페이징 조회 -->
   <select id="getConfirmedOrderList" resultType="com.itwillbs.domain.ClientOrderVO">
     SELECT
@@ -98,6 +93,7 @@
 		priority,
     	status,
     	due_date,
+    	line_id,
 		created_at
 	) 
 	VALUES (
@@ -108,25 +104,90 @@
 		#{priority},
 		#{status},
 		#{dueDate},
+		#{lineId},
 		NOW()
 	)
   </insert>
 
-<!--  생산 계획 목록 조회  -->
+<!-- 생산 계획 목록 조회 -->
 <select id="getPlanList" parameterType="SearchCriteria" resultType="com.itwillbs.dto.ProductionPlanDTO">
-  SELECT
-		plan_id,
-		cl_order_id,
-		product_id,
-		planned_qty,
-		status AS plan_status,
-		due_date,
-		priority,
-		created_at
-  FROM production_plan
-  ORDER BY created_at DESC
-  LIMIT #{pageStart}, #{perPageNum}
+	SELECT
+		p.plan_id,
+		p.cl_order_id,
+		p.product_id,
+		pr.product_name,   
+		p.line_id,      
+		p.planned_qty,
+		p.status,                
+		p.due_date,
+		p.priority,
+		p.created_at
+	FROM production_plan p
+	JOIN product pr ON p.product_id = pr.product_id
+
+	<choose>
+		<!-- 우선순위 정렬 -->
+		<when test="sortColumn == 'priority' and sortOrder == 'asc'">
+	ORDER BY 
+	CASE p.priority
+		WHEN 'LOW' THEN 1
+		WHEN 'NORMAL' THEN 2
+		WHEN 'HIGH' THEN 3
+		WHEN 'EMERGENCY' THEN 4
+		ELSE 5
+	END ASC
+</when>
+
+<when test="sortColumn == 'priority' and sortOrder == 'desc'">
+	ORDER BY 
+	CASE p.priority
+		WHEN 'EMERGENCY' THEN 1
+		WHEN 'HIGH' THEN 2
+		WHEN 'NORMAL' THEN 3
+		WHEN 'LOW' THEN 4
+		ELSE 5
+	END ASC
+</when>
+
+		<!-- 납기일 정렬 -->
+		<when test="sortColumn == 'due_date'">
+			ORDER BY p.due_date ${sortOrder}
+		</when>
+
+		<!-- 등록일 정렬 -->
+		<when test="sortColumn == 'created_at'">
+			ORDER BY p.created_at ${sortOrder}
+		</when>
+
+		<!-- 그 외 기본 정렬 -->
+		<otherwise>
+			ORDER BY p.created_at DESC
+		</otherwise>
+	</choose>
+
+	LIMIT #{pageStart}, #{perPageNum}
 </select>
+
+
+<!-- 생산 계획 상세 조회 (plan_id 기준) -->
+  <select id="getPlanDetail" parameterType="string" resultType="com.itwillbs.dto.ProductionPlanDTO">
+	SELECT
+		p.plan_id,
+		p.cl_order_id,
+		p.product_id,
+		pr.product_name,
+		p.line_id,
+		p.planned_qty,
+		p.priority,
+		p.status,
+		p.due_date,
+		p.created_at,
+		COALESCE(ps.stock_qty, 0) AS stockQty
+	FROM production_plan p
+	JOIN product pr ON p.product_id = pr.product_id
+	LEFT JOIN product_stock ps ON p.product_id = ps.product_id
+	WHERE p.plan_id = #{planId}
+  </select>
 
 <!-- 생산 계획 총 개수 조회 -->
   <select id="getPlanListCount" parameterType="SearchCriteria" resultType="int">
@@ -143,6 +204,20 @@
       AND product_id = #{productId}
   )
 </select>
+
+<!-- 제품 ID 기준으로 전용 라인 ID 조회 -->
+  <select id="findLineIdByProduct" resultType="string">
+	SELECT line_id
+	FROM production_line
+	WHERE available_product = #{productId}
+  </select>
+  
+  <!-- 선택 확정: 상태를 CONFIRMED로 업데이트 -->
+	<update id="updateStatusToConfirmed">
+		UPDATE production_plan
+		SET status = 'CONFIRMED'
+		WHERE plan_id = #{planId}
+  </update>
 
 
 </mapper>

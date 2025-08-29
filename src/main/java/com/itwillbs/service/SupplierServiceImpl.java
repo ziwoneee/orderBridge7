@@ -9,6 +9,8 @@ import javax.inject.Inject;
 
 import org.springframework.stereotype.Service;
 
+import com.itwillbs.domain.MaterialVO;
+import com.itwillbs.domain.SearchCriteria;
 import com.itwillbs.domain.SupplierVO;
 import com.itwillbs.persistence.SupplierDAO;
 
@@ -18,23 +20,16 @@ public class SupplierServiceImpl implements SupplierService{
 	@Inject
 	private SupplierDAO sDAO;
 	
-	// 협력사 리스트 조회 (검색조건/키워드 + 정렬)
-	@Override
-	public List<SupplierVO> getSupplierList(String keyword, String condition, String sort, String order) throws Exception {
-		// DAO 호출하여 검색 조건 + 정렬 조건에 맞는 협력사 리스트 반환
-		return sDAO.selectSupplierList(keyword, condition, sort, order);
-	}
-	
 	// 페이징 포함된 리스트 조회
     @Override
-    public List<SupplierVO> getSupplierListPaged(int offset, int size, String keyword, String condition, String sort, String order) throws Exception {
-        return sDAO.getSupplierListPaged(offset, size, keyword, condition, sort, order);
+    public List<SupplierVO> getSupplierList(SearchCriteria cri) throws Exception {
+        return sDAO.getSupplierList(cri);
     }
 
     // 전체 건수 조회
     @Override
-    public int getSupplierCount(String keyword, String condition) throws Exception {
-        return sDAO.getSupplierCount(keyword, condition);
+    public int getSupplierCount(SearchCriteria cri) throws Exception {
+        return sDAO.getSupplierCount(cri);
     }
 
 	
@@ -123,15 +118,36 @@ public class SupplierServiceImpl implements SupplierService{
 	
 	
 	
+	// 목록 조회 (자재 발주관리 등록 폼에서 필요)
+	@Override
+    public List<SupplierVO> getAllSuppliers() throws Exception {
+        return sDAO.selectAllSuppliers(); // DAO 메서드 필요
+    }
 	
 	
+	// 거래처 ID로 공급 자재 목록 조회 (자재 발주관리)
+	@Override
+	public List<MaterialVO> getMaterialsBySupplier(String supplierId, String keyword) throws Exception {
+	    return sDAO.getMaterialsBySupplier(supplierId, keyword);
+	}
 	
 	
+	// 협력사 비활성화 처리 (소프트 삭제)
+	@Override
+	public void deactivateSupplier(String supplierId) throws Exception {
+	    sDAO.updateSupplierStatus(supplierId, "비활성");
+	}
 	
-	
-	
-	
-	
+	/**
+	 * 자재별 포장 단위 조회
+	 */
+	@Override
+	public Double getPackQtyByMaterial(String materialId) throws Exception {
+	    // supplier_item 테이블에서 해당 자재의 pack_qty 조회
+	    // 여러 공급업체가 있으면 첫 번째나 기본 업체 사용
+	    return sDAO.getPackQtyByMaterial(materialId);
+	}
+
 	
 	
 	

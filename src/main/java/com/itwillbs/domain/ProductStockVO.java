@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 
 import lombok.Data;
+import com.itwillbs.domain.ProductStockTransactionVO; 
 
 @Data
 public class ProductStockVO {
@@ -16,15 +17,38 @@ public class ProductStockVO {
     private String lotNo;         // LOT 번호
     private Date regDate;         // 등록일
     private Date expireDate;      // 유통기한
+    private int reservedQty;   // 예약 수량
+    private int availableQty;  // 가용 수량 = 현재고 - 예약수량
+    private int cancelQty;  //취소수량
+    
+    // ✅ MyBatis가 매핑할 실제 필드
+    private Integer inboundQty;   // 입고 총합 (쿼리에서 별칭 inbound_qty)
+    private Integer outboundQty;  // 출고 총합 (쿼리에서 별칭 outbound_qty)
+
+  
     
  // ✅ 입출고 상세내역 포함
-    private List<StockTransaction> transactions;
+ // ✅ 리팩토링 후
+    private List<ProductStockTransactionVO> transactions;
 
-    @Data
-    public static class StockTransaction {
-        private Date regDate;  // 등록일
-        private String type;   // '입고' or '출고'
-        private int qty;       // 수량
-        private String memo;   // 비고
+       
+    public int getInboundQty() {
+        if (transactions == null) return 0;
+        return transactions.stream()
+                .filter(t -> "입고".equals(t.getType()))
+                .mapToInt(ProductStockTransactionVO::getQty)
+                .sum();
     }
+
+    public int getOutboundQty() {
+        if (transactions == null) return 0;
+        return transactions.stream()
+                .filter(t -> "출고".equals(t.getType()))
+                .mapToInt(ProductStockTransactionVO::getQty)
+                .sum();
+    }
+
+    
+    
+    
 }

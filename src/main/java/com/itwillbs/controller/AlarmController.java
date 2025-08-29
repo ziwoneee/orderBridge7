@@ -69,11 +69,10 @@ public class AlarmController {
     @PostMapping("/create")
     public void createTestAlarm(@RequestParam String type,
                                 @RequestParam String message,
-                                @RequestParam(required = false) String url,
                                 @RequestParam(required = false) String roleId,
                                 @RequestParam(required = false) String adminId) {
     	logger.info(String.format(" 테스트 알림 생성 요청 - type: %s, message: %s, url: %s, roleId: %s, adminId: %s",
-    	        type, message, url, roleId, adminId));
-        alarmService.createAlarm(type, message, url, roleId, adminId);
+    	        type, message,roleId, adminId));
+        alarmService.createAlarm(type, message, roleId, adminId);
     }
 }

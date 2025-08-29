@@ -2,6 +2,8 @@ package com.itwillbs.controller;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +18,7 @@ import com.itwillbs.domain.PageMaker;
 import com.itwillbs.domain.ProductStockTransactionVO;
 import com.itwillbs.domain.ProductStockVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.dto.LotStockDTO;
 import com.itwillbs.service.ProductStockService;
 
 @Controller
@@ -26,36 +29,94 @@ public class ProductStockController {
 
     @GetMapping("/product/stocklist")
     public String stockList(SearchCriteria cri, Model model) {
+    	System.out.println("cri"+cri);
+
+        // ✅ 허용된 정렬 컬럼
+        List<String> allowedSortColumns = Arrays.asList("product_name", "lot_no", "reg_date", "expire_date");
+
+        // ✅ 정렬 컬럼 유효성 검사
+        if (cri.getSortColumn() == null || !allowedSortColumns.contains(cri.getSortColumn())) {
+            cri.setSortColumn("reg_date"); // 기본 정렬
+        }
+
+        // ✅ 정렬 순서 유효성 검사
+        if (!"asc".equalsIgnoreCase(cri.getSortOrder()) && !"desc".equalsIgnoreCase(cri.getSortOrder())) {
+            cri.setSortOrder("desc");
+        }
+
+        // ✅ LOT별 재고 리스트 + 페이징
         List<ProductStockVO> stockList = productStockService.getStockList(cri);
         int totalCount = productStockService.getStockCount(cri);
         cri.setTotalCount(totalCount);
-        
-     // ✅ PageMaker 설정
+
         PageMaker pageMaker = new PageMaker(cri, totalCount);
         model.addAttribute("pageMaker", pageMaker);
-        
-        // 날짜 계산 추가
-        LocalDate today = LocalDate.now();
-        LocalDate expiredLimitDate = today.plusDays(7); // 7일 후
+        model.addAttribute("stockList", stockList);
+        model.addAttribute("cri", cri);
+        model.addAttribute("menu", "product");
 
-        // 포맷 문자열로 변환
+        // ✅ 제품별 요약 리스트 조회 추가
+        List<ProductStockVO> summaryList = productStockService.getProductStockSummaryList();
+        model.addAttribute("summaryList", summaryList);  // 요약 테이블 출력용
+
+        // 날짜 계산
+        LocalDate today = LocalDate.now();
+        LocalDate expiredLimitDate = today.plusDays(7);
+
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         model.addAttribute("today", today.format(formatter));
         model.addAttribute("expiredLimitDate", expiredLimitDate.format(formatter));
 
         model.addAttribute("stockList", stockList);
         model.addAttribute("cri", cri);
+
         return "product/stockList";
     }
-    
-    //모달창 입출고 리스트
+
+    // ✅ 모달 상세 내역
     @GetMapping("/product/transaction")
     @ResponseBody
-    public List<ProductStockTransactionVO> getStockDetail(
-            @RequestParam("product") String productId,
-            @RequestParam("lot") String lotNo) {
-        return productStockService.getStockDetail(productId, lotNo);
+    public Map<String, Object> getStockDetail(@RequestParam("lot") String lotNo) {
+        Map<String, Object> result = new HashMap<>();
+         System.out.println(lotNo);
+
+        // 1. 입출고/예약 이력
+        List<ProductStockTransactionVO> history = productStockService.getStockDetailByLot(lotNo);
+        result.put("history", history);
+
+        // 2. 상단에 표시할 LOT별 수치 정보
+        ProductStockVO summary = productStockService.getLotSummary(lotNo);
+        System.out.println("@@@@@@@@@@@@@@@@@"+summary);
+        if (summary != null) {
+            result.put("inboundQty", summary.getInboundQty());
+            result.put("totalOutboundQty", summary.getOutboundQty());
+            result.put("reservedQty", summary.getReservedQty());
+            result.put("availableQty", summary.getAvailableQty());
+            result.put("expireDate", summary.getExpireDate());
+        } else {
+            // 기본값 처리
+            result.put("inboundQty", 0);
+            result.put("totalOutboundQty", 0);
+            result.put("reservedQty", 0);
+            result.put("availableQty", 0);
+            result.put("expireDate", null);
+        }
+
+        return result;
     }
 
+
+
     
+ // ✅ 제품별 LOT별 가용 재고 조회 (출고/예약 고려)
+    @GetMapping("/product/available-lots")
+    @ResponseBody
+    public List<LotStockDTO> getAvailableLots(@RequestParam("productId") String productId) {
+        return productStockService.getAvailableLotsOrdered(productId);
+    }
+    
+    
+
+
+
 }

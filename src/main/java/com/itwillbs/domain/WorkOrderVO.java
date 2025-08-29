@@ -3,14 +3,28 @@ package com.itwillbs.domain;
 import java.util.Date;
 import lombok.Data;
 
+/**
+ * 작업 지시 정보를 담는 VO 클래스
+ */
 @Data
 public class WorkOrderVO {
 
     private String orderId;         // 작업 지시 번호
-    private String planId;          // 생산 계획 번호
+    private String productId;       // 제품 ID
     private String lineId;          // 생산 라인 ID
     private int orderQty;           // 지시 수량
-    private Date orderDate;         // 지시일자
-    private String status;          // 상태 (대기/진행중/완료)
-
+    private String priority;        // 우선순위 (EMERGENCY, HIGH, NORMAL, LOW)
+    private String isFollowup;      // 보완 생산 여부 (Y/N)
+    private Date createdAt;         // 등록일
+    private Date updatedAt;         // 수정일
+    private String status;          // 상태 (대기 / 진행중 / 완료)
+    private String remarks;			// 특이사항
+    private Boolean isDeleted;      // 삭제 여부 (true/false)
+    private Date dueDate;           // 납기일 (수주 병합용)
+    private String orderManager;    // 작업지시자 (로그인한 관리자 이름)
+    
+    
+    // 자재 출고관리에 필요
+    private String productName;
+    
 }

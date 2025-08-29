@@ -15,5 +15,7 @@ public class ClientOrderDetailVO {
     // 조인용
     private String productName;      // 제품명(조인)
     // 필요시 추가: 단위, 규격 등
+    private String clientId; //고객ID
+	
 
 }

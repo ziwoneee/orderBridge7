@@ -5,25 +5,45 @@
 
 <mapper namespace="com.itwillbs.mapper.ProductOutboundMapper">
 
+<!-- ✅ 오늘 날짜 기준 출고 ID의 최대 일련번호 조회 -->
+<select id="getMaxOutboundSeqToday" parameterType="String" resultType="Integer">
+  SELECT MAX(CAST(SUBSTRING(outbound_id, -3) AS UNSIGNED))
+  FROM product_outbound
+  WHERE outbound_id LIKE CONCAT('OUT-FG-', #{today}, '%')
+</select>
+
   <!-- 1. 출고 등록 -->
   <insert id="insertOutbound" parameterType="com.itwillbs.domain.ProductOutboundVO">
-    INSERT INTO product_outbound (
-      product_id,
-      lot_no,
-      outbound_qty,
-      outbound_date
-    )
-    VALUES (
-      #{productId},
-      #{lotNo},
-      #{outboundQty},
-      #{outboundDate}
-    )
-  </insert>
+  INSERT INTO product_outbound (
+    outbound_id,
+    product_id,
+    lot_no,
+    outbound_qty,
+    outbound_date,
+     tracking_number,
+     client_id,
+     manager
+  )
+  VALUES (
+    #{outboundId},
+    #{productId},
+    #{lotNo},
+    #{outboundQty},
+    #{outboundDate},
+    #{trackingNumber},
+    #{clientId},
+    #{manager}
+    
+  )
+</insert>
+
   
   <!-- 출고내역 -->
-   <select id="searchOutboundList" parameterType="SearchCriteria" resultType="com.itwillbs.domain.ProductOutboundVO">
-  SELECT o.*, p.product_name, c.client_name
+  <select id="searchOutboundList" parameterType="SearchCriteria" resultType="com.itwillbs.domain.ProductOutboundVO">
+  SELECT 
+    o.*, 
+    p.product_name AS product_name, 
+    c.client_name AS client_name     
   FROM product_outbound o
   LEFT JOIN product p ON o.product_id = p.product_id
   LEFT JOIN client c ON o.client_id = c.client_id
@@ -41,20 +61,20 @@
   </where>
 
   <choose>
-    <when test="sortColumn == 'product_id'">
-      ORDER BY o.product_id ${sortOrder}
+    <when test="sortColumn == 'productname'">
+      ORDER BY p.product_name ${sortOrder}
     </when>
-    <when test="sortColumn == 'outbound_date'">
-      ORDER BY o.outbound_date ${sortOrder}
-    </when>
-    <when test="sortColumn == 'outbound_qty'">
-      ORDER BY o.outbound_qty ${sortOrder}
-    </when>
-    <when test="sortColumn == 'lot_no'">
+    <when test="sortColumn == 'lotno'">
       ORDER BY o.lot_no ${sortOrder}
     </when>
-    <when test="sortColumn == 'client_name'">
+    <when test="sortColumn == 'outbounddate'">
+      ORDER BY o.outbound_date ${sortOrder}
+    </when>
+    <when test="sortColumn == 'clientname'">
       ORDER BY c.client_name ${sortOrder}
+    </when>
+    <when test="sortColumn == 'manager'">
+      ORDER BY o.manager ${sortOrder}
     </when>
     <otherwise>
       ORDER BY o.outbound_date DESC
@@ -65,25 +85,57 @@
 </select>
 
 
+
   <!-- 출고내역 총 개수 (페이징용) -->
   <select id="countOutboundList" parameterType="SearchCriteria" resultType="int">
-    SELECT COUNT(*)
-    FROM product_outbound o
-    LEFT JOIN product p ON o.product_id = p.product_id
-    LEFT JOIN client c ON o.client_id = c.client_id
-    <where>
-      <if test="keyword != null and keyword != ''">
-        (
-          p.product_name LIKE CONCAT('%', #{keyword}, '%') OR
-          o.product_id LIKE CONCAT('%', #{keyword}, '%') OR
-          o.lot_no LIKE CONCAT('%', #{keyword}, '%') OR
-          c.client_name LIKE CONCAT('%', #{keyword}, '%')
-        )
-      </if>
-      <if test="startDate != null"> AND DATE(o.outbound_date) &gt;= #{startDate} </if>
-      <if test="endDate != null"> AND DATE(o.outbound_date) &lt;= #{endDate} </if>
-    </where>
-  </select>
+  SELECT COUNT(*)
+  FROM product_outbound o
+  LEFT JOIN product p ON o.product_id = p.product_id
+  LEFT JOIN client c ON o.client_id = c.client_id
+  <where>
+    <if test="keyword != null and keyword != ''">
+      (
+        p.product_name LIKE CONCAT('%', #{keyword}, '%') OR
+        o.product_id LIKE CONCAT('%', #{keyword}, '%') OR
+        o.lot_no LIKE CONCAT('%', #{keyword}, '%') OR
+        c.client_name LIKE CONCAT('%', #{keyword}, '%')
+      )
+    </if>
+    <if test="startDate != null"> AND DATE(o.outbound_date) &gt;= #{startDate} </if>
+    <if test="endDate != null"> AND DATE(o.outbound_date) &lt;= #{endDate} </if>
+  </where>
+</select>
+
+<!-- 출고 상세정보 단건 조회 -->
+<select id="getOutboundDetail" parameterType="String" resultType="com.itwillbs.domain.ProductOutboundVO">
+  SELECT 
+  po.outbound_id,
+  po.product_id,
+  po.lot_no,
+  po.outbound_qty,
+  po.outbound_date,
+  po.tracking_number AS trackingNumber,   
+  po.client_id,
+  po.manager,
+  po.remark,
+  p.product_name,
+  c.client_name
+FROM product_outbound po
+LEFT JOIN product p ON po.product_id = p.product_id
+LEFT JOIN client c ON po.client_id = c.client_id
+WHERE po.outbound_id = #{outboundId}
+
+</select>
+
+<delete id="deleteOutboundByOrderId" parameterType="String">
+  DELETE FROM product_outbound
+  WHERE tracking_number IN (
+    SELECT tracking_number
+    FROM client_delivery
+    WHERE cl_order_id = #{clOrderId}
+  )
+</delete>
+
 
   
   

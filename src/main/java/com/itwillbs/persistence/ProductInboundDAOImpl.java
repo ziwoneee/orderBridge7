@@ -27,19 +27,19 @@ public class ProductInboundDAOImpl implements ProductInboundDAO {
     // 생산결과 기반 입고 리스트
     @Override
     public List<ProductionResultVO> selectProductionResultList() {
-        return sqlSession.selectList(NAMESPACE + ".selectAllResults");
+        return sqlSession.selectList("com.itwillbs.mapper.ProductionResultMapper.selectAllResults");
     }
 
     // 검색 + 정렬 + 날짜 + 페이징 리스트
     @Override
-    public  List<ProductionResultVO> searchProductionResults(SearchCriteria cri) {
-        return sqlSession.selectList(NAMESPACE + ".searchInboundList", cri);
+    public List<ProductionResultVO> searchProductionResults(SearchCriteria cri) {
+        return sqlSession.selectList("com.itwillbs.mapper.ProductionResultMapper.searchProductionResults", cri);
     }
 
     // 전체 개수 (페이징용)
     @Override
     public int countProductionResults(SearchCriteria cri) {
-        return sqlSession.selectOne(NAMESPACE + ".countInboundList", cri);
+        return sqlSession.selectOne("com.itwillbs.mapper.ProductionResultMapper.countProductionResults", cri);
     }
     
    // 로트 중복확인

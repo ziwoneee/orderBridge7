@@ -13,4 +13,14 @@ public interface ClientService {
     ClientVO getClientById(String clientId); // 고객사 단건 조회
     
     List<ClientVO> getAllClients();//고객사 목록조회(수주등록용)
+
+    void updateClient(ClientVO client); //고객사 수정
+
+    List<ClientVO> getActiveClients(); //고객사 활성화목록
+    
+    boolean isBusinessNumberExists(String businessNumber);// 사업자번호중복확인
+
+    String getClientEmailById(String clientId);
+    
+    String getClientNameById(String clientId);
 }

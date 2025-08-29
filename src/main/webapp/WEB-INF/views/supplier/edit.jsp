@@ -4,50 +4,6 @@
 <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <%@ include file="/WEB-INF/views/main/layout_head.jsp" %>
 
-<style>
-  h5.section-title {
-    border-left: 5px solid #003366;
-    padding-left: 10px;
-    font-weight: 600;
-    color: #003366;
-    margin-bottom: 1rem;
-  }
-
-  label {
-    font-weight: 500;
-  }
-
-  .card-section {
-    border: 1px solid #dee2e6;
-    padding: 2rem;
-    border-radius: 0.5rem;
-    background-color: #ffffff;
-    margin-bottom: 1.5rem;
-  }
-
-  .form-control:focus {
-    border-color: #003366;
-    box-shadow: 0 0 0 0.1rem rgba(0, 51, 102, 0.25);
-  }
-
-  .custom-navy {
-    background-color: #002f6c;  /* 남색 계열 */
-	color: #fff;
-	border: none;
-  }
-
-  .custom-navy:hover {
-    background-color: #001f4d;
-  }
-  
-  /* 필수 입력 항목 */
-  .form-label.required::after {
-    content: " *";
-    color: red;
-    margin-left: 2px;
-  }
-</style>
-
 <div class="container-scroller">
 
   <%@ include file="/WEB-INF/views/main/top.jsp" %>      
@@ -65,7 +21,7 @@
 			  <h3 class="font-weight-bold">협력사 정보 수정</h3>
 			</div>
     
-      <form action="/supplier/update" method="post">
+      <form action="/supplier/edit" method="post">
       	<input type="hidden" name="supplierId" value="${supplierVO.supplierId}">
         
         <!-- 기본 정보 -->
@@ -74,18 +30,18 @@
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label required">거래처명</label>
-              <input type="text" class="form-control" name="supplierName" required value="${supplierVO.supplierName}">
+              <input type="text" class="form-control" name="supplierName" required value="${supplierVO.supplierName}" readonly>
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label required">사업자등록번호</label>
                 <div class="input-group">
-			    	<input type="text" class="form-control" name="businessNumber" id="businessNumber" placeholder="ex) 123-45-67890" required
+			    	<input type="text" class="form-control" name="businessNumber" id="businessNumber" readonly
 			    		   value="${supplierVO.businessNumber}">
 			    	<div class="input-group-append">
 			      		<button type="button" class="btn btn-outline-primary" id="checkBizBtn">중복확인</button>
 			   		 </div>
 			  	</div>
-			  <small id="bizCheckMsg" class="form-text text-muted"></small>
+			  <small class="form-text text-muted text-danger">* 사업자등록번호는 수정할 수 없습니다.</small>
             </div>
             <div class="col-md-6 mb-3">
               <label>협력사 분류</label>
@@ -137,18 +93,18 @@
         <div class="card-section">
           <h5 class="section-title">정산 정보</h5>
           <div class="row">
-            <div class="col-md-4 mb-3">
-              <label>정산방식</label>
-              <input type="text" class="form-control" name="settlementMethod" value="${supplierVO.settlementMethod}">
-            </div>
-            <div class="col-md-4 mb-3">
-              <label>상태</label>
-              <select class="form-control" name="status">
-                <option value="활성" ${supplierVO.status == '활성' ? 'selected' : ''}>활성</option>
-                <option value="비활성" ${supplierVO.status == '비활성' ? 'selected' : ''}>비활성</option>
-              </select>
-            </div>
-            <div class="col-md-4 mb-3">
+            <div class="col-md-6 mb-3">
+			  <label>정산방식</label>
+			  <select class="form-control" name="settlementMethod">
+			    <option value="">선택</option>
+			    <option value="계좌이체" ${supplierVO.settlementMethod == '계좌이체' ? 'selected' : ''}>계좌이체</option>
+			    <option value="현금" ${supplierVO.settlementMethod == '현금' ? 'selected' : ''}>현금</option>
+			    <option value="외상" ${supplierVO.settlementMethod == '외상' ? 'selected' : ''}>외상</option>
+			    <option value="선지급" ${supplierVO.settlementMethod == '선지급' ? 'selected' : ''}>선지급</option>
+			    <option value="기타" ${supplierVO.settlementMethod == '기타' ? 'selected' : ''}>기타</option>
+			  </select>
+			</div>
+            <div class="col-md-6 mb-3">
               <label>예금주</label>
               <input type="text" class="form-control" name="accountHolder" value="${supplierVO.accountHolder}">
             </div>
@@ -185,11 +141,19 @@
             </div>
           </div>
         </div>
+        
+        <div class="col-md-4 mb-3">
+           <label for="status">거래상태</label>
+           <select class="form-control" name="status" id="status">
+             <option value="활성" ${supplierVO.status == '활성' ? 'selected' : ''}>활성</option>
+             <option value="비활성" ${supplierVO.status == '비활성' ? 'selected' : ''}>비활성</option>
+           </select>
+         </div>
 
         <!-- 버튼 -->
         <div class="text-right">
           <button type="submit" class="btn btn-primary mr-2">수정</button>
-          <a href="/supplier/list" class="btn btn-secondary">목록</a>
+          <a href="/supplier/list" class="btn btn-outline-secondary">목록</a>
         </div>
         
 		<input type="hidden" id="errorMsg" value="${errorMsg}">

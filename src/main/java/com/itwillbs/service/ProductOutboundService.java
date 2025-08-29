@@ -11,5 +11,16 @@ public interface ProductOutboundService {
 	 List<ProductOutboundVO> searchOutboundList(SearchCriteria cri);
 	 int countOutboundList(SearchCriteria cri);
 	 
+	 String generateOutboundId();
+	 
+	 
+	 //상세보기
+	 ProductOutboundVO getOutboundDetail(String outboundId);
 
+	 //출고취소시 이력 삭제
+	void deleteOutboundByOrderId(String clOrderId);
+
+	
+
+	 
 }

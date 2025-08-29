@@ -1,0 +1,541 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.itwillbs.mapper.ClientDeliveryMapper">
+
+  <!-- ✅ 출하 대기 그룹 조회 -->
+<!-- 파라미터: sortColumn, sortOrder, offset, perPageNum, (필요시) startDate/endDate/keyword -->
+<select id="getPendingShipmentGroupedList" parameterType="map" resultMap="GroupedShipmentMap">
+  SELECT
+    co.cl_order_id,
+    co.cl_delivery_date AS cl_delivery_date,
+    c.client_name,
+    p.product_id,
+    p.product_name,
+    cod.order_qty,
+    cod.detail_id,
+    COALESCE((
+      SELECT SUM(remaining_qty) FROM (
+        SELECT
+          pi.inbound_qty - COALESCE(SUM(po.outbound_qty), 0) AS remaining_qty
+        FROM product_inbound pi
+        LEFT JOIN product_outbound po
+          ON pi.product_id = po.product_id
+         AND pi.lot_no     = po.lot_no
+        WHERE pi.product_id = p.product_id
+        GROUP BY pi.inbound_id, pi.inbound_qty, pi.expire_date
+        HAVING remaining_qty > 0
+      ) available
+    ), 0) AS stock_qty
+  FROM client_order_detail cod
+  JOIN client_order co ON cod.cl_order_id = co.cl_order_id
+  JOIN client c        ON co.client_id    = c.client_id
+  JOIN product p       ON cod.product_id  = p.product_id
+  <where>
+    co.cl_order_status = 'CONFIRMED'
+    AND (cod.detail_status IS NULL OR cod.detail_status != 'SHIPPED')
+
+    <!-- (옵션) 날짜/키워드 필터가 있으면 여기 추가 -->
+    <if test="startDate != null and startDate != ''">
+      AND co.cl_delivery_date <![CDATA[>=]]> CONCAT(#{startDate}, ' 00:00:00')
+    </if>
+    <if test="endDate != null and endDate != ''">
+      AND co.cl_delivery_date <![CDATA[<=]]> CONCAT(#{endDate}, ' 23:59:59')
+    </if>
+    <if test="keyword != null and keyword != ''">
+      AND (
+        co.cl_order_id  LIKE CONCAT('%', #{keyword}, '%')
+        OR c.client_name LIKE CONCAT('%', #{keyword}, '%')
+        OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
+      )
+    </if>
+  </where>
+  GROUP BY
+    co.cl_order_id, co.cl_delivery_date, c.client_name,
+    p.product_id, p.product_name, cod.order_qty, cod.detail_id
+
+  <!-- 🔒 동적 정렬(화이트리스트) + 2차 고정 정렬(제품/상세) -->
+  ORDER BY
+    <choose>
+      <when test="sortColumn == 'clDeliveryDate'">co.cl_delivery_date</when>
+      <when test="sortColumn == 'clOrderId'">co.cl_order_id</when>
+      <when test="sortColumn == 'clientName'">c.client_name</when>
+      <when test="sortColumn == 'productName'">p.product_name</when>
+      <otherwise>co.cl_delivery_date</otherwise>
+    </choose>
+    <choose>
+      <when test="sortOrder == 'desc'">DESC</when>
+      <otherwise>ASC</otherwise>
+    </choose>,
+    p.product_name ASC,
+    cod.detail_id ASC
+
+  <!-- 페이지네이션이 있다면 -->
+  <if test="offset != null and perPageNum != null">
+    LIMIT #{offset}, #{perPageNum}
+  </if>
+</select>
+
+
+  <resultMap id="GroupedShipmentMap" type="com.itwillbs.dto.ShipmentPendingGroupDTO">
+    <id property="clOrderId" column="cl_order_id"/>
+    <result property="clientName" column="client_name"/>
+    <collection property="productList" ofType="com.itwillbs.dto.ShipmentProductDTO">
+      <result property="productId" column="product_id"/>
+      <result property="productName" column="product_name"/>
+      <result property="orderQty" column="order_qty"/>
+      <result property="stockQty" column="stock_qty"/>
+      <result property="detailId" column="detail_id"/>
+      <result property="clDeliveryDate" column="cl_delivery_date"/>
+      
+    </collection>
+  </resultMap>
+
+  <!-- ✅ 단일 출하 상세 항목 -->
+  <select id="selectShipmentItem" parameterType="long" resultType="com.itwillbs.dto.ShipmentPendingDTO">
+    SELECT
+      cod.detail_id AS detailId,
+      cod.product_id,
+      cod.order_qty,
+      co.cl_order_id AS clOrderId,
+      c.client_name AS clientName,
+      p.product_name,
+      COALESCE(ps.stock_qty, 0) AS stockQty
+    FROM client_order_detail cod
+    JOIN client_order co ON cod.cl_order_id = co.cl_order_id
+    JOIN client c ON co.client_id = c.client_id
+    JOIN product p ON cod.product_id = p.product_id
+    LEFT JOIN product_stock ps ON cod.product_id = ps.product_id
+    WHERE cod.detail_id = #{orderDetailId}
+  </select>
+
+  <!-- ✅ LOT별 가용 재고 조회 -->
+  <select id="getAvailableLots" parameterType="string" resultType="com.itwillbs.dto.LotStockDTO">
+    SELECT
+      pi.lot_no AS lotNo,
+      (pi.inbound_qty - IFNULL(SUM(po.outbound_qty), 0)) AS remainingQty
+    FROM product_inbound pi
+    LEFT JOIN product_outbound po
+      ON pi.product_id = po.product_id AND pi.lot_no = po.lot_no
+    WHERE pi.product_id = #{productId}
+    GROUP BY pi.lot_no, pi.inbound_qty, pi.expire_date
+    HAVING remainingQty > 0
+    ORDER BY pi.expire_date ASC
+  </select>
+
+  <!-- ✅ 출하 등록 -->
+  <insert id="insertDelivery" parameterType="com.itwillbs.domain.ClientDeliveryVO">
+    INSERT INTO client_delivery (
+      delivery_id, cl_order_id, product_id, lot_no, delivery_qty, delivery_date,
+      delivery_status, client_id, tracking_number,
+      created_at, updated_at
+    ) VALUES (
+     #{deliveryId}, #{clOrderId}, #{productId}, #{lotNo}, #{deliveryQty}, #{deliveryDate},
+      #{deliveryStatus}, #{clientId}, #{trackingNumber},
+      #{createdAt}, #{updatedAt}
+    )
+  </insert>
+
+  <!-- ✅ 재고 차감 -->
+  <update id="decreaseLotStock" parameterType="map">
+    UPDATE product_stock
+    SET stock_qty = stock_qty - #{qty}
+    WHERE product_id = #{productId} AND lot_no = #{lotNo}
+  </update>
+
+  <update id="decreaseStock" parameterType="map">
+    UPDATE product_stock
+    SET stock_qty = stock_qty - #{qty}
+    WHERE product_id = #{productId}
+  </update>
+
+  <!-- ✅ 상태 업데이트 -->
+  <update id="updateOrderDetailStatus" parameterType="map">
+    UPDATE client_order_detail
+    SET detail_status = #{status}
+    WHERE detail_id = #{orderDetailId}
+  </update>
+
+  <update id="updateClientOrderStatus" parameterType="map">
+    UPDATE client_order
+    SET cl_order_status = #{status}
+    WHERE cl_order_id = #{clOrderId}
+  </update>
+
+  <!-- ✅ 수주ID 기준 출하 대상 -->
+  <select id="selectItemsByOrderId" resultType="com.itwillbs.dto.ShipmentPendingDTO">
+  SELECT
+    cod.detail_id,
+    cod.cl_order_id,
+    cod.product_id,
+    p.product_name,
+    cod.order_qty,
+    co.client_id,
+    c.client_name,
+    COALESCE((
+      SELECT SUM(pi.inbound_qty - IFNULL((
+        SELECT SUM(po.outbound_qty)
+        FROM product_outbound po
+        WHERE po.product_id = pi.product_id
+          AND po.lot_no = pi.lot_no
+      ), 0))
+      FROM product_inbound pi
+      WHERE pi.product_id = cod.product_id
+    ), 0) AS stock_qty
+  FROM client_order_detail cod
+  JOIN client_order co ON cod.cl_order_id = co.cl_order_id
+  JOIN client c ON co.client_id = c.client_id
+  JOIN product p ON cod.product_id = p.product_id
+  WHERE cod.cl_order_id = #{clOrderId}
+</select>
+
+
+  <!-- ✅ 출하 완료 목록 조회 -->
+<select id="searchCompletedShipmentList"
+        parameterType="com.itwillbs.domain.SearchCriteria"
+        resultType="com.itwillbs.dto.ShipmentCompletedDTO">
+
+  SELECT
+    cd.delivery_id,
+    cd.cl_order_id,
+    f.client_name,
+    cd.product_id,
+    p.product_name,
+    cd.lot_no,
+    cd.delivery_qty,
+    cd.delivery_date,
+    cd.tracking_number,
+    cd.delivery_status,
+    cd.created_at
+  FROM client_delivery cd
+  JOIN product p ON cd.product_id = p.product_id
+  JOIN client c ON cd.client_id = c.client_id
+  JOIN (
+      /* ✅ 주문번호 단위로 한 줄만 가져오는 필터 서브쿼리 (정렬/페이지네이션 전용) */
+      SELECT
+        co.cl_order_id,
+        MAX(c.client_name) AS client_name,
+        MIN(cd2.delivery_date) AS first_delivery_date   /* 출하일자 정렬키 */
+      FROM client_order co
+      JOIN client_delivery cd2 ON co.cl_order_id = cd2.cl_order_id
+      JOIN client c ON co.client_id = c.client_id
+      <where>
+        AND cd2.delivery_status != 'CANCELLED'
+
+        <if test="startDate != null and startDate != ''">
+          AND cd2.delivery_date <![CDATA[>=]]> CONCAT(#{startDate}, ' 00:00:00')
+        </if>
+        <if test="endDate != null and endDate != ''">
+          AND cd2.delivery_date <![CDATA[<=]]> CONCAT(#{endDate}, ' 23:59:59')
+        </if>
+
+        <if test="keyword != null and keyword != ''">
+          AND (
+            co.cl_order_id LIKE CONCAT('%', #{keyword}, '%')
+            OR EXISTS (
+              SELECT 1
+              FROM client_delivery d
+              JOIN product p2 ON d.product_id = p2.product_id
+              JOIN client c2 ON d.client_id = c2.client_id
+              WHERE d.cl_order_id = co.cl_order_id
+                AND (
+                  p2.product_name LIKE CONCAT('%', #{keyword}, '%')
+                  OR c2.client_name LIKE CONCAT('%', #{keyword}, '%')
+                )
+            )
+          )
+        </if>
+      </where>
+      GROUP BY co.cl_order_id
+
+      /* ✅ 정렬 화이트리스트 (소문자로 통일해서 비교) */
+      ORDER BY
+      <choose>
+        <when test="sortColumn == 'clorderid'"> co.cl_order_id </when>
+        <when test="sortColumn == 'clientname'"> client_name </when>
+        <when test="sortColumn == 'deliverydate'"> first_delivery_date </when>
+        <otherwise> first_delivery_date </otherwise>
+      </choose>
+      <choose>
+        <when test="sortOrder == 'desc'"> DESC </when>
+        <otherwise> ASC </otherwise>
+      </choose>
+
+      LIMIT #{pageStart}, #{perPageNum}
+  ) AS f ON cd.cl_order_id = f.cl_order_id
+
+  WHERE cd.delivery_status != 'CANCELLED'
+
+  /* ✅ 상세행은 그룹 정렬 유지 + 행 내부는 날짜/ID로 안정 정렬 */
+  ORDER BY
+  <choose>
+    <when test="sortColumn == 'clorderid'"> f.cl_order_id </when>
+    <when test="sortColumn == 'clientname'"> f.client_name </when>
+    <when test="sortColumn == 'deliverydate'"> f.first_delivery_date </when>
+    <otherwise> f.first_delivery_date </otherwise>
+  </choose>
+  <choose>
+    <when test="sortOrder == 'desc'"> DESC </when>
+    <otherwise> ASC </otherwise>
+  </choose>
+  , cd.delivery_date ASC
+  , cd.delivery_id ASC
+</select>
+
+
+
+
+
+<!-- 출하 대기 목록 조회 (검색)-->
+<select id="searchPendingGroupedList"
+        parameterType="com.itwillbs.domain.SearchCriteria"
+        resultMap="GroupedShipmentMap">
+  SELECT
+    co.cl_order_id,
+    c.client_name,
+    p.product_id,
+    p.product_name,
+    cod.order_qty,
+    cod.detail_id,
+    co.cl_delivery_date AS cl_delivery_date,
+    COALESCE((
+      SELECT SUM(remaining_qty) FROM (
+        SELECT
+          pi.inbound_qty - COALESCE(SUM(po.outbound_qty), 0) AS remaining_qty
+        FROM product_inbound pi
+        LEFT JOIN product_outbound po
+          ON pi.product_id = po.product_id AND pi.lot_no = po.lot_no
+        WHERE pi.product_id = p.product_id
+        GROUP BY pi.inbound_id, pi.inbound_qty, pi.expire_date
+        HAVING remaining_qty > 0
+      ) AS available
+    ), 0) AS stock_qty
+  FROM (
+    SELECT co.cl_order_id
+    FROM client_order co
+    JOIN client c ON co.client_id = c.client_id
+    JOIN client_order_detail cod ON cod.cl_order_id = co.cl_order_id
+    <where>
+      AND co.cl_order_status = 'CONFIRMED'
+      AND (cod.detail_status IS NULL OR cod.detail_status != 'SHIPPED')
+
+      <!-- 날짜 필터 -->
+      <if test="startDate != null and startDate != ''">
+        AND co.cl_delivery_date <![CDATA[>=]]> CONCAT(#{startDate}, ' 00:00:00')
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND co.cl_delivery_date <![CDATA[<=]]> CONCAT(#{endDate}, ' 23:59:59')
+      </if>
+
+      <!-- 키워드 -->
+      <if test="keyword != null and keyword != ''">
+        AND (
+             co.cl_order_id LIKE CONCAT('%', #{keyword}, '%')
+          OR c.client_name  LIKE CONCAT('%', #{keyword}, '%')
+          OR EXISTS (
+               SELECT 1
+               FROM client_order_detail cod2
+               JOIN product p2 ON p2.product_id = cod2.product_id
+               WHERE cod2.cl_order_id = co.cl_order_id
+                 AND p2.product_name LIKE CONCAT('%', #{keyword}, '%')
+          )
+        )
+      </if>
+    </where>
+    GROUP BY co.cl_order_id
+    ORDER BY
+      co.cl_delivery_date ASC,   <!-- ✅ 날짜 정렬을 무조건 우선 적용 -->
+      <choose>
+        <when test="sortColumn == 'clientName'">c.client_name</when>
+        <when test="sortColumn == 'clOrderId'">co.cl_order_id</when>
+        <otherwise>co.cl_order_id</otherwise>
+      </choose>
+      ${sortOrder}
+    LIMIT #{pageStart}, #{perPageNum}
+  ) g
+  JOIN client_order co ON co.cl_order_id = g.cl_order_id
+  JOIN client c ON co.client_id = c.client_id
+  JOIN client_order_detail cod ON cod.cl_order_id = co.cl_order_id
+  JOIN product p ON cod.product_id = p.product_id
+  WHERE (cod.detail_status IS NULL OR cod.detail_status != 'SHIPPED')
+  ORDER BY
+    co.cl_delivery_date ASC,   <!-- ✅ 항상 날짜 정렬 먼저 -->
+    <choose>
+      <when test="sortColumn == 'clientName'">c.client_name</when>
+      <when test="sortColumn == 'clOrderId'">co.cl_order_id</when>
+      <when test="sortColumn == 'productName'">p.product_name</when>
+      <otherwise>co.cl_order_id</otherwise>
+    </choose>
+    ${sortOrder},
+    cod.detail_id ASC
+</select>
+
+
+
+
+<!-- ✅ 출하대기: 수주번호별 카운트 (수주상태=확정 + 출하대기 상세 존재) -->
+<select id="countPendingGroupedList"
+        parameterType="com.itwillbs.domain.SearchCriteria"
+        resultType="int">
+  SELECT COUNT(*) 
+  FROM (
+    SELECT co.cl_order_id
+    FROM client_order co
+    JOIN client c ON co.client_id = c.client_id
+    WHERE co.cl_order_status = 'CONFIRMED'
+      /* ✅ 출하대기 상세가 1개 이상 존재해야 함 */
+      AND EXISTS (
+        SELECT 1
+        FROM client_order_detail cod
+        WHERE cod.cl_order_id = co.cl_order_id
+          AND (cod.detail_status IS NULL OR cod.detail_status != 'SHIPPED')
+      )
+
+      <!-- 날짜 필터: 납기요청일 기준 -->
+      <if test="startDate != null and startDate != ''">
+        AND co.cl_delivery_date <![CDATA[>=]]> CONCAT(#{startDate}, ' 00:00:00')
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND co.cl_delivery_date <![CDATA[<=]]> CONCAT(#{endDate}, ' 23:59:59')
+      </if>
+
+      <!-- 키워드: 수주번호/거래처명/제품명 -->
+      <if test="keyword != null and keyword != ''">
+        AND (
+             co.cl_order_id LIKE CONCAT('%', #{keyword}, '%')
+          OR c.client_name  LIKE CONCAT('%', #{keyword}, '%')
+          OR EXISTS (
+               SELECT 1
+               FROM client_order_detail cod2
+               JOIN product p2 ON p2.product_id = cod2.product_id
+               WHERE cod2.cl_order_id = co.cl_order_id
+                 AND (cod2.detail_status IS NULL OR cod2.detail_status != 'SHIPPED')
+                 AND p2.product_name LIKE CONCAT('%', #{keyword}, '%')
+          )
+        )
+      </if>
+    GROUP BY co.cl_order_id
+  ) t
+</select>
+
+
+
+
+
+<!-- ✅ 출하완료: 수주번호 기준 카운트 (client_delivery 기준, CANCELLED 제외) -->
+<select id="countCompletedShipmentList"
+        parameterType="com.itwillbs.domain.SearchCriteria"
+        resultType="int">
+  SELECT COUNT(*) 
+  FROM (
+    SELECT cd.cl_order_id
+    FROM client_delivery cd
+    JOIN client  c ON cd.client_id = c.client_id
+    JOIN product p ON cd.product_id = p.product_id
+    WHERE cd.delivery_status != 'CANCELLED'
+      <!-- 날짜 필터: 출하일자 기준 -->
+      <if test="startDate != null and startDate != ''">
+        AND cd.delivery_date <![CDATA[>=]]> CONCAT(#{startDate}, ' 00:00:00')
+      </if>
+      <if test="endDate != null and endDate != ''">
+        AND cd.delivery_date <![CDATA[<=]]> CONCAT(#{endDate}, ' 23:59:59')
+      </if>
+      <!-- 키워드: 수주번호/제품명/거래처명 -->
+      <if test="keyword != null and keyword != ''">
+        AND (
+             cd.cl_order_id  LIKE CONCAT('%', #{keyword}, '%')
+          OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
+          OR c.client_name  LIKE CONCAT('%', #{keyword}, '%')
+        )
+      </if>
+    GROUP BY cd.cl_order_id
+  ) AS t
+</select>
+
+
+
+
+
+<!-- 오늘 날짜 기준 출하 ID의 최대 일련번호 조회 -->
+<select id="getMaxDeliverySeqToday" parameterType="String" resultType="Integer">
+  SELECT MAX(CAST(SUBSTRING(delivery_id, -3) AS UNSIGNED))
+  FROM client_delivery
+  WHERE delivery_id LIKE CONCAT('DLV-', #{today}, '%')
+</select>
+
+<!-- 수주번호 기준 출하이력 조회 -->
+<select id="getDeliveriesByOrderId" parameterType="String" resultType="com.itwillbs.dto.DeliveryHistoryDTO">
+  SELECT
+    cd.product_id,
+    p.product_name,
+    cd.delivery_qty,
+    cd.lot_no,
+    cd.delivery_date,
+    cd.tracking_number,
+    cd.delivery_status
+  FROM client_delivery cd
+  JOIN product p ON cd.product_id = p.product_id
+  WHERE cd.cl_order_id = #{clOrderId}
+  ORDER BY cd.delivery_date ASC
+</select>
+
+<!-- ✅ 출하 취소 시 수주 상태를 'CONFIRMED'로 되돌림 -->
+<update id="revertClientOrderStatus" parameterType="String">
+  UPDATE client_order
+  SET cl_order_status = 'CONFIRMED'
+  WHERE cl_order_id = #{clOrderId}
+</update>
+
+<!-- ✅ delivery_id로 출하 상세 조회 -->
+<select id="getDeliveryById" parameterType="String" resultType="com.itwillbs.domain.ClientDeliveryVO">
+  SELECT
+    d.delivery_id,
+    d.cl_order_id,
+    d.delivery_qty,
+    d.lot_no,
+    d.delivery_status,   
+    d.tracking_number,
+    d.created_at,
+    d.updated_at,
+    d.product_id,
+    co.client_id,           
+    c.client_name           
+
+  FROM client_delivery d
+  JOIN client_order co ON d.cl_order_id = co.cl_order_id
+  JOIN client c ON co.client_id = c.client_id
+  WHERE d.delivery_id = #{deliveryId}
+</select>
+
+
+
+<!-- ✅ 출하 상태 변경 -->
+<update id="updateDeliveryStatus" parameterType="map">
+  UPDATE client_delivery
+  SET delivery_status = #{status}
+  WHERE delivery_id = #{deliveryId}
+</update>
+
+<!-- 주문 수량 합계 조회 -->
+<select id="getTotalOrderQtyByOrderId" parameterType="string" resultType="int">
+    SELECT SUM(order_qty)
+    FROM client_order_detail
+    WHERE cl_order_id = #{clOrderId}
+</select>
+
+<!-- 3일뒤 배송완료 -->
+<update id="updateDeliveriesToCompletedAfter3Days">
+  UPDATE client_delivery
+  SET delivery_status = '배송완료',
+      updated_at = NOW()
+  WHERE delivery_status = '배송준비'
+    AND delivery_date &lt;= DATE_SUB(NOW(), INTERVAL 3 DAY)
+</update>
+
+
+
+
+
+
+</mapper>

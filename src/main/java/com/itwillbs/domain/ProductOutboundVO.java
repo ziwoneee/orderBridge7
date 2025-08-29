@@ -20,5 +20,8 @@ public class ProductOutboundVO {
     private String productName;   // 제품명 (조인용)
     private String manager;       // 담당자명 (등록자, 조인용)
     private String clientName;    // 거래처명 (조인용)
+    
+    private String trackingNumber; // 운송장번호
+
 
 }

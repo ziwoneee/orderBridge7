@@ -20,15 +20,19 @@
   </resultMap>
 
   <!-- 1. 입고 등록 -->
-  <insert id="insertInbound" parameterType="com.itwillbs.domain.ProductInboundVO">
-    INSERT INTO product_inbound (
-      inbound_id, lot_no, product_id, product_name, inbound_qty,
-      inbound_type, remark, manager, reg_date, created_at
-    ) VALUES (
-      #{inboundId}, #{lotNo}, #{productId}, #{productName}, #{inboundQty},
-      #{inboundType}, #{remark}, #{manager}, #{regDate}, #{createdAt}
-    )
-  </insert>
+ <insert id="insertInbound" parameterType="com.itwillbs.domain.ProductInboundVO">
+  INSERT INTO product_inbound (
+    inbound_id, lot_no, product_id, product_name, inbound_qty,
+    inbound_type, remark, manager, reg_date, created_at,progress_rate,
+    expire_date                     
+  ) VALUES (
+    #{inboundId}, #{lotNo}, #{productId}, #{productName}, #{inboundQty},
+    #{inboundType}, #{remark}, #{manager},
+    #{regDate}, #{createdAt},#{progressRate},
+    DATE_ADD(COALESCE(#{regDate}, NOW()), INTERVAL 1 YEAR)  
+  )
+</insert>
+
 
   <!-- 2. 중복 확인 -->
   <select id="existsByLotNo" parameterType="String" resultType="boolean">
@@ -48,12 +52,13 @@
       worker_name,
       started_at,
       ended_at,
-      created_at
+      created_at,
+      progress_rate
     FROM production_result
     ORDER BY created_at DESC
   </select>
 
-  <!-- ✅ 4. 검색 + 정렬 + 날짜 + 페이징 -->
+    <!-- ✅ 4. 검색 + 정렬 + 날짜 + 페이징 -->
   <select id="searchInboundList" parameterType="com.itwillbs.domain.SearchCriteria" resultMap="ProductInboundMap">
     SELECT 
       inbound_id,
@@ -81,22 +86,25 @@
       <if test="endDate != null and endDate != ''">
         AND DATE(created_at) &lt;= #{endDate}
       </if>
+    
     <choose>
-      <when test="sortColumn == 'created_at'">
+      <when test="sortColumn == 'productname'">
+        ORDER BY product_name ${sortOrder}
+      </when>
+      <when test="sortColumn == 'createdat'">
         ORDER BY created_at ${sortOrder}
       </when>
-      <when test="sortColumn == 'lot_no'">
-        ORDER BY lot_no ${sortOrder}
-      </when>
-      <when test="sortColumn == 'product_name'">
-        ORDER BY product_name ${sortOrder}
+      <when test="sortColumn == 'manager'">
+        ORDER BY manager ${sortOrder}
       </when>
       <otherwise>
         ORDER BY created_at DESC
       </otherwise>
     </choose>
+
     LIMIT #{pageStart}, #{perPageNum}
   </select>
+
 
   <!-- ✅ 5. 총 개수 -->
   <select id="countInboundList" parameterType="com.itwillbs.domain.SearchCriteria" resultType="int">

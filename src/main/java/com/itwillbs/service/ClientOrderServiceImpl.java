@@ -6,10 +6,12 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.itwillbs.domain.ClientOrderVO;
 import com.itwillbs.domain.ClientOrderDetailVO;
 import com.itwillbs.domain.SearchCriteria;
+import com.itwillbs.persistence.ClientDAO;
 import com.itwillbs.persistence.ClientOrderDAO;
 import com.itwillbs.persistence.ClientOrderDetailDAO; // 상세 DAO 필요!
 
@@ -22,6 +24,12 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     @Autowired
     private ClientOrderDetailDAO clientOrderDetailDAO; // 상세 DAO 주입
 
+       
+    @Autowired(required = false)
+    private ClientService clientService; 
+    
+   
+    
     // 수주(마스터) 목록
     @Override
     public List<ClientOrderVO> getOrderList(SearchCriteria cri) {
@@ -52,7 +60,8 @@ public class ClientOrderServiceImpl implements ClientOrderService {
         }
 
         clientOrderDAO.insertOrder(orderVO);
-        // ※ 상세 등록은 Controller에서 for문으로 별도 호출 (일반적)
+           
+        
     }
 
     // 상세(제품별) 등록
@@ -88,4 +97,34 @@ public class ClientOrderServiceImpl implements ClientOrderService {
     public ClientOrderVO getOrderById(String clOrderId) {
         return clientOrderDAO.getOrderById(clOrderId);
     }
+    
+    
+    //수주 입금확인
+    @Override
+    public void updateOrderStatus(String orderNum, String status) {
+        clientOrderDAO.updateOrderStatus(orderNum, status);
+    }
+    
+    
+    @Override
+    @Transactional
+    public void deleteOrder(String clOrderId) {
+        // 상세 먼저 삭제
+        clientOrderDetailDAO.deleteDetailsByOrderId(clOrderId);
+        // 마스터 삭제
+        clientOrderDAO.deleteOrder(clOrderId);
+    }
+//상태별 카운트
+    @Override
+    public int countOrdersByStatus(String status) {
+        return clientOrderDAO.countOrdersByStatus(status);
+    }
+
+    @Override
+    public int countAllOrders() {
+        return clientOrderDAO.countAllOrders();
+    }
+
+    
+    
 }

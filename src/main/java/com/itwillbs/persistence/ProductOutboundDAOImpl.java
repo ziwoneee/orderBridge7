@@ -32,5 +32,23 @@ public class ProductOutboundDAOImpl implements ProductOutboundDAO {
         return sqlSession.selectOne(NAMESPACE + ".countOutboundList", cri);
     }
     
+    @Override
+    public Integer getMaxOutboundSeqToday(String today) {
+        return sqlSession.selectOne(NAMESPACE + ".getMaxOutboundSeqToday", today);
+    }
+    //상세보기
+    @Override
+    public ProductOutboundVO getOutboundDetail(String outboundId) {
+        return sqlSession.selectOne(NAMESPACE + ".getOutboundDetail", outboundId);
+    }
+    
+    //출하취소시 삭제
+    @Override
+    public void deleteOutboundByOrderId(String clOrderId) {
+        sqlSession.delete("com.itwillbs.mapper.ProductOutboundMapper.deleteOutboundByOrderId", clOrderId);
+    }
+
+
+    
     
 }

@@ -13,5 +13,22 @@ public class MaterialOrderVO {
     private Date expectedArrivedDate;        // 예상 입고일 (입고 예정일)
     private String createdBy;                // 작성자 (발주서 작성자 ID 또는 이름)
     private String note;                     // 비고 (기타 비고사항)
+    private String workOrderId;
+    private String handledBy;				 // 당자 admin_id
+    
+    // 표시용(조인 결과)
+    private String handlerName;   // 담당자 이름
+
+    // (있으면 편한 옵션)
+    private String creatorName;   // 생성자 이름
+    
+	// 화면 표시용 추가 필드들
+    private String materialName;   			 // 대표 자재명
+    private int totalQuantity;      		 // 총 수량
+    private int totalPrice; 			 // 총 금액 (기존과 다른 의미로 사용)
+    private String warehouseCode; 		     // 대표 입고창고
+    
+    // 입고
+    private String supplierName;             // 공급처명 (JOIN 결과)
 
 }
